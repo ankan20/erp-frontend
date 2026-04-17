@@ -1,0 +1,145 @@
+"use client";
+
+import { useState } from "react";
+import { usePathname, useRouter } from "next/navigation";
+import { sidebarConfig } from "@/config/sidebar.config";
+import { ChevronRight, ChevronDown, Menu } from "lucide-react";
+
+export default function AppSidebar() {
+  const pathname = usePathname();
+  const router = useRouter();
+
+  const [collapsed, setCollapsed] = useState(true);
+  const [manualOpen, setManualOpen] = useState({});
+
+  //Active detection 
+  const hasActiveChild = (item) => {
+    if (!item) return false;
+
+    if (item.path && pathname.startsWith(item.path)) {
+      return true;
+    }
+
+    if (item.children && Array.isArray(item.children)) {
+      return item.children.some((child) => hasActiveChild(child));
+    }
+
+    return false;
+  };
+
+  //Menu open logic
+  const isMenuOpen = (key, item) => {
+    if (manualOpen[key] !== undefined) return manualOpen[key];
+    return hasActiveChild(item);
+  };
+
+  const toggleMenu = (key) => {
+    setManualOpen((prev) => ({
+      ...prev,
+      [key]: !isMenuOpen(key),
+    }));
+  };
+
+  const isActive = (path) => path && pathname.startsWith(path);
+
+  const getBgColor = (level, isParentActive, isChildActive) => {
+    if (collapsed) return "";
+
+    if (isChildActive) return "bg-yellow-400"; // highest
+    if (level === 0 && isParentActive) return "bg-[#5f8f3a]"; // parent active
+
+    if (level === 0) return "bg-[#9fbc83]";
+    if (level === 1) return "bg-[#4f86b9]";
+    return "bg-[#a9bdd1]";
+  };
+
+  const renderItems = (items, level = 0, parentKey = "") => {
+    if (!items) return null;
+
+    return items.map((item, index) => {
+      if (!item) return null;
+
+      const key = `${parentKey}-${index}`;
+      const hasChildren =
+        item.children && Array.isArray(item.children);
+
+      const open = isMenuOpen(key, item);
+
+      const isParentActive = hasActiveChild(item);
+      const isChildActive = isActive(item.path);
+
+      return (
+        <div key={key}>
+          {/* ITEM */}
+          <div
+            onClick={() => {
+              if (hasChildren) {
+                toggleMenu(key);
+              } else if (item.path) {
+                router.push(item.path);
+              }
+            }}
+            className={`flex items-center justify-between cursor-pointer px-3 py-2
+              ${getBgColor(level, isParentActive, isChildActive)}
+              hover:brightness-95`}
+            style={{
+              paddingLeft: `${10 + level * 12}px`,
+            }}
+          >
+            {!collapsed && (
+              <>
+                <div className="flex items-center gap-2">
+      {/* ICON */}
+      {level === 0 && item.icon && (
+        <item.icon size={16} />
+      )}
+
+      <span className="text-sm font-medium">
+        {item.title}
+      </span>
+    </div>
+
+                {hasChildren && (
+                  <span>
+                    {open ? (
+                      <ChevronDown size={16} />
+                    ) : (
+                      <ChevronRight size={16} />
+                    )}
+                  </span>
+                )}
+              </>
+            )}
+          </div>
+
+          {/* CHILDREN */}
+          {hasChildren && open && !collapsed && (
+            <div>{renderItems(item.children, level + 1, key)}</div>
+          )}
+        </div>
+      );
+    });
+  };
+
+  return (
+    <div
+      className={`h-full flex flex-col border-r bg-[#dcdcdc] transition-all duration-300 ${
+        collapsed ? "w-[50px]" : "w-[240px]"
+      } `}
+    >
+      {/* TOGGLE BUTTON */}
+      <div className="flex items-center justify-start px-2 py-2 border-b shrink-0">
+        <button onClick={() => setCollapsed(!collapsed)} className="cursor-pointer">
+          <Menu size={20} />
+        </button>
+      </div>
+
+      {/* MENU */}
+      {!collapsed && (
+        <div className="flex-1 overflow-y-auto">
+          {renderItems(sidebarConfig)}
+        </div>
+      )}
+    </div>
+  );
+}
