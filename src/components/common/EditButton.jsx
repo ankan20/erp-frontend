@@ -1,9 +1,20 @@
 "use client";
 
-export default function EditButton({ onClick, children = "Edit", className = "" }) {
+import { Loader2 } from "lucide-react";
+
+export default function EditButton({
+  onClick,
+  children = "Edit",
+  className = "",
+  loading = false,
+  disabled = false,
+}) {
+  const isDisabled = loading || disabled;
+
   return (
     <button
       onClick={onClick}
+      disabled={isDisabled}
       className={`
         h-8.5
         min-w-30
@@ -17,11 +28,13 @@ export default function EditButton({ onClick, children = "Edit", className = "" 
         font-medium
         hover:bg-[#85aed4]
         transition
-        cursor-pointer
+        flex items-center justify-center gap-2
+        ${isDisabled ? "opacity-70 cursor-not-allowed" : "cursor-pointer"}
         ${className}
       `}
     >
-      {children}
+      {loading && <Loader2 className="h-4 w-4 animate-spin" />}
+      {loading ? "Processing..." : children}
     </button>
   );
 }

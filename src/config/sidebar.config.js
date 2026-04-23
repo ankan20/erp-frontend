@@ -12,23 +12,18 @@ import {
 export const sidebarConfig = [
   {
     title: "Settings",
+    key:"settings",
     icon: Settings,
     basePath: "/settings",
     children: [
       { title: "Company Details", path: "/settings/company-details" },
       {
         title: "User ID & Password",
-        path: "/settings/users",
+        path: "/settings/user-id-password",
       },
       {
         title: "Project Code",
         path: "/settings/project-code",
-        children: [
-          { title: "Billing Address", path: "/settings/project-code/billing" },
-          { title: "Shipping Address", path: "/settings/project-code/shipping" },
-          { title: "Signing Authority", path: "/settings/project-code/signing" },
-          { title: "Stamp", path: "/settings/project-code/stamp" },
-        ],
       },
       { title: "Roles & Designation", path: "/settings/roles" },
       { title: "Rights & Access", path: "/settings/rights" },
@@ -38,6 +33,7 @@ export const sidebarConfig = [
 
   {
     title: "Master",
+    key:"master",
     icon: Database,
     basePath: "/master",
     children: [
@@ -52,6 +48,7 @@ export const sidebarConfig = [
 
   {
     title: "Resource Management",
+    key:"hr",
     icon: Package,
     basePath: "/resource-management",
     children: [
@@ -128,6 +125,7 @@ export const sidebarConfig = [
 
   {
     title: "Asset Management",
+    key:"am",
     icon: Boxes,
     basePath: "/asset-management",
     children: [
@@ -140,6 +138,7 @@ export const sidebarConfig = [
 
   {
     title: "Project Management",
+    key:"pm",
     icon: Briefcase,
     basePath: "/project-management",
     children: [
@@ -223,6 +222,7 @@ export const sidebarConfig = [
 
   {
     title: "Finance Management",
+    key:"fm",
     icon: Wallet,
     basePath: "/finance-management",
     children: [
@@ -277,6 +277,7 @@ export const sidebarConfig = [
 
   {
     title: "HR Management",
+    key:"hr",
     icon: Users,
     basePath: "/hr-management",
     children: [
@@ -289,6 +290,7 @@ export const sidebarConfig = [
 
   {
     title: "Task Management",
+    key:"tm",
     icon: ListTodo,
     basePath: "/task-management",
     children: [

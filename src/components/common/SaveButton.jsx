@@ -1,9 +1,19 @@
 "use client";
 
-export default function SaveButton({ onClick, children = "Save", className = "" }) {
+import { Loader2 } from "lucide-react";
+
+export default function SaveButton({
+  onClick,
+  children = "Save",
+  className = "",
+  loading = false,
+  disabled= true,
+}) {
+  const isDisabled = loading || disabled;
   return (
     <button
       onClick={onClick}
+      disabled={isDisabled}
       className={`
         h-8.5
         min-w-30
@@ -17,11 +27,13 @@ export default function SaveButton({ onClick, children = "Save", className = "" 
         font-medium
         hover:bg-[#eea36e]
         transition
-        cursor-pointer
+        flex items-center justify-center gap-2
+        ${isDisabled ? "opacity-70 cursor-not-allowed" : "cursor-pointer"}
         ${className}
       `}
     >
-      {children}
+      {loading && <Loader2 className="h-4 w-4 animate-spin" />}
+      {loading ? "Saving..." : children}
     </button>
   );
 }

@@ -1,25 +1,50 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useState ,useEffect } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { tcodeConfig } from "@/config/tcode.config";
 import { getBreadcrumbs } from "@/lib/breadcrumbs";
 import Image from "next/image";
 import { routeMetaConfig } from "@/config/route-meta.config";
 import { toast } from "sonner";
+import { setCookie } from "@/lib/cookies";
+import { getCookie } from "@/lib/cookies";
 
 export default function AppNavbar() {
   const pathname = usePathname();
   const router = useRouter();
   const [tcode, setTcode] = useState("");
+  const [mounted, setMounted] = useState(false);
 
-  const projectInfo = {
-    projectCode: "DHLE",
-    clientName: "Techno Electrical & Engineers Company Ltd.",
-    projectName:
-      "400KV,220KV GIS Sub Station at Dhule, Techno Electrical, Indigrid Ltd",
-    user: "Biswajit Dinda",
-  };
+  const [projectInfo, setProjectInfo] = useState({
+    projectCode: "",
+    clientName: "",
+    projectName: "",
+  });
+
+  const [username, setUsername] = useState("");
+
+  useEffect(() => {
+    // only one render trigger
+    setMounted(true);
+
+    // safe client-only logic
+    try {
+      const storedProject = setCookie("projectInfo");
+      const storedUser = getCookie("userName");
+
+      if (storedProject) {
+        const parsed = JSON.parse(storedProject);
+        setProjectInfo(parsed);
+      }
+
+      if (storedUser) {
+        setUsername(storedUser);
+      }
+    } catch (e) {
+      console.error(e);
+    }
+  }, []);
 
   const breadcrumbs = useMemo(
     () => getBreadcrumbs(pathname, routeMetaConfig),
@@ -35,6 +60,10 @@ export default function AppNavbar() {
       toast.error("no match found!");
     }
   };
+
+  //prevents hydration mismatch
+  if (!mounted) return null;
+
 
   return (
     <div className="w-full border border-[#c4d1df] bg-[#efefef]">
@@ -62,7 +91,7 @@ export default function AppNavbar() {
             </div>
           </div>
 
-          <div className="mt-2 h-[1px] w-full lg:w-[520px] bg-[#b8c7da]" />
+          <div className="mt-2 h-[1px] w-full lg:w-130 bg-[#b8c7da]" />
 
           {/* ICONS + TCODE */}
           <div className="mt-4 flex items-center">
@@ -87,7 +116,7 @@ export default function AppNavbar() {
               <input
                 value={tcode}
                 onChange={(e) => setTcode(e.target.value)}
-                className="h-[24px] w-[100px] border border-[#d5b7a2] bg-[#eef0a7] px-2 text-sm outline-none"
+                className="h-6 w-25 border border-[#d5b7a2] bg-[#eef0a7] px-2 text-sm outline-none"
               />
 
               <button onClick={handleTCodeNavigate} className="cursor-pointer">
@@ -103,16 +132,16 @@ export default function AppNavbar() {
         </div>
 
         {/* RIGHT */}
-        <div className="w-full lg:w-[600px] text-[13px] lg:text-[14px] leading-5 lg:leading-6">
+        <div className="w-full lg:w-150 text-[13px] lg:text-[14px] leading-5 lg:leading-6">
 
           {/* ROW */}
           <div className="flex">
-            <span className="min-w-[110px] lg:min-w-[130px] font-bold">
+            <span className="min-w-27.5 lg:min-w-32.5 font-bold">
               Project Code
             </span>
             <span className="mr-2">:</span>
             <span className="font-bold break-words">
-              {projectInfo.projectCode}
+              {projectInfo.projectCode || "-"}
             </span>
           </div>
 
@@ -122,7 +151,7 @@ export default function AppNavbar() {
             </span>
             <span className="mr-2">:</span>
             <span className="font-bold text-red-600 break-words">
-              {projectInfo.clientName}
+              {projectInfo.clientName || "-"}
             </span>
           </div>
 
@@ -132,7 +161,7 @@ export default function AppNavbar() {
             </span>
             <span className="mr-2">:</span>
             <span className="break-words">
-              {projectInfo.projectName}
+              {projectInfo.projectName || "-"}
             </span>
           </div>
 
@@ -141,8 +170,8 @@ export default function AppNavbar() {
               User
             </span>
             <span className="mr-2">:</span>
-            <span className="break-words">
-              {projectInfo.user}
+            <span className="wrap-break-words">
+              {username || "-"}
             </span>
           </div>
 

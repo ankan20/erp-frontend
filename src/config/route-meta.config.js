@@ -16,8 +16,20 @@ export const routeMetaConfig = [
     breadcrumbs: ["Settings", "Company Details"],
   },
   {
-    basePath: "/settings/user-id-password-list",
+    basePath: "/settings/user-id-password",
     breadcrumbs: ["Settings", "User ID & Password List"],
+  },
+  {
+    basePath: "/settings/user-id-password/new",
+    breadcrumbs: ["Settings", "User ID & Password"],
+  },
+  {
+    basePath: "/settings/user-id-password/[id]",
+    breadcrumbs: ["Settings", "Update User ID & Password"],
+  },
+  {
+    basePath: "/settings/project-code",
+    breadcrumbs: ["Settings", "Project Code List"],
   },
   {
     basePath: "/settings/project-code",

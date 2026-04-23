@@ -6,6 +6,11 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { useRouter } from "next/navigation";
+import { apiRequest } from "@/lib/apiClient";
+import { API_ENDPOINTS } from "@/config/api.config";
+import { setCookie } from "@/lib/cookies";
+import { ROLE } from "@/config/role.config";
 
 const LoginForm = () => {
   const [formData, setFormData] = useState({
@@ -15,6 +20,7 @@ const LoginForm = () => {
 
   const [loading, setLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
+  const router = useRouter();
 
   const handleChange = (e) => {
     setFormData((prev) => ({
@@ -26,34 +32,57 @@ const LoginForm = () => {
   };
 
   const handleSubmit = async (e) => {
-    e.preventDefault();
+  e.preventDefault();
 
-    if (!formData.loginId || !formData.password) {
-      setErrorMessage("Login ID and Password are required.");
-      toast.error("Please fill all fields");
-      return;
+  if (!formData.loginId || !formData.password) {
+    setErrorMessage("Login ID and Password are required.");
+    toast.error("Please fill all fields");
+    return;
+  }
+
+  try {
+    setLoading(true);
+    setErrorMessage("");
+
+    
+    let res = await apiRequest({
+      url: API_ENDPOINTS.LOGIN,
+      method: "POST",
+      data: {
+        loginUserName: formData.loginId,
+        password: formData.password,
+      },
+      requireAuth: false, 
+    });
+    
+    const user = res?.data?.[0];
+
+    if (!user || !user.token) {
+      throw new Error("Invalid response from server");
     }
 
-    try {
-      setLoading(true);
-      setErrorMessage("");
-
-      // TODO: backend login API call here
-      await new Promise((resolve) => setTimeout(resolve, 1000));
-
-      toast.success("Login successful");
-    } catch (error) {
-      // TODO: backend error handling here
-      setErrorMessage("Invalid login credentials");
-      toast.error("Login failed");
-    } finally {
-      setLoading(false);
+    setCookie("token", user.token);
+    setCookie("userId", user.id);
+    setCookie("userName", user.username);
+    setCookie("role", user.role);
+    if(user.role ===ROLE.SUPER_ADMIN){
+      setCookie("companyId",user.companyId);
     }
-  };
+    toast.success("Login successful");
+
+    router.push("/");
+
+  } catch (error) {
+    setErrorMessage(error.message || "Login failed");
+    toast.error(error.message || "Login failed");
+  } finally {
+    setLoading(false);
+  }
+};
 
   return (
     <div className="min-h-screen bg-[#ececec] flex items-center justify-center px-4 py-6">
-      <div className="w-full max-w-[1400px] grid lg:grid-cols-[1fr_1.35fr] gap-8 items-center">
+      <div className="w-full max-w-350 grid lg:grid-cols-[1fr_1.35fr] gap-8 items-center">
         {/* LEFT SIDE */}
         <div className="space-y-10">
           <div className="space-y-2">
@@ -80,7 +109,7 @@ const LoginForm = () => {
             </p>
           </div>
 
-          <form onSubmit={handleSubmit} className="max-w-[520px]">
+          <form onSubmit={handleSubmit} className="max-w-130">
             <div className="space-y-6">
               <div className="grid grid-cols-[170px_1fr] items-center gap-4">
                 <Label className="text-[22px] font-normal">Log in ID</Label>
