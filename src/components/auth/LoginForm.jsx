@@ -152,6 +152,7 @@ useEffect(()=>{
                   name="loginId"
                   value={formData.loginId}
                   onChange={handleChange}
+                  disabled={loading}
                   className="h-10 bg-white border-gray-400 text-[20px] font-medium"
                 />
               </div>
@@ -163,6 +164,7 @@ useEffect(()=>{
                   name="password"
                   value={formData.password}
                   onChange={handleChange}
+                  disabled={loading}
                   className="h-10 bg-white border-gray-400 text-[20px] font-medium"
                 />
               </div>

@@ -8,7 +8,7 @@ import { apiRequest } from "@/lib/apiClient";
 import { API_ENDPOINTS } from "@/config/api.config";
 import { toast } from "sonner";
 import { Loader2 } from "lucide-react";
-import { getCookie } from "@/lib/cookies";
+import { getCookie, setCookie } from "@/lib/cookies";
 import { Paperclip } from "lucide-react";
 import { openFileWithAuth } from "@/lib/fileViewer";
 
@@ -84,14 +84,22 @@ export default function CompanyDetailsPage() {
 
   //Fetch Data
   useEffect(() => {
+
     const fetchData = async () => {
       try {
-        const id = Number(getCookie("companyId")) || 1;
+        const id = Number(getCookie("companyId"));
+        if (!id) {
+          setLoadingData(false);
+          setTimeout(() => {
+            toast.info("Create company details.");
+          }, 100);
+          return;
+        }
         const res = await apiRequest({
           url: `${API_ENDPOINTS.SETTINGS.GET_COMPANY_DETAILS_BY_ID}/${id}`,
           method: "GET",
         });
-        if(!res.data.length){
+        if (!res.data.length) {
           toast.info(res.message || "No company data found.");
           return;
         }
@@ -158,9 +166,10 @@ export default function CompanyDetailsPage() {
         return;
       }
 
-      const companyId = getCookie("companyId"); //need to remove 1
-      const isUpdate = !!companyId;
+      const rawId = getCookie("companyId");
+      const companyId = Number(rawId);
 
+      const isUpdate = !!companyId;
       toastId = toast.loading(
         isUpdate
           ? "Updating company details..."
@@ -182,14 +191,17 @@ export default function CompanyDetailsPage() {
         formDataPayload.append("gstnFile", gstnRef.current.files[0]);
       }
 
-      await apiRequest({
+      let resp = await apiRequest({
         url: isUpdate
           ? `${API_ENDPOINTS.SETTINGS.GET_COMPANY_DETAILS_BY_ID}/${companyId}`
           : API_ENDPOINTS.SETTINGS.CREATE_COMPANY,
         method: isUpdate ? "PUT" : "POST",
         data: formDataPayload,
       });
-
+      console.log(resp);
+      if (!isUpdate) {
+        setCookie("companyId", resp.data.id)
+      }
       toast.success(
         isUpdate
           ? "Company details updated successfully"
@@ -250,186 +262,186 @@ export default function CompanyDetailsPage() {
       </div>
 
       <div className="mt-5">
-          {/* REGISTERED ADDRESS */}
-      <div>
-        <div className="md:flex md:items-center">
-          <div className={labelClass}>Registered Address</div>
-          <Input
-            {...register("registeredAddress")}
-            disabled={!isEditing || isSubmitting}
-            className={`${inputClass} flex-1 -ml-px`}
-          />
+        {/* REGISTERED ADDRESS */}
+        <div>
+          <div className="md:flex md:items-center">
+            <div className={labelClass}>Registered Address</div>
+            <Input
+              {...register("registeredAddress")}
+              disabled={!isEditing || isSubmitting}
+              className={`${inputClass} flex-1 -ml-px`}
+            />
+          </div>
+          {/* <p className={errorText}>{errors.registeredAddress?.message}</p> */}
         </div>
-        {/* <p className={errorText}>{errors.registeredAddress?.message}</p> */}
+
+        {/* CORPORATE ADDRESS */}
+        <div>
+          <div className="md:flex md:items-center">
+            <div className={labelClass}>Corporate Address</div>
+            <Input
+              {...register("corporateAddress")}
+              disabled={!isEditing || isSubmitting}
+              className={`${inputClass} flex-1 -ml-px`}
+            />
+          </div>
+          {/* <p className={errorText}>{errors.corporateAddress?.message}</p> */}
+        </div>
       </div>
 
-      {/* CORPORATE ADDRESS */}
-      <div>
-        <div className="md:flex md:items-center">
-          <div className={labelClass}>Corporate Address</div>
-          <Input
-            {...register("corporateAddress")}
-            disabled={!isEditing || isSubmitting}
-            className={`${inputClass} flex-1 -ml-px`}
-          />
-        </div>
-        {/* <p className={errorText}>{errors.corporateAddress?.message}</p> */}
-      </div>
-      </div>
-      
 
       <div className="mt-5">
-          <div>
+        <div>
 
           {/* PAN */}
-      <div>
-        <div className="md:flex md:items-center gap-2">
-          <div className="md:flex md:items-center">
-            <div className={labelClass}>PAN</div>
+          <div>
+            <div className="md:flex md:items-center gap-2">
+              <div className="md:flex md:items-center">
+                <div className={labelClass}>PAN</div>
 
-            <Input
-              {...register("pan")}
-              onChange={(e) => setValue("pan", e.target.value.toUpperCase())}
-              disabled={!isEditing || isSubmitting}
-              className={`${inputClass} w-65 -ml-px`}
-            />
-          </div>
+                <Input
+                  {...register("pan")}
+                  onChange={(e) => setValue("pan", e.target.value.toUpperCase())}
+                  disabled={!isEditing || isSubmitting}
+                  className={`${inputClass} w-65 -ml-px`}
+                />
+              </div>
 
-          <button className="md:ml-[250px] px-3 py-1  bg-[#8e7cc3] text-white text-sm rounded-sm">
-            Attached PAN
-          </button>
+              <button className="md:ml-[250px] px-3 py-1  bg-[#8e7cc3] text-white text-sm rounded-sm">
+                Attached PAN
+              </button>
 
-          <button
-            onClick={() => panRef.current.click()}
-            disabled={!isEditing || isSubmitting}
-            className="px-3 py-1 bg-[#f6c85f] text-sm rounded-sm"
-          >
-            @
-          </button>
-          {/* 🔗 OPEN FILE */}
-          {panUrl && !panFileName && (
-            <button
-              onClick={() => openFileWithAuth(panUrl)}
-              className="flex items-center gap-1 text-[11px] text-blue-600 hover:underline ml-2"
-            >
-              <Paperclip className="w-3 h-3" />
-              View Attached PAN
-            </button>
-          )}
+              <button
+                onClick={() => panRef.current.click()}
+                disabled={!isEditing || isSubmitting}
+                className="px-3 py-1 bg-[#f6c85f] text-sm rounded-sm"
+              >
+                @
+              </button>
+              {/* 🔗 OPEN FILE */}
+              {panUrl && !panFileName && (
+                <button
+                  onClick={() => openFileWithAuth(panUrl)}
+                  className="flex items-center gap-1 text-[11px] text-blue-600 hover:underline ml-2"
+                >
+                  <Paperclip className="w-3 h-3" />
+                  View Attached PAN
+                </button>
+              )}
 
-          {panFileName && (
-            <span className="text-[10px] whitespace-nowrap">{panFileName}</span>
-          )}
+              {panFileName && (
+                <span className="text-[10px] whitespace-nowrap">{panFileName}</span>
+              )}
 
-          <input
-            ref={panRef}
-            type="file"
-            hidden
-            accept="application/pdf"
-            onChange={(e) => handleFileChange("pan", e.target.files[0])}
-          />
-        </div>
+              <input
+                ref={panRef}
+                type="file"
+                hidden
+                accept="application/pdf"
+                onChange={(e) => handleFileChange("pan", e.target.files[0])}
+              />
+            </div>
 
-        {/* <p className={errorText}>{errors.pan?.message}</p>
+            {/* <p className={errorText}>{errors.pan?.message}</p>
         <p className={errorText}>{panFileError}</p> */}
-      </div>
-
-      {/* GSTN */}
-      <div>
-        <div className="md:flex md:items-center gap-2">
-          <div className="md:flex md:items-center">
-            <div className={labelClass}>GSTN</div>
-            <Input
-              {...register("gstn")}
-              onChange={(e) => setValue("gstn", e.target.value.toUpperCase())}
-              disabled={!isEditing || isSubmitting}
-              className={`${inputClass} w-65 -ml-px`}
-            />
           </div>
 
-          <button className="md:ml-[250px] px-3 py-1 bg-[#8e7cc3] text-white text-sm rounded-sm">
-            Attached GSTN
-          </button>
+          {/* GSTN */}
+          <div>
+            <div className="md:flex md:items-center gap-2">
+              <div className="md:flex md:items-center">
+                <div className={labelClass}>GSTN</div>
+                <Input
+                  {...register("gstn")}
+                  onChange={(e) => setValue("gstn", e.target.value.toUpperCase())}
+                  disabled={!isEditing || isSubmitting}
+                  className={`${inputClass} w-65 -ml-px`}
+                />
+              </div>
 
-          <button
-            onClick={() => gstnRef.current.click()}
-            disabled={!isEditing || isSubmitting}
-            className="px-3 py-1 bg-[#f6c85f] text-sm rounded-sm"
-          >
-            @
-          </button>
+              <button className="md:ml-[250px] px-3 py-1 bg-[#8e7cc3] text-white text-sm rounded-sm">
+                Attached GSTN
+              </button>
+
+              <button
+                onClick={() => gstnRef.current.click()}
+                disabled={!isEditing || isSubmitting}
+                className="px-3 py-1 bg-[#f6c85f] text-sm rounded-sm"
+              >
+                @
+              </button>
 
 
 
-          {gstUrl && !gstFileName && (
-            <button
-              onClick={() => openFileWithAuth(gstUrl)}
-              className="flex items-center gap-1 text-[11px] text-blue-600 hover:underline ml-2"
-            >
-              <Paperclip className="w-3 h-3" />
-              View Attached GSTN
-            </button>
-          )}
+              {gstUrl && !gstFileName && (
+                <button
+                  onClick={() => openFileWithAuth(gstUrl)}
+                  className="flex items-center gap-1 text-[11px] text-blue-600 hover:underline ml-2"
+                >
+                  <Paperclip className="w-3 h-3" />
+                  View Attached GSTN
+                </button>
+              )}
 
-          {gstFileName && (
-            <span className="text-[10px] whitespace-nowrap">{gstFileName}</span>
-          )}
+              {gstFileName && (
+                <span className="text-[10px] whitespace-nowrap">{gstFileName}</span>
+              )}
 
-          <input
-            ref={gstnRef}
-            type="file"
-            hidden
-            accept="application/pdf"
-            onChange={(e) => handleFileChange("gst", e.target.files[0])}
-          />
-        </div>
+              <input
+                ref={gstnRef}
+                type="file"
+                hidden
+                accept="application/pdf"
+                onChange={(e) => handleFileChange("gst", e.target.files[0])}
+              />
+            </div>
 
-        {/* <p className={errorText}>{errors.gstn?.message}</p>
+            {/* <p className={errorText}>{errors.gstn?.message}</p>
         <p className={errorText}>{gstFileError}</p> */}
-      </div>
-        
-      </div>
-      
+          </div>
 
-      <div> 
-            {/* STATE + CODE */}
-      <div>
-        <div className="md:flex md:items-center">
-          <div className={labelClass}>State</div>
-          <Input
-            {...register("state")}
-            disabled={!isEditing || isSubmitting}
-            className={`${inputClass} w-65 -ml-px`}
-          />
-
-          <div className={`w-[100px] px-3 py-1 bg-[#d6e6f2] border border-[#6f7f8f] text-sm rounded-sm md:ml-4`}>State Code</div>
-          <Input
-            {...register("stateCode")}
-            disabled={!isEditing || isSubmitting}
-            className={`${inputClass} w-25 -ml-px`}
-          />
         </div>
 
-        {/* <p className={errorText}>
+
+        <div>
+          {/* STATE + CODE */}
+          <div>
+            <div className="md:flex md:items-center">
+              <div className={labelClass}>State</div>
+              <Input
+                {...register("state")}
+                disabled={!isEditing || isSubmitting}
+                className={`${inputClass} w-65 -ml-px`}
+              />
+
+              <div className={`w-[100px] px-3 py-1 bg-[#d6e6f2] border border-[#6f7f8f] text-sm rounded-sm md:ml-4`}>State Code</div>
+              <Input
+                {...register("stateCode")}
+                disabled={!isEditing || isSubmitting}
+                className={`${inputClass} w-25 -ml-px`}
+              />
+            </div>
+
+            {/* <p className={errorText}>
           {errors.state?.message || errors.stateCode?.message}
         </p> */}
+          </div>
+
+          {/* GST TYPE */}
+          <div>
+            <div className="md:flex md:items-center">
+              <div className={labelClass}>GSTN Type</div>
+              <Input
+                {...register("gstnType")}
+                disabled={!isEditing || isSubmitting}
+                className={`${inputClass} w-65 -ml-px`}
+              />
+            </div>
+            {/* <p className={errorText}>{errors.gstnType?.message}</p> */}
+          </div>
+        </div>
       </div>
 
-      {/* GST TYPE */}
-      <div>
-        <div className="md:flex md:items-center">
-          <div className={labelClass}>GSTN Type</div>
-          <Input
-            {...register("gstnType")}
-            disabled={!isEditing || isSubmitting}
-            className={`${inputClass} w-65 -ml-px`}
-          />
-        </div>
-        {/* <p className={errorText}>{errors.gstnType?.message}</p> */}
-      </div>
-      </div>
-      </div>
-      
       {/* CONTACT */}
       <div className=" pt-3">
         <div>
