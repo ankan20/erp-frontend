@@ -11,9 +11,9 @@ import { getPageActions } from "@/components/common/PageActionButtons";
 import PageHeader from "@/components/layout/PageHeader";
 
 export default function Page() {
-  const [categories, setCategories] = useState([]);
-  const [ccList, setCcList] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [categories, setCategories] = useState(CATEGORY_OPTIONS.itemCategory || []);
+  // const [ccList, setCcList] = useState([]);
+  // const [loading, setLoading] = useState(true);
   const router = useRouter();
 
   const actions = getPageActions({
@@ -21,31 +21,31 @@ export default function Page() {
     onBack: () => router.back(),
   });
 
-  useEffect(() => {
-    const fetchAll = async () => {
-      // const [c, cc] = await Promise.all([
-      //   apiRequest({ url: API_ENDPOINTS.MASTER.GET_ALL_CATEGORY }),
-      //   apiRequest({ url: API_ENDPOINTS.MASTER.GET_ALL_CC_CODE }),
-      // ]);
-      const cc = await apiRequest({
-        url: API_ENDPOINTS.MASTER.GET_ALL_CC_CODE,
-      });
-      const itemOptions = CATEGORY_OPTIONS.itemCategory;
+  // useEffect(() => {
+  //   const fetchAll = async () => {
+  //     // const [c, cc] = await Promise.all([
+  //     //   apiRequest({ url: API_ENDPOINTS.MASTER.GET_ALL_CATEGORY }),
+  //     //   apiRequest({ url: API_ENDPOINTS.MASTER.GET_ALL_CC_CODE }),
+  //     // ]);
+  //     const cc = await apiRequest({
+  //       url: API_ENDPOINTS.MASTER.GET_ALL_CC_CODE,
+  //     });
+  //     const itemOptions = CATEGORY_OPTIONS.itemCategory;
 
-      setCategories(itemOptions || []);
-      setCcList(cc.data || []);
-      setLoading(false);
-    };
+  //     setCategories(itemOptions || []);
+  //     setCcList(cc.data || []);
+  //     setLoading(false);
+  //   };
 
-    fetchAll();
-  }, []);
+  //   fetchAll();
+  // }, []);
 
-  if (loading) return <Loader2 className="animate-spin m-auto mt-10" />;
+  // if (loading) return <Loader2 className="animate-spin m-auto mt-10" />;
 
   return (
     <>
       <PageHeader actions={actions} />
-      <ItemForm mode="create" categories={categories} ccList={ccList} />
+      <ItemForm mode="create" categories={categories}  />
     </>
   );
 }

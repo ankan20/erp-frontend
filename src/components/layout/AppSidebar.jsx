@@ -33,12 +33,51 @@ export default function AppSidebar({collapsed, setCollapsed}) {
     return hasActiveChild(item);
   };
 
-  const toggleMenu = (key) => {
-    setManualOpen((prev) => ({
-      ...prev,
-      [key]: !isMenuOpen(key),
-    }));
-  };
+  // const toggleMenu = (key) => {
+  //   setManualOpen((prev) => ({
+  //     ...prev,
+  //     [key]: !isMenuOpen(key),
+  //   }));
+  // };
+  const toggleMenu = (key, level) => {
+  setManualOpen((prev) => {
+    const updated = { ...prev };
+
+    // ROOT LEVEL
+    if (level === 0) {
+      // close all root menus
+      sidebarConfig.forEach((_, index) => {
+        updated[`-${index}`] = false;
+      });
+
+      // open current one
+      updated[key] = !isMenuOpen(key);
+    }
+
+    // CHILD LEVEL
+    else {
+      const parentKey = key
+        .split("-")
+        .slice(0, -1)
+        .join("-");
+
+      // close sibling menus
+      Object.keys(updated).forEach((k) => {
+        const sameParent =
+          k.startsWith(parentKey) &&
+          k.split("-").length === key.split("-").length;
+
+        if (sameParent) {
+          updated[k] = false;
+        }
+      });
+
+      updated[key] = !isMenuOpen(key);
+    }
+
+    return updated;
+  });
+};
 
   const isActive = (path) => path && pathname.startsWith(path);
 
@@ -74,7 +113,7 @@ export default function AppSidebar({collapsed, setCollapsed}) {
           <div
             onClick={() => {
               if (hasChildren) {
-                toggleMenu(key);
+                toggleMenu(key ,level);
               } else if (item.path) {
                 router.push(item.path);
               }

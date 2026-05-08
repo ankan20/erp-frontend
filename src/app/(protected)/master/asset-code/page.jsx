@@ -25,18 +25,18 @@ export default function Page() {
     const fetchItems = async () => {
       try {
         const res = await apiRequest({
-          url: API_ENDPOINTS.MASTER.GET_ALL_ITEM,
+          url: API_ENDPOINTS.MASTER.GET_ALL_ASSET,
           method: "GET",
         });
 
         const assets = res.data || [];
 
         const formatted = assets.map((p, index) => ({
-          itemId: p.itemId, 
+          itemId: p.assetId, 
           sl: index + 1,
-          itemCode: p.itemCode,
-          itemName: p.itemName,
-          itemCategoryName: p.itemCategoryName,
+          itemCode: p.assetCode,
+          itemName: p.assetName,
+          itemCategoryName: p.assetCategoryName,
           hsnSac: p.hsnSac,
           gstPercentage:p.gstPercentage,
         }));
@@ -108,7 +108,7 @@ export default function Page() {
         onSearch={handleSearch}
         actions={[
           {
-            label: "+ New Item Code",
+            label: "+ New Asset Code",
             onClick: () => router.push("/master/asset-code/new"),
           },
           
@@ -120,7 +120,7 @@ export default function Page() {
         columns={columns}
         data={filteredData}
         onRowClick={(row) => {
-          router.push(`/master/asset-code/${row.itemId}`);
+          router.push(`/master/asset-code/${row.assetId}`);
         }}
       />
     </div>    

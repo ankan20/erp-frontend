@@ -49,6 +49,7 @@ export const routeMetaConfig = [
     basePath: "/master/ledger-code/[id]",
     breadcrumbs: ["Master", "Ledger Code", "Edit"],
   },
+  //cc code
   {
     basePath: "/master/cc-code",
     breadcrumbs: ["Master", "CC Code List" ],
@@ -61,6 +62,7 @@ export const routeMetaConfig = [
     basePath: "/master/cc-code/[id]",
     breadcrumbs: ["Master", "CC Code", "Edit"],
   },
+  //item
   {
     basePath: "/master/item-code",
     breadcrumbs: ["Master", "Item Code List" ],
@@ -73,5 +75,27 @@ export const routeMetaConfig = [
     basePath: "/master/item-code/[id]",
     breadcrumbs: ["Master", "Item Code", "Edit"],
   },
+  //asset
+  {
+    basePath: "/master/asset-code",
+    breadcrumbs: ["Master", "Asset Code List" ],
+  },
+  {
+    basePath: "/master/asset-code/new",
+    breadcrumbs: ["Master", "Asset Code", "New"],
+  },
+  {
+    basePath: "/master/asset-code/[id]",
+    breadcrumbs: ["Master", "Asset Code", "Edit"],
+  },
+  //group and category
+  {
+    basePath: "/master/category-group",
+    breadcrumbs: ["Master", "Category & Group"],
+  },
   
+  {
+    basePath: "/resource-management/procurement/indent",
+    breadcrumbs: ["Resource Management", "Procurement","Indent List"],
+  },
 ];

@@ -13,7 +13,7 @@ export default function Page() {
   const { assetId } = useParams();
 
   const [data, setData] = useState(null);
-  const [categories, setCategories] = useState([]);
+  const [categories, setCategories] = useState(CATEGORY_OPTIONS.assetCategory || []);
   const [loading, setLoading] = useState(true);
   const router = useRouter();
 
@@ -26,13 +26,13 @@ export default function Page() {
 
   useEffect(() => {
     const load = async () => {
-      const [assetRes, catRes] = await Promise.all([
-        apiRequest({ url: `${API_ENDPOINTS.MASTER.GET_ASSET_BY_ID}/${assetId}` }),
-        apiRequest({ url: API_ENDPOINTS.MASTER.GET_ALL_CATEGORY }),
-      ]);
+      // const [assetRes, catRes] = await Promise.all([
+      //   apiRequest({ url: `${API_ENDPOINTS.MASTER.GET_ASSET_BY_ID}/${assetId}` }),
+      //   apiRequest({ url: API_ENDPOINTS.MASTER.GET_ALL_CATEGORY }),
+      // ]);
+      const assetRes = await apiRequest({ url: `${API_ENDPOINTS.MASTER.GET_ASSET_BY_ID}/${assetId}` });
 
       setData(assetRes.data[0]);
-      setCategories(catRes.data || []);
       setLoading(false);
     };
 

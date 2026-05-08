@@ -46,11 +46,6 @@ export default function AppNavbar() {
     }
   }, []);
 
-  const breadcrumbs = useMemo(
-    () => getBreadcrumbs(pathname, routeMetaConfig),
-    [pathname]
-  );
-
   const handleTCodeNavigate = () => {
     const route = tcodeConfig[tcode.toLowerCase().trim()];
     if (route) {
@@ -98,7 +93,7 @@ export default function AppNavbar() {
 
             {/* LEFT ICONS */}
             <div className="flex items-center gap-2">
-              <button className="cursor-pointer">
+              <button className="cursor-pointer" onClick={()=>clearAuthCookies()}>
                 <Image src="/assets/icons/computer-monitor.png" alt="" width={32} height={32} />
               </button>
               <button className="cursor-pointer">

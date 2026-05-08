@@ -8,10 +8,11 @@ import AssetForm from "@/components/master/asset/AssetForm";
 import { getPageActions } from "@/components/common/PageActionButtons";
 import { useRouter } from "next/navigation";
 import PageHeader from "@/components/layout/PageHeader";
+import { CATEGORY_OPTIONS } from "@/config/categoryOptions.config";
 
 export default function Page() {
-  const [categories, setCategories] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [categories, setCategories] = useState(CATEGORY_OPTIONS.assetCategory || []);
+  // const [loading, setLoading] = useState(true);
   const router = useRouter();
 
   const actions = getPageActions({
@@ -22,22 +23,22 @@ export default function Page() {
       });
    
 
-  useEffect(() => {
-    const load = async () => {
-      const res = await apiRequest({
-        url: API_ENDPOINTS.MASTER.GET_ALL_CATEGORY,
-      });
+  // useEffect(() => {
+  //   const load = async () => {
+  //     const res = await apiRequest({
+  //       url: API_ENDPOINTS.MASTER.GET_ALL_CATEGORY,
+  //     });
 
-      setCategories(res.data || []);
-      setLoading(false);
-    };
+  //     setCategories(res.data || []);
+  //     setLoading(false);
+  //   };
 
-    load();
-  }, []);
+  //   load();
+  // }, []);
 
   
 
-  if (loading) return <Loader2 className="animate-spin m-auto mt-10" />;
+  // if (loading) return <Loader2 className="animate-spin m-auto mt-10" />;
 
   return (
   <>

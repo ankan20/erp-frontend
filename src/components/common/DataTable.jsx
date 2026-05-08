@@ -135,7 +135,7 @@ export default function DataTable({
                       className={`
                         border border-[#e6e4e4] px-2 py-1 cursor-pointer
                         ${getAlignClass(col.align)}
-                        ${colIndex === 1 ? "text-blue-600 underline" : ""}
+                        ${colIndex === 1 ? "text-blue-600 " : ""}
                       `}
                     >
                       <div

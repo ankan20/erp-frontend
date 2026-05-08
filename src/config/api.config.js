@@ -37,6 +37,17 @@ export const API_ENDPOINTS = {
         GET_ITEM_BY_ID:"/master/item",
         UPDATE_ITEM_BY_ID:"/master/item/update",
         CREATE_ITEM:"/master/item/create",
+        //asset
+        GET_ALL_ASSET:"/master/asset/list",
+        GET_ASSET_BY_ID:"/master/asset",
+        UPDATE_ASSET_BY_ID:"/master/asset/update",
+        CREATE_ASSET:"/master/asset/create",
+    },
+    // resource/indent
+    RESOURCE:{
+        INDENT:{
+            GET_ALL_INDENT:"/resource/indent"
+        }
     }
     
 };
