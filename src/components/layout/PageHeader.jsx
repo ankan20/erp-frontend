@@ -14,7 +14,7 @@ export default function PageHeader({ actions = [] }) {
   );
 
   return (
-    <div className="w-full flex flex-col sm:flex-row sm:items-center justify-between px-2 pr-3 py-1 border-b border-[#c4d1df] bg-[#efefef] gap-1">
+    <div className="shrink-0 w-full flex flex-col sm:flex-row sm:items-center justify-between px-2 pr-3 py-1 border-b border-[#c4d1df] bg-gradient-to-b from-[#f4f4f4] to-[#e3e3e3] gap-1 ">
 
       {/* LEFT → BREADCRUMB */}
       <div className="text-[13px] font-semibold leading-none whitespace-nowrap">

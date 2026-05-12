@@ -9,19 +9,19 @@ import { getPageActions } from "@/components/common/PageActionButtons";
 import { useRouter } from "next/navigation";
 import PageHeader from "@/components/layout/PageHeader";
 import { CATEGORY_OPTIONS } from "@/config/categoryOptions.config";
+import HeaderWrapper from "@/components/layout/HeaderWrapper";
 
 export default function Page() {
-  const [categories, setCategories] = useState(CATEGORY_OPTIONS.assetCategory || []);
+  const [categories, setCategories] = useState(
+    CATEGORY_OPTIONS.assetCategory || [],
+  );
   // const [loading, setLoading] = useState(true);
   const router = useRouter();
 
   const actions = getPageActions({
-        
-        onHome: () => router.push("/dashboard"),
-        onBack: () => router.back(),
-        
-      });
-   
+    onHome: () => router.push("/dashboard"),
+    onBack: () => router.back(),
+  });
 
   // useEffect(() => {
   //   const load = async () => {
@@ -36,17 +36,13 @@ export default function Page() {
   //   load();
   // }, []);
 
-  
-
   // if (loading) return <Loader2 className="animate-spin m-auto mt-10" />;
 
   return (
-  <>
-      <PageHeader
-                  actions={actions}
-                    />
-                      <AssetForm mode="create" categories={categories} />;
-  </>
-  )
-  
+    <>
+      <HeaderWrapper header={<PageHeader actions={actions} />}>
+        <AssetForm mode="create" categories={categories} />
+      </HeaderWrapper>
+    </>
+  );
 }

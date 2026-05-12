@@ -9,6 +9,7 @@ import ItemForm from "@/components/master/item/ItemForm";
 import { CATEGORY_OPTIONS } from "@/config/categoryOptions.config";
 import { getPageActions } from "@/components/common/PageActionButtons";
 import PageHeader from "@/components/layout/PageHeader";
+import HeaderWrapper from "@/components/layout/HeaderWrapper";
 
 export default function Page() {
   const { itemId } = useParams();
@@ -29,9 +30,11 @@ export default function Page() {
       //   apiRequest({ url: `${API_ENDPOINTS.MASTER.GET_ITEM_BY_ID}/${itemId}` }),
       //    apiRequest({ url: API_ENDPOINTS.MASTER.GET_ALL_CATEGORY }),
       //   apiRequest({ url: API_ENDPOINTS.MASTER.GET_ALL_CC_CODE }),
-      // ]); 
-      const itemRes = await apiRequest({ url: `${API_ENDPOINTS.MASTER.GET_ITEM_BY_ID}/${itemId}` });
-        
+      // ]);
+      const itemRes = await apiRequest({
+        url: `${API_ENDPOINTS.MASTER.GET_ITEM_BY_ID}/${itemId}`,
+      });
+
       const itemOptions = CATEGORY_OPTIONS.itemCategory;
       setData(itemRes.data[0]);
       setCategories(itemOptions || []);
@@ -45,13 +48,14 @@ export default function Page() {
 
   return (
     <>
-      <PageHeader actions={actions} />
-      <ItemForm
-        mode="edit"
-        itemId={itemId}
-        initialData={data}
-        categories={categories}
-      />
+      <HeaderWrapper header={<PageHeader actions={actions} />}>
+        <ItemForm
+          mode="edit"
+          itemId={itemId}
+          initialData={data}
+          categories={categories}
+        />
+      </HeaderWrapper>
     </>
   );
 }

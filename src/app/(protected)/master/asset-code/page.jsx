@@ -10,6 +10,7 @@ import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { getPageActions } from "@/components/common/PageActionButtons";
 import PageHeader from "@/components/layout/PageHeader";
+import HeaderWrapper from "@/components/layout/HeaderWrapper";
 
 export default function Page() {
   const router = useRouter();
@@ -18,9 +19,7 @@ export default function Page() {
   const [filteredData, setFilteredData] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  
-
-  //  INITIAL LOAD 
+  //  INITIAL LOAD
   useEffect(() => {
     const fetchItems = async () => {
       try {
@@ -32,14 +31,14 @@ export default function Page() {
         const assets = res.data || [];
 
         const formatted = assets.map((p, index) => ({
-          assetId: p.assetId, 
+          assetId: p.assetId,
           sl: index + 1,
           assetCode: p.assetCode,
           assetName: p.assetName,
           assetCategoryName: p.assetCategoryName,
-          unit:p.unit,
+          unit: p.unit,
           hsnSac: p.hsnSac,
-          gstPercentage:p.gstPercentage,
+          gstPercentage: p.gstPercentage,
         }));
 
         setData(formatted);
@@ -56,7 +55,6 @@ export default function Page() {
 
   // SEARCH HANDLER
   const handleSearch = ({ search }) => {
-
     if (!search) {
       setFilteredData(data);
       return;
@@ -64,8 +62,8 @@ export default function Page() {
 
     const filtered = data.filter((item) =>
       Object.values(item).some((val) =>
-        String(val).toLowerCase().includes(search.toLowerCase())
-      )
+        String(val).toLowerCase().includes(search.toLowerCase()),
+      ),
     );
 
     setFilteredData(filtered);
@@ -83,11 +81,9 @@ export default function Page() {
   ];
 
   const actions = getPageActions({
-      
-      onHome: () => router.push("/dashboard"),
-      onBack: () => router.back(),
-      
-    });
+    onHome: () => router.push("/dashboard"),
+    onBack: () => router.back(),
+  });
 
   if (loading) {
     return (
@@ -99,33 +95,29 @@ export default function Page() {
 
   return (
     <>
-        <PageHeader
-            actions={actions}
-              />
+      <HeaderWrapper header={<PageHeader actions={actions} />}>
         <div className="p-3">
+          {/*  SEARCH SECTION */}
+          <SearchSection
+            onSearch={handleSearch}
+            actions={[
+              {
+                label: "+ New Asset Code",
+                onClick: () => router.push("/master/asset-code/new"),
+              },
+            ]}
+          />
 
-      {/*  SEARCH SECTION */}
-      <SearchSection
-        onSearch={handleSearch}
-        actions={[
-          {
-            label: "+ New Asset Code",
-            onClick: () => router.push("/master/asset-code/new"),
-          },
-          
-        ]}
-      />
-
-      {/*  TABLE */}
-      <DataTable
-        columns={columns}
-        data={filteredData}
-        onRowClick={(row) => {
-          router.push(`/master/asset-code/${row.assetId}`);
-        }}
-      />
-    </div>    
+          {/*  TABLE */}
+          <DataTable
+            columns={columns}
+            data={filteredData}
+            onRowClick={(row) => {
+              router.push(`/master/asset-code/${row.assetId}`);
+            }}
+          />
+        </div>
+      </HeaderWrapper>
     </>
-    
   );
 }

@@ -8,6 +8,7 @@ import { Loader2 } from "lucide-react";
 import AssetForm from "@/components/master/asset/AssetForm";
 import { getPageActions } from "@/components/common/PageActionButtons";
 import PageHeader from "@/components/layout/PageHeader";
+import HeaderWrapper from "@/components/layout/HeaderWrapper";
 
 export default function Page() {
   const { assetId } = useParams();
@@ -43,15 +44,16 @@ export default function Page() {
 
   return (
     <>
-      <PageHeader
-        actions={actions}
-      />
+      <HeaderWrapper
+            header={<PageHeader actions={actions} />}
+          >
       <AssetForm
         mode="edit"
         assetId={assetId}
         initialData={data}
         categories={categories}
       />
+      </HeaderWrapper>
     </>
 
   );

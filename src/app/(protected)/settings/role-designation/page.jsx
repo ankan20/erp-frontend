@@ -12,6 +12,7 @@ import { Search } from "lucide-react";
 import PageHeader from "@/components/layout/PageHeader";
 import { useRouter } from "next/navigation";
 import { getPageActions } from "@/components/common/PageActionButtons";
+import HeaderWrapper from "@/components/layout/HeaderWrapper";
 
 export default function ProjectRolePage() {
   const [projectCode, setProjectCode] = useState("");
@@ -221,9 +222,9 @@ export default function ProjectRolePage() {
 
   return (
     <>
-    <PageHeader
-                actions={actions}
-                  />
+    <HeaderWrapper
+          header={<PageHeader actions={actions} />}
+        >
 
       <div className="p-4 space-y-2">
 
@@ -338,6 +339,7 @@ export default function ProjectRolePage() {
       </Dialog>
 
     </div>
+    </HeaderWrapper>
     
     </>
     

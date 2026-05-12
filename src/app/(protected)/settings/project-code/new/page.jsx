@@ -1,5 +1,6 @@
 "use client"
 import { getPageActions } from '@/components/common/PageActionButtons'
+import HeaderWrapper from '@/components/layout/HeaderWrapper'
 import PageHeader from '@/components/layout/PageHeader'
 import ProjectForm from '@/components/project-code/ProjectCodeForm'
 import { useRouter } from 'next/navigation'
@@ -15,10 +16,11 @@ const Page = () => {
       });
   return (
     <div>
-      <PageHeader
-                      actions={actions}
-                        />
+      <HeaderWrapper
+            header={<PageHeader actions={actions} />}
+          >
         <ProjectForm />
+        </HeaderWrapper>
     </div>
   )
 }

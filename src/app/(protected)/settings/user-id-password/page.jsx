@@ -11,6 +11,7 @@ import { toast } from "sonner";
 import { roleMap } from "@/config/role.config";
 import PageHeader from "@/components/layout/PageHeader";
 import { getPageActions } from "@/components/common/PageActionButtons";
+import HeaderWrapper from "@/components/layout/HeaderWrapper";
 
 export default function Page() {
   const router = useRouter();
@@ -101,9 +102,9 @@ export default function Page() {
 
   return (
     <>
-        <PageHeader
-            actions={actions}
-              />
+        <HeaderWrapper
+      header={<PageHeader actions={actions} />}
+    >
               <div className="p-3">
 
       {/*  SEARCH SECTION */}
@@ -126,6 +127,7 @@ export default function Page() {
         }}
       />
     </div>
+    </HeaderWrapper>
     </>
     
   );

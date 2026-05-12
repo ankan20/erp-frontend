@@ -9,6 +9,7 @@ import { toast } from "sonner";
 import ProjectForm from "@/components/project-code/ProjectCodeForm";
 import { getPageActions } from "@/components/common/PageActionButtons";
 import PageHeader from "@/components/layout/PageHeader";
+import HeaderWrapper from "@/components/layout/HeaderWrapper";
 
 const Page = () => {
   const { projectId } = useParams();
@@ -60,10 +61,11 @@ const Page = () => {
   //  FORM 
   return (
     <div>
-      <PageHeader
-              actions={actions}
-            />
+      <HeaderWrapper
+            header={<PageHeader actions={actions} />}
+          >
       <ProjectForm mode="edit" data={projectData} projectId={projectId}/>
+      </HeaderWrapper>
     </div>
   );
 };

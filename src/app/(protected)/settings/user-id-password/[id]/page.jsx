@@ -9,6 +9,7 @@ import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import PageHeader from "@/components/layout/PageHeader";
 import { getPageActions } from "@/components/common/PageActionButtons";
+import HeaderWrapper from "@/components/layout/HeaderWrapper";
 
 const Page = () => {
   const { id } = useParams();
@@ -59,10 +60,11 @@ const Page = () => {
   //  FORM 
   return (
     <div>
-      <PageHeader
-                  actions={actions}
-                    />
+      <HeaderWrapper
+      header={<PageHeader actions={actions} />}
+    >
       <UserForm mode="edit" data={userData} />
+      </HeaderWrapper>
     </div>
   );
 };

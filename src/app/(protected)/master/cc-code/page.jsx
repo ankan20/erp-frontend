@@ -10,6 +10,7 @@ import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { getPageActions } from "@/components/common/PageActionButtons";
 import PageHeader from "@/components/layout/PageHeader";
+import HeaderWrapper from "@/components/layout/HeaderWrapper";
 
 export default function Page() {
   const router = useRouter();
@@ -17,17 +18,13 @@ export default function Page() {
   const [data, setData] = useState([]);
   const [filteredData, setFilteredData] = useState([]);
   const [loading, setLoading] = useState(true);
-    
+
   const actions = getPageActions({
-    
-        onHome: () => router.push("/dashboard"),
-        onBack: () => router.back(),
-    
-      });
+    onHome: () => router.push("/dashboard"),
+    onBack: () => router.back(),
+  });
 
-  
-
-  //  INITIAL LOAD 
+  //  INITIAL LOAD
   useEffect(() => {
     const fetchProjects = async () => {
       try {
@@ -39,7 +36,7 @@ export default function Page() {
         const respdata = res.data || [];
 
         const formatted = respdata.map((c, index) => ({
-          ccId: c.ccId, 
+          ccId: c.ccId,
           sl: index + 1,
           ccCategoryName: c.ccCategoryName,
           ccCode: c.ccCode,
@@ -61,7 +58,6 @@ export default function Page() {
 
   // SEARCH HANDLER
   const handleSearch = ({ search }) => {
-
     if (!search) {
       setFilteredData(data);
       return;
@@ -69,8 +65,8 @@ export default function Page() {
 
     const filtered = data.filter((item) =>
       Object.values(item).some((val) =>
-        String(val).toLowerCase().includes(search.toLowerCase())
-      )
+        String(val).toLowerCase().includes(search.toLowerCase()),
+      ),
     );
 
     setFilteredData(filtered);
@@ -82,7 +78,7 @@ export default function Page() {
     { header: "CC Code", accessor: "ccCode" },
     { header: "CC Name", accessor: "ccName" },
     { header: "Category", accessor: "ccCategoryName" },
-    { header: "Group", accessor: "ccGroupName" }
+    { header: "Group", accessor: "ccGroupName" },
   ];
 
   if (loading) {
@@ -95,34 +91,29 @@ export default function Page() {
 
   return (
     <>
-        <PageHeader
-                            actions={actions}
-                              />
-      <div className="p-3">
+      <HeaderWrapper header={<PageHeader actions={actions} />}>
+        <div className="p-3">
+          {/*  SEARCH SECTION */}
+          <SearchSection
+            onSearch={handleSearch}
+            actions={[
+              {
+                label: "+ New CC Code",
+                onClick: () => router.push("/master/cc-code/new"),
+              },
+            ]}
+          />
 
-      {/*  SEARCH SECTION */}
-      <SearchSection
-        onSearch={handleSearch}
-        actions={[
-          {
-            label: "+ New CC Code",
-            onClick: () => router.push("/master/cc-code/new"),
-          },
-          
-        ]}
-      />
-
-      {/*  TABLE */}
-      <DataTable
-        columns={columns}
-        data={filteredData}
-        onRowClick={(row) => {
-          router.push(`/master/cc-code/${row.ccId}`);
-        }}
-      />
-    </div>
-    
+          {/*  TABLE */}
+          <DataTable
+            columns={columns}
+            data={filteredData}
+            onRowClick={(row) => {
+              router.push(`/master/cc-code/${row.ccId}`);
+            }}
+          />
+        </div>
+      </HeaderWrapper>
     </>
-    
   );
 }

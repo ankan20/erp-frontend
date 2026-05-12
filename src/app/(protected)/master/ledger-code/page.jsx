@@ -10,6 +10,7 @@ import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { getPageActions } from "@/components/common/PageActionButtons";
 import PageHeader from "@/components/layout/PageHeader";
+import HeaderWrapper from "@/components/layout/HeaderWrapper";
 
 export default function Page() {
   const router = useRouter();
@@ -90,29 +91,29 @@ export default function Page() {
 
   return (
     <>
-      <PageHeader actions={actions} />
+      <HeaderWrapper header={<PageHeader actions={actions} />}>
+        <div className="p-3">
+          {/*  SEARCH SECTION */}
+          <SearchSection
+            onSearch={handleSearch}
+            actions={[
+              {
+                label: "+ New Ledger",
+                onClick: () => router.push("/master/ledger-code/new"),
+              },
+            ]}
+          />
 
-      <div className="p-3">
-        {/*  SEARCH SECTION */}
-        <SearchSection
-          onSearch={handleSearch}
-          actions={[
-            {
-              label: "+ New Ledger",
-              onClick: () => router.push("/master/ledger-code/new"),
-            },
-          ]}
-        />
-
-        {/*  TABLE */}
-        <DataTable
-          columns={columns}
-          data={filteredData}
-          onRowClick={(row) => {
-            router.push(`/master/ledger-code/${row.ledgerId}`);
-          }}
-        />
-      </div>
+          {/*  TABLE */}
+          <DataTable
+            columns={columns}
+            data={filteredData}
+            onRowClick={(row) => {
+              router.push(`/master/ledger-code/${row.ledgerId}`);
+            }}
+          />
+        </div>
+      </HeaderWrapper>
     </>
   );
 }

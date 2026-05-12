@@ -18,6 +18,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import PageHeader from "@/components/layout/PageHeader";
 import { getPageActions } from "@/components/common/PageActionButtons";
 import { useRouter } from "next/navigation";
+import HeaderWrapper from "@/components/layout/HeaderWrapper";
 
 // ---------------- SCHEMA ----------------
 const MAX_SIZE = 5 * 1024 * 1024;
@@ -202,7 +203,7 @@ export default function CompanyDetailsPage() {
         method: isUpdate ? "PUT" : "POST",
         data: formDataPayload,
       });
-      console.log(resp);
+      // console.log(resp);
       if (!isUpdate) {
         setCookie("companyId", resp.data.id)
       }
@@ -257,9 +258,9 @@ export default function CompanyDetailsPage() {
 
   return (
     <>
-    <PageHeader
-    actions={actions}
-      />
+    <HeaderWrapper
+          header={<PageHeader actions={actions} />}
+        >
     <div className="p-4 space-y-2">
       {/* COMPANY NAME */}
       <div>
@@ -520,6 +521,7 @@ export default function CompanyDetailsPage() {
         </EditButton>
       </div>
     </div>
+    </HeaderWrapper>
     </>
     
   );

@@ -10,6 +10,7 @@ import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { getPageActions } from "@/components/common/PageActionButtons";
 import PageHeader from "@/components/layout/PageHeader";
+import HeaderWrapper from "@/components/layout/HeaderWrapper";
 
 export default function Page() {
   const router = useRouter();
@@ -41,8 +42,8 @@ export default function Page() {
           shortName: p.shortName,
           unitType: p.unitType,
           parentUnitName: p.parentUnitName || "N/A",
-          parentUnitMultiplyFactor:p.parentUnitMultiplyFactor,
-          categoryName:p.categoryName,
+          parentUnitMultiplyFactor: p.parentUnitMultiplyFactor,
+          categoryName: p.categoryName,
         }));
 
         setData(formatted);
@@ -82,7 +83,6 @@ export default function Page() {
     { header: "Parent Unit", accessor: "parentUnitName" },
     { header: "Multiply Factor", accessor: "parentUnitMultiplyFactor" },
     { header: "Unit Category", accessor: "categoryName" },
-    
   ];
 
   if (loading) {
@@ -95,29 +95,29 @@ export default function Page() {
 
   return (
     <>
-      <PageHeader actions={actions} />
+      <HeaderWrapper header={<PageHeader actions={actions} />}>
+        <div className="p-3">
+          {/*  SEARCH SECTION */}
+          <SearchSection
+            onSearch={handleSearch}
+            actions={[
+              {
+                label: "+ New Unit",
+                onClick: () => router.push("/master/unit/new"),
+              },
+            ]}
+          />
 
-      <div className="p-3">
-        {/*  SEARCH SECTION */}
-        <SearchSection
-          onSearch={handleSearch}
-          actions={[
-            {
-              label: "+ New Unit",
-              onClick: () => router.push("/master/unit/new"),
-            },
-          ]}
-        />
-
-        {/*  TABLE */}
-        <DataTable
-          columns={columns}
-          data={filteredData}
-          onRowClick={(row) => {
-            router.push(`/master/unit/${row.unitId}`);
-          }}
-        />
-      </div>
+          {/*  TABLE */}
+          <DataTable
+            columns={columns}
+            data={filteredData}
+            onRowClick={(row) => {
+              router.push(`/master/unit/${row.unitId}`);
+            }}
+          />
+        </div>
+      </HeaderWrapper>
     </>
   );
 }

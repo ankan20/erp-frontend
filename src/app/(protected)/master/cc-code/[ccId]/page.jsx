@@ -9,6 +9,7 @@ import { toast } from "sonner";
 import { apiRequest } from "@/lib/apiClient";
 import { getPageActions } from "@/components/common/PageActionButtons";
 import PageHeader from "@/components/layout/PageHeader";
+import HeaderWrapper from "@/components/layout/HeaderWrapper";
 
 export default function Page() {
   const { ccId } = useParams();
@@ -61,8 +62,9 @@ export default function Page() {
 
   return (
     <>
-      <PageHeader actions={actions} />
-      <CCForm mode="edit" ccId={ccId} data={data} />
+      <HeaderWrapper header={<PageHeader actions={actions} />}>
+        <CCForm mode="edit" ccId={ccId} data={data} />
+      </HeaderWrapper>
     </>
   );
 }

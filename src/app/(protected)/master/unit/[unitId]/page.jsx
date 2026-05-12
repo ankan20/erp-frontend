@@ -9,6 +9,7 @@ import { apiRequest } from "@/lib/apiClient";
 import { API_ENDPOINTS } from "@/config/api.config";
 import { getPageActions } from "@/components/common/PageActionButtons";
 import PageHeader from "@/components/layout/PageHeader";
+import HeaderWrapper from "@/components/layout/HeaderWrapper";
 
 export default function Page() {
   const { unitId } = useParams();
@@ -39,8 +40,9 @@ export default function Page() {
 
   return (
     <>
-      <PageHeader actions={actions} />
-      <UnitForm mode="edit" unitId={unitId} initialData={data} />
+      <HeaderWrapper header={<PageHeader actions={actions} />}>
+        <UnitForm mode="edit" unitId={unitId} initialData={data} />
+      </HeaderWrapper>
     </>
   );
 }

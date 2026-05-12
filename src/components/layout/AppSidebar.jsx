@@ -5,14 +5,14 @@ import { usePathname, useRouter } from "next/navigation";
 import { sidebarConfig } from "@/config/sidebar.config";
 import { ChevronRight, ChevronDown, Menu } from "lucide-react";
 
-export default function AppSidebar({collapsed, setCollapsed}) {
+export default function AppSidebar({ collapsed, setCollapsed }) {
   const pathname = usePathname();
   const router = useRouter();
 
   // const [collapsed, setCollapsed] = useState(true);
   const [manualOpen, setManualOpen] = useState({});
 
-  //Active detection 
+  //Active detection
   const hasActiveChild = (item) => {
     if (!item) return false;
 
@@ -40,44 +40,41 @@ export default function AppSidebar({collapsed, setCollapsed}) {
   //   }));
   // };
   const toggleMenu = (key, level) => {
-  setManualOpen((prev) => {
-    const updated = { ...prev };
+    setManualOpen((prev) => {
+      const updated = { ...prev };
 
-    // ROOT LEVEL
-    if (level === 0) {
-      // close all root menus
-      sidebarConfig.forEach((_, index) => {
-        updated[`-${index}`] = false;
-      });
+      // ROOT LEVEL
+      if (level === 0) {
+        // close all root menus
+        sidebarConfig.forEach((_, index) => {
+          updated[`-${index}`] = false;
+        });
 
-      // open current one
-      updated[key] = !isMenuOpen(key);
-    }
+        // open current one
+        updated[key] = !isMenuOpen(key);
+      }
 
-    // CHILD LEVEL
-    else {
-      const parentKey = key
-        .split("-")
-        .slice(0, -1)
-        .join("-");
+      // CHILD LEVEL
+      else {
+        const parentKey = key.split("-").slice(0, -1).join("-");
 
-      // close sibling menus
-      Object.keys(updated).forEach((k) => {
-        const sameParent =
-          k.startsWith(parentKey) &&
-          k.split("-").length === key.split("-").length;
+        // close sibling menus
+        Object.keys(updated).forEach((k) => {
+          const sameParent =
+            k.startsWith(parentKey) &&
+            k.split("-").length === key.split("-").length;
 
-        if (sameParent) {
-          updated[k] = false;
-        }
-      });
+          if (sameParent) {
+            updated[k] = false;
+          }
+        });
 
-      updated[key] = !isMenuOpen(key);
-    }
+        updated[key] = !isMenuOpen(key);
+      }
 
-    return updated;
-  });
-};
+      return updated;
+    });
+  };
 
   const isActive = (path) => path && pathname.startsWith(path);
 
@@ -99,13 +96,13 @@ export default function AppSidebar({collapsed, setCollapsed}) {
       if (!item) return null;
 
       const key = `${parentKey}-${index}`;
-      const hasChildren =
-        item.children && Array.isArray(item.children);
+      const hasChildren = item.children && Array.isArray(item.children);
 
       const open = isMenuOpen(key, item);
 
       const isParentActive = hasActiveChild(item);
       const isChildActive = isActive(item.path);
+      const isLastLevel = !item.children || item.children.length === 0;
 
       return (
         <div key={key}>
@@ -113,14 +110,16 @@ export default function AppSidebar({collapsed, setCollapsed}) {
           <div
             onClick={() => {
               if (hasChildren) {
-                toggleMenu(key ,level);
+                toggleMenu(key, level);
               } else if (item.path) {
                 router.push(item.path);
               }
             }}
             className={`flex items-center justify-between cursor-pointer px-3 py-2 border-b-2
               ${getBgColor(level, isParentActive, isChildActive)}
-              hover:brightness-95`}
+              ${
+                isLastLevel ? "hover:bg-yellow-400" : "hover:brightness-95"
+              } transition-colors duration-150`}
             style={{
               paddingLeft: `${12 + level * 20}px`,
             }}
@@ -129,13 +128,9 @@ export default function AppSidebar({collapsed, setCollapsed}) {
               <>
                 <div className="flex items-center gap-2">
                   {/* ICON */}
-                  {level === 0 && item.icon && (
-                    <item.icon size={16} />
-                  )}
+                  {level === 0 && item.icon && <item.icon size={16} />}
 
-                  <span className="text-sm font-medium">
-                    {item.title}
-                  </span>
+                  <span className="text-sm font-medium">{item.title}</span>
                 </div>
 
                 {hasChildren && (
@@ -164,12 +159,16 @@ export default function AppSidebar({collapsed, setCollapsed}) {
 
   return (
     <div
-      className={`h-full flex flex-col border-r bg-[#dcdcdc] transition-all duration-300 ${collapsed ? "w-[50px]" : "w-[240px]"
-        } `}
+      className={`h-full flex flex-col border-r bg-[#dcdcdc] transition-all duration-300 ${
+        collapsed ? "w-[50px]" : "w-[240px]"
+      } `}
     >
       {/* TOGGLE BUTTON */}
       <div className="flex items-center justify-start px-2 py-2 border-b shrink-0">
-        <button onClick={() => setCollapsed(!collapsed)} className="cursor-pointer">
+        <button
+          onClick={() => setCollapsed(!collapsed)}
+          className="cursor-pointer"
+        >
           <Menu size={20} />
         </button>
       </div>
@@ -183,7 +182,6 @@ export default function AppSidebar({collapsed, setCollapsed}) {
     </div>
   );
 }
-
 
 // "use client";
 
@@ -265,7 +263,7 @@ export default function AppSidebar({collapsed, setCollapsed}) {
 //             }}
 //             className={`flex items-center ${
 //               collapsed ? "justify-center" : "justify-between"
-//             } cursor-pointer px-3 py-2 
+//             } cursor-pointer px-3 py-2
 //             ${getBgColor(level, isParentActive, isChildActive)}
 //             hover:brightness-95`}
 //             style={{

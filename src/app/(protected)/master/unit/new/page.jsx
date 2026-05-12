@@ -1,6 +1,7 @@
 "use client";
 
 import { getPageActions } from "@/components/common/PageActionButtons";
+import HeaderWrapper from "@/components/layout/HeaderWrapper";
 import PageHeader from "@/components/layout/PageHeader";
 import UnitForm from "@/components/master/unit/UnitForm";
 import { useRouter } from "next/navigation";
@@ -14,8 +15,11 @@ export default function Page() {
   });
   return (
     <>
-      <PageHeader actions={actions} />
+      <HeaderWrapper
+            header={<PageHeader actions={actions} />}
+          >
       <UnitForm mode="create" />
+      </HeaderWrapper>
     </>
   );
 }

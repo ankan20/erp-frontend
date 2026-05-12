@@ -10,6 +10,7 @@ import LedgerForm from "@/components/master/ledger/LedgerForm";
 import { CATEGORY_OPTIONS } from "@/config/categoryOptions.config";
 import { getPageActions } from "@/components/common/PageActionButtons";
 import PageHeader from "@/components/layout/PageHeader";
+import HeaderWrapper from "@/components/layout/HeaderWrapper";
 
 export default function Page() {
   const { ledgerId } = useParams();
@@ -61,13 +62,14 @@ export default function Page() {
 
   return (
     <>
-      <PageHeader actions={actions} />
-      <LedgerForm
-        mode="edit"
-        ledgerId={ledgerId}
-        initialData={data}
-        categories={categories}
-      />
+      <HeaderWrapper header={<PageHeader actions={actions} />}>
+        <LedgerForm
+          mode="edit"
+          ledgerId={ledgerId}
+          initialData={data}
+          categories={categories}
+        />
+      </HeaderWrapper>
     </>
   );
 }

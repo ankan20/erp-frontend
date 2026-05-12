@@ -10,6 +10,7 @@ import { CATEGORY_OPTIONS } from "@/config/categoryOptions.config";
 import { getPageActions } from "@/components/common/PageActionButtons";
 import { useRouter } from "next/navigation";
 import PageHeader from "@/components/layout/PageHeader";
+import HeaderWrapper from "@/components/layout/HeaderWrapper";
 
 export default function Page() {
   const [categories, setCategories] = useState(CATEGORY_OPTIONS.ledgerCategory);
@@ -48,8 +49,11 @@ export default function Page() {
 
   return (
     <>
-      <PageHeader actions={actions} />
+        <HeaderWrapper
+      header={<PageHeader actions={actions} />}
+    >
       <LedgerForm mode="create" categories={categories} />
+      </HeaderWrapper>
     </>
   );
 }

@@ -9,9 +9,12 @@ import { CATEGORY_OPTIONS } from "@/config/categoryOptions.config";
 import { useRouter } from "next/navigation";
 import { getPageActions } from "@/components/common/PageActionButtons";
 import PageHeader from "@/components/layout/PageHeader";
+import HeaderWrapper from "@/components/layout/HeaderWrapper";
 
 export default function Page() {
-  const [categories, setCategories] = useState(CATEGORY_OPTIONS.itemCategory || []);
+  const [categories, setCategories] = useState(
+    CATEGORY_OPTIONS.itemCategory || [],
+  );
   // const [ccList, setCcList] = useState([]);
   // const [loading, setLoading] = useState(true);
   const router = useRouter();
@@ -44,8 +47,9 @@ export default function Page() {
 
   return (
     <>
-      <PageHeader actions={actions} />
-      <ItemForm mode="create" categories={categories}  />
+      <HeaderWrapper header={<PageHeader actions={actions} />}>
+        <ItemForm mode="create" categories={categories} />
+      </HeaderWrapper>
     </>
   );
 }

@@ -10,6 +10,7 @@ import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { getPageActions } from "@/components/common/PageActionButtons";
 import PageHeader from "@/components/layout/PageHeader";
+import HeaderWrapper from "@/components/layout/HeaderWrapper";
 
 export default function Page() {
   const router = useRouter();
@@ -92,28 +93,29 @@ export default function Page() {
 
   return (
     <>
-      <PageHeader actions={actions} />
-      <div className="p-3">
-        {/*  SEARCH SECTION */}
-        <SearchSection
-          onSearch={handleSearch}
-          actions={[
-            {
-              label: "+ New Item Code",
-              onClick: () => router.push("/master/item-code/new"),
-            },
-          ]}
-        />
+      <HeaderWrapper header={<PageHeader actions={actions} />}>
+        <div className="p-3">
+          {/*  SEARCH SECTION */}
+          <SearchSection
+            onSearch={handleSearch}
+            actions={[
+              {
+                label: "+ New Item Code",
+                onClick: () => router.push("/master/item-code/new"),
+              },
+            ]}
+          />
 
-        {/*  TABLE */}
-        <DataTable
-          columns={columns}
-          data={filteredData}
-          onRowClick={(row) => {
-            router.push(`/master/item-code/${row.itemId}`);
-          }}
-        />
-      </div>
+          {/*  TABLE */}
+          <DataTable
+            columns={columns}
+            data={filteredData}
+            onRowClick={(row) => {
+              router.push(`/master/item-code/${row.itemId}`);
+            }}
+          />
+        </div>
+      </HeaderWrapper>
     </>
   );
 }
