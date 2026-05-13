@@ -8,11 +8,15 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { apiRequest } from "@/lib/apiClient";
 import { API_ENDPOINTS } from "@/config/api.config";
 import { toast } from "sonner";
-import { Search } from "lucide-react";
+import {
+  Search,
+  Trash2,
+  Link2,
+} from "lucide-react";
 import PageHeader from "@/components/layout/PageHeader";
 import { useRouter } from "next/navigation";
 import { getPageActions } from "@/components/common/PageActionButtons";
-import HeaderWrapper from "@/components/layout/HeaderWrapper";
+import MapUserModal from "@/components/common/MapUserModal";
 
 export default function ProjectRolePage() {
   const [projectCode, setProjectCode] = useState("");
@@ -32,15 +36,16 @@ export default function ProjectRolePage() {
     teamId: "",
   });
   const router = useRouter();
+  const [openMapModal, setOpenMapModal] = useState(false);
 
 
   const inputClass =
-    "h-[30px] border border-[#8f8f8f] text-sm bg-white rounded-sm";
+      "h-[30px] border border-[#8f8f8f] text-sm bg-white rounded-sm";
 
   const labelClass =
-    "w-[250px] px-3 py-1 bg-[#d6e6f2] border border-[#6f7f8f] text-sm rounded-sm";
+      "w-[250px] px-3 py-1 bg-[#d6e6f2] border border-[#6f7f8f] text-sm rounded-sm";
 
-  //  FETCH USERS 
+  //  FETCH USERS
   useEffect(() => {
     const fetchUsers = async () => {
       const res = await apiRequest({
@@ -52,7 +57,7 @@ export default function ProjectRolePage() {
     fetchUsers();
   }, []);
 
-  //  SEARCH PROJECT 
+  //  SEARCH PROJECT
   const handleSearch = async () => {
     if (!projectCode) {
       toast.warning("Enter project code");
@@ -94,7 +99,7 @@ export default function ProjectRolePage() {
       const teams = Object.values(grouped);
       setHoTeam(teams[0]?.list || []);
       setSiteTeam(teams[1]?.list || []);
-      
+
 
     } catch (err) {
       toast.error("Project not found");
@@ -103,17 +108,37 @@ export default function ProjectRolePage() {
     }
   };
 
-  //  HANDLE CHANGE 
+  //  HANDLE CHANGE
   const handleUserChange = (teamSetter, team, index, value) => {
     const updated = [...team];
     updated[index].userId = value;
     teamSetter(updated);
   };
 
-  //  SAVE 
+  // HANDLE MAP USER
+  const handleMapUser = (item) => {
+
+    console.log("Map User:", item);
+
+    setOpenMapModal(true);
+
+  };
+
+// DELETE
+  const handleDeleteDesignation = (item) => {
+
+    console.log("Delete designation:", item);
+
+    toast.warning(
+        `Delete designation: ${item.designationName}`
+    );
+
+  };
+
+  //  SAVE
   const handleSave = async () => {
     let toastId;
-    
+
     try {
       toastId = toast.loading("Saving...");
       setLoading(true);
@@ -149,7 +174,7 @@ export default function ProjectRolePage() {
     }
   };
 
-  //  ADD DESIGNATION 
+  //  ADD DESIGNATION
   const handleAddDesignation = async () => {
     if (!projectData) {
       toast.warning("Search project first");
@@ -157,8 +182,8 @@ export default function ProjectRolePage() {
     }
     let toastId;
     try {
-    toastId = toast.loading("Adding...");
-    setLoadingModal(true);
+      toastId = toast.loading("Adding...");
+      setLoadingModal(true);
 
       let res =await apiRequest({
         url: API_ENDPOINTS.SETTINGS.ADD_DESIGNATION,
@@ -169,12 +194,12 @@ export default function ProjectRolePage() {
         },
       });
 
-      
+
       toast.success("Added", { id: toastId });
       setOpenModal(false);
       setLoadingModal(false);
       handleSearch();
-      
+
 
     } catch (err) {
       toast.error(err.message || "Failed",{id:toastId});
@@ -182,166 +207,220 @@ export default function ProjectRolePage() {
     }
   };
 
-  //  RENDER 
+
+  // RENDER
   const renderTeam = (team, setTeam) => (
-    <div className="space-y-2">
-      {team.map((item, index) => (
-        <div key={item.id} className="md:flex md:gap-2">
+      <div className="space-y-2">
 
-          <div className="px-3 py-1 bg-[#e6d2c1] border text-sm min-w-62.5 rounded-sm">
-            {item.designationName}
-          </div>
+        {team.map((item, index) => (
 
-          <select
-            value={item.userId || ""}
-            disabled={!isEditing}
-            onChange={(e) =>
-              handleUserChange(setTeam, team, index, e.target.value)
-            }
-            className="border h-7.5 px-2 min-w-45 rounded-sm"
-          >
-            <option value="">Select User</option>
-            {users.map((u) => (
-              <option key={u.id} value={u.id}>
-                {u.loginUserName}
-              </option>
-            ))}
-          </select>
+            <div
+                key={item.id}
+                className="md:flex md:items-center md:gap-2"
+            >
 
-        </div>
-      ))}
-    </div>
+              {/* DESIGNATION */}
+              <div className="px-3 py-1 bg-[#e6d2c1] border text-sm min-w-62.5 rounded-sm">
+                {item.designationName}
+              </div>
+
+              {/* USER SELECT */}
+              <select
+                  value={item.userId || ""}
+                  disabled={!isEditing}
+                  onChange={(e) =>
+                      handleUserChange(
+                          setTeam,
+                          team,
+                          index,
+                          e.target.value
+                      )
+                  }
+                  className="border h-7.5 px-2 min-w-45 rounded-sm"
+              >
+
+                <option value="">
+                  Select User
+                </option>
+
+                {users.map((u) => (
+
+                    <option
+                        key={u.id}
+                        value={u.id}
+                    >
+                      {u.loginUserName}
+                    </option>
+
+                ))}
+
+              </select>
+
+              {/* ACTION BUTTONS */}
+              <div className="flex gap-2 mt-1 md:mt-0">
+
+                {/* MAP BUTTON */}
+                <button
+                    type="button"
+                    onClick={() => handleMapUser(item)}
+                    className="border rounded-sm p-1 hover:bg-blue-100 transition"
+                >
+                  <Link2 size={16} />
+                </button>
+
+                {/* DELETE BUTTON */}
+                <button
+                    type="button"
+                    onClick={() =>
+                        handleDeleteDesignation(item)
+                    }
+                    className="border rounded-sm p-1 hover:bg-red-100 transition"
+                >
+                  <Trash2 size={16} />
+                </button>
+
+              </div>
+
+            </div>
+
+        ))}
+
+      </div>
   );
 
   const actions = getPageActions({
-        
-        onHome: () => router.push("/dashboard"),
-        onBack: () => router.back(),
-        
-      });
+
+    onHome: () => router.push("/dashboard"),
+    onBack: () => router.back(),
+
+  });
 
   return (
-    <>
-    <HeaderWrapper
-          header={<PageHeader actions={actions} />}
-        >
+      <>
+        <PageHeader
+            actions={actions}
+        />
 
-      <div className="p-4 space-y-2">
+        <div className="p-4 space-y-2">
 
-      {/* TOP ROW */}
-      <div className="md:flex md:justify-between">
+          {/* TOP ROW */}
+          <div className="md:flex md:justify-between">
 
-        <div className="md:flex gap-2 md:items-center">
-          <div className="px-3 py-1 bg-[#d6e6f2] border rounded-sm md:min-w-[250px]">Project Code</div>
+            <div className="md:flex gap-2 md:items-center">
+              <div className="px-3 py-1 bg-[#d6e6f2] border rounded-sm md:min-w-[250px]">Project Code</div>
 
-          <Input
-            value={projectCode}
-            onChange={(e) => setProjectCode(e.target.value)}
-            disabled={isEditing}
-            className={`w-[200px] ${inputClass}` }
-          />
+              <Input
+                  value={projectCode}
+                  onChange={(e) => setProjectCode(e.target.value)}
+                  disabled={isEditing}
+                  className={`w-[200px] ${inputClass}` }
+              />
 
-          <button onClick={handleSearch}>
-            <Search size={18} />
-          </button>
-        </div>
+              <button onClick={handleSearch}>
+                <Search size={18} />
+              </button>
+            </div>
 
-        <button
-          onClick={() => {
-            if (!projectData) {
-              toast.warning("Search project first");
-              return;
-            }
-            setOpenModal(true);
-          }}
-          className="bg-[#8ed1fc] px-5 py-1 rounded-md"
-        >
-          + Add Designation
-        </button>
-      </div>
-
-      {/* AUTO FIELDS */}
-      <div className="md:flex gap-2 md:items-center">
-        <div className="px-3 py-1 bg-[#d6e6f2] border rounded-sm md:min-w-[250px]">Project Name</div>
-        <Input value={projectData?.projectName || "[Auto]"} disabled className={`w-[50%] ${inputClass}` } />
-      </div>
-
-      <div className="md:flex gap-2 md:items-center">
-        <div className="px-3 py-1 bg-[#d6e6f2] border rounded-sm md:min-w-[250px]">Client Name</div>
-        <Input value={projectData?.clientName || "[Auto]"} disabled className={`w-[50%] ${inputClass}` } />
-      </div>
-
-      {/* TEAMS */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-10 mt-4 ">
-
-        <div>
-          <div className="font-semibold text-blue-600 mb-2">* Site Team</div>
-          {renderTeam(siteTeam, setSiteTeam)}
-        </div>
-
-        <div>
-          <div className="font-semibold text-blue-600 mb-2">* HO Team</div>
-          {renderTeam(hoTeam, setHoTeam)}
-        </div>
-
-      </div>
-
-      {/* BUTTONS */}
-      <div className="flex justify-end gap-3 mt-10">
-        <SaveButton onClick={handleSave} disabled={!isEditing || loading} loading={loading}/>
-
-        <EditButton onClick={() => setIsEditing((p) => !p)} disabled={loading}>
-          {isEditing ? "Cancel" : "Edit"}
-        </EditButton>
-      </div>
-
-      {/* MODAL */}
-      <Dialog open={openModal} onOpenChange={(v) => !loadingModal && setOpenModal(v)}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Add Designation</DialogTitle>
-          </DialogHeader>
-
-          <div className="space-y-3">
-
-            <Input
-              placeholder="Designation Name"
-              value={newDesignation.designationName}
-              onChange={(e) =>
-                setNewDesignation((p) => ({
-                  ...p,
-                  designationName: e.target.value,
-                }))
-              }
-            />
-
-            <select
-              value={newDesignation.teamId}
-              onChange={(e) =>
-                setNewDesignation((p) => ({
-                  ...p,
-                  teamId: Number(e.target.value),
-                }))
-              }
-              className="border w-full p-2"
+            <button
+                onClick={() => {
+                  if (!projectData) {
+                    toast.warning("Search project first");
+                    return;
+                  }
+                  setOpenModal(true);
+                }}
+                className="bg-[#8ed1fc] px-5 py-1 rounded-md"
             >
-              <option value="">Select Team</option>
-              <option value={"2"}>Site</option>
-              <option value={"1"}>HO</option>
-            </select>
+              + Add Designation
+            </button>
+          </div>
 
-            <Input value={projectCode} disabled />
+          {/* AUTO FIELDS */}
+          <div className="md:flex gap-2 md:items-center">
+            <div className="px-3 py-1 bg-[#d6e6f2] border rounded-sm md:min-w-[250px]">Project Name</div>
+            <Input value={projectData?.projectName || "[Auto]"} disabled className={`w-[50%] ${inputClass}` } />
+          </div>
 
-            <SaveButton onClick={handleAddDesignation} loading={loadingModal} disabled={loadingModal}/>
+          <div className="md:flex gap-2 md:items-center">
+            <div className="px-3 py-1 bg-[#d6e6f2] border rounded-sm md:min-w-[250px]">Client Name</div>
+            <Input value={projectData?.clientName || "[Auto]"} disabled className={`w-[50%] ${inputClass}` } />
+          </div>
+
+          {/* TEAMS */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-10 mt-4 ">
+
+            <div>
+              <div className="font-semibold text-blue-600 mb-2">* Site Team</div>
+              {renderTeam(siteTeam, setSiteTeam)}
+            </div>
+
+            <div>
+              <div className="font-semibold text-blue-600 mb-2">* HO Team</div>
+              {renderTeam(hoTeam, setHoTeam)}
+            </div>
 
           </div>
-        </DialogContent>
-      </Dialog>
 
-    </div>
-    </HeaderWrapper>
-    
-    </>
-    
+          {/* BUTTONS */}
+          <div className="flex justify-end gap-3 mt-10">
+            <SaveButton onClick={handleSave} disabled={!isEditing || loading} loading={loading}/>
+
+            <EditButton onClick={() => setIsEditing((p) => !p)} disabled={loading}>
+              {isEditing ? "Cancel" : "Edit"}
+            </EditButton>
+          </div>
+
+          {/* MODAL */}
+          <Dialog open={openModal} onOpenChange={(v) => !loadingModal && setOpenModal(v)}>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Add Designation</DialogTitle>
+              </DialogHeader>
+
+              <div className="space-y-3">
+
+                <Input
+                    placeholder="Designation Name"
+                    value={newDesignation.designationName}
+                    onChange={(e) =>
+                        setNewDesignation((p) => ({
+                          ...p,
+                          designationName: e.target.value,
+                        }))
+                    }
+                />
+
+                <select
+                    value={newDesignation.teamId}
+                    onChange={(e) =>
+                        setNewDesignation((p) => ({
+                          ...p,
+                          teamId: Number(e.target.value),
+                        }))
+                    }
+                    className="border w-full p-2"
+                >
+                  <option value="">Select Team</option>
+                  <option value={"2"}>Site</option>
+                  <option value={"1"}>HO</option>
+                </select>
+
+                <Input value={projectCode} disabled />
+
+                <SaveButton onClick={handleAddDesignation} loading={loadingModal} disabled={loadingModal}/>
+
+              </div>
+            </DialogContent>
+          </Dialog>
+
+          <MapUserModal
+              open={openMapModal}
+              onOpenChange={setOpenMapModal}
+          />
+
+        </div>
+
+      </>
+
   );
 }
