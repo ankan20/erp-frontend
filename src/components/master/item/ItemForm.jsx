@@ -76,7 +76,7 @@ export default function ItemForm({
         setLoadingCc(true);
 
         const res = await apiRequest({
-          url: `${API_ENDPOINTS.MASTER.GET_ALL_CC_CODE}?categoryId=${selectedCategory}`,
+          url: `${API_ENDPOINTS.MASTER.GET_ALL_CC_CODE}?categoryId=${selectedCategory}&key=item`,
         });
 
         const data = res.data || [];
