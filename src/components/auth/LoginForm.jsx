@@ -106,7 +106,7 @@ useEffect(()=>{
     } else if (role === ROLE.ADMIN) {
       router.replace("/master/ledger-code");
     } else {
-      router.replace("/resource-management/procurement/indent"); //need to be change
+      router.replace("/"); //need to be change
     }
   }
 },[])
