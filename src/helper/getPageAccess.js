@@ -1,5 +1,5 @@
 import { getLocalStorage } from "@/lib/localStorage";
-
+//used for every other module except settings and master they have separate logics
 export const getPageAccess = ({
   pageCode,
   pageType,

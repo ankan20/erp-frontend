@@ -11,7 +11,6 @@ import { getPageActions } from "@/components/common/PageActionButtons";
 import PageHeader from "@/components/layout/PageHeader";
 import HeaderWrapper from "@/components/layout/HeaderWrapper";
 import { isMasterEditable } from "@/helper/getMasterAccess";
-import PageNotAvailable from "@/components/common/PageNotAvailable";
 
 export default function Page() {
   const { itemId } = useParams();
@@ -48,9 +47,6 @@ export default function Page() {
   }, [itemId]);
 
   if (loading) return <Loader2 className="animate-spin m-auto mt-10" />;
-  if (!canEdit) {
-        return <PageNotAvailable />;
-      }
 
   return (
     <>

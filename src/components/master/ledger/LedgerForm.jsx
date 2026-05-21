@@ -44,7 +44,7 @@ export default function LedgerForm({
   categories = [],
 }) {
   const [isEditing, setIsEditing] = useState(mode === "create");
-  const [loading, setLoading] = useState(mode === "edit");
+  const [loading, setLoading] = useState(mode === "edit" || mode ==="view");
 
   const [fileNames, setFileNames] = useState({});
   const [fileUrls, setFileUrls] = useState({});
@@ -91,7 +91,7 @@ export default function LedgerForm({
 
   //  LOAD
   useEffect(() => {
-    if (mode === "edit" && initialData && categories.length > 0) {
+    if ((mode === "edit" || mode==="view") && initialData && categories.length > 0) {
       reset({
         ...initialData,
         categoryId: String(initialData.categoryId),

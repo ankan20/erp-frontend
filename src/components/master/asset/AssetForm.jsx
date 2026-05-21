@@ -115,7 +115,7 @@ export default function AssetForm({
   //  SET EDIT DATA
   useEffect(() => {
     if (
-      mode === "edit" &&
+      (mode === "edit" || mode==="view") &&
       initialData &&
       categories.length &&
       unitList.length
