@@ -25,7 +25,7 @@ const indentSchema = z.object({
   categoryCode: z.string().min(1),
   priority: z.string().min(1),
   requiredWithin: z.string().min(1),
-  indentDate:z.string().min(1),
+  indentDate: z.string().min(1),
   indentPlacedBy: z.string().min(1),
   siteRegSerialNo: z.string().min(1),
   saleOrderNo: z.string().min(1),
@@ -59,7 +59,7 @@ const defaultValues = {
   categoryCode: "",
   priority: "",
   requiredWithin: "",
-  indentDate:"",
+  indentDate: "",
   indentPlacedBy: "",
   siteRegSerialNo: "",
   saleOrderNo: "",
@@ -67,8 +67,12 @@ const defaultValues = {
   items: [defaultItemRow],
 };
 
-export default function IndentForm({ mode = "create", indentId }) {
-  const isViewMode = mode === "view";
+export default function IndentForm({
+  mode = "create",
+  canApprove = false,
+  indentId,
+}) {
+  const isViewMode = mode === "view" || mode === "approver";
 
   const [isEditing, setIsEditing] = useState(mode === "create");
 
@@ -174,7 +178,7 @@ export default function IndentForm({ mode = "create", indentId }) {
 
           requiredWithin: data.requiredWithin || "",
 
-          indentDate:data.indentDate || "",
+          indentDate: data.indentDate || "",
 
           indentPlacedBy: data.indentPlacedBy || "",
 
@@ -215,11 +219,14 @@ export default function IndentForm({ mode = "create", indentId }) {
           fileUrl: data.indentFile || "",
         });
         // data.indentStatus === "Submitted" || data.indentStatus==="Approved"
-        if (data.indentStatus !== "Draft") {
+        if (data.indentStatus !== "Draft" && mode === "edit") {
           setIsSubmitted(true);
 
           setIsEditing(false);
-          let msg = data.indentStatus==="Approved" ? "Indent already Approved" : "Indent already submitted";
+          let msg =
+            data.indentStatus === "Approved"
+              ? "Indent already Approved"
+              : "Indent already submitted";
           toast.info(msg || "Indent already submitted");
         } else {
           setIsEditing(false);
@@ -271,7 +278,7 @@ export default function IndentForm({ mode = "create", indentId }) {
 
     formData.append("requiredWithin", values.requiredWithin);
 
-    formData.append("indentDate",values.indentDate);
+    formData.append("indentDate", values.indentDate);
 
     formData.append("indentPlacedBy", values.indentPlacedBy);
 
@@ -393,7 +400,7 @@ export default function IndentForm({ mode = "create", indentId }) {
   };
 
   const handleEdit = () => {
-    if (isSubmitting) return;
+    if (isSubmitting || isViewMode) return;
 
     // CANCEL
     if (isEditing) {
@@ -685,7 +692,7 @@ export default function IndentForm({ mode = "create", indentId }) {
       {!isViewMode && (
         <div className="flex justify-end gap-3 pt-4 md:pt-0">
           {((mode === "create" && isEditing) ||
-            (mode !== "create" && isEditing && !isSubmitted)) && (
+            (mode === "edit" && isEditing && !isSubmitted)) && (
             <SaveDraftButton
               onClick={() => handleSubmit(handleSaveDraft)()}
               loading={isSubmitting}
@@ -711,7 +718,7 @@ export default function IndentForm({ mode = "create", indentId }) {
             Submit
           </SaveButton>
 
-          {mode !== "create" && !isSubmitted && (
+          {mode === "edit" && !isSubmitted && (
             <EditButton onClick={handleEdit} disabled={isSubmitting}>
               {isEditing ? "Cancel" : "Edit"}
             </EditButton>

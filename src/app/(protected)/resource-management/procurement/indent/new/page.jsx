@@ -9,9 +9,20 @@ import PageHeader from "@/components/layout/PageHeader";
 import { getPageActions } from "@/components/common/PageActionButtons";
 
 import IndentForm from "@/components/resource/indent/IndentForm";
+import { getPageAccess } from "@/helper/getPageAccess";
+import PageNotAvailable from "@/components/common/PageNotAvailable";
 
 export default function Page() {
   const router = useRouter();
+  const access =
+  getPageAccess({
+    pageCode: "indent",
+    pageType: "ADD",
+  });
+
+  if (!access.allowed) {
+  return <PageNotAvailable />;
+}
 
   const actions = getPageActions({
     onHome: () =>
@@ -19,11 +30,6 @@ export default function Page() {
 
     onBack: () =>
       router.back(),
-
-    onApprove: () =>
-      toast.info(
-        "Working on this feature"
-      ),
   });
 
   return (

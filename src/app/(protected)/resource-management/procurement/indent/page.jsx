@@ -11,9 +11,15 @@ import { toast } from "sonner";
 import PageHeader from "@/components/layout/PageHeader";
 import { getPageActions } from "@/components/common/PageActionButtons";
 import HeaderWrapper from "@/components/layout/HeaderWrapper";
+import { getPageAccess } from "@/helper/getPageAccess";
+import PageNotAvailable from "@/components/common/PageNotAvailable";
 
 export default function Page() {
   const router = useRouter();
+  const access = getPageAccess({
+    pageCode: "indent",
+    pageType: "LIST",
+  });
 
   const [data, setData] = useState([]);
   const [filteredData, setFilteredData] = useState([]);
@@ -123,6 +129,10 @@ export default function Page() {
     onBack: () => router.back(),
   });
 
+  if (!access.allowed) {
+    return <PageNotAvailable />;
+  }
+
   if (loading) {
     return (
       <div className="flex justify-center items-center h-[300px]">
@@ -139,13 +149,19 @@ export default function Page() {
           <SearchSection
             onSearch={handleSearch}
             showDateRange={true}
-            actions={[
-              {
-                label: "+ New Indent",
-                onClick: () =>
-                  router.push("/resource-management/procurement/indent/new"),
-              },
-            ]}
+            actions={
+              access.canAdd
+                ? [
+                    {
+                      label: "+ New Indent",
+                      onClick: () =>
+                        router.push(
+                          "/resource-management/procurement/indent/new",
+                        ),
+                    },
+                  ]
+                : []
+            }
           />
 
           {/*  TABLE */}

@@ -1,11 +1,19 @@
-import { getLocalStorage } from "@/lib/localStorage";
-//used for every other module except settings and master they have separate logics
+import { getLocalStorage }
+from "@/lib/localStorage";
+
+// used for every other module
+// except settings and master
+// they have separate logics
+
 export const getPageAccess = ({
   pageCode,
   pageType,
 }) => {
 
-  const permissions = getLocalStorage("permissions") ||  {};
+  const permissions =
+    getLocalStorage(
+      "permissions"
+    ) || {};
 
   const canView =
     permissions?.[
@@ -52,7 +60,7 @@ export const getPageAccess = ({
 
       canApprove,
 
-      mode: "LIST",
+      mode: "list",
     };
   }
 
@@ -74,7 +82,7 @@ export const getPageAccess = ({
 
       disabled: false,
 
-      mode: "ADD",
+      mode: "create",
 
       canApprove: false,
     };
@@ -98,8 +106,10 @@ export const getPageAccess = ({
 
       mode:
         canEdit
-          ? "EDIT"
-          : "VIEW",
+          ? "edit"
+          : canApprove
+            ? "approver"
+            : "view",
     };
   }
 
