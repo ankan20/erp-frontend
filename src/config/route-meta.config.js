@@ -49,6 +49,10 @@ export const routeMetaConfig = [
     basePath: "/master/ledger-code/[id]",
     breadcrumbs: ["Master", "Ledger Code", "Edit"],
   },
+  {
+    basePath: "/master/terms-condition",
+    breadcrumbs: ["Master", "Terms & Condition"],
+  },
   //cc code
   {
     basePath: "/master/cc-code",

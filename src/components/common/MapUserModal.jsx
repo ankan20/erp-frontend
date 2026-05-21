@@ -27,19 +27,56 @@ export default function MapUserModal({
         checked
     ) => {
 
-        setPermissions((prev) => ({
+        setPermissions((prev) => {
 
-            ...prev,
+            const current =
+                prev[path] || {
+                    view: false,
+                    edit: false,
+                };
 
-            [path]: {
+            // AUTO ENABLE VIEW
+            // WHEN EDIT IS CHECKED
 
-                ...prev[path],
+            if (
+                permissionType === "edit" &&
+                checked
+            ) {
 
-                [permissionType]: checked,
+                return {
 
-            },
+                    ...prev,
 
-        }));
+                    [path]: {
+
+                        ...current,
+
+                        edit: true,
+
+                        view: true,
+
+                    },
+
+                };
+            }
+
+            // NORMAL FLOW
+
+            return {
+
+                ...prev,
+
+                [path]: {
+
+                    ...current,
+
+                    [permissionType]:
+                    checked,
+
+                },
+
+            };
+        });
     };
 
     return (

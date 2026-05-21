@@ -76,6 +76,11 @@ export const sidebarConfig = [
         path: "/master/category-group",
         permissionKey: "category_group",
       },
+      {
+        title: "Terms & Conditions",
+        path: "/master/terms-condition",
+        permissionKey: "terms_condition",
+      }
     ],
   },
 

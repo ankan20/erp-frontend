@@ -29,6 +29,9 @@ import { API_ENDPOINTS } from "@/config/api.config";
 
 import {clearAuthCookies} from "@/lib/cookies";
 import {toast} from "sonner";
+import {router} from "next/client";
+import {useRouter} from "next/navigation";
+import CreatorUsersPopup from "@/components/settings/approval-path/CreatorUsersPopup";
 
 // Generate Safe Module Code
 
@@ -277,6 +280,11 @@ export default function ApprovalPathPage() {
             "Level2",
         ]);
 
+    const [creatorPopup, setCreatorPopup] = useState({
+        open: false,
+        users: [],
+    });
+
     // Load Saved Levels
 
     useEffect(() => {
@@ -440,6 +448,78 @@ export default function ApprovalPathPage() {
         }
     };
 
+    // Load creator
+    const loadCreatorUsers = async (
+        projectCode
+    ) => {
+
+        try {
+
+            const response =
+                await apiRequest({
+
+                    url:
+                        `${API_ENDPOINTS.SETTINGS.APPROVAL_PATH.EDIT_USERS}?projectCode=${encodeURIComponent(projectCode)}`,
+
+                    method: "GET",
+                });
+
+            const editUsersData =
+                response?.data || {};
+
+            const moduleRowMap =
+                getModuleRowMap();
+
+            setSelectedUsers((prev) => {
+
+                const updated = { ...prev };
+
+                Object.entries(editUsersData)
+                    .forEach(([key, users]) => {
+
+                        const [
+                            moduleCode,
+                            permission,
+                        ] = key.split(".");
+
+                        if (
+                            permission !== "EDIT"
+                        ) return;
+
+                        const rowId =
+                            moduleRowMap[moduleCode];
+
+                        if (!rowId) return;
+
+                        updated[
+                            `${rowId}_creator`
+                            ] = Array.isArray(users)
+
+                            ? users.map(
+                                (user) =>
+                                    Number(user.id)
+                            )
+
+                            : [];
+                    });
+
+                return updated;
+            });
+
+        }
+        catch (error) {
+
+            console.error(
+                "Failed to load creator users",
+                error
+            );
+
+            toast.error(
+                "Failed to load creator users"
+            );
+        }
+    };
+
     // Search Project + Load Users
 
     const handleSearch = async () => {
@@ -510,7 +590,14 @@ export default function ApprovalPathPage() {
 
 
             setUsers(userData);
-            await loadApprovalPath(matchedProject.projectCode);
+
+            await loadApprovalPath(
+                matchedProject.projectCode
+            );
+
+            await loadCreatorUsers(
+                matchedProject.projectCode
+            );
 
         }
         catch (err) {
@@ -707,41 +794,80 @@ export default function ApprovalPathPage() {
 
                             creator:
                                 shouldShowSelect
-                                    ? (
-                                        <MultiSelect
-                                            placeholder="Select Creators"
+                                    ? (() => {
 
-                                            value={
-                                                selectedUsers[
-                                                    `${rowId}_creator`
-                                                    ] || []
-                                            }
+                                        const creatorUsers =
+                                            users.filter((user) =>
 
-                                            onChange={(values) =>
+                                                (
+                                                    selectedUsers[
+                                                        `${rowId}_creator`
+                                                        ] || []
 
-                                                setSelectedUsers((prev) => ({
+                                                ).includes(
+                                                    Number(user.id)
+                                                )
+                                            );
 
-                                                    ...prev,
+                                        const visibleUsers =
+                                            creatorUsers.slice(0, 2);
 
-                                                    [`${rowId}_creator`]:
-                                                    values,
+                                        const extraCount =
+                                            creatorUsers.length - 2;
 
-                                                }))
-                                            }
+                                        return (
 
-                                            options={users.map((user) => ({
+                                            <div className="px-2 py-1 text-sm">
 
-                                                value: user.id,
+                                                {creatorUsers.length > 0
 
-                                                label:
-                                                    user.userName ||
-                                                    "Unknown User",
+                                                    ? visibleUsers
+                                                        .map((user) => user.userName)
+                                                        .join(", ")
 
-                                            }))}
+                                                    : "-"
+                                                }
 
-                                        />
+                                                {extraCount > 0 && (
 
-                                    )
+                                                    <button
+                                                        type="button"
+
+                                                        onClick={(e) => {
+
+                                                            e.stopPropagation();
+
+                                                            setCreatorPopup({
+
+                                                                open: true,
+
+                                                                users:
+                                                                creatorUsers,
+
+                                                            });
+
+                                                        }}
+
+                                                        className="
+                                ml-2
+                                rounded
+                                bg-blue-100
+                                px-2
+                                py-[1px]
+                                text-xs
+                                font-semibold
+                                text-blue-700
+                                hover:bg-blue-200
+                            "
+                                                    >
+                                                        +{extraCount}
+                                                    </button>
+                                                )}
+
+                                            </div>
+                                        );
+                                    })()
+
                                     : null,
 
                             ...Object.fromEntries(
@@ -979,8 +1105,10 @@ export default function ApprovalPathPage() {
         })),
     ];
 
+    const router = useRouter();
+
     const actions = getPageActions({
-        onHome: () => clearAuthCookies(),
+        onHome: () => router.push("/dashboard"),
         onBack: () => router.back(),
     });
 
@@ -1071,6 +1199,22 @@ export default function ApprovalPathPage() {
                         data={tableData}
                     />
                 </div>
+                <CreatorUsersPopup
+
+                    open={creatorPopup.open}
+
+                    users={creatorPopup.users}
+
+                    onClose={() =>
+
+                        setCreatorPopup({
+
+                            open: false,
+                            users: [],
+
+                        })
+                    }
+                />
             </div>
         </HeaderWrapper>
     );
