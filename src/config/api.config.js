@@ -3,6 +3,7 @@ const API_BASE_URL = "https://web-production-2118d.up.railway.app"; //change her
 export const API_ENDPOINTS = {
     LOGIN: "/auth/login",
     GET_COMPANIES:"/compny/my-companies",//only for super admin
+    GET_PROJECT_PERMISSION:"/project/enter",//projectcode
     SETTINGS :{
         CREATE_COMPANY:"/compny/company", //used for update also
         GET_COMPANY_DETAILS_BY_ID:"/compny/company",
