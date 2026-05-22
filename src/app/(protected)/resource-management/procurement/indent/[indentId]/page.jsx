@@ -11,9 +11,13 @@ import { getPageActions } from "@/components/common/PageActionButtons";
 import IndentForm from "@/components/resource/indent/IndentForm";
 import { getPageAccess } from "@/helper/getPageAccess";
 import PageNotAvailable from "@/components/common/PageNotAvailable";
+import ApprovalActionModal from "@/components/common/ApprovalActionModal";
+import { API_ENDPOINTS } from "@/config/api.config";
+import { useState } from "react";
 
 export default function Page() {
   const router = useRouter();
+  const [openApproval, setOpenApproval] = useState(false);
 
   const { indentId } = useParams();
   const access = getPageAccess({
@@ -30,9 +34,7 @@ export default function Page() {
 
     onBack: () => router.back(),
 
-    onApprove: access.canApprove
-      ? () => toast.info("Working on this feature")
-      : undefined,
+    onApprove: access.canApprove ? () => setOpenApproval(true) : undefined,
   });
 
   return (
@@ -41,6 +43,32 @@ export default function Page() {
         mode={access.mode}
         canApprove={access.canApprove}
         indentId={indentId}
+      />
+      <ApprovalActionModal
+        open={openApproval}
+        onClose={() => setOpenApproval(false)}
+        payload={{
+          id:indentId,
+        }}
+        actions={[
+          {
+            type: "approve",
+            api: API_ENDPOINTS.RESOURCE.INDENT.APPROVE,
+          },
+
+          {
+            type: "reback",
+            api: API_ENDPOINTS.RESOURCE.INDENT.REBACK,
+          },
+
+          {
+            type: "reject",
+            api: API_ENDPOINTS.RESOURCE.INDENT.REJECT,
+          },
+        ]}
+        onSuccess={() => {
+          router.refresh();
+        }}
       />
     </HeaderWrapper>
   );

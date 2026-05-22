@@ -70,7 +70,11 @@ export const API_ENDPOINTS = {
             GET_INDENT_BY_ID:"/resource/indent/",//id
             UPDATE_INDENT_BY_ID:"/resource/indent/update/",//id ,put
             SUBMIT_INDENT_BY_ID:"/resource/indent/submit/",//id ,post    
-            GET_ITEMS_BY_CATEGORY:"/resource/indent/items-by-category"//?categoryCode=CAT001 get
+            GET_ITEMS_BY_CATEGORY:"/resource/indent/items-by-category",//?categoryCode=CAT001 get
+            APPROVE:"/resource/indent/approve",//indenId POST
+            REBACK:"/resource/indent/reback",//indenId POST
+            REJECT:"/resource/indent/reject",//indenId POST
+            DELETE:"/resource/indent/delete",//indentId DELETE
         }
     }
     
