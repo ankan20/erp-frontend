@@ -221,7 +221,6 @@ export default function IndentForm({
         // data.indentStatus === "Submitted" || data.indentStatus==="Approved"
         if ((data.indentStatus !== "Reback" && data.indentStatus!=="Draft") && mode === "edit") {
           setIsSubmitted(true);
-          console.log(mode,canApprove)
 
           setIsEditing(false);
           let msg;
