@@ -127,4 +127,30 @@ export const WORKFLOW_ACTIONS = {
     badge:
       "bg-gray-100 text-gray-700",
   },
+  FINAL_APPROVE: {
+
+  label:
+    "Final Approved",
+
+  image:
+    "/assets/icons/final_approval.svg",
+
+  icon:
+    null,
+
+  color:
+    "bg-emerald-600",
+
+  border:
+    "border-emerald-600",
+
+  text:
+    "text-emerald-700",
+
+  lightBg:
+    "bg-emerald-50",
+
+  badge:
+    "bg-emerald-100 text-emerald-700",
+},
 };
