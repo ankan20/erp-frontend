@@ -15,6 +15,7 @@ export const API_ENDPOINTS = {
         GET_PROJECT_BY_ID:"/setting/project",//get and put for update
         ADD_DESIGNATION:"/setting/designation",
         UPDATE_PROJECT_ROLES:"/setting/project-role", //project code also used for get
+        DELETE_ROLE:"/setting/delete-project-designation",//delete
         APPROVAL_PATH: {
             SAVE: "/setting/approval-path",
             GET_USERS_BY_PROJECT: "/setting/users",
@@ -84,6 +85,7 @@ export const API_ENDPOINTS = {
             UPDATE_ORDER_BY_ID:"/resource/order/update/",//id ,put
             SUBMIT_ORDER_BY_ID:"/resource/order/submit/",//id ,post    
             GET_ITEMS_BY_CATEGORY:"/resource/order/items-by-category",//?categoryCode=CAT001 get
+            GET_INDENT_LIST:"/indent-pending",//projectCode subCategoryCode
             APPROVE:"/resource/order/approve",//orderId POST
             REBACK:"/resource/order/reback",//orderId POST
             REJECT:"/resource/order/reject",//orderId POST
