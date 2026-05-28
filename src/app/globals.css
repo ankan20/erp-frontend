@@ -117,38 +117,29 @@
   --sidebar-ring: oklch(0.556 0 0);
 }
 
-/* Thin scrollbar */
-.custom-thin-scrollbar {
-  scrollbar-width: thin;
-  scrollbar-color: #888 transparent;
+/* MODERN ERP SCROLLBAR */
+
+::-webkit-scrollbar {
+  width: 7px;
+  height: 7px;
 }
 
-/* Chrome, Edge, Safari */
-.custom-thin-scrollbar::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
-}
-
-.custom-thin-scrollbar::-webkit-scrollbar-track {
+::-webkit-scrollbar-track {
   background: transparent;
 }
 
-.custom-thin-scrollbar::-webkit-scrollbar-thumb {
-  background-color: #888;
+::-webkit-scrollbar-thumb {
+  background: #b6c2cf;
   border-radius: 999px;
 }
 
-.custom-thin-scrollbar::-webkit-scrollbar-thumb:hover {
-  background-color: #666;
+::-webkit-scrollbar-thumb:hover {
+  background: #8fa0b3;
 }
 
-.no-scrollbar {
-  -ms-overflow-style: none;
-  scrollbar-width: none;
-}
-
-.no-scrollbar::-webkit-scrollbar {
-  display: none;
+* {
+  scrollbar-width: thin;
+  scrollbar-color: #b6c2cf transparent;
 }
 
 @layer base {

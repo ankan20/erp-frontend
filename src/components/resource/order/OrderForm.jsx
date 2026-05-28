@@ -588,11 +588,9 @@ export default function OrderForm({
           className="
       hidden
       xl:block
-
       w-px
       self-stretch
-
-      bg-[#BEBEBE]
+      bg-sky-300
     "
         />
 

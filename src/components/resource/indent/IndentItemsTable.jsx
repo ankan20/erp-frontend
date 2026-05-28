@@ -121,7 +121,6 @@ export default function IndentItemsTable({
           <div
             className={`
               overflow-auto
-              custom-thin-scrollbar
               ${fields.length > 7 ? "max-h-[320px]" : ""}
             `}
           >

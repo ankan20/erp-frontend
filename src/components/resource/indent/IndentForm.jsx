@@ -681,7 +681,15 @@ export default function IndentForm({
           </div>
         </div>
 
-        <div className="w-[1px] h-[30vw] bg-sky-300" />
+        <div
+          className="
+      hidden
+      md:block
+      w-px
+      self-stretch
+      bg-sky-300
+    "
+        />
 
         <IndentItemsTable
           fields={fields}
