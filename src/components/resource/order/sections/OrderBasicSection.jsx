@@ -719,7 +719,7 @@ export default function OrderBasicSection({
                   error={errors.orderMessage}
                   title="Order Message"
                   placeholder="Text"
-                  minHeight="min-h-[60px]"
+                  minHeight="min-h-[36px]"
                   modalHeight="min-h-[220px]"
                   className="
     break-all
