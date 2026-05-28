@@ -14,7 +14,6 @@ export default function Page() {
 
   const actions = getPageActions({
     router,
-    onBack: () => router.back(),
   });
   // BLOCK NON-ADMIN USERS
   if (!canEdit) {

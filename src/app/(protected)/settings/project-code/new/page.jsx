@@ -10,7 +10,6 @@ const Page = () => {
   const router = useRouter();
   const actions = getPageActions({
     router,
-    onBack: () => router.back(),
   });
   return (
     <>

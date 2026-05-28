@@ -1,15 +1,21 @@
 import { goToHomePage } from "@/helper/goToHomePage";
+import { goToBackPage } from "@/helper/goToBackPage";
+import { useNavigationHistory } from "@/context/NavigationHistoryContext";
 import Image from "next/image";
 
+// NOTE: onBack is intentionally removed from the signature.
+// Back navigation is now handled internally via goToBackPage — ERP-style.
+// All pages that previously passed onBack: () => router.back() can safely
+// remove that prop — it will be silently ignored if passed.
 export const getPageActions = ({
   router,
-  // onHome,
   onPrint,
   onDownload,
   onApprove,
-  onBack,
   onTimeLine,
 }) => {
+  // eslint-disable-next-line react-hooks/rules-of-hooks
+  const { stack } = useNavigationHistory();
   const baseBtnClass =
     "transition flex items-center justify-center w-[32px] h-[32px]";
 
@@ -82,13 +88,11 @@ export const getPageActions = ({
       />
     </button>,
 
+    // Back button always enabled — goToBackPage handles all cases internally
     <button
       key="back"
-      className={`${getButtonClass(
-        !!onBack
-      )} ${iconWrapperClass}`}
-      onClick={onBack}
-      disabled={!onBack}
+      className={`${getButtonClass(true)} ${iconWrapperClass}`}
+      onClick={() => goToBackPage(router, stack)}
     >
       <Image
         src="/assets/icons/left-arrow1.png"

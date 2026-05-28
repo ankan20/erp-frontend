@@ -739,7 +739,6 @@ export default function ApprovalPathPage() {
 
   const actions = getPageActions({
     router,
-    onBack: () => router.back(),
   });
 
   // JSX

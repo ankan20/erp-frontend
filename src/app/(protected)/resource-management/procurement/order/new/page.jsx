@@ -45,8 +45,6 @@ export default function Page() {
 
       router,
 
-      onBack: () =>
-        router.back(),
     });
 
   return (

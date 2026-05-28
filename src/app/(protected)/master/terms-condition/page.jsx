@@ -240,7 +240,6 @@ export default function TermsConditionPage() {
   const actions = getPageActions({
     router,
 
-    onBack: () => router.back(),
 
     onPrint: () => window.print(),
 

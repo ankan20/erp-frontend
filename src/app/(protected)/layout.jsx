@@ -4,6 +4,7 @@
 import ProtectedLayoutAuth from "@/components/common/ProtectedLayoutAuth";
 import AppNavbar from "@/components/layout/AppNavbar";
 import AppSidebar from "@/components/layout/AppSidebar";
+import { NavigationHistoryProvider } from "@/context/NavigationHistoryContext";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
 
@@ -13,6 +14,7 @@ export default function ProtectedLayout({ children }) {
   const [collapsed, setCollapsed] = useState(true);
 
   return (
+    <NavigationHistoryProvider>
     <ProtectedLayoutAuth>
       <div className="h-screen flex flex-col bg-[#f5f5f5]">
 
@@ -45,5 +47,6 @@ export default function ProtectedLayout({ children }) {
         </div>
       </div>
     </ProtectedLayoutAuth>
+    </NavigationHistoryProvider>
   );
 }

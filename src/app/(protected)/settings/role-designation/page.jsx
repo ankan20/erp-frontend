@@ -433,7 +433,6 @@ export default function ProjectRolePage() {
 
   const actions = getPageActions({
     router,
-    onBack: () => router.back(),
   });
 
   return (

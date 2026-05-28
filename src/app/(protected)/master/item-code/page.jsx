@@ -24,7 +24,6 @@ export default function Page() {
 
   const actions = getPageActions({
     router,
-    onBack: () => router.back(),
   });
 
   //  INITIAL LOAD

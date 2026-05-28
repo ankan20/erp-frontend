@@ -22,7 +22,6 @@ export default function Page() {
   const canEdit = isMasterEditable();
   const actions = getPageActions({
     router,
-    onBack: () => router.back(),
   });
 
   useEffect(() => {

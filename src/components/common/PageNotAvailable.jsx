@@ -63,9 +63,13 @@
 
 import { ShieldAlert, ArrowLeft } from "lucide-react";
 import { useRouter } from "next/navigation";
+import { goToBackPage } from "@/helper/goToBackPage";
+import { goToHomePage } from "@/helper/goToHomePage";
+import { useNavigationHistory } from "@/context/NavigationHistoryContext";
 
 export default function PageNotAvailable() {
   const router = useRouter();
+  const { stack } = useNavigationHistory();
 
   return (
     <div className="min-h-[78vh] max-h-[80vh] w-full flex items-center justify-center px-4 py-10">
@@ -210,7 +214,7 @@ export default function PageNotAvailable() {
             "
           >
             <button
-              onClick={() => router.back()}
+              onClick={() => goToBackPage(router, stack)}
               className="
                 w-full
                 sm:w-auto
@@ -237,7 +241,7 @@ export default function PageNotAvailable() {
             </button>
 
             <button
-              onClick={() => router.push("/")}
+              onClick={() => goToHomePage(router)}
               className="
                 w-full
                 sm:w-auto
