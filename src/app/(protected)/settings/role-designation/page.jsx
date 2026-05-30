@@ -19,6 +19,8 @@ import { useRouter } from "next/navigation";
 import { getPageActions } from "@/components/common/PageActionButtons";
 import MapUserModal from "@/components/common/MapUserModal";
 
+import AddLocationModal from "@/components/settings/project-location/AddLocationModal";
+
 import { sidebarConfig } from "@/config/sidebar.config";
 
 export default function ProjectRolePage() {
@@ -46,6 +48,9 @@ export default function ProjectRolePage() {
   const [selectedRole, setSelectedRole] = useState(null);
   const [deleteItem, setDeleteItem] = useState(null);
   const [deleteLoading, setDeleteLoading] = useState(false);
+  const [searchSuccess, setSearchSuccess] = useState(false);
+
+  const [openLocationModal, setOpenLocationModal] = useState(false);
 
   const inputClass =
     "h-[30px] border border-[#8f8f8f] text-sm bg-white rounded-sm";
@@ -84,6 +89,9 @@ export default function ProjectRolePage() {
 
       setProjectData(data);
       setProjectId(data.projectId);
+
+      // enable button
+      setSearchSuccess(true);
 
       const grouped = {};
 
@@ -459,18 +467,37 @@ export default function ProjectRolePage() {
             </button>
           </div>
 
-          <button
-            onClick={() => {
-              if (!projectData) {
-                toast.warning("Search project first");
-                return;
-              }
-              setOpenModal(true);
-            }}
-            className="bg-[#8ed1fc] px-5 py-1 rounded-md"
-          >
-            + Add Designation
-          </button>
+          <div className="flex gap-2">
+            <button
+                onClick={() => {
+                  if (!projectData) {
+                    toast.warning("Search project first");
+                    return;
+                  }
+                  setOpenModal(true);
+                }}
+                className={`px-5 py-1 rounded-md text-black ${
+                    searchSuccess
+                        ? "bg-[#8ed1fc] hover:bg-[#74c4f5]"
+                        : "bg-gray-400 cursor-not-allowed"
+                }`}
+            >
+              + Add Designation
+            </button>
+            {/* ADD LOCATION */}
+            <button
+                disabled={!searchSuccess}
+                onClick={() => setOpenLocationModal(true)}
+                className={`px-5 py-1 rounded-md text-black ${
+                    searchSuccess
+                        ? "bg-green-500 hover:bg-green-600"
+                        : "bg-gray-400 cursor-not-allowed"
+                }`}
+            >
+              + Add Location
+            </button>
+          </div>
+
         </div>
 
         {/* AUTO FIELDS */}
@@ -479,9 +506,9 @@ export default function ProjectRolePage() {
             Project Name
           </div>
           <Input
-            value={projectData?.projectName || "[Auto]"}
-            disabled
-            className={`w-[50%] ${inputClass}`}
+              value={projectData?.projectName || "[Auto]"}
+              disabled
+              className={`w-[50%] ${inputClass}`}
           />
         </div>
 
@@ -490,9 +517,9 @@ export default function ProjectRolePage() {
             Client Name
           </div>
           <Input
-            value={projectData?.clientName || "[Auto]"}
-            disabled
-            className={`w-[50%] ${inputClass}`}
+              value={projectData?.clientName || "[Auto]"}
+              disabled
+              className={`w-[50%] ${inputClass}`}
           />
         </div>
 
@@ -626,6 +653,12 @@ export default function ProjectRolePage() {
           </div>
         </DialogContent>
       </Dialog>
+      <AddLocationModal
+          open={openLocationModal}
+          onOpenChange={setOpenLocationModal}
+          projectCode={projectCode}
+          projectData={projectData}
+      />
     </>
   );
 }

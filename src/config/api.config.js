@@ -1,4 +1,4 @@
-const API_BASE_URL = "https://web-production-f0050.up.railway.app"; //change here later
+const API_BASE_URL = "https://web-production-f0050.up.railway.app/"; //change here later
 
 export const API_ENDPOINTS = {
     LOGIN: "/auth/login",
@@ -16,6 +16,9 @@ export const API_ENDPOINTS = {
         ADD_DESIGNATION:"/setting/designation",
         UPDATE_PROJECT_ROLES:"/setting/project-role", //project code also used for get
         DELETE_ROLE:"/setting/delete-project-designation",//delete
+
+        PROJECT_LOCATION: "/setting/project-location",
+
         APPROVAL_PATH: {
             SAVE: "/setting/approval-path",
             GET_USERS_BY_PROJECT: "/setting/users",
