@@ -281,7 +281,7 @@ export default function OrderBasicSection({
                     className={`${getInputClass(errors.subCategoryCode, disabled)} w-full
             h-[36px]`}
                   >
-                    <SelectValue placeholder="Materials/Composite/PRW/Hire" />
+                    <SelectValue placeholder="Select" />
                   </SelectTrigger>
 
                   <SelectContent>

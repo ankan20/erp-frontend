@@ -126,4 +126,18 @@ export const CATEGORY_OPTIONS = {
     value: "Delivery",
   },
 ],
+  orderWorkSubCategory :[
+    {
+      label: "Service",
+      value: "SER_001",
+    },
+    {
+      label: "Expenses",
+      value: "EXP_001",
+    },
+    {
+      label: "Composite",
+      value: "COM_001",
+    },
+  ]
 };

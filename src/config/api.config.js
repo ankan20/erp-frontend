@@ -94,6 +94,19 @@ export const API_ENDPOINTS = {
             REJECT:"/resource/order/reject",//orderId POST
             DELETE:"/resource/order/delete",//orderId DELETE
             HISTORY:"/resource/order/history",//orderId GET
+            PROJECT_WORK:{
+                CREATE_ORDER:"/resource/pw-order/create",
+                GET_ORDER_BY_ID:"/resource/pw-order/details",//id
+                UPDATE_ORDER_BY_ID:"/resource/pw-order/edit/",//id ,put
+                SUBMIT_ORDER_BY_ID:"/resource/pw-order/submit/",//id ,post    
+                // GET_ITEMS_BY_CATEGORY:"/resource/order/items-by-category",//?categoryCode=CAT001 get
+                GET_ITEM_LIST:"/resource/pw-order/item-list",//projectCode subCategoryCode[]
+                APPROVE:"/resource/pw-order/approve",//orderId POST
+                REBACK:"/resource/pw-order/reback",//orderId POST
+                REJECT:"/resource/pw-order/reject",//orderId POST
+                DELETE:"/resource/pw-order/delete",//orderId DELETE
+                HISTORY:"/resource/pw-order/history",//orderId GET 
+            }
         },
 
     }
