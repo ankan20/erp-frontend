@@ -110,7 +110,7 @@ export default function DataTable({
     setFilterConfig((prev) => ({ ...prev, [accessor]: [] }));
   };
 
-  // ─── DATA PIPELINE: filter first, then sort ────────────────────────────────
+  // ─── DATA PIPELINE: filter first, then sort 
   const filteredData = data.filter((row) =>
     Object.entries(filterConfig).every(([accessor, selected]) => {
       if (!selected || selected.length === 0) return true;
