@@ -11,14 +11,13 @@ export default function AppSidebar({ collapsed, setCollapsed }) {
   const [manualOpen, setManualOpen] = useState({});
 
   // --- Collapsed flyout state ---
-  // flyout: which root icon is hovered + its screen Y position
   const [flyout, setFlyout] = useState(null);
-  // subFlyout: which group child in flyout is hovered + its screen position
   const [subFlyout, setSubFlyout] = useState(null);
+  const [subSubFlyout, setSubSubFlyout] = useState(null); // level 3 flyout
 
-  // Timers to prevent flicker when mouse moves between icon → flyout → sub-flyout
   const flyoutTimer = useRef(null);
   const subFlyoutTimer = useRef(null);
+  const subSubFlyoutTimer = useRef(null);
 
   // ─── ALL EXISTING LOGIC BELOW — UNCHANGED 
 
@@ -66,7 +65,8 @@ export default function AppSidebar({ collapsed, setCollapsed }) {
     if (level === 0 && isParentActive) return "bg-[#5f8f3a]";
     if (level === 0) return "bg-[#9fbc83]";
     if (level === 1) return "bg-[#4f86b9]";
-    return "bg-[#a9bdd1]";
+    if (level === 2) return "bg-[#a9bdd1]";
+    return "bg-[#c9d9e8]"; // level 3+ — lighter shade so nested items differ visually
   };
 
   const renderItems = (items, level = 0, parentKey = "") => {
@@ -153,11 +153,16 @@ export default function AppSidebar({ collapsed, setCollapsed }) {
   // Open sub-flyout when a group child (has children) is hovered inside flyout
   const handleChildGroupEnter = (e, child) => {
     clearTimeout(subFlyoutTimer.current);
-    clearTimeout(flyoutTimer.current); // keep parent flyout alive
+    clearTimeout(flyoutTimer.current);
     const rect = e.currentTarget.getBoundingClientRect();
+    const PANEL_WIDTH = 200;
+    const left =
+      rect.right + PANEL_WIDTH > window.innerWidth
+        ? Math.max(0, rect.right - PANEL_WIDTH) // slide left from right edge, not from left edge
+        : rect.right;
     setSubFlyout({
       top: rect.top,
-      left: rect.right,
+      left,
       title: child.title,
       children: child.children,
     });
@@ -175,13 +180,52 @@ export default function AppSidebar({ collapsed, setCollapsed }) {
   };
 
   const handleSubFlyoutLeave = () => {
-    // FIXED: also start flyout close timer here — because handleSubFlyoutEnter
-    // cancelled it when mouse entered sub-flyout, so if mouse exits sub-flyout
-    // completely (not back to main flyout), the main flyout would never close.
     subFlyoutTimer.current = setTimeout(() => setSubFlyout(null), 120);
     flyoutTimer.current = setTimeout(() => {
       setFlyout(null);
       setSubFlyout(null);
+      setSubSubFlyout(null);
+    }, 120);
+  };
+
+  // ─── SUB-SUB FLYOUT HANDLERS (level 3) ───────────────────────────────────
+
+  // Open level-3 flyout when a nested item in subFlyout is hovered
+  const handleSubChildGroupEnter = (e, child) => {
+    clearTimeout(subSubFlyoutTimer.current);
+    clearTimeout(subFlyoutTimer.current);
+    clearTimeout(flyoutTimer.current);
+    const rect = e.currentTarget.getBoundingClientRect();
+    const PANEL_WIDTH = 190;
+    const left =
+      rect.right + PANEL_WIDTH > window.innerWidth
+        ? Math.max(0, rect.right - PANEL_WIDTH)
+        : rect.right;
+    setSubSubFlyout({
+      top: rect.top,
+      left,
+      title: child.title,
+      children: child.children,
+    });
+  };
+
+  const handleSubChildGroupLeave = () => {
+    subSubFlyoutTimer.current = setTimeout(() => setSubSubFlyout(null), 120);
+  };
+
+  const handleSubSubFlyoutEnter = () => {
+    clearTimeout(subSubFlyoutTimer.current);
+    clearTimeout(subFlyoutTimer.current);
+    clearTimeout(flyoutTimer.current);
+  };
+
+  const handleSubSubFlyoutLeave = () => {
+    subSubFlyoutTimer.current = setTimeout(() => setSubSubFlyout(null), 120);
+    subFlyoutTimer.current = setTimeout(() => setSubFlyout(null), 120);
+    flyoutTimer.current = setTimeout(() => {
+      setFlyout(null);
+      setSubFlyout(null);
+      setSubSubFlyout(null);
     }, 120);
   };
 
@@ -190,6 +234,7 @@ export default function AppSidebar({ collapsed, setCollapsed }) {
     router.push(path);
     setFlyout(null);
     setSubFlyout(null);
+    setSubSubFlyout(null);
   };
 
   // ─── FLYOUT PANEL (level 1) — floats to the right of the icon rail ──────────
@@ -251,7 +296,7 @@ export default function AppSidebar({ collapsed, setCollapsed }) {
     );
   };
 
-  // ─── SUB-FLYOUT PANEL (level 2) — floats to the right of flyout panel ───────
+  // ─── SUB-FLYOUT PANEL (level 2) ─────────────────────────────────────────────
   const renderSubFlyout = () => {
     if (!subFlyout) return null;
     const { top, left, title, children } = subFlyout;
@@ -261,7 +306,6 @@ export default function AppSidebar({ collapsed, setCollapsed }) {
         style={{ position: "fixed", top, left, zIndex: 10000 }}
         onMouseEnter={handleSubFlyoutEnter}
         onMouseLeave={handleSubFlyoutLeave}
-        // CHANGED: same glass effect as level-1 flyout for visual consistency
         className="
           w-[200px]
           rounded-xl
@@ -273,20 +317,23 @@ export default function AppSidebar({ collapsed, setCollapsed }) {
           backdrop-blur-md
         "
       >
-        {/* Group title header — glass tinted */}
         <div className="px-3 py-2 text-xs font-semibold text-sky-800 uppercase tracking-wide bg-sky-200/60 border-b border-white/30">
           {title}
         </div>
 
-        {/* Leaf items */}
         {children?.map((leaf, li) => {
-          const leafActive = leaf.path ? isActive(leaf.path) : false;
+          // FIXED: item may have further children (e.g. Order → Material Order, Service Order)
+          const hasNested = leaf.children && leaf.children.length > 0;
+          const leafActive = leaf.path ? isActive(leaf.path) : hasActiveChild(leaf);
 
           return (
             <div
               key={li}
-              onClick={leaf.path ? () => handleNavigate(leaf.path) : undefined}
+              onMouseEnter={hasNested ? (e) => handleSubChildGroupEnter(e, leaf) : undefined}
+              onMouseLeave={hasNested ? handleSubChildGroupLeave : undefined}
+              onClick={!hasNested && leaf.path ? () => handleNavigate(leaf.path) : undefined}
               className={`
+                flex items-center justify-between
                 px-3 py-2
                 text-sm text-sky-900
                 cursor-pointer
@@ -295,7 +342,57 @@ export default function AppSidebar({ collapsed, setCollapsed }) {
                 ${leafActive ? "bg-yellow-400/80 font-medium text-yellow-900" : "hover:bg-sky-300/50"}
               `}
             >
-              {leaf.title}
+              <span className="truncate">{leaf.title}</span>
+              {hasNested && <ChevronRight size={13} className="text-sky-500 shrink-0" />}
+            </div>
+          );
+        })}
+      </div>
+    );
+  };
+
+  // ─── SUB-SUB-FLYOUT PANEL (level 3) ─────────────────────────────────────────
+  const renderSubSubFlyout = () => {
+    if (!subSubFlyout) return null;
+    const { top, left, title, children } = subSubFlyout;
+
+    return (
+      <div
+        style={{ position: "fixed", top, left, zIndex: 10001 }}
+        onMouseEnter={handleSubSubFlyoutEnter}
+        onMouseLeave={handleSubSubFlyoutLeave}
+        className="
+          w-[190px]
+          rounded-xl
+          overflow-hidden
+          select-none
+          shadow-xl
+          border border-white/40
+          bg-sky-100/70
+          backdrop-blur-md
+        "
+      >
+        <div className="px-3 py-2 text-xs font-semibold text-sky-800 uppercase tracking-wide bg-sky-200/60 border-b border-white/30">
+          {title}
+        </div>
+
+        {children?.map((item, i) => {
+          const itemActive = item.path ? isActive(item.path) : false;
+
+          return (
+            <div
+              key={i}
+              onClick={item.path ? () => handleNavigate(item.path) : undefined}
+              className={`
+                px-3 py-2
+                text-sm text-sky-900
+                cursor-pointer
+                border-b border-white/20 last:border-b-0
+                transition-colors duration-100
+                ${itemActive ? "bg-yellow-400/80 font-medium text-yellow-900" : "hover:bg-sky-300/50"}
+              `}
+            >
+              {item.title}
             </div>
           );
         })}
@@ -360,6 +457,7 @@ export default function AppSidebar({ collapsed, setCollapsed }) {
       {/* FLYOUTS — rendered outside sidebar flow, fixed positioned */}
       {collapsed && renderFlyout()}
       {collapsed && renderSubFlyout()}
+      {collapsed && renderSubSubFlyout()}
     </div>
   );
 }

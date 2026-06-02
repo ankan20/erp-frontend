@@ -21,6 +21,7 @@ import { getLocalStorage } from "@/lib/localStorage";
 
 import IndentItemsTable from "@/components/resource/indent/IndentItemsTable";
 import ExpandableTextField from "@/components/common/ExpandableTextField";
+import { useRouter } from "next/navigation";
 
 const indentSchema = z.object({
   categoryCode: z.string().min(1),
@@ -99,6 +100,7 @@ export default function IndentForm({
   });
 
   const fileRef = useRef(null);
+  const router = useRouter();
 
   const {
     register,
@@ -362,6 +364,13 @@ export default function IndentForm({
       toast.success("Draft saved successfully", {
         id: toastId,
       });
+      if(mode ==="create" && res.data.indentId){
+        setTimeout(() => {
+        router.push(
+          `/resource-management/procurement/indent/${res.data.indentId}`,
+        );
+      }, 500);
+      }
 
       // router.push("/resource-management/procurement/indent")
     } catch (err) {

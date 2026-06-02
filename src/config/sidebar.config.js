@@ -104,14 +104,20 @@ export const sidebarConfig = [
             permissionKey: "enquiry",
           },
           {
-            title: "Order",
-            path: "/resource-management/procurement/order",
+            title:"Order",
+            children :[
+              {
+            title: "Material Order",
+            path: "/resource-management/procurement/order/material-order",
             permissionKey: "order",
           },
           {
             title: "Service Order",
-            path: "/resource-management/procurement/service-order",
-            permissionKey: "order",
+            path: "/resource-management/procurement/order/service-order",
+            permissionKey: "order", //same as it is assign same material and service order
+            // skipPermission:true,
+          },
+            ]
           },
         ],
       },

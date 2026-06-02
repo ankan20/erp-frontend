@@ -17,6 +17,7 @@ import { serviceOrderSchema } from "./schema/serviceOrder.schema";
 import { apiRequest } from "@/lib/apiClient";
 import { API_ENDPOINTS } from "@/config/api.config";
 import { getLocalStorage } from "@/lib/localStorage";
+import { useRouter } from "next/navigation";
 
 const PW = API_ENDPOINTS.RESOURCE.ORDER.PROJECT_WORK;
 
@@ -61,6 +62,7 @@ export default function ServiceOrderForm({ mode = "create", serviceOrderId }) {
   const [attachedFile, setAttachedFile] = useState(null);
   const [initialFileData, setInitialFileData] = useState({ fileName: "", fileUrl: "" });
   const fileRef = useRef(null);
+  const router = useRouter();
 
   const projectInfo = getLocalStorage("projectInfo");
   const projectCode = projectInfo?.projectCode;
@@ -76,7 +78,7 @@ export default function ServiceOrderForm({ mode = "create", serviceOrderId }) {
   const disabled =
     mode === "view" || mode === "approver" || !isEditing || isSubmitted || isSubmitting;
 
-  // ─── LOAD ORDER ───────────────────────────────────────────────────────────
+  // ─── LOAD ORDER 
   useEffect(() => {
     if (mode === "create" || !serviceOrderId) return;
 
@@ -189,12 +191,13 @@ export default function ServiceOrderForm({ mode = "create", serviceOrderId }) {
     return formData;
   };
 
-  // ─── SAVE DRAFT ───────────────────────────────────────────────────────────
+  // ─── SAVE DRAFT 
   const handleSaveDraft = async () => {
     let toastId;
     const values = getValues();
     if (!values.items?.length) { toast.error("Please add at least one order item"); return; }
     if (!values.terms?.filter((t) => t?.termId).length) { toast.error("Please add at least one term & condition"); return; }
+    if(mode ==="create" && !attachedFile) { toast.error("Please upload required file."); return;}
 
     try {
       toastId = toast.loading(mode === "create" ? "Creating service order..." : "Updating service order...");
@@ -218,6 +221,13 @@ export default function ServiceOrderForm({ mode = "create", serviceOrderId }) {
       setIsEditing(false);
       setAllowSubmit(true);
       toast.success("Draft saved successfully", { id: toastId });
+      if(mode ==="create" && res.data.orderId){
+        setTimeout(() => {
+        router.push(
+          `/resource-management/procurement/service-order/${res.data.orderId}`,
+        );
+      }, 500);
+      }
     } catch (err) {
       toast.error(err.message || "Failed to save draft", { id: toastId });
     }

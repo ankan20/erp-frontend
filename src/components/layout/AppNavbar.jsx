@@ -69,23 +69,19 @@ export default function AppNavbar() {
     }
   }, []);
 
-  // useEffect(() => {
-  //   const handleOutsideClick = (e) => {
-  //     if (projectRef.current && !projectRef.current.contains(e.target)) {
-  //       setShowProjectSelect(false);
-  //     }
+  // Attach listener only when dropdown is open — avoids stale closure with []
+  useEffect(() => {
+    if (!showProfile) return;
 
-  //     if (profileRef.current && !profileRef.current.contains(e.target)) {
-  //       setShowProfile(false);
-  //     }
-  //   };
+    const handleOutsideClick = (e) => {
+      if (profileRef.current && !profileRef.current.contains(e.target)) {
+        setShowProfile(false);
+      }
+    };
 
-  //   document.addEventListener("mousedown", handleOutsideClick);
-
-  //   return () => {
-  //     document.removeEventListener("mousedown", handleOutsideClick);
-  //   };
-  // }, []);
+    document.addEventListener("mousedown", handleOutsideClick);
+    return () => document.removeEventListener("mousedown", handleOutsideClick);
+  }, [showProfile]);
 
   const handleTCodeNavigate = () => {
     const route = tcodeConfig[tcode.toLowerCase().trim()];
@@ -226,7 +222,11 @@ export default function AppNavbar() {
                   //     await fetchProjects();
                   //   }
                   // }}
-                  onClick={() => router.push("/")}
+                  onClick={() => {
+                  if (role?.toLowerCase() === ROLE.USER) {
+                    router.push("/");
+                  }
+                }}
                 >
                   <Image
                     src="/assets/icons/project-list.png"

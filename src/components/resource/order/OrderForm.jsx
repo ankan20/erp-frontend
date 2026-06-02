@@ -17,11 +17,12 @@ import { orderSchema } from "./schema/order.schema";
 import { apiRequest } from "@/lib/apiClient";
 import { API_ENDPOINTS } from "@/config/api.config";
 import { getLocalStorage } from "@/lib/localStorage";
+import { useRouter } from "next/navigation";
 
 const defaultValues = {
   categoryCode: "Purchases Order",
   subCategoryCode: "MAT_001",
-  costHead: "",          // CHANGED: new field
+  costHead: "", // CHANGED: new field
   vendorId: "",
   orderNo: "",
   orderDate: "",
@@ -55,9 +56,13 @@ export default function OrderForm({ mode = "create", orderId }) {
   const [fileUrl, setFileUrl] = useState("");
   const [attachedFile, setAttachedFile] = useState(null);
   const [initialData, setInitialData] = useState(null);
-  const [initialFileData, setInitialFileData] = useState({ fileName: "", fileUrl: "" });
+  const [initialFileData, setInitialFileData] = useState({
+    fileName: "",
+    fileUrl: "",
+  });
   const [openTermsModal, setOpenTermsModal] = useState(false);
   const [openItemModal, setOpenItemModal] = useState(false);
+  const router = useRouter();
 
   const fileRef = useRef(null);
   const projectInfo = getLocalStorage("projectInfo");
@@ -69,14 +74,25 @@ export default function OrderForm({ mode = "create", orderId }) {
     mode: "onChange",
   });
 
-  const { reset, watch, setValue, getValues, handleSubmit, formState: { isSubmitting } } = form;
+  const {
+    reset,
+    watch,
+    setValue,
+    getValues,
+    handleSubmit,
+    formState: { isSubmitting },
+  } = form;
 
   const costHead = watch("costHead");
 
   const disabled =
-    mode === "view" || mode === "approver" || !isEditing || isSubmitted || isSubmitting;
+    mode === "view" ||
+    mode === "approver" ||
+    !isEditing ||
+    isSubmitted ||
+    isSubmitting;
 
-  // ─── LOAD ORDER ───────────────────────────────────────────────────────────
+  // ─── LOAD ORDER
   useEffect(() => {
     if (mode === "create" || !orderId) return;
 
@@ -92,7 +108,7 @@ export default function OrderForm({ mode = "create", orderId }) {
         const formattedData = {
           categoryCode: data.categoryCode || "Purchases Order",
           subCategoryCode: data.subCategoryCode || "MAT_001",
-          costHead: data.costHead || "",   // CHANGED: load costHead
+          costHead: data.costHead || "", // CHANGED: load costHead
           vendorId: String(data.vendorId || ""),
           orderNo: data.orderNo || "",
           orderDate: data.orderDate || "",
@@ -116,12 +132,15 @@ export default function OrderForm({ mode = "create", orderId }) {
         setInitialData(formattedData);
         setFileUrl(data.orderFile || "");
         const extractedFileName = data.orderFile?.split("/")?.pop() || "";
-        setInitialFileData({ fileName: extractedFileName, fileUrl: data.orderFile || "" });
+        setInitialFileData({
+          fileName: extractedFileName,
+          fileUrl: data.orderFile || "",
+        });
 
         // FIXED: check what IS editable rather than what isn't —
         // null/undefined/unexpected workflowStatus was incorrectly triggering isSubmitted=true
         const isEditableStatus = ["draft", "reback"].includes(
-          (data.workflowStatus || "").toLowerCase()
+          (data.workflowStatus || "").toLowerCase(),
         );
         if (mode === "edit" && !isEditableStatus) {
           setIsSubmitted(true);
@@ -140,7 +159,7 @@ export default function OrderForm({ mode = "create", orderId }) {
     fetchOrder();
   }, [orderId, mode, reset]);
 
-  // ─── BUILD PAYLOAD (FormData — supports file) ─────────────────────────────
+  // ─── BUILD PAYLOAD (FormData — supports file)
   const buildFormData = () => {
     const values = getValues();
     const formData = new FormData();
@@ -151,7 +170,10 @@ export default function OrderForm({ mode = "create", orderId }) {
     // CHANGED: subCategoryCode always MAT_001; assetOnly based on costHead
     formData.append("subCategoryCode", "MAT_001");
     formData.append("costHead", values.costHead);
-    formData.append("assetOnly", values.costHead === "Fixed Asset" ? "true" : "false");
+    formData.append(
+      "assetOnly",
+      values.costHead === "Fixed Asset" ? "true" : "false",
+    );
 
     formData.append("vendorId", values.vendorId);
     formData.append("orderDate", values.orderDate);
@@ -174,8 +196,8 @@ export default function OrderForm({ mode = "create", orderId }) {
           gstPercent: Number(item.gstPercent),
           note: item.note || "",
           location: item.location || "",
-        }))
-      )
+        })),
+      ),
     );
 
     formData.append(
@@ -184,28 +206,41 @@ export default function OrderForm({ mode = "create", orderId }) {
         values.terms.map((term) => ({
           termId: term.termId,
           description: term.description || "",
-        }))
-      )
+        })),
+      ),
     );
 
     if (attachedFile) formData.append("orderFile", attachedFile);
     return formData;
   };
 
-  // ─── SAVE DRAFT ───────────────────────────────────────────────────────────
+  // ─── SAVE DRAFT
   const handleSaveDraft = async () => {
     let toastId;
     const values = getValues();
-    if (!values.items?.length) { toast.error("Please add at least one order item"); return; }
-    if (!values.terms?.filter((t) => t?.termId).length) { toast.error("Please add at least one term & condition"); return; }
+    if (!values.items?.length) {
+      toast.error("Please add at least one order item");
+      return;
+    }
+    if (!values.terms?.filter((t) => t?.termId).length) {
+      toast.error("Please add at least one term & condition");
+      return;
+    }
+    if (mode === "create" && !attachedFile) {
+      toast.error("Please upload required file.");
+      return;
+    }
 
     try {
-      toastId = toast.loading(mode === "create" ? "Creating order..." : "Updating order...");
+      toastId = toast.loading(
+        mode === "create" ? "Creating order..." : "Updating order...",
+      );
 
       const res = await apiRequest({
-        url: mode === "create"
-          ? API_ENDPOINTS.RESOURCE.ORDER.CREATE_ORDER
-          : `${API_ENDPOINTS.RESOURCE.ORDER.UPDATE_ORDER_BY_ID}${orderId}`,
+        url:
+          mode === "create"
+            ? API_ENDPOINTS.RESOURCE.ORDER.CREATE_ORDER
+            : `${API_ENDPOINTS.RESOURCE.ORDER.UPDATE_ORDER_BY_ID}${orderId}`,
         method: mode === "create" ? "POST" : "PUT",
         data: buildFormData(),
       });
@@ -214,13 +249,25 @@ export default function OrderForm({ mode = "create", orderId }) {
 
       if (res?.data?.orderFile) {
         setFileUrl(res.data.orderFile);
-        setInitialFileData({ fileName: res.data.orderFile?.split("/")?.pop() || "", fileUrl: res.data.orderFile });
+        setInitialFileData({
+          fileName: res.data.orderFile?.split("/")?.pop() || "",
+          fileUrl: res.data.orderFile,
+        });
       }
 
       setInitialData(getValues());
       setIsEditing(false);
       setAllowSubmit(true);
       toast.success("Draft saved successfully", { id: toastId });
+      //redirect to edit page if first time create
+      if(mode ==="create" && res.data.orderId){
+        setTimeout(() => {
+        router.push(
+          `/resource-management/procurement/order/material-order/${res.data.orderId}`,
+        );
+      }, 500);
+      }
+      
     } catch (err) {
       toast.error(err.message || "Failed to save draft", { id: toastId });
     }
@@ -229,8 +276,14 @@ export default function OrderForm({ mode = "create", orderId }) {
   // ─── SUBMIT ───────────────────────────────────────────────────────────────
   const onSubmit = async () => {
     const values = getValues();
-    if (!values.items?.length) { toast.error("Please add at least one item"); return; }
-    if (!values.terms?.length) { toast.error("Please add at least one term & condition"); return; }
+    if (!values.items?.length) {
+      toast.error("Please add at least one item");
+      return;
+    }
+    if (!values.terms?.length) {
+      toast.error("Please add at least one term & condition");
+      return;
+    }
 
     let toastId;
     try {
@@ -265,8 +318,14 @@ export default function OrderForm({ mode = "create", orderId }) {
   };
 
   const validateTableSections = ({ values }) => {
-    if (!values.items?.length) { toast.error("Please add at least one order item"); return false; }
-    if (!values.terms?.filter((t) => t?.termId).length) { toast.error("Please add at least one term & condition"); return false; }
+    if (!values.items?.length) {
+      toast.error("Please add at least one order item");
+      return false;
+    }
+    if (!values.terms?.filter((t) => t?.termId).length) {
+      toast.error("Please add at least one term & condition");
+      return false;
+    }
     return true;
   };
 
@@ -303,13 +362,31 @@ export default function OrderForm({ mode = "create", orderId }) {
           <Tabs value={activeTab} onValueChange={setActiveTab}>
             <div className="flex flex-col lg:flex-row lg:items-end lg:justify-between gap-3 mb-[2px] min-w-[900px]">
               <TabsList className="h-auto bg-transparent p-0 gap-[2px] rounded-none border-0 shadow-none flex flex-wrap">
-                <TabsTrigger value="summary" className="relative h-[40px] min-w-[125px] rounded-none border border-[#5B6B8C] border-b-0 bg-[#E5E5E5] px-5 text-[15px] font-semibold text-black data-[state=active]:bg-[#F4C400] data-[state=active]:shadow-none transition-none" style={{ clipPath: "polygon(0 0, 84% 0, 100% 100%, 0% 100%)" }}>
+                <TabsTrigger
+                  value="summary"
+                  className="relative h-[40px] min-w-[125px] rounded-none border border-[#5B6B8C] border-b-0 bg-[#E5E5E5] px-5 text-[15px] font-semibold text-black data-[state=active]:bg-[#F4C400] data-[state=active]:shadow-none transition-none"
+                  style={{
+                    clipPath: "polygon(0 0, 84% 0, 100% 100%, 0% 100%)",
+                  }}
+                >
                   Summary
                 </TabsTrigger>
-                <TabsTrigger value="items" className="relative h-[40px] min-w-[125px] rounded-none border border-[#5B6B8C] border-b-0 bg-[#E5E5E5] px-5 text-[15px] font-semibold text-black data-[state=active]:bg-[#F4C400] data-[state=active]:shadow-none transition-none" style={{ clipPath: "polygon(0 0, 84% 0, 100% 100%, 0% 100%)" }}>
+                <TabsTrigger
+                  value="items"
+                  className="relative h-[40px] min-w-[125px] rounded-none border border-[#5B6B8C] border-b-0 bg-[#E5E5E5] px-5 text-[15px] font-semibold text-black data-[state=active]:bg-[#F4C400] data-[state=active]:shadow-none transition-none"
+                  style={{
+                    clipPath: "polygon(0 0, 84% 0, 100% 100%, 0% 100%)",
+                  }}
+                >
                   Details
                 </TabsTrigger>
-                <TabsTrigger value="terms" className="relative h-[40px] min-w-[220px] rounded-none border border-[#5B6B8C] border-b-0 bg-[#E5E5E5] px-5 text-[15px] font-semibold text-black data-[state=active]:bg-[#F4C400] data-[state=active]:shadow-none transition-none" style={{ clipPath: "polygon(0 0, 92% 0, 100% 100%, 0% 100%)" }}>
+                <TabsTrigger
+                  value="terms"
+                  className="relative h-[40px] min-w-[220px] rounded-none border border-[#5B6B8C] border-b-0 bg-[#E5E5E5] px-5 text-[15px] font-semibold text-black data-[state=active]:bg-[#F4C400] data-[state=active]:shadow-none transition-none"
+                  style={{
+                    clipPath: "polygon(0 0, 92% 0, 100% 100%, 0% 100%)",
+                  }}
+                >
                   Terms & Conditions
                 </TabsTrigger>
               </TabsList>
@@ -347,7 +424,12 @@ export default function OrderForm({ mode = "create", orderId }) {
                 />
               </TabsContent>
               <TabsContent value="terms" className="m-0">
-                <OrderTermsTab form={form} disabled={disabled} openTermsModal={openTermsModal} setOpenTermsModal={setOpenTermsModal} />
+                <OrderTermsTab
+                  form={form}
+                  disabled={disabled}
+                  openTermsModal={openTermsModal}
+                  setOpenTermsModal={setOpenTermsModal}
+                />
               </TabsContent>
               <TabsContent value="summary" className="m-0">
                 <OrderSummaryTab form={form} disabled={disabled} />
@@ -359,7 +441,8 @@ export default function OrderForm({ mode = "create", orderId }) {
 
       {mode !== "view" && mode !== "approver" && (
         <div className="flex justify-end gap-3 mt-5">
-          {((mode === "create" && isEditing) || (mode === "edit" && isEditing && !isSubmitted)) && (
+          {((mode === "create" && isEditing) ||
+            (mode === "edit" && isEditing && !isSubmitted)) && (
             <SaveDraftButton
               onClick={() => {
                 const values = getValues();

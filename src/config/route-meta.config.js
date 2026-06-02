@@ -129,17 +129,31 @@ export const routeMetaConfig = [
     basePath: "/resource-management/procurement/indent/[id]",
     breadcrumbs: ["Resource Management", "Procurement","Indent","Edit"],
   },
-  ///resource-management/procurement/order/new
+  ///resource-management/procurement/order/material-order/new
+  //material-order
   {
-    basePath: "/resource-management/procurement/order",
-    breadcrumbs: ["Resource Management", "Procurement","Order List"],
+    basePath: "/resource-management/procurement/order/material-order",
+    breadcrumbs: ["Resource Management", "Procurement","Order","Material Order","Material Order List"],
   },
   {
-    basePath: "/resource-management/procurement/order/new",
-    breadcrumbs: ["Resource Management", "Procurement","Order","New"],
+    basePath: "/resource-management/procurement/order/material-order/new",
+    breadcrumbs: ["Resource Management", "Procurement","Order","Material Order","New"],
   },
   {
-    basePath: "/resource-management/procurement/order/[id]",
-    breadcrumbs: ["Resource Management", "Procurement","Order","Edit"],
+    basePath: "/resource-management/procurement/order/material-order/[id]",
+    breadcrumbs: ["Resource Management", "Procurement","Order","Material Order","Edit"],
+  },
+  //service-order
+  {
+    basePath: "/resource-management/procurement/order/service-order",
+    breadcrumbs: ["Resource Management", "Procurement","Order","Service Order","Service Order List"],
+  },
+  {
+    basePath: "/resource-management/procurement/order/service-order/new",
+    breadcrumbs: ["Resource Management", "Procurement","Order","Service Order","New"],
+  },
+  {
+    basePath: "/resource-management/procurement/order/service-order/[id]",
+    breadcrumbs: ["Resource Management", "Procurement","Order","Service Order","Edit"],
   },
 ];

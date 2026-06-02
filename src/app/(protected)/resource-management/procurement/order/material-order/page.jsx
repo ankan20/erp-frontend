@@ -248,7 +248,7 @@ export default function Page() {
                       label: "+ Create Order",
                       onClick: () =>
                         router.push(
-                          "/resource-management/procurement/order/new",
+                          "/resource-management/procurement/order/material-order/new",
                         ),
                     },
                   ]
@@ -261,7 +261,7 @@ export default function Page() {
             columns={columns}
             data={filteredData}
             onRowClick={(row) => {
-              router.push(`/resource-management/procurement/order/${row.id}`);
+              router.push(`/resource-management/procurement/order/material-order/${row.id}`);
             }}
           />
           {/* SUMMARY SECTION */}
