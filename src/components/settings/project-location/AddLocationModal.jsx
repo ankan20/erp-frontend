@@ -13,6 +13,17 @@ import {
     DialogTitle,
 } from "@/components/ui/dialog";
 
+import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+
 import { apiRequest } from "@/lib/apiClient";
 import { API_ENDPOINTS } from "@/config/api.config";
 
@@ -29,6 +40,9 @@ export default function AddLocationModal({
     const [locationLoading, setLocationLoading] = useState(false);
     const [savingLocation, setSavingLocation] = useState(false);
     const [editingLocation, setEditingLocation] = useState(null);
+
+    const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
+    const [deleteLocationData, setDeleteLocationData] = useState(null);
 
     const [newLocation, setNewLocation] = useState({
         storeLocation: "",
@@ -116,7 +130,9 @@ export default function AddLocationModal({
         try {
             setSavingLocation(true);
 
-            toastId = toast.loading(editingLocation ? "Updating..." : "Saving...");
+            toastId = toast.loading(
+                editingLocation ? "Updating..." : "Saving..."
+            );
 
             if (editingLocation) {
                 await apiRequest({
@@ -134,7 +150,7 @@ export default function AddLocationModal({
                     url: API_ENDPOINTS.SETTINGS.PROJECT_LOCATION,
                     method: "POST",
                     data: {
-                        projectCode: projectCode,
+                        projectCode,
                         storeLocation: newLocation.storeLocation || null,
                         useLocation: newLocation.useLocation || null,
                     },
@@ -164,14 +180,26 @@ export default function AddLocationModal({
         }
     };
 
-    const handleDeleteLocation = async (location) => {
+    const handleDeleteClick = (location) => {
+        setDeleteLocationData(location);
+        setDeleteConfirmOpen(true);
+    };
+
+    const handleDeleteCancel = () => {
+        setDeleteConfirmOpen(false);
+        setDeleteLocationData(null);
+    };
+
+    const handleDeleteLocation = async () => {
+        if (!deleteLocationData?.id) return;
+
         let toastId;
 
         try {
             toastId = toast.loading("Deleting...");
 
             await apiRequest({
-                url: `${API_ENDPOINTS.SETTINGS.PROJECT_LOCATION}/${location.id}`,
+                url: `${API_ENDPOINTS.SETTINGS.PROJECT_LOCATION}/${deleteLocationData.id}`,
                 method: "DELETE",
             });
 
@@ -180,8 +208,11 @@ export default function AddLocationModal({
             });
 
             setLocations((prev) =>
-                prev.filter((item) => item.id !== location.id)
+                prev.filter((item) => item.id !== deleteLocationData.id)
             );
+
+            setDeleteConfirmOpen(false);
+            setDeleteLocationData(null);
         } catch (err) {
             toast.error(
                 err?.response?.data?.message ||
@@ -220,53 +251,21 @@ export default function AddLocationModal({
                         "
                     >
                         <DialogHeader>
-                            <DialogTitle
-                                className="
-                                    text-3xl
-                                    font-bold
-                                "
-                            >
+                            <DialogTitle className="text-3xl font-bold">
                                 Add Location
                             </DialogTitle>
                         </DialogHeader>
 
-                        <div
-                            className="
-                                space-y-4
-                                mt-5
-                            "
-                        >
-                            {/* Project Code + Location Button */}
-
-                            <div
-                                className="
-                                    grid
-                                    grid-cols-[280px_1fr_auto]
-                                    gap-4
-                                    items-center
-                                "
-                            >
-                                <div
-                                    className="
-                                        px-4
-                                        py-3
-                                        bg-[#d6e6f2]
-                                        border
-                                        rounded-sm
-                                        font-semibold
-                                        text-base
-                                    "
-                                >
+                        <div className="space-y-4 mt-5">
+                            <div className="grid grid-cols-[280px_1fr_auto] gap-4 items-center">
+                                <div className="px-4 py-3 bg-[#d6e6f2] border rounded-sm font-semibold text-base">
                                     Project Code
                                 </div>
 
                                 <Input
                                     value={showValue(projectCode)}
                                     disabled
-                                    className="
-                                        h-10
-                                        text-base
-                                    "
+                                    className="h-10 text-base"
                                 />
 
                                 <button
@@ -288,214 +287,84 @@ export default function AddLocationModal({
                                 </button>
                             </div>
 
-                            {/* Project Name */}
-
-                            <div
-                                className="
-                                    grid
-                                    grid-cols-[280px_1fr_auto]
-                                    gap-4
-                                    items-center
-                                "
-                            >
-                                <div
-                                    className="
-                                        px-4
-                                        py-3
-                                        bg-[#d6e6f2]
-                                        border
-                                        rounded-sm
-                                        font-semibold
-                                        text-base
-                                    "
-                                >
+                            <div className="grid grid-cols-[280px_1fr_auto] gap-4 items-center">
+                                <div className="px-4 py-3 bg-[#d6e6f2] border rounded-sm font-semibold text-base">
                                     Project Name
                                 </div>
 
                                 <Input
                                     value={showValue(projectData?.projectName)}
                                     disabled
-                                    className="
-                                        h-10
-                                        text-base
-                                    "
+                                    className="h-10 text-base"
                                 />
 
                                 <div className="w-[118px]" />
                             </div>
 
-                            {/* Client Name */}
-
-                            <div
-                                className="
-                                    grid
-                                    grid-cols-[280px_1fr_auto]
-                                    gap-4
-                                    items-center
-                                "
-                            >
-                                <div
-                                    className="
-                                        px-4
-                                        py-3
-                                        bg-[#d6e6f2]
-                                        border
-                                        rounded-sm
-                                        font-semibold
-                                        text-base
-                                    "
-                                >
+                            <div className="grid grid-cols-[280px_1fr_auto] gap-4 items-center">
+                                <div className="px-4 py-3 bg-[#d6e6f2] border rounded-sm font-semibold text-base">
                                     Client Name
                                 </div>
 
                                 <Input
                                     value={showValue(projectData?.clientName)}
                                     disabled
-                                    className="
-                                        h-10
-                                        text-base
-                                    "
+                                    className="h-10 text-base"
                                 />
 
                                 <div className="w-[118px]" />
                             </div>
                         </div>
 
-                        {/* Table Section */}
-
-                        <div
-                            className="
-                                border
-                                rounded-md
-                                mt-6
-                                overflow-hidden
-                                min-h-[360px]
-                                flex
-                                flex-col
-                            "
-                        >
-                            <div
-                                className="
-                                    grid
-                                    grid-cols-[1fr_1fr_140px]
-                                    bg-[#e6d2c1]
-                                    font-semibold
-                                    border-b
-                                "
-                            >
-                                <div
-                                    className="
-                                        px-5
-                                        py-3
-                                        text-base
-                                        border-r
-                                    "
-                                >
+                        <div className="border rounded-md mt-6 overflow-hidden min-h-[360px] flex flex-col">
+                            <div className="grid grid-cols-[1fr_1fr_140px] bg-[#e6d2c1] font-semibold border-b">
+                                <div className="px-5 py-3 text-base border-r">
                                     Store Location
                                 </div>
 
-                                <div
-                                    className="
-                                        px-5
-                                        py-3
-                                        text-base
-                                        border-r
-                                    "
-                                >
+                                <div className="px-5 py-3 text-base border-r">
                                     User Location
                                 </div>
 
-                                <div
-                                    className="
-                                        px-5
-                                        py-3
-                                        text-base
-                                        text-center
-                                    "
-                                >
+                                <div className="px-5 py-3 text-base text-center">
                                     Action
                                 </div>
                             </div>
 
-                            <div
-                                className="
-                                    flex-1
-                                    overflow-y-auto
-                                    bg-white
-                                "
-                            >
+                            <div className="flex-1 overflow-y-auto bg-white">
                                 {locationLoading ? (
-                                    <div
-                                        className="
-                                            h-full
-                                            min-h-[320px]
-                                            flex
-                                            items-center
-                                            justify-center
-                                            text-gray-500
-                                            text-lg
-                                        "
-                                    >
+                                    <div className="h-full min-h-[320px] flex items-center justify-center text-gray-500 text-lg">
                                         Loading locations...
                                     </div>
                                 ) : locations.length === 0 ? (
-                                    <div
-                                        className="
-                                            h-full
-                                            min-h-[320px]
-                                            flex
-                                            items-center
-                                            justify-center
-                                            text-gray-500
-                                            text-lg
-                                        "
-                                    >
+                                    <div className="h-full min-h-[320px] flex items-center justify-center text-gray-500 text-lg">
                                         No locations added yet.
                                     </div>
                                 ) : (
                                     locations.map((location) => (
                                         <div
                                             key={location.id}
-                                            className="
-                                                grid
-                                                grid-cols-[1fr_1fr_140px]
-                                                border-b
-                                                text-sm
-                                            "
+                                            className="grid grid-cols-[1fr_1fr_140px] border-b text-sm"
                                         >
-                                            <div
-                                                className="
-                                                    px-5
-                                                    py-3
-                                                    border-r
-                                                "
-                                            >
-                                                {showValue(location.storeLocation)}
+                                            <div className="px-5 py-3 border-r">
+                                                {showValue(
+                                                    location.storeLocation
+                                                )}
                                             </div>
 
-                                            <div
-                                                className="
-                                                    px-5
-                                                    py-3
-                                                    border-r
-                                                "
-                                            >
-                                                {showValue(location.useLocation)}
+                                            <div className="px-5 py-3 border-r">
+                                                {showValue(
+                                                    location.useLocation
+                                                )}
                                             </div>
 
-                                            <div
-                                                className="
-                                                    px-5
-                                                    py-2
-                                                    flex
-                                                    justify-center
-                                                    gap-2
-                                                "
-                                            >
+                                            <div className="px-5 py-2 flex justify-center gap-2">
                                                 <button
                                                     type="button"
                                                     onClick={() =>
-                                                        handleEditClick(location)
+                                                        handleEditClick(
+                                                            location
+                                                        )
                                                     }
                                                     className="
                                                         border
@@ -511,7 +380,9 @@ export default function AddLocationModal({
                                                 <button
                                                     type="button"
                                                     onClick={() =>
-                                                        handleDeleteLocation(location)
+                                                        handleDeleteClick(
+                                                            location
+                                                        )
                                                     }
                                                     className="
                                                         border
@@ -519,6 +390,7 @@ export default function AddLocationModal({
                                                         p-2
                                                         hover:bg-red-100
                                                         transition
+                                                        text-red-600
                                                     "
                                                 >
                                                     <Trash2 size={16} />
@@ -542,6 +414,62 @@ export default function AddLocationModal({
                 loading={savingLocation}
                 isEdit={!!editingLocation}
             />
+
+            <AlertDialog
+                open={deleteConfirmOpen}
+                onOpenChange={(value) => {
+                    setDeleteConfirmOpen(value);
+
+                    if (!value) {
+                        setDeleteLocationData(null);
+                    }
+                }}
+            >
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>
+                            Delete Location
+                        </AlertDialogTitle>
+
+                        <AlertDialogDescription>
+                            Are you sure you want to delete this location?
+                            This action cannot be undone.
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+
+                    <div className="rounded-md border bg-gray-50 p-4 text-sm space-y-2">
+                        <p>
+                            <span className="font-semibold">
+                                Store Location:
+                            </span>{" "}
+                            {showValue(deleteLocationData?.storeLocation)}
+                        </p>
+
+                        <p>
+                            <span className="font-semibold">
+                                User Location:
+                            </span>{" "}
+                            {showValue(deleteLocationData?.useLocation)}
+                        </p>
+                    </div>
+
+                    <AlertDialogFooter>
+                        <AlertDialogCancel onClick={handleDeleteCancel}>
+                            Cancel
+                        </AlertDialogCancel>
+
+                        <AlertDialogAction
+                            onClick={(e) => {
+                                e.preventDefault();
+                                handleDeleteLocation();
+                            }}
+                            className="bg-red-600 hover:bg-red-700"
+                        >
+                            Confirm Delete
+                        </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
         </>
     );
 }

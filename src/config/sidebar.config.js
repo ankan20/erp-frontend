@@ -105,19 +105,24 @@ export const sidebarConfig = [
           },
           {
             title:"Order",
+            showChildrenInPermission: false,
             children :[
               {
             title: "Material Order",
             path: "/resource-management/procurement/order/material-order",
-            permissionKey: "order",
-                showInPermission: false,
+            // permissionKey: "order",
+                permissionKey: "order",
+
+                permissionAccessKey: "material_order",
           },
           {
             title: "Service Order",
             path: "/resource-management/procurement/order/service-order",
-            permissionKey: "order", //same as it is assign same material and service order
-            // skipPermission:true,
-            showInPermission: false,
+            // permissionKey: "service_order", //same as it is assign same material and service order
+            // // skipPermission:true,
+            permissionKey: "order",
+
+            permissionAccessKey: "service_order",
           },
             ]
           },
@@ -476,3 +481,38 @@ export const sidebarConfig = [
     ],
   },
 ];
+
+
+// for more levels use like this
+
+// {
+//   title: "Order",
+//       permissionKey: "order",
+//     showChildrenInPermission: true,
+//
+//     children: [
+//   {
+//     title: "Material Order",
+//     permissionKey: "material_order",
+//     showChildrenInPermission: true,
+//
+//     children: [
+//       {
+//         title: "Local Material Order",
+//         path: "/resource-management/procurement/order/material-order/local",
+//         permissionKey: "local_material_order",
+//       },
+//       {
+//         title: "Import Material Order",
+//         path: "/resource-management/procurement/order/material-order/import",
+//         permissionKey: "import_material_order",
+//       },
+//     ],
+//   },
+//   {
+//     title: "Service Order",
+//     path: "/resource-management/procurement/order/service-order",
+//     permissionKey: "service_order",
+//   },
+// ],
+// }

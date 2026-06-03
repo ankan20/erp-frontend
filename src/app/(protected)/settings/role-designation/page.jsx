@@ -240,9 +240,104 @@ export default function ProjectRolePage() {
     return cleaned;
   };
 
+  // REMOVE PARENT ACCESS
+// WHEN CHILD ACCESS IS ENABLED
+  const removeParentAccessWhenChildrenEnabled = (
+      permissions = {}
+  ) => {
+
+    const updated = { ...permissions };
+
+    sidebarConfig.forEach((module) => {
+
+      module.children?.forEach((child) => {
+
+        child.children?.forEach((sub) => {
+
+          // TRUE => REMOVE PARENT
+          if (
+              sub.children?.length > 0 &&
+              sub.showChildrenInPermission === true
+          ) {
+
+            const parentAccessKey =
+                sub.permissionKey ||
+                sub.children?.find(
+                    (item) => item.permissionKey
+                )?.permissionKey;
+
+            if (parentAccessKey) {
+              delete updated[parentAccessKey];
+            }
+          }
+        });
+      });
+    });
+
+    return updated;
+  };
+
+// REMOVE CHILD ACCESS
+// WHEN PARENT ACCESS IS ENABLED
+  const removeChildAccessWhenParentEnabled = (
+      permissions = {}
+  ) => {
+
+    const updated = { ...permissions };
+
+    sidebarConfig.forEach((module) => {
+
+      module.children?.forEach((child) => {
+
+        child.children?.forEach((sub) => {
+
+          // FALSE => REMOVE CHILDREN
+          if (
+              sub.children?.length > 0 &&
+              sub.showChildrenInPermission === false
+          ) {
+
+            sub.children.forEach((inner) => {
+
+              const childAccessKey =
+                  inner.permissionAccessKey ||
+                  inner.permissionKey;
+
+              if (childAccessKey) {
+                delete updated[childAccessKey];
+              }
+            });
+          }
+        });
+      });
+    });
+
+    return updated;
+  };
+
   // handle Permissions
   const handlePermissionSave = async () => {
-    const formattedPermissions = formatPermissions(cleanPermissions(permissions));
+    // CLEAN INVALID VALUES
+    const cleanedPermissions =
+        cleanPermissions(permissions);
+
+// REMOVE PARENT ACCESS
+// IF CHILD ACCESS MODE ENABLED
+    let finalPermissions =
+        removeParentAccessWhenChildrenEnabled(
+            cleanedPermissions
+        );
+
+// REMOVE CHILD ACCESS
+// IF PARENT ACCESS MODE ENABLED
+    finalPermissions =
+        removeChildAccessWhenParentEnabled(
+            finalPermissions
+        );
+
+// FORMAT FOR BACKEND
+    const formattedPermissions =
+        formatPermissions(finalPermissions);
 
     // SAVE TEMPORARY IN FRONTEND
     setTempPermissions((prev) => ({
