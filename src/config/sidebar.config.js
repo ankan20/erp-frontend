@@ -110,12 +110,14 @@ export const sidebarConfig = [
             title: "Material Order",
             path: "/resource-management/procurement/order/material-order",
             permissionKey: "order",
+                showInPermission: false,
           },
           {
             title: "Service Order",
             path: "/resource-management/procurement/order/service-order",
             permissionKey: "order", //same as it is assign same material and service order
             // skipPermission:true,
+            showInPermission: false,
           },
             ]
           },

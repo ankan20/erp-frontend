@@ -266,7 +266,7 @@ export default function MapUserModal({
                                                     (sub, subIndex) => (
 
                                                         <div
-                                                            key={sub.path}
+                                                            key={sub.permissionKey}
                                                             className="
                                                                 grid
                                                                 grid-cols-[1fr_70px_90px]
@@ -306,17 +306,17 @@ export default function MapUserModal({
                                                                     type="checkbox"
                                                                     checked={
                                                                         permissions?.[
-                                                                            sub.path
+                                                                            sub.permissionKey
                                                                             ]?.view || false
                                                                     }
                                                                     disabled={
                                                                         permissions?.[
-                                                                            sub.path
+                                                                            sub.permissionKey
                                                                             ]?.edit || false
                                                                     }
                                                                     onChange={(e) =>
                                                                         handleCheckbox(
-                                                                            sub.path,
+                                                                            sub.permissionKey,
                                                                             "view",
                                                                             e.target.checked
                                                                         )
@@ -343,12 +343,12 @@ export default function MapUserModal({
                                                                     type="checkbox"
                                                                     checked={
                                                                         permissions?.[
-                                                                            sub.path
+                                                                            sub.permissionKey
                                                                             ]?.edit || false
                                                                     }
                                                                     onChange={(e) =>
                                                                         handleCheckbox(
-                                                                            sub.path,
+                                                                            sub.permissionKey,
                                                                             "edit",
                                                                             e.target.checked
                                                                         )
