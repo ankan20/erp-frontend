@@ -229,6 +229,7 @@ export default function ApprovalPathPage() {
 
   const [levels, setLevels] = useState(["Level1", "Level2"]);
 
+
   const [creatorPopup, setCreatorPopup] = useState({
     open: false,
     users: [],
@@ -492,21 +493,16 @@ export default function ApprovalPathPage() {
     const buildRows = (items, level, path = []) => {
       items.forEach((item, index) => {
         const title = item?.title || "";
-
         const currentPath = [...path, index + 1];
-
         const rowId = currentPath.join("-");
-
         const moduleCode = item.moduleCode || generateModuleCode(title);
-
         const shouldHide = HIDDEN_MODULES.includes(moduleCode);
-
         const indent = level * 24;
 
-        // Check Children
-
         const hasChildren =
-          Array.isArray(item.children) && item.children.length > 0;
+            Array.isArray(item.children) && item.children.length > 0;
+
+        const isGroupRow = hasChildren;
 
         const shouldShowSelect = level >= 2 || (level === 1 && !hasChildren);
 
@@ -514,112 +510,117 @@ export default function ApprovalPathPage() {
           rows.push({
             id: rowId,
             moduleCode,
+            isGroupRow,
 
             name: (
-              <div
-                className={`
-                                py-2
-                                px-4
-                                border-l-4
+                <div
+                    className={`
+                w-full
+                py-3
+                px-4
+                rounded-sm
+                border-l-4
 
-                                ${
-                                  level === 0
-                                    ? "bg-sky-100 font-bold text-[24px]"
-                                    : ""
-                                }
+                ${
+                        level === 0
+                            ? "bg-sky-100 font-bold text-[24px] w-full"
+                            : ""
+                    }
 
-                                ${
-                                  level === 1
-                                    ? "bg-green-100 font-semibold text-[18px]"
-                                    : ""
-                                }
+                ${
+                        level === 1
+                            ? "bg-green-100 font-semibold text-[18px] w-full"
+                            : ""
+                    }
 
-                                ${level >= 2 ? "text-[16px]" : ""}
-                                `}
-                style={{
-                  marginLeft: indent,
-                }}
-              >
-                {currentPath.join(".")} {title}
-              </div>
+                ${level >= 2 ? "text-[16px]" : ""}
+              `}
+                    style={{
+                      marginLeft: indent,
+                    }}
+                >
+                  {currentPath.join(".")} {title}
+                </div>
             ),
 
-            creator: shouldShowSelect
-              ? (() => {
-                  const creatorUsers = users.filter((user) =>
-                    (selectedUsers[`${rowId}_creator`] || []).includes(
-                      Number(user.id),
-                    ),
-                  );
+            creator: isGroupRow
+                ? ""
+                : shouldShowSelect
+                    ? (() => {
+                      const creatorUsers = users.filter((user) =>
+                          (selectedUsers[`${rowId}_creator`] || []).includes(
+                              Number(user.id),
+                          ),
+                      );
 
-                  const visibleUsers = creatorUsers.slice(0, 2);
+                      const visibleUsers = creatorUsers.slice(0, 2);
+                      const extraCount = creatorUsers.length - 2;
 
-                  const extraCount = creatorUsers.length - 2;
+                      return (
+                          <div className="px-2 py-1 text-sm">
+                            {creatorUsers.length > 0
+                                ? visibleUsers.map((user) => user.userName).join(", ")
+                                : "-"}
 
-                  return (
-                    <div className="px-2 py-1 text-sm">
-                      {creatorUsers.length > 0
-                        ? visibleUsers.map((user) => user.userName).join(", ")
-                        : "-"}
+                            {extraCount > 0 && (
+                                <button
+                                    type="button"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
 
-                      {extraCount > 0 && (
-                        <button
-                          type="button"
-                          onClick={(e) => {
-                            e.stopPropagation();
-
-                            setCreatorPopup({
-                              open: true,
-
-                              users: creatorUsers,
-                            });
-                          }}
-                          className="
-                                ml-2
-                                rounded
-                                bg-blue-100
-                                px-2
-                                py-[1px]
-                                text-xs
-                                font-semibold
-                                text-blue-700
-                                hover:bg-blue-200
-                            "
-                        >
-                          +{extraCount}
-                        </button>
-                      )}
-                    </div>
-                  );
-                })()
-              : null,
+                                      setCreatorPopup({
+                                        open: true,
+                                        users: creatorUsers,
+                                      });
+                                    }}
+                                    className="
+                            ml-2
+                            rounded
+                            bg-blue-100
+                            px-2
+                            py-[1px]
+                            text-xs
+                            font-semibold
+                            text-blue-700
+                            hover:bg-blue-200
+                          "
+                                >
+                                  +{extraCount}
+                                </button>
+                            )}
+                          </div>
+                      );
+                    })()
+                    : "",
 
             ...Object.fromEntries(
-              levels.map((levelKey) => [
-                levelKey,
+                levels.map((levelKey) => [
+                  levelKey,
 
-                shouldShowSelect ? (
-                  <SingleSelect
-                    placeholder="Select User"
-                    value={selectedUsers[`${rowId}_${levelKey}`] || []}
-                    onChange={(values) =>
-                      setSelectedUsers((prev) => ({
-                        ...prev,
-
-                        [`${rowId}_${levelKey}`]: values,
-                      }))
-                    }
-                    options={users.map((user) => ({
-                      value: user.id,
-                      label: user.userName || "Unknown User",
-                    }))}
-                  />
-                ) : null,
-              ]),
+                  isGroupRow
+                      ? ""
+                      : shouldShowSelect
+                          ? (
+                              <SingleSelect
+                                  placeholder="Select User"
+                                  value={selectedUsers[`${rowId}_${levelKey}`] || []}
+                                  onChange={(values) =>
+                                      setSelectedUsers((prev) => ({
+                                        ...prev,
+                                        [`${rowId}_${levelKey}`]: values,
+                                      }))
+                                  }
+                                  options={users.map((user) => ({
+                                    value: user.id,
+                                    label: user.userName || "Unknown User",
+                                  }))}
+                              />
+                          )
+                          : "",
+                ]),
             ),
           });
         }
-        // Recursive Children
 
         if (hasChildren) {
           buildRows(item.children, level + 1, currentPath);
