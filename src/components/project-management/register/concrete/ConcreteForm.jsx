@@ -115,14 +115,6 @@ export default function ConcreteForm({ mode = "create", registryId }) {
   // fields are editable only when not view-mode, actively editing, and not submitting
   const disabled = isViewMode || !isEditing || isSubmitting;
 
-  // ── HEADING (changes by mode & editing state) 
-  const heading =
-    mode === "create"
-      ? "New Concrete Register"
-      : isEditing
-        ? "Edit Concrete Register"
-        : "Concrete Register Details";
-
   // ── FETCH DETAIL (edit/view/approver modes) 
   useEffect(() => {
     if (mode === "create" || !registryId) return;
@@ -135,7 +127,7 @@ export default function ConcreteForm({ mode = "create", registryId }) {
           method: "GET",
         });
 
-        const d = res.data;
+        const d = res.data[0];
         const formatted = {
           referenceOrderNo:   d.referenceOrderNo   || "",
           projectSubLocation: d.projectSubLocation || "",

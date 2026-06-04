@@ -118,6 +118,11 @@ export const API_ENDPOINTS = {
                 GET_ALL_CONCRETE:"/concrete-registry/list",//get
                 GET_DETAILS_BY_ID:"/concrete-registry/list",//reg_id
                 UPDATE:"/concrete-registry/update",//registry_id
+                APPROVE:"/concrete-registry/approve",//indenId POST
+                REBACK:"/concrete-registry/reback",//indenId POST
+                REJECT:"/concrete-registry/reject",//indenId POST
+                DELETE:"/concrete-registry/delete",//indentId DELETE
+                HISTORY:"/concrete-registry/history",//indentId GET
             }
         }
     }
