@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { Controller } from "react-hook-form";
 import { toast } from "sonner";
-import { ChevronDown, ChevronUp } from "lucide-react";
+// import { ChevronDown, ChevronUp } from "lucide-react";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
@@ -71,7 +71,7 @@ export default function GRNLeftPanel({
   const [vendorOrders,    setVendorOrders]    = useState([]);
   const [loadingOrders,   setLoadingOrders]   = useState(false);
   const [loadingItems,    setLoadingItems]    = useState(false);
-  const [showMore,        setShowMore]        = useState(false);
+  // const [showMore,        setShowMore]        = useState(false);
 
   // ── COST HEAD OPTIONS based on selected receivedCategory ──────────────────
   const costHeadOptions = COST_HEAD_MAP[receivedCategory] || [];
@@ -441,7 +441,7 @@ export default function GRNLeftPanel({
       </div>
 
       {/* ── GROUP 6: MORE CELL (toggle) ───────────────────────────────────── */}
-      <div>
+      {/* <div>
         <button
           type="button"
           onClick={() => setShowMore((p) => !p)}
@@ -451,7 +451,7 @@ export default function GRNLeftPanel({
           {showMore ? "Hide" : "More Cell........"}
         </button>
 
-        {showMore && (
+        {showMore && ( */}
           <div className="flex flex-col gap-[2px] mt-2">
             {/* Challan No */}
             <div className="flex items-center">
@@ -476,8 +476,8 @@ export default function GRNLeftPanel({
                 className={`${getInputClass(false, disabled)} w-[220px] h-[30px]`} />
             </div>
           </div>
-        )}
-      </div>
+        {/* )}
+      </div> */}
 
     </div>
   );

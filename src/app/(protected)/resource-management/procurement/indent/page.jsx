@@ -15,6 +15,7 @@ import { getPageAccess } from "@/helper/getPageAccess";
 import PageNotAvailable from "@/components/common/PageNotAvailable";
 import { getLocalStorage } from "@/lib/localStorage";
 import { CATEGORY_OPTIONS } from "@/config/categoryOptions.config";
+import { getfmtDisplaydate } from "@/helper/getfmtDisplayDate";
 
 export default function Page() {
   const router = useRouter();
@@ -59,7 +60,7 @@ export default function Page() {
           id: p.id,
           sl: index + 1,
           indentNo: p.indentNo,
-          date: p.createdAt,
+          date: getfmtDisplaydate(p.indentDate),
           categoryCode: itemCategoryMap[p.categoryCode] || p.categoryCode,
           priority: p.priority,
           indentStatus: p.indentStatus,

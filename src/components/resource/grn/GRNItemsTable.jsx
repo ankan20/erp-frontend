@@ -1,182 +1,324 @@
 "use client";
 
-import { Controller } from "react-hook-form";
 import { Input } from "@/components/ui/input";
 import ExpandableTextField from "@/components/common/ExpandableTextField";
 import { getInputClass } from "@/lib/formStyles";
 
-// ── TABLE HEADER CELL ────────────────────────────────────────────────────────
+// HEADER
 const TH = ({ children, w = "auto", center = false }) => (
   <th
-    style={{ minWidth: w }}
-    className={`border border-[#b0c4d8] bg-[#d6e6f2] px-2 py-1 text-[12px] font-semibold whitespace-nowrap ${center ? "text-center" : "text-left"}`}
+    style={{
+      minWidth: w,
+      width: w,
+    }}
+    className={`
+      sticky top-0 z-10
+      border border-[#b7bcc5]
+      bg-[#d2d2d2]
+      px-1 py-1
+      text-[12px]
+      font-semibold
+      whitespace-nowrap
+      align-middle
+      ${center ? "text-center" : "text-left"}
+    `}
   >
     {children}
   </th>
 );
 
-// ── TABLE DATA CELL ──────────────────────────────────────────────────────────
-const TD = ({ children, center = false, className = "" }) => (
+// CELL
+const TD = ({
+  children,
+  center = false,
+  className = "",
+}) => (
   <td
-    className={`border border-[#d0dce8] px-1 py-0.5 text-[12px] align-middle ${center ? "text-center" : ""} ${className}`}
+    className={`
+      border border-[#d5d5d5]
+      px-[2px]
+      py-[2px]
+      text-[12px]
+      align-top
+      bg-[#faf7e6]
+      ${center ? "text-center" : ""}
+      ${className}
+    `}
   >
     {children}
   </td>
 );
 
-// ── TEXT CELL (read-only) ────────────────────────────────────────────────────
-const ReadCell = ({ value, disabled = true }) => (
-  <div className={`${getInputClass(false, disabled)} h-[26px] px-2 flex items-center text-[12px] min-w-[60px]`}>
+// READ ONLY
+const ReadCell = ({
+  value,
+  disabled = true,
+}) => (
+  <div
+    className={`
+      ${getInputClass(false, disabled)}
+      h-[28px]
+      px-2
+      flex
+      items-center
+      text-[12px]
+      border-0
+      bg-transparent
+      min-w-[60px]
+    `}
+  >
     {value ?? ""}
   </div>
 );
 
-// ── COMPONENT ─────────────────────────────────────────────────────────────────
-export default function GRNItemsTable({ items, onItemChange, disabled }) {
+export default function GRNItemsTable({
+  items,
+  onItemChange,
+  disabled,
+}) {
   if (!items?.length) {
     return (
-      <div className="border border-[#d0dce8] bg-[#fafafa] rounded-sm p-4 text-[13px] text-gray-400 text-center min-h-[120px] flex items-center justify-center">
+      <div className="border rounded-sm p-4 text-center text-gray-400">
         Select an Order No from the left panel to load items
       </div>
     );
   }
 
   return (
-    <div className="overflow-x-auto border border-[#b0c4d8] rounded-sm">
-      <table className="border-collapse w-full text-[12px]">
-        <thead>
-          <tr>
-            <TH w="40px"  center>SL<br/>no</TH>
-            <TH w="90px">Indent No</TH>
-            <TH w="70px">GRNL</TH>
-            <TH w="90px">Item Code</TH>
-            <TH w="160px">Item Name</TH>
-            <TH w="100px">Note</TH>
-            <TH w="50px"  center>Unit</TH>
-            <TH w="70px"  center>Order<br/>Qty</TH>
-            <TH w="70px"  center>Pre.<br/>Received<br/>Qty</TH>
-            <TH w="70px"  center>Balance<br/>Qty</TH>
-            <TH w="90px"  center>Current<br/>Received<br/>Qty</TH>
-            <TH w="110px">Use Location</TH>
-            <TH w="110px">Store Location</TH>
-          </tr>
-        </thead>
+    <div className="border border-[#b7bcc5]  overflow-hidden">
 
-        <tbody>
-          {items.map((item, index) => {
-            const balQty   = Number(item.balanceQty   ?? 0);
-            const currQty  = item.currentReceivedQty;
-            const currNum  = currQty === "" || currQty == null ? 0 : Number(currQty);
-            const qtyError = currNum > balQty && currNum > 0;
+      {/* BOTH X + Y SCROLL */}
+      <div
+        className="
+          overflow-x-auto
+          overflow-y-auto
+          max-h-[420px]
+          w-full
+        "
+      >
+        <table
+          className="
+            border-collapse
+            text-[12px]
+            min-w-[1320px]
+            w-full
+          "
+        >
+          <thead>
+            <tr>
 
-            return (
-              <tr key={item.orderItemId ?? index} className={index % 2 === 0 ? "bg-white" : "bg-[#f7f9fb]"}>
-                {/* SL */}
-                <TD center>{index + 1}</TD>
+              <TH w="50px" center>
+                SL no
+              </TH>
 
-                {/* Indent No */}
-                <TD><ReadCell value={item.indentNo} /></TD>
+              <TH w="100px">
+                Indent No
+              </TH>
 
-                {/* GRNL — only exists after GRN is saved */}
-                <TD><ReadCell value={item.grnl || ""} /></TD>
+              <TH w="90px">
+                GRNL
+              </TH>
 
-                {/* Item Code */}
-                <TD><ReadCell value={item.itemCode} /></TD>
+              <TH w="120px" center>
+                Item Code
+              </TH>
 
-                {/* Item Name — expandable (can be long) */}
-                <TD>
-                  <ExpandableTextField
-                    value={item.itemName || ""}
-                    onChange={() => {}}
-                    disabled
-                    title="Item Name"
-                    placeholder="—"
-                    minHeight="min-h-[26px]"
-                    modalHeight="min-h-[140px]"
-                    className="text-[12px] min-w-[150px]"
-                  />
-                </TD>
+              <TH w="240px" center>
+                Item Name
+              </TH>
 
-                {/* Note — expandable */}
-                <TD>
-                  <ExpandableTextField
-                    value={item.note || ""}
-                    onChange={() => {}}
-                    disabled
-                    title="Note"
-                    placeholder="—"
-                    minHeight="min-h-[26px]"
-                    modalHeight="min-h-[140px]"
-                    className="text-[12px] min-w-[90px]"
-                  />
-                </TD>
+              <TH w="180px" center>
+                Note
+              </TH>
 
-                {/* Unit */}
-                <TD center><ReadCell value={item.itemUnit} /></TD>
+              <TH w="70px" center>
+                Unit
+              </TH>
 
-                {/* Order Qty */}
-                <TD center><ReadCell value={item.orderQty} /></TD>
+              <TH w="90px" >
+                OrderQty
+              </TH>
 
-                {/* Pre Received Qty */}
-                <TD center><ReadCell value={item.preReceivedQty} /></TD>
+              <TH w="110px" >
+                Pre.
+                Received
+                Qty
+              </TH>
 
-                {/* Balance Qty */}
-                <TD center><ReadCell value={balQty} /></TD>
+              <TH w="110px" center>
+                Balance
+                Qty
+              </TH>
 
-                {/* Current Received Qty — EDITABLE */}
-                <TD>
-                  <div className="flex flex-col">
-                    <Input
-                      type="number"
-                      min="0"
-                      step="any"
-                      value={currQty ?? 0}
-                      disabled={disabled}
-                      onChange={(e) =>
-                        onItemChange(index, "currentReceivedQty", e.target.value)
-                      }
-                      className={`${getInputClass(qtyError, disabled)} h-[26px] w-[80px] text-[12px]`}
+              <TH w="130px" center>
+                Current
+                Received
+                Qty
+              </TH>
+
+              <TH w="220px" center>
+                Use Location
+              </TH>
+
+              <TH w="220px" center>
+                Store Location
+              </TH>
+
+            </tr>
+          </thead>
+
+          <tbody>
+            {items.map((item, index) => {
+              const balQty =
+                Number(item.balanceQty ?? 0);
+
+              const currQty =
+                item.currentReceivedQty;
+
+              const currNum =
+                currQty === "" ||
+                currQty == null
+                  ? 0
+                  : Number(currQty);
+
+              const qtyError =
+                currNum > balQty &&
+                currNum > 0;
+
+              return (
+                <tr key={item.orderItemId ?? index}>
+
+                  <TD center>
+                    {index + 1}
+                  </TD>
+
+                  <TD>
+                    <ReadCell value={item.indentNo} />
+                  </TD>
+
+                  <TD>
+                    <ReadCell value={item.grnl} />
+                  </TD>
+
+                  <TD>
+                    <ReadCell value={item.itemCode} />
+                  </TD>
+
+                  {/* ITEM */}
+                  <TD>
+                    <ExpandableTextField
+                      value={item.itemName || ""}
+                      onChange={() => {}}
+                      disabled
+                      title="Item Name"
+                      minHeight="min-h-[28px]"
+                      modalHeight="min-h-[180px]"
                     />
-                    {qtyError && (
-                      <span className="text-red-500 text-[10px] leading-tight mt-0.5 whitespace-nowrap">
-                        Max: {balQty}
-                      </span>
-                    )}
-                  </div>
-                </TD>
+                  </TD>
 
-                {/* Use Location — EDITABLE */}
-                <TD>
-                  <Input
-                    type="text"
-                    value={item.useLocation || ""}
-                    disabled={disabled}
-                    placeholder={disabled ? "—" : "Block A"}
-                    onChange={(e) =>
-                      onItemChange(index, "useLocation", e.target.value)
-                    }
-                    className={`${getInputClass(false, disabled)} h-[26px] w-[100px] text-[12px]`}
-                  />
-                </TD>
+                  {/* NOTE */}
+                  <TD>
+                    <ExpandableTextField
+                      value={item.note || ""}
+                      onChange={() => {}}
+                      disabled
+                      title="Note"
+                      minHeight="min-h-[28px]"
+                      modalHeight="min-h-[180px]"
+                    />
+                  </TD>
 
-                {/* Store Location — EDITABLE */}
-                <TD>
-                  <Input
-                    type="text"
-                    value={item.storeLocation || ""}
-                    disabled={disabled}
-                    placeholder={disabled ? "—" : "Store 1"}
-                    onChange={(e) =>
-                      onItemChange(index, "storeLocation", e.target.value)
-                    }
-                    className={`${getInputClass(false, disabled)} h-[26px] w-[100px] text-[12px]`}
-                  />
-                </TD>
-              </tr>
-            );
-          })}
-        </tbody>
-      </table>
+                  <TD >
+                    <ReadCell value={item.itemUnit} />
+                  </TD>
+
+                  <TD center>
+                    <ReadCell value={item.orderQty} />
+                  </TD>
+
+                  <TD center>
+                    <ReadCell value={item.preReceivedQty} />
+                  </TD>
+
+                  <TD center>
+                    <ReadCell value={balQty} />
+                  </TD>
+
+                  {/* CURRENT */}
+                  <TD>
+                    <div>
+                      <Input
+                        type="number"
+                        value={currQty ?? ""}
+                        min="0"
+                        step="any"
+                        disabled={disabled}
+                        onChange={(e) =>
+                          onItemChange(
+                            index,
+                            "currentReceivedQty",
+                            e.target.value
+                          )
+                        }
+                        className={`
+                          ${getInputClass(
+                            qtyError,
+                            disabled
+                          )}
+                          h-[28px]
+                        `}
+                      />
+
+                      {qtyError && (
+                        <p className="text-red-500 text-[10px] mt-1">
+                          Max {balQty}
+                        </p>
+                      )}
+                    </div>
+                  </TD>
+
+                  {/* USE LOCATION */}
+                  <TD>
+                    <ExpandableTextField
+                      value={item.useLocation || ""}
+                      disabled={disabled}
+                      title="Use Location"
+                      placeholder="Block A"
+                      minHeight="min-h-[28px]"
+                      onChange={(v) =>
+                        onItemChange(
+                          index,
+                          "useLocation",
+                          v
+                        )
+                      }
+                    />
+                  </TD>
+
+                  {/* STORE LOCATION */}
+                  <TD>
+                    <ExpandableTextField
+                      value={item.storeLocation || ""}
+                      disabled={disabled}
+                      title="Store Location"
+                      placeholder="Store 1"
+                      minHeight="min-h-[28px]"
+                      onChange={(v) =>
+                        onItemChange(
+                          index,
+                          "storeLocation",
+                          v
+                        )
+                      }
+                    />
+                  </TD>
+
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
     </div>
   );
 }

@@ -15,17 +15,8 @@ import { getPageAccess }   from "@/helper/getPageAccess";
 import { apiRequest }      from "@/lib/apiClient";
 import { API_ENDPOINTS }   from "@/config/api.config";
 import { getLocalStorage } from "@/lib/localStorage";
+import { getfmtDisplaydate } from "@/helper/getfmtDisplayDate";
 
-const fmtDisplay = (d) => {
-  if (!d) return "";
-  const s = String(d).replace(/-/g, "");
-  if (s.length === 8) {
-    const dt = new Date(`${s.slice(0,4)}-${s.slice(4,6)}-${s.slice(6,8)}`);
-    if (isNaN(dt)) return d;
-    return dt.toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "2-digit" });
-  }
-  return d;
-};
 
 export default function Page() {
   const router = useRouter();
@@ -53,7 +44,7 @@ export default function Page() {
           id:               r.id,
           sl:               i + 1,
           grnNo:            r.grnNo            || "",
-          grnDate:          fmtDisplay(r.grnDate),
+          grnDate:          getfmtDisplaydate(r.grnDate),
           _rawDate:         r.grnDate          || "",
           partyName:        r.partyName        || "",
           orderNo:          r.orderNo          || "",

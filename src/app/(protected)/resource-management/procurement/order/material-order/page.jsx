@@ -22,6 +22,7 @@ import {
 } from "@/components/ui/dialog";
 import { X } from "lucide-react";
 import { getLocalStorage } from "@/lib/localStorage";
+import { getfmtDisplaydate } from "@/helper/getfmtDisplayDate";
 
 export default function Page() {
   const router = useRouter();
@@ -62,7 +63,7 @@ export default function Page() {
             id: p.id,
             sl: index + 1,
             orderNo: p.orderNo,
-            orderDate: p.orderDate,
+            orderDate: getfmtDisplaydate(p.orderDate),
             partyName: p.partyName || "",
             category: p.categoryCode || "",
             basicAmount: formatAmount(p.basicAmount || 0),
