@@ -212,7 +212,10 @@ export default function SRNLeftPanel({
 
   // ── RENDER ────────────────────────────────────────────────────────────────
   return (
-    <div className="flex flex-col gap-y-4 w-full xl:w-[410px] shrink-0 overflow-y-auto max-h-[calc(100vh-110px)] pr-1">
+    <div className="flex flex-col gap-y-4 w-full xl:w-[410px] shrink-0 xl:overflow-y-auto xl:max-h-[calc(100vh-110px)] pr-1">
+
+      {/* Groups: 1-col on mobile, 2-col on lg (tablet/laptop), 1-col on xl (side panel) */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-1 gap-4">
 
       {/* ── GROUP 1: CATEGORY ────────────────────────────────────────────── */}
       <div className="flex flex-col gap-[2px]">
@@ -456,47 +459,34 @@ export default function SRNLeftPanel({
         </div>
       </div>
 
-      {/* ── GROUP 6: MORE CELL (toggle) ───────────────────────────────────── */}
-      {/* <div>
-        <button
-          type="button"
-          onClick={() => setShowMore((p) => !p)}
-          className="flex items-center gap-1 text-[12px] text-[#4a6fa5] font-medium hover:underline cursor-pointer"
-        >
-          {showMore ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
-          {showMore ? "Hide" : "More Cell........"}
-        </button>
-
-        {showMore && ( */}
-          <div className="flex flex-col gap-[2px] mt-2">
-            {/* Challan No */}
-            <div className="flex items-center">
-              <div className={LABEL}>Challan No</div>
-              <Input {...register("challanNo")} disabled={disabled}
-                placeholder="Optional"
-                className={`${getInputClass(false, disabled)} w-[220px] h-[30px]`} />
-            </div>
-
-            {/* Party Bill No */}
-            <div className="flex items-center">
-              <div className={LABEL}>Party Bill No</div>
-              <Input {...register("partyBillNo")} disabled={disabled}
-                placeholder="Text"
-                className={`${getInputClass(false, disabled)} w-[220px] h-[30px]`} />
-            </div>
-
-            {/* Party Bill Date */}
-            <div className="flex items-center">
-              <div className={LABEL}>Party Bill Date</div>
-              <Input type="date" {...register("partyBillDate")} disabled={disabled}
-                className={`${getInputClass(false, disabled)} w-[220px] h-[30px]`} />
-            </div>
-          </div>
-        {/* )}
-      </div> */}
-
-      {/* ── GROUP 7: DELIVERY & VERIFICATION ─────────────────────────────── */}
+      {/* ── GROUP 6: CHALLAN / BILL ───────────────────────────────────────── */}
       <div className="flex flex-col gap-[2px]">
+        {/* Challan No */}
+        <div className="flex items-center">
+          <div className={LABEL}>Challan No</div>
+          <Input {...register("challanNo")} disabled={disabled}
+            placeholder="Optional"
+            className={`${getInputClass(false, disabled)} w-[220px] h-[30px]`} />
+        </div>
+
+        {/* Party Bill No */}
+        <div className="flex items-center">
+          <div className={LABEL}>Party Bill No</div>
+          <Input {...register("partyBillNo")} disabled={disabled}
+            placeholder="Text"
+            className={`${getInputClass(false, disabled)} w-[220px] h-[30px]`} />
+        </div>
+
+        {/* Party Bill Date */}
+        <div className="flex items-center">
+          <div className={LABEL}>Party Bill Date</div>
+          <Input type="date" {...register("partyBillDate")} disabled={disabled}
+            className={`${getInputClass(false, disabled)} w-[220px] h-[30px]`} />
+        </div>
+      </div>
+
+      {/* ── GROUP 7: DELIVERY & VERIFICATION — spans both cols on lg ──────── */}
+      <div className="flex flex-col gap-[2px] lg:col-span-2 xl:col-span-1">
         {/* Deliver Vehicle No */}
         <div className="flex items-center">
           <div className={LABEL}>Deliver Vehicle No</div>
@@ -541,6 +531,8 @@ export default function SRNLeftPanel({
           />
         </div>
       </div>
+
+      </div>{/* end groups grid */}
 
       {/* ── DOCUMENT ATTACHMENT ───────────────────────────────────────────── */}
       <div className="flex flex-wrap items-center gap-3 pb-2">

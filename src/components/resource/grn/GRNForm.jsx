@@ -446,7 +446,7 @@ export default function GRNForm({ mode = "create", grnId }) {
         <div className="hidden xl:block w-px self-stretch bg-sky-300" />
 
         {/* RIGHT PANEL */}
-        <div className="flex-1 min-w-0 flex flex-col gap-4">
+        <div className="w-full flex-1 min-w-0 flex flex-col gap-4">
           <div>
             {/* BASIC SECTION HEADER */}
             <div className="bg-[#d8e0d1] border border-[#c7cfbf] px-3 py-1  text-[#1a3a5c] ">
