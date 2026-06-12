@@ -16,23 +16,23 @@ import { getLocalStorage } from "@/lib/localStorage";
 
 // CHANGED: New category values for existing Order module
 const ORDER_CATEGORIES = [
-  { label: "Purchases Order", value: "Purchases Order" },
-  { label: "Customer Supply Order", value: "Customer Supply Order" },
-  { label: "Site Transfer Order", value: "Site Transfer Order" },
+  { label: "Purchases Order", value: "Purchases_Order" },
+  { label: "Customer Supply Order", value: "Customer_Supply_Order" },
+  { label: "Site Transfer Order", value: "Site_Transfer_Order" },
 ];
 
 const COST_HEAD_OPTIONS = {
-  "Purchases Order": [
-    { label: "Project Work", value: "Project Work" },
-    { label: "Fixed Asset", value: "Fixed Asset" },
+  "Purchases_Order": [
+    { label: "Project Work", value: "Project_Work" },
+    { label: "Fixed Asset", value: "Fixed_Asset" },
   ],
-  "Customer Supply Order": [
-    { label: "Project Work", value: "Project Work" },
+  "Customer_Supply_Order": [
+    { label: "Project Work", value: "Project_Work" },
   ],
   // SubCategory: Material only; assetOnly = costHead === "Fixed Asset" (handled in modal)
-  "Site Transfer Order": [
-    { label: "Project Work", value: "Project Work" },
-    { label: "Fixed Asset", value: "Fixed Asset" },
+  "Site_Transfer_Order": [
+    { label: "Project Work", value: "Project_Work" },
+    { label: "Fixed Asset", value: "Fixed_Asset" },
   ],
 };
 
@@ -125,7 +125,7 @@ export default function OrderBasicSection({
     setValue("items", []);
   };
 
-  const costHeadOptions = COST_HEAD_OPTIONS[categoryCode] || COST_HEAD_OPTIONS["Purchases Order"];
+  const costHeadOptions = COST_HEAD_OPTIONS[categoryCode] || COST_HEAD_OPTIONS["Purchases_Order"];
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-1 gap-x-6 gap-y-5">

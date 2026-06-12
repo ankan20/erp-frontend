@@ -15,8 +15,10 @@ import { getInputClass, labelClass } from "@/lib/formStyles";
 import { getLocalStorage } from "@/lib/localStorage";
 
 // ── CATEGORY CONFIG — identical to ServiceOrderBasicSection ─────────────────
+// Keys are underscore values (safe for URLs); label is the display text
 const CATEGORY_CONFIG = {
-  "Work Order": {
+  "Work_Order": {
+    label:         "Work Order",
     subCategories: [
       { label: "Service",   value: "SER_001" },
       { label: "Composite", value: "COM_001" },
@@ -24,19 +26,24 @@ const CATEGORY_CONFIG = {
     costHeads:   [{ label: "Project Work", value: "Project_Work" }],
     multiSelect: true,
   },
-  "Hire Order": {
+  "Hire_Order": {
+    label:         "Hire Order",
     subCategories: [{ label: "Service", value: "SER_001" }],
     costHeads:     [{ label: "Project Work", value: "Project_Work" }],
     multiSelect:   false,
   },
-  "Job Contract Order": {
+  "Job_Contract_Order": {
+    label:         "Job Contract Order",
     subCategories: [{ label: "Expenses", value: "EXP_001" }],
     costHeads:     [{ label: "Project Work", value: "Project_Work" }],
     multiSelect:   false,
   },
 };
 
-export const RECEIVED_CATEGORY_OPTIONS = Object.keys(CATEGORY_CONFIG);
+// { label: "Work Order", value: "Work_Order" } — used by the select
+export const RECEIVED_CATEGORY_OPTIONS = Object.entries(CATEGORY_CONFIG).map(
+  ([value, config]) => ({ label: config.label, value }),
+);
 
 // Convert YYYYMMDD → YYYY-MM-DD for date inputs
 const fmt = (d) => {
@@ -153,8 +160,8 @@ export default function SRNLeftPanel({
       setLoadingOrders(true);
       try {
         let url = `${API_ENDPOINTS.RESOURCE.MATERIAL_MANAGEMENT.SRN.GET_VENDOR_ORDERS}?vendorId=${vendorId}&projectCode=${projectCode}`;
-        if (receivedCategory) url += `&categoryCode=${encodeURIComponent(receivedCategory)}`;
-        if (itemCategory)     url += `&subCategoryCode=${encodeURIComponent(itemCategory)}`;
+        if (receivedCategory) url += `&receivedCategory=${encodeURIComponent(receivedCategory)}`;
+        if (itemCategory)     url += `&itemCategory=${encodeURIComponent(itemCategory)}`;
         if (costHead)         url += `&costHead=${encodeURIComponent(costHead)}`;
         const res = await apiRequest({ url });
         const orders = res.data || [];
@@ -276,8 +283,8 @@ export default function SRNLeftPanel({
                     <SelectValue placeholder="Select Category" />
                   </SelectTrigger>
                   <SelectContent>
-                    {RECEIVED_CATEGORY_OPTIONS.map((cat) => (
-                      <SelectItem key={cat} value={cat}>{cat}</SelectItem>
+                    {RECEIVED_CATEGORY_OPTIONS.map((o) => (
+                      <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
                     ))}
                   </SelectContent>
                 </Select>

@@ -70,7 +70,7 @@ export default function OrderItemSelectionModal({
         setLoading(true);
 
         // CHANGED: costHead determines assetOnly; subCategoryCode always MAT_001
-        const assetOnly = costHead === "Fixed Asset";
+        const assetOnly = costHead === "Fixed_Asset";
 
         const res = await apiRequest({
           url: `${API_ENDPOINTS.RESOURCE.PROCUREMENT.ORDER.GET_INDENT_LIST}?projectCode=${projectCode}&subCategoryCode=MAT_001&assetOnly=${assetOnly}`,

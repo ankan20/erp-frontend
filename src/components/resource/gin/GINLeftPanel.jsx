@@ -14,29 +14,27 @@ import { API_ENDPOINTS } from "@/config/api.config";
 import { getInputClass, labelClass } from "@/lib/formStyles";
 import { getLocalStorage } from "@/lib/localStorage";
 
-// ── GIN CATEGORY MAPPING ──────────────────────────────────────────────────────
-export const ISSUE_CATEGORY_OPTIONS = [
-  { label: "Consumption",               value: "Consumption"               },
-  { label: "Return to Vendor",          value: "Return to Vendor"          },
-  { label: "Site Transfer Order",       value: "Site Transfer Order"       },
-  { label: "Customer Delivery",         value: "Customer Delivery"         },
-  { label: "Without Purchase Order",    value: "Without Purchase Order"    },
-  { label: "Capital Issue",             value: "Capital Issue"             },
-];
+// ── GIN CATEGORY CONFIG — underscore keys (URL-safe), label for display ──────
+const GIN_CATEGORY_CONFIG = {
+  "Consumption":           { label: "Consumption",            costHeads: [{ label: "Project Work", value: "Project_Work" }, { label: "Fixed Asset", value: "Fixed_Asset" }] },
+  "Return_to_Vendor":      { label: "Return to Vendor",       costHeads: [{ label: "Project Work", value: "Project_Work" }, { label: "Fixed Asset", value: "Fixed_Asset" }] },
+  "Site_Transfer_Order":   { label: "Site Transfer Order",    costHeads: [{ label: "Project Work", value: "Project_Work" }, { label: "Fixed Asset", value: "Fixed_Asset" }] },
+  "Customer_Delivery":     { label: "Customer Delivery",      costHeads: [{ label: "Project Work", value: "Project_Work" }] },
+  "Without_Purchase_Order":{ label: "Without Purchase Order", costHeads: [{ label: "Project Work", value: "Project_Work" }, { label: "Fixed Asset", value: "Fixed_Asset" }] },
+  "Capital_Issue":         { label: "Capital Issue",          costHeads: [{ label: "Fixed Asset",  value: "Fixed_Asset"  }] },
+};
+
+export const ISSUE_CATEGORY_OPTIONS = Object.entries(GIN_CATEGORY_CONFIG).map(
+  ([value, config]) => ({ label: config.label, value }),
+);
 
 // Item category is always "Material" for GIN
 const ITEM_CATEGORY = "Material";
 
-const COST_HEAD_MAP = {
-  "Consumption":            ["Project Work", "Fixed Asset"],
-  "Return to Vendor":       ["Project Work", "Fixed Asset"],
-  "Site Transfer Order":    ["Project Work", "Fixed Asset"],
-  "Customer Delivery":      ["Project Work"],
-  "Without Purchase Order": ["Project Work", "Fixed Asset"],
-  "Capital Issue":          ["Fixed Asset"],
-};
-
-const COST_FACTOR_OPTIONS = ["Chargeable", "Non Chargeable"];
+const COST_FACTOR_OPTIONS = [
+  { label: "Chargeable",     value: "Chargeable"     },
+  { label: "Non Chargeable", value: "Non_Chargeable" },
+];
 
 // Convert YYYYMMDD → YYYY-MM-DD for date inputs
 const fmt = (d) => {
@@ -81,7 +79,8 @@ export default function GINLeftPanel({
   const [loadingOrders,   setLoadingOrders]   = useState(false);
   const [loadingItems,    setLoadingItems]    = useState(false);
 
-  const costHeadOptions = COST_HEAD_MAP[issueCategory] || [];
+  const categoryConfig  = GIN_CATEGORY_CONFIG[issueCategory] || { costHeads: [] };
+  const costHeadOptions = categoryConfig.costHeads;
 
   // ── LOAD LEDGER LIST (vendors / parties) ──────────────────────────────────
   useEffect(() => {
@@ -177,10 +176,15 @@ export default function GINLeftPanel({
   const handleIssueCategoryChange = (val) => {
     userChangedRef.current = true;
     setValue("issueCategory", val);
-    setValue("itemCategory",  ITEM_CATEGORY);
-    const newOpts = COST_HEAD_MAP[val] || [];
-    const cur     = watch("costHead");
-    if (cur && !newOpts.includes(cur)) setValue("costHead", "");
+    setValue("itemCategory", ITEM_CATEGORY);
+    const config = GIN_CATEGORY_CONFIG[val];
+    // auto-set costHead if single option, otherwise clear if no longer valid
+    if (config?.costHeads.length === 1) {
+      setValue("costHead", config.costHeads[0].value);
+    } else {
+      const cur = watch("costHead");
+      if (cur && !config?.costHeads.some((h) => h.value === cur)) setValue("costHead", "");
+    }
     if (mode === "create") {
       setValue("orderId",   "");
       setValue("orderDate", "");
@@ -302,7 +306,7 @@ export default function GINLeftPanel({
                   </SelectTrigger>
                   <SelectContent>
                     {costHeadOptions.map((opt) => (
-                      <SelectItem key={opt} value={opt}>{opt}</SelectItem>
+                      <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
@@ -329,7 +333,7 @@ export default function GINLeftPanel({
                   </SelectTrigger>
                   <SelectContent>
                     {COST_FACTOR_OPTIONS.map((opt) => (
-                      <SelectItem key={opt} value={opt}>{opt}</SelectItem>
+                      <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
                     ))}
                   </SelectContent>
                 </Select>

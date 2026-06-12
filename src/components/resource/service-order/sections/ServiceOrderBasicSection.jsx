@@ -15,32 +15,39 @@ import { getInputClass, labelClass } from "@/lib/formStyles";
 import { getLocalStorage } from "@/lib/localStorage";
 
 // Category config — drives subCategory options, costHead options, and assetOnly flag
+// Keys are underscore values (safe for URLs); label is the display text
 const CATEGORY_CONFIG = {
-  "Work Order": {
+  "Work_Order": {
+    label: "Work Order",
     subCategories: [
       { label: "Service", value: "SER_001" },
       { label: "Composite", value: "COM_001" },
     ],
-    costHeads: [{ label: "Project Work", value: "Project Work" }],
+    costHeads: [{ label: "Project Work", value: "Project_Work" }],
     multiSelect: true,
     assetOnly: false,
   },
-  "Hire Order": {
+  "Hire_Order": {
+    label: "Hire Order",
     subCategories: [{ label: "Service", value: "SER_001" }],
-    costHeads: [{ label: "Project Work", value: "Project Work" }],
+    costHeads: [{ label: "Project Work", value: "Project_Work" }],
     multiSelect: false,
     assetOnly: false,
   },
   // Site Transfer Order moved to existing Order module
-  "Job Contract Order": {
+  "Job_Contract_Order": {
+    label: "Job Contract Order",
     subCategories: [{ label: "Expenses", value: "EXP_001" }],
-    costHeads: [{ label: "Project Work", value: "Project Work" }],
+    costHeads: [{ label: "Project Work", value: "Project_Work" }],
     multiSelect: false,
     assetOnly: false,
   },
 };
 
-const SERVICE_ORDER_CATEGORIES = Object.keys(CATEGORY_CONFIG);
+// { label: "Work Order", value: "Work_Order" } — used by the select
+const SERVICE_ORDER_CATEGORIES = Object.entries(CATEGORY_CONFIG).map(
+  ([value, config]) => ({ label: config.label, value }),
+);
 
 export default function ServiceOrderBasicSection({
   form,
@@ -68,7 +75,7 @@ export default function ServiceOrderBasicSection({
   const categoryCode = watch("categoryCode");
   const subCategoryCodes = watch("subCategoryCodes") || [];
 
-  const categoryConfig = CATEGORY_CONFIG[categoryCode] || CATEGORY_CONFIG["Work Order"];
+  const categoryConfig = CATEGORY_CONFIG[categoryCode] || CATEGORY_CONFIG["Work_Order"];
 
   // Close sub dropdown on outside click
   useEffect(() => {
@@ -197,8 +204,8 @@ export default function ServiceOrderBasicSection({
                     <SelectValue placeholder="Select Category" />
                   </SelectTrigger>
                   <SelectContent>
-                    {SERVICE_ORDER_CATEGORIES.map((cat) => (
-                      <SelectItem key={cat} value={cat}>{cat}</SelectItem>
+                    {SERVICE_ORDER_CATEGORIES.map((o) => (
+                      <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
                     ))}
                   </SelectContent>
                 </Select>

@@ -14,27 +14,19 @@ import { API_ENDPOINTS } from "@/config/api.config";
 import { getInputClass, labelClass } from "@/lib/formStyles";
 import { getLocalStorage } from "@/lib/localStorage";
 
-// ── GRN CATEGORY MAPPING ─────────────────────────────────────────────────────
-export const RECEIVED_CATEGORY_OPTIONS = [
-  { label: "Purchases Order",      value: "Purchases Order"      },
-  { label: "Local Purchases",       value: "Local Purchases"       },
-  { label: "Returnable Inventory",     value: "Returnable Inventory"     },
-  { label: "Site Transfer Order",      value: "Site Transfer Order"      },
-  { label: "With Out Purchases Order", value: "With Out Purchases Order" },
-  { label: "Customer Supply Order",          value: "Customer Supply Order"          },
-];
-
-// Item category is always "Material" for GRN
-const ITEM_CATEGORY = "Material";
-
-const COST_HEAD_MAP = {
-  "Purchases Order":       ["Project Work", "Fixed Asset"],
-  "Local Purchases":       ["Project Work", "Fixed Asset"],
-  "Returnable Inventory":     ["Fixed Asset"],
-  "Site Transfer Order":      ["Project Work", "Fixed Asset"],
-  "With Out Purchases Order": ["Project Work", "Fixed Asset"],
-  "Customer Supply Order":          ["Project Work"],
+// ── GRN CATEGORY CONFIG — underscore keys (URL-safe), label for display ──────
+const GRN_CATEGORY_CONFIG = {
+  "Purchases_Order":          { label: "Purchases Order",          costHeads: [{ label: "Project Work", value: "Project_Work" }, { label: "Fixed Asset", value: "Fixed_Asset" }] },
+  "Local_Purchases":          { label: "Local Purchases",          costHeads: [{ label: "Project Work", value: "Project_Work" }, { label: "Fixed Asset", value: "Fixed_Asset" }] },
+  "Returnable_Inventory":     { label: "Returnable Inventory",     costHeads: [{ label: "Fixed Asset",  value: "Fixed_Asset"  }] },
+  "Site_Transfer_Order":      { label: "Site Transfer Order",      costHeads: [{ label: "Project Work", value: "Project_Work" }, { label: "Fixed Asset", value: "Fixed_Asset" }] },
+  "With_Out_Purchases_Order": { label: "With Out Purchases Order", costHeads: [{ label: "Project Work", value: "Project_Work" }, { label: "Fixed Asset", value: "Fixed_Asset" }] },
+  "Customer_Supply_Order":    { label: "Customer Supply Order",    costHeads: [{ label: "Project Work", value: "Project_Work" }] },
 };
+
+export const RECEIVED_CATEGORY_OPTIONS = Object.entries(GRN_CATEGORY_CONFIG).map(
+  ([value, config]) => ({ label: config.label, value }),
+);
 
 // Convert YYYYMMDD → YYYY-MM-DD for date inputs
 const fmt = (d) => {
@@ -81,8 +73,9 @@ export default function GRNLeftPanel({
   const [loadingItems,    setLoadingItems]    = useState(false);
   // const [showMore,        setShowMore]        = useState(false);
 
-  // ── COST HEAD OPTIONS based on selected receivedCategory 
-  const costHeadOptions = COST_HEAD_MAP[receivedCategory] || [];
+  // ── COST HEAD OPTIONS based on selected receivedCategory
+  const categoryConfig  = GRN_CATEGORY_CONFIG[receivedCategory] || { costHeads: [] };
+  const costHeadOptions = categoryConfig.costHeads;
 
   // ── LOAD LEDGER LIST (vendors) 
   useEffect(() => {
@@ -175,11 +168,15 @@ export default function GRNLeftPanel({
   const handleReceivedCategoryChange = (val) => {
     userChangedRef.current = true;
     setValue("receivedCategory", val);
-    setValue("itemCategory",     ITEM_CATEGORY);
-    // if costHead no longer valid for new category, clear it
-    const newOpts = COST_HEAD_MAP[val] || [];
-    const cur     = watch("costHead");
-    if (cur && !newOpts.includes(cur)) setValue("costHead", "");
+    setValue("itemCategory", ITEM_CATEGORY);
+    const config = GRN_CATEGORY_CONFIG[val];
+    // auto-set costHead if single option, otherwise clear if no longer valid
+    if (config?.costHeads.length === 1) {
+      setValue("costHead", config.costHeads[0].value);
+    } else {
+      const cur = watch("costHead");
+      if (cur && !config?.costHeads.some((h) => h.value === cur)) setValue("costHead", "");
+    }
     if (mode === "create") {
       setValue("orderId",   "");
       setValue("orderDate", "");
@@ -276,7 +273,7 @@ export default function GRNLeftPanel({
                   </SelectTrigger>
                   <SelectContent>
                     {costHeadOptions.map((o) => (
-                      <SelectItem key={o} value={o}>{o}</SelectItem>
+                      <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
                     ))}
                   </SelectContent>
                 </Select>

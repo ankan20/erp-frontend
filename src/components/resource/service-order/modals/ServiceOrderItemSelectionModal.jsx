@@ -51,7 +51,7 @@ export default function ServiceOrderItemSelectionModal({ open, onClose, form }) 
 
         const subCodesParam = subCategoryCodes.join(",");
         // FIXED: assetOnly driven by costHead selection, not hardcoded by category
-        const assetOnly = costHead === "Fixed Asset";
+        const assetOnly = costHead === "Fixed_Asset";
 
         const res = await apiRequest({
           url: `${API_ENDPOINTS.RESOURCE.PROCUREMENT.ORDER.PROJECT_WORK.GET_ITEM_LIST}?projectCode=${projectCode}&subCodes=${subCodesParam}&assetOnly=${assetOnly}`,

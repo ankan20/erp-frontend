@@ -172,7 +172,7 @@ export default function OrderForm({ mode = "create", orderId }) {
     formData.append("costHead", values.costHead);
     formData.append(
       "assetOnly",
-      values.costHead === "Fixed Asset" ? "true" : "false",
+      values.costHead === "Fixed_Asset" ? "true" : "false",
     );
 
     formData.append("vendorId", values.vendorId);
