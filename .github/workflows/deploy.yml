@@ -1,0 +1,24 @@
+name: Deploy Frontend to Hetzner
+
+on:
+  push:
+    branches:
+      - master
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Deploy to server
+        uses: appleboy/ssh-action@v1.0.0
+        with:
+          host: 167.233.108.123
+          username: root
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          script: |
+            cd /var/www/prax-frontend
+            git config core.sshCommand "ssh -i ~/.ssh/hetzner_github"
+            git pull origin master
+            npm install
+            npm run build
+            systemctl restart prax-frontend
