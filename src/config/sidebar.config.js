@@ -119,7 +119,6 @@ export const sidebarConfig = [
             title: "Service Order",
             path: "/resource-management/procurement/order/service-order",
             // permissionKey: "service_order", //same as it is assign same material and service order
-            // // skipPermission:true,
             permissionKey: "order",
 
             permissionAccessKey: "service_order",
@@ -131,11 +130,36 @@ export const sidebarConfig = [
       {
         title: "Material Management",
         children: [
+          // {
+          //   title: "Goods Received Note",
+          //   path: "/resource-management/material/grn",
+          //   permissionKey: "goods_received_note",
+          // },
+          // {
+          //   title: "Service Received Note",
+          //   path: "/resource-management/material/srn",
+          //   permissionKey: "goods_received_note",
+          // },
           {
+            title:"Received Note",
+            showChildrenInPermission: false,
+            children :[
+              {
             title: "Goods Received Note",
-            path: "/resource-management/material/grn",
+            path: "/resource-management/material/received-note/grn",
             permissionKey: "goods_received_note",
+            permissionAccessKey: "goods_received_note",
           },
+          {
+            title: "Service Received Note",
+            path: "/resource-management/material/received-note/srn",
+            permissionKey: "goods_received_note",
+
+            permissionAccessKey: "goods_received_note",
+          },
+            ]
+          },
+
           {
             title: "Goods Issue Note",
             path: "/resource-management/material/gin",

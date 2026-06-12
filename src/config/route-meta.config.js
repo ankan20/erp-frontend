@@ -157,18 +157,33 @@ export const routeMetaConfig = [
     breadcrumbs: ["Resource Management", "Procurement","Order","Service Order","Edit"],
   },
   //Material management
+  //grn
   {
-    basePath: "/resource-management/material/grn",
-    breadcrumbs: ["Resource Management", "Material Management","Goods Received Note","List"],
+    basePath: "/resource-management/material/received-note/grn",
+    breadcrumbs: ["Resource Management", "Material Management","Received Note","GRN","List"],
   },
   {
-    basePath: "/resource-management/material/grn/new",
-    breadcrumbs: ["Resource Management", "Material Management","Goods Received Note","New"],
+    basePath: "/resource-management/material/received-note/grn/new",
+    breadcrumbs: ["Resource Management", "Material Management","Received Note","GRN","New"],
   },
   {
-    basePath: "/resource-management/material/grn/[id]",
-    breadcrumbs: ["Resource Management", "Material Management","Goods Received Note","Edit"],
+    basePath: "/resource-management/material/received-note/grn/[id]",
+    breadcrumbs: ["Resource Management", "Material Management","Received Note","GRN","Edit"],
   },
+  //srn
+  {
+    basePath: "/resource-management/material/received-note/srn",
+    breadcrumbs: ["Resource Management", "Material Management","Received Note","SRN","List"],
+  },
+  {
+    basePath: "/resource-management/material/received-note/srn/new",
+    breadcrumbs: ["Resource Management", "Material Management","Received Note","SRN","New"],
+  },
+  {
+    basePath: "/resource-management/material/received-note/srn/[id]",
+    breadcrumbs: ["Resource Management", "Material Management","Received Note","SRN","Edit"],
+  },
+
   {
     basePath: "/resource-management/material/gin",
     breadcrumbs: ["Resource Management", "Material Management","Goods Issue Note","List"],

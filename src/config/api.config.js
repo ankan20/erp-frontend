@@ -1,4 +1,4 @@
-const API_BASE_URL = "http://167.233.41.101"; //change here later
+const API_BASE_URL = "http://167.233.108.123:8000"; //change here later
 
 export const API_ENDPOINTS = {
   LOGIN: "/auth/login",
@@ -139,6 +139,19 @@ export const API_ENDPOINTS = {
         REJECT: "/resource/grn/reject", // /:grnId POST
         HISTORY: "/resource/grn/history", // /:grnId GET
       },
+      SRN: {
+        GET_VENDOR_ORDERS: "/resource/srn/vendor-orders", // vendorId projectCode filters GET
+        GET_ORDER_ITEMS: "/resource/srn/order-items", // /:orderId GET pw
+        CREATE_SRN: "/resource/srn/create", // POST multipart/form-data
+        GET_ALL_SRN: "/resource/srn/list", // GET
+        GET_SRN_BY_ID: "/resource/srn/details", // /:srnId GET
+        UPDATE_SRN_BY_ID: "/resource/grn/edit", // /:srnId PUT
+        SUBMIT_SRN_BY_ID: "/resource/srn/submit", // /:srnId POST
+        APPROVE: "/resource/srn/approve", // /:srnId POST
+        REBACK: "/resource/srn/reback", // /:srnId POST
+        REJECT: "/resource/srn/reject", // /:srnId POST
+        HISTORY: "/resource/srn/history", // /:srnId GET
+      },
     },
   },
   //project-management/register/concrete
@@ -149,6 +162,7 @@ export const API_ENDPOINTS = {
         GET_ALL_CONCRETE: "/project-mgmt/register/concrete-registry/list", //get
         GET_DETAILS_BY_ID: "/project-mgmt/register/concrete-registry/list", //reg_id
         UPDATE: "/project-mgmt/register/concrete-registry/update", //registry_id
+        SUBMIT:"/project-mgmt/register/concrete-registry/submit",//registry_id
         APPROVE: "/project-mgmt/register/concrete-registry/approve", //indenId POST
         REBACK: "/project-mgmt/register/concrete-registry/reback", //indenId POST
         REJECT: "/project-mgmt/register/concrete-registry/reject", //indenId POST

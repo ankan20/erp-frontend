@@ -16,15 +16,15 @@ import { apiRequest } from "@/lib/apiClient";
 import { API_ENDPOINTS } from "@/config/api.config";
 import { getLocalStorage } from "@/lib/localStorage";
 
-import GRNLeftPanel from "./GRNLeftPanel";
-import GRNItemsTable from "./GRNItemsTable";
+import SRNLeftPanel from "./SRNLeftPanel";
+import SRNItemsTable from "./SRNItemsTable";
 
 // ── ZOD SCHEMA ───────────────────────────────────────────────────────────────
 const grnSchema = z.object({
-  grnDate: z.string().min(1, "GRN Date is required"),
+  srnDate: z.string().min(1, "SRN Date is required"),
   vendorId: z.string().min(1, "Party Name is required"),
   orderId: z.string().min(1, "Order No is required"),
-  grnNo: z.string().optional(),
+  srnNo: z.string().optional(),
   receivedCategory: z.string().optional(),
   itemCategory: z.string().optional(),
   costHead: z.string().optional(),
@@ -43,8 +43,8 @@ const grnSchema = z.object({
 });
 
 const defaultValues = {
-  grnNo: "",
-  grnDate: "",
+  srnNo: "",
+  srnDate: "",
   vendorId: "",
   orderId: "",
   receivedCategory: "",
@@ -65,7 +65,7 @@ const defaultValues = {
 };
 
 // ── COMPONENT ─────────────────────────────────────────────────────────────────
-export default function GRNForm({ mode = "create", grnId }) {
+export default function SRNForm({ mode = "create", srnId }) {
   const isViewMode = mode === "view" || mode === "approver";
   const router = useRouter();
   const fileRef = useRef(null);
@@ -101,21 +101,21 @@ export default function GRNForm({ mode = "create", grnId }) {
 
   const disabled = isViewMode || !isEditing || isSubmitting || isSubmitted;
 
-  // ── LOAD GRN DETAILS (edit / view / approver) ─────────────────────────────
+  // ── LOAD SRN DETAILS (edit / view / approver) ─────────────────────────────
   useEffect(() => {
-    if (mode === "create" || !grnId) return;
+    if (mode === "create" || !srnId) return;
 
     const fetchGRN = async () => {
       setIsLoading(true);
       try {
         const res = await apiRequest({
-          url: `${API_ENDPOINTS.RESOURCE.MATERIAL_MANAGEMENT.GRN.GET_GRN_BY_ID}/${grnId}`,
+          url: `${API_ENDPOINTS.RESOURCE.MATERIAL_MANAGEMENT.SRN.GET_SRN_BY_ID}/${srnId}`,
         });
         const d = res.data;
 
         const formData = {
-          grnNo: d.grnNo || "",
-          grnDate: (d.grnDate),
+          srnNo: d.srnNo || "",
+          srnDate: (d.srnDate),
           vendorId: String(d.vendorId || ""),
           orderId: String(d.orderId || ""),
           receivedCategory: d.receivedCategory || "",
@@ -143,8 +143,8 @@ export default function GRNForm({ mode = "create", grnId }) {
         // Populate items from details
         const mappedItems = (d.items || []).map((it) => ({
           orderItemId: it.orderItemId,
-          grnl: it.grnl || "",
-          indentNo: it.indentNo || "",
+          srnl: it.srnl || "",
+          // indentNo: it.indentNo || "",
           itemCode: it.itemCode || "",
           itemName: it.itemName || "",
           itemUnit: it.itemUnit || "",
@@ -171,24 +171,24 @@ export default function GRNForm({ mode = "create", grnId }) {
         if (mode === "edit" && !editable) {
           setIsSubmitted(true);
           const st = d.workflowStatus || "";
-          if (st === "Approved") toast.info("GRN already Approved");
-          else if (st === "Rejected") toast.info("GRN already Rejected");
-          else toast.info("GRN already Submitted");
+          if (st === "Approved") toast.info("SRN already Approved");
+          else if (st === "Rejected") toast.info("SRN already Rejected");
+          else toast.info("SRN already Submitted");
         } else {
           setIsEditing(false);
           setAllowSubmit(true);
         }
       } catch (err) {
-        toast.error(err.message || "Failed to load GRN");
+        toast.error(err.message || "Failed to load SRN");
       } finally {
         setIsLoading(false);
       }
     };
 
     fetchGRN();
-  }, [grnId, mode]);
+  }, [srnId, mode]);
 
-  // ── ORDER ITEMS CALLBACK (from GRNLeftPanel when user picks an order) ──────
+  // ── ORDER ITEMS CALLBACK (from SRNLeftPanel when user picks an order) ──────
   const handleOrderItemsFetched = (orderData) => {
     if (!orderData) {
       setItems([]);
@@ -197,8 +197,8 @@ export default function GRNForm({ mode = "create", grnId }) {
     }
     const mapped = (orderData.items || []).map((it) => ({
       orderItemId: it.orderItemId,
-      grnl: "",
-      indentNo: it.indentNo || "",
+      srnl: "",
+      // indentNo: it.indentNo || "",
       itemCode: it.itemCode || "",
       itemName: it.itemName || "",
       itemUnit: it.itemUnit || "",
@@ -298,19 +298,19 @@ export default function GRNForm({ mode = "create", grnId }) {
     let toastId;
     try {
       toastId = toast.loading(
-        mode === "create" ? "Creating GRN..." : "Updating GRN...",
+        mode === "create" ? "Creating SRN..." : "Updating SRN...",
       );
 
       const res = await apiRequest({
         url:
           mode === "create"
-            ? API_ENDPOINTS.RESOURCE.MATERIAL_MANAGEMENT.GRN.CREATE_GRN
-            : `${API_ENDPOINTS.RESOURCE.MATERIAL_MANAGEMENT.GRN.UPDATE_GRN_BY_ID}/${grnId}`,
+            ? API_ENDPOINTS.RESOURCE.MATERIAL_MANAGEMENT.SRN.CREATE_SRN
+            : `${API_ENDPOINTS.RESOURCE.MATERIAL_MANAGEMENT.SRN.UPDATE_SRN_BY_ID}/${srnId}`,
         method: mode === "create" ? "POST" : "PUT",
         data: buildPayload(),
       });
 
-      if (res?.data?.grnNo) form.setValue("grnNo", res.data.grnNo);
+      if (res?.data?.srnNo) form.setValue("srnNo", res.data.srnNo);
 
       if (res?.data?.attachedDoc) {
         const url = res.data.attachedDoc;
@@ -328,44 +328,44 @@ export default function GRNForm({ mode = "create", grnId }) {
 
       toast.success(
         mode === "create"
-          ? "GRN created successfully"
-          : "GRN updated successfully",
+          ? "SRN created successfully"
+          : "SRN updated successfully",
         { id: toastId },
       );
 
       // After first-time create → navigate to edit page
       if (mode === "create") {
-        const newId = res.data?.grnId || res.data?.id;
+        const newId = res.data?.srnId || res.data?.id;
         if (newId) {
           setTimeout(() => {
-            router.push(`/resource-management/material/received-note/grn/${newId}`);
+            router.push(`/resource-management/material/received-note/srn/${newId}`);
           }, 400);
         }
       }
     } catch (err) {
-      toast.error(err.message || "Failed to save GRN", { id: toastId });
+      toast.error(err.message || "Failed to save SRN", { id: toastId });
     }
   };
 
   // ── SUBMIT ─────────────────────────────────────────────────────────────────
   const handleSubmitGRN = async () => {
-    if (!grnId) {
+    if (!srnId) {
       toast.error("Please save as Draft first");
       return;
     }
     let toastId;
     try {
-      toastId = toast.loading("Submitting GRN...");
+      toastId = toast.loading("Submitting SRN...");
       await apiRequest({
-        url: `${API_ENDPOINTS.RESOURCE.MATERIAL_MANAGEMENT.GRN.SUBMIT_GRN_BY_ID}/${grnId}`,
+        url: `${API_ENDPOINTS.RESOURCE.MATERIAL_MANAGEMENT.SRN.SUBMIT_SRN_BY_ID}/${srnId}`,
         method: "POST",
       });
-      toast.success("GRN submitted successfully", { id: toastId });
+      toast.success("SRN submitted successfully", { id: toastId });
       setIsSubmitted(true);
       setIsEditing(false);
       setAllowSubmit(false);
     } catch (err) {
-      toast.error(err.message || "Failed to submit GRN", { id: toastId });
+      toast.error(err.message || "Failed to submit SRN", { id: toastId });
     }
   };
 
@@ -427,7 +427,7 @@ export default function GRNForm({ mode = "create", grnId }) {
       {/* ── MAIN BODY: LEFT + RIGHT ──────────────────────────────────────── */}
       <div className="flex flex-col xl:flex-row items-start gap-4">
         {/* LEFT PANEL */}
-        <GRNLeftPanel
+        <SRNLeftPanel
           form={form}
           disabled={disabled}
           mode={mode}
@@ -459,7 +459,7 @@ export default function GRNForm({ mode = "create", grnId }) {
             </div>
 
             {/* ITEMS TABLE */}
-            <GRNItemsTable
+            <SRNItemsTable
               items={items}
               onItemChange={handleItemChange}
               disabled={disabled}
@@ -482,7 +482,7 @@ export default function GRNForm({ mode = "create", grnId }) {
               disabled={isSubmitting}
               requireConfirmation
               confirmationTitle="Save as Draft?"
-              confirmationMessage="The GRN will be saved as a draft. You can edit and submit later."
+              confirmationMessage="The SRN will be saved as a draft. You can edit and submit later."
             />
           )}
 
@@ -498,8 +498,8 @@ export default function GRNForm({ mode = "create", grnId }) {
               mode === "create"
             }
             requireConfirmation
-            confirmationTitle="Submit GRN?"
-            confirmationMessage="Once submitted, this GRN will go for approval."
+            confirmationTitle="Submit SRN?"
+            confirmationMessage="Once submitted, this SRN will go for approval."
           >
             Submit
           </SaveButton>

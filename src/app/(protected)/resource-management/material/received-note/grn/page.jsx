@@ -120,7 +120,7 @@ export default function Page() {
           showDateRange
           actions={
             access.canAdd
-              ? [{ label: "+ New GRN", onClick: () => router.push("/resource-management/material/grn/new") }]
+              ? [{ label: "+ New GRN", onClick: () => router.push("/resource-management/material/received-note/grn/new") }]
               : []
           }
         />
@@ -129,7 +129,7 @@ export default function Page() {
           data={filteredData}
           onRowClick={(row) => {
             if (access.canOpenDetails)
-              router.push(`/resource-management/material/grn/${row.id}`);
+              router.push(`/resource-management/material/received-note/grn/${row.id}`);
           }}
         />
       </div>

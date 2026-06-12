@@ -3,7 +3,7 @@ export const setCookie = (name, value, options = {}) => {
   const {
     days = 7,
     path = "/",
-    secure = true,
+    secure = false,
     sameSite = "Lax",
   } = options;
 
