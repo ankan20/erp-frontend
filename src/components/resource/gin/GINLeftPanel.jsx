@@ -212,7 +212,10 @@ export default function GINLeftPanel({
 
   // ── RENDER ────────────────────────────────────────────────────────────────
   return (
-    <div className="flex flex-col gap-y-4 w-full xl:w-[410px] shrink-0 overflow-y-auto max-h-[calc(100vh-110px)] pr-1">
+    <div className="flex flex-col gap-y-4 w-full xl:w-[410px] shrink-0 xl:overflow-y-auto xl:max-h-[calc(100vh-110px)] pr-1">
+
+      {/* Groups: 1-col on mobile, 2-col on lg (tablet/laptop), 1-col on xl (side panel) */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-1 gap-4">
 
       {/* ── GROUP 1: GIN INFO ────────────────────────────────────────────── */}
       <div className="flex flex-col gap-[2px]">
@@ -545,6 +548,8 @@ export default function GINLeftPanel({
           />
         </div>
       </div>
+
+      </div>{/* end groups grid */}
 
       {/* ── DOCUMENT ATTACHMENT ───────────────────────────────────────────── */}
       <div className="flex flex-wrap items-center gap-3 pb-2">

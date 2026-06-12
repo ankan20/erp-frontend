@@ -250,7 +250,7 @@ export default function SRNForm({ mode = "create", srnId }) {
     const fd = new FormData();
 
     fd.append("projectCode", projectCode);
-    fd.append("grnDate", v.grnDate);
+    fd.append("srnDate", v.srnDate);
     fd.append("orderId", v.orderId);
     fd.append("vendorId", v.vendorId);
     if (v.receivedCategory) fd.append("receivedCategory", v.receivedCategory);

@@ -417,7 +417,7 @@ export default function GINForm({ mode = "create", ginId }) {
         <div className="hidden xl:block w-px self-stretch bg-sky-300" />
 
         {/* RIGHT PANEL — items table */}
-        <div className="flex-1 min-w-0">
+        <div className="w-full flex-1 min-w-0">
           {/* BASIC SECTION HEADER */}
           <div className="bg-[#d8e0d1] border border-[#c7cfbf] px-3 py-1">
             <h2 className="text-[15px] font-semibold text-[#1a3a5c]">BASIC</h2>
