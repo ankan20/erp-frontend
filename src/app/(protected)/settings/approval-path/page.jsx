@@ -83,8 +83,8 @@ const approvalModules = [
         title: "Vendor Billing",
         moduleCode: "vendor_billing",
         children: [
-          { title: "Billing by GRN", moduleCode: "billing_by_grn" },
-          { title: "Billing by SRN", moduleCode: "billing_by_srn" },
+          { title: "Billing by GRN", moduleCode: "vendor_billing_grn" },
+          { title: "Billing by SRN", moduleCode: "vendor_billing_srn" },
         ],
       },
     ],

@@ -24,6 +24,12 @@ const GRN_CATEGORY_CONFIG = {
   "Customer_Supply_Order":    { label: "Customer Supply Order",    costHeads: [{ label: "Project Work", value: "Project_Work" }] },
 };
 
+// Item category — value sent to API, label shown in UI
+const ITEM_CATEGORY ={
+  label:"Material",
+  value:"MAT_001"
+}
+
 export const RECEIVED_CATEGORY_OPTIONS = Object.entries(GRN_CATEGORY_CONFIG).map(
   ([value, config]) => ({ label: config.label, value }),
 );
@@ -168,7 +174,7 @@ export default function GRNLeftPanel({
   const handleReceivedCategoryChange = (val) => {
     userChangedRef.current = true;
     setValue("receivedCategory", val);
-    setValue("itemCategory", ITEM_CATEGORY);
+    setValue("itemCategory", ITEM_CATEGORY.value);
     const config = GRN_CATEGORY_CONFIG[val];
     // auto-set costHead if single option, otherwise clear if no longer valid
     if (config?.costHeads.length === 1) {
@@ -247,7 +253,7 @@ export default function GRNLeftPanel({
         <div className="flex items-center">
           <div className={LABEL}>Item Category</div>
           <Input
-            value={receivedCategory ? ITEM_CATEGORY : ""}
+            value={receivedCategory ? ITEM_CATEGORY.label : ""}
             readOnly
             disabled
             placeholder="Material"
