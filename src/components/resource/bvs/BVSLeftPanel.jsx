@@ -49,6 +49,11 @@ export default function BVSLeftPanel({ form, disabled }) {
   const costHead = watch("costHead");
   const vendorId = watch("vendorId");
 
+  // SET itemCategory = MAT_001 always
+  useEffect(() => {
+    setValue("itemCategory", "MAT_001");
+  }, [setValue]);
+
   // LOAD LEDGERS
   useEffect(() => {
     const fetchLedgers = async () => {
@@ -107,7 +112,7 @@ export default function BVSLeftPanel({ form, disabled }) {
     const fetchOrders = async () => {
       try {
         const res = await apiRequest({
-          url: `${API_ENDPOINTS.RESOURCE.VENDOR_BILLING.BVS.GET_VENDOR_ORDERS}?vendorId=${vendorId}&projectCode=${projectCode}&categoryCode=${categoryCode}&costHead=${costHead}`,
+          url: `${API_ENDPOINTS.RESOURCE.VENDOR_BILLING.BVS.GET_VENDOR_ORDERS}?vendorId=${vendorId}&projectCode=${projectCode}&receivedCategory=${categoryCode}&itemCategory=${"MAT_001"}&costHead=${costHead}`,
           method: "GET",
         });
         setVendorOrders(res.data || []);
@@ -159,7 +164,7 @@ export default function BVSLeftPanel({ form, disabled }) {
           </div>
         </div>
 
-        {/* ITEM CATEGORY — always Material */}
+        {/* ITEM CATEGORY — display Material, send MAT_001 */}
         <div className="flex items-center">
           <div className={`${labelClass} w-[180px] min-w-[180px] max-w-[180px]`}>Item Category</div>
           <div className="w-[220px] min-w-[220px] max-w-[220px]">
@@ -287,9 +292,12 @@ export default function BVSLeftPanel({ form, disabled }) {
                     <SelectValue placeholder="Select Order" />
                   </SelectTrigger>
                   <SelectContent>
-                    {vendorOrders.map((o) => (
-                      <SelectItem key={o.orderId} value={String(o.orderId)}>{o.orderNo}</SelectItem>
-                    ))}
+                    {vendorOrders.map((o) => {
+                      const id = o.orderId ?? o.id;
+                      return (
+                        <SelectItem key={id} value={String(id)}>{o.orderNo}</SelectItem>
+                      );
+                    })}
                   </SelectContent>
                 </Select>
               )}

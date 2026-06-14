@@ -50,24 +50,24 @@ export default function Page() {
         });
         const list = res.data || [];
         const formatted = list.map((item, index) => ({
-          id: item.bvsId,
+          id: item.id,
           sl: index + 1,
           bvsNo: item.bvsNo,
           bvsDate: getfmtDisplaydate(item.bvsDate),
           partyName: item.partyName || "",
-          category: getFormatCategoryName(item.categoryCode) || "",
+          category: getFormatCategoryName(item.receivedCategory) || "",
           basicAmount: formatAmount(item.basicAmount || 0),
-          gstAmount: formatAmount(item.gstAmount || 0),
+          gstAmount: formatAmount(Number(item.totalAmount) - Number(item.basicAmount)),
           totalAmount: formatAmount(item.totalAmount || 0),
           basicAmountRaw: Number(item.basicAmount || 0),
-          gstAmountRaw: Number(item.gstAmount || 0),
+          gstAmountRaw: Number(item.totalAmount) - Number(item.basicAmount),
           totalAmountRaw: Number(item.totalAmount || 0),
           status:
-            item.status === "draft" ? "Draft"
-            : item.status === "reback" ? "Reback"
-            : item.status === "reject" ? "Reject"
-            : item.status === "approved" ? "Approved"
-            : item.status || "",
+            item.workflowStatus === "draft" ? "Draft"
+            : item.workflowStatus === "reback" ? "Reback"
+            : item.workflowStatus === "reject" ? "Reject"
+            : item.workflowStatus === "approved" ? "Approved"
+            : item.workflowStatus || "",
         }));
         setData(formatted);
         setFilteredData(formatted);
@@ -111,7 +111,7 @@ export default function Page() {
   };
 
   const summaryData = useMemo(() => {
-    const categoryList = ["Purchases Order", "Customer Supply Order", "Site Transfer Order"];
+    const categoryList = ["PurchasesOrder", "Customer Supply Order", "Site Transfer Order"];
     const rows = categoryList.map((categoryName) => {
       const categoryRows = filteredData.filter((item) => item.category === categoryName);
       return {

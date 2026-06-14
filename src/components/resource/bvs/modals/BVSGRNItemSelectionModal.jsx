@@ -24,7 +24,9 @@ export default function BVSGRNItemSelectionModal({ open, onClose, form }) {
 
   useEffect(() => {
     if (!open) return;
-    if (!orderId) {
+
+    const orderIdNum = Number(orderId);
+    if (!orderId || isNaN(orderIdNum) || orderIdNum <= 0) {
       toast.error("Please select an order first");
       onClose?.();
       return;
@@ -34,12 +36,12 @@ export default function BVSGRNItemSelectionModal({ open, onClose, form }) {
       try {
         setLoading(true);
         const res = await apiRequest({
-          url: `${API_ENDPOINTS.RESOURCE.VENDOR_BILLING.BVS.GET_GRNS_BY_ORDER}/${orderId}`,
+          url: `${API_ENDPOINTS.RESOURCE.VENDOR_BILLING.BVS.GET_GRNS_BY_ORDER}/${orderIdNum}`,
           method: "GET",
         });
 
-        // API returns array of GRNs, each with items; flatten to rows
-        const grns = res.data || [];
+        // API returns { data: { grns: [...], ... } }
+        const grns = res.data?.grns || [];
         const rows = [];
         for (const grn of grns) {
           for (const item of grn.items || []) {

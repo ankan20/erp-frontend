@@ -27,6 +27,7 @@ const bvsSchema = z.object({
   partyBillNo: z.string().min(1, "Required"),
   partyDate: z.string().min(1, "Required"),
   orderId: z.string().min(1, "Required"),
+  itemCategory: z.string().optional(),
   billingAddress: z.string().min(1, "Required"),
   shippingAddress: z.string().min(1, "Required"),
   partyAddress: z.string().optional(),
@@ -42,6 +43,7 @@ const bvsSchema = z.object({
 const defaultValues = {
   categoryCode: "Purchases_Order",
   costHead: "",
+  itemCategory: "MAT_001",
   vendorId: "",
   bvsNo: "",
   bvsDate: "",
@@ -107,7 +109,7 @@ export default function BVSForm({ mode = "create", bvsId }) {
         }));
 
         const formattedData = {
-          categoryCode: d.categoryCode || "Purchases_Order",
+          categoryCode: d.receivedCategory || "Purchases_Order",
           costHead: d.costHead || "",
           vendorId: String(d.vendorId || ""),
           bvsNo: d.bvsNo || "",
@@ -155,7 +157,8 @@ export default function BVSForm({ mode = "create", bvsId }) {
     const values = getValues();
     return {
       projectCode,
-      categoryCode: values.categoryCode,
+      receivedCategory: values.categoryCode,
+      itemCategory: "MAT_001",
       costHead: values.costHead,
       vendorId: Number(values.vendorId),
       bvsDate: values.bvsDate,
