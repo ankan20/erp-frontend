@@ -67,7 +67,8 @@ export default function Page() {
             orderNo: p.orderNo,
             orderDate:getfmtDisplaydate( p.orderDate),
             partyName: p.partyName || "",
-            category: getFormatCategoryName( p.categoryCode )|| "",
+            categoryCode: p.categoryCode || "",
+            category: getFormatCategoryName(p.categoryCode) || "",
             basicAmount: formatAmount(p.basicAmount || 0),
             gstAmount: formatAmount(p.gstAmount || 0),
             totalAmount: formatAmount(totalAmount),
@@ -131,10 +132,15 @@ export default function Page() {
 
   // SUMMARY
   const summaryData = useMemo(() => {
-    const categoryList = ["Work Order", "Hire Order", "Site Transfer Order", "Job Contract Order"];
+    const categoryList = [
+      { code: "Work_Order", label: "Work Order" },
+      { code: "Hire_Order", label: "Hire Order" },
+      { code: "Site_Transfer_Order", label: "Site Transfer Order" },
+      { code: "Job_Contract_Order", label: "Job Contract Order" },
+    ];
 
-    const summary = categoryList.map((categoryName) => {
-      const categoryRows = filteredData.filter((item) => item.category === categoryName);
+    const summary = categoryList.map(({ code, label: categoryName }) => {
+      const categoryRows = filteredData.filter((item) => item.categoryCode === code);
       const totalPlaced = categoryRows.reduce((sum, item) => sum + Number(item.totalAmountRaw || 0), 0);
       const totalBooked = categoryRows.reduce((sum, item) => sum + Number(item.bookedAmountRaw || 0), 0);
       return {
@@ -183,7 +189,7 @@ export default function Page() {
   return (
     <>
       <HeaderWrapper header={<PageHeader actions={actions} />}>
-        <div className="relative min-h-[calc(100vh-220px)] p-3 overflow-hidden">
+        <div className="p-3">
           <SearchSection
             onSearch={handleSearch}
             showDateRange={true}
@@ -203,7 +209,7 @@ export default function Page() {
           />
 
           {/* SUMMARY BUTTON + MODAL */}
-          <div className="absolute bottom-[18px] left-[18px] z-30">
+          <div className="mt-3">
             <Dialog>
               <DialogTrigger asChild>
                 <button

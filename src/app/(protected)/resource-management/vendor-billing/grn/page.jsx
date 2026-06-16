@@ -162,7 +162,7 @@ export default function Page() {
 
   return (
     <HeaderWrapper header={<PageHeader actions={actions} />}>
-      <div className="relative h-[calc(100vh-180px)] p-3 flex flex-col overflow-hidden">
+      <div className="p-3">
         <SearchSection
           onSearch={handleSearch}
           showDateRange={true}
@@ -178,18 +178,16 @@ export default function Page() {
           }
         />
 
-        <div className="flex-1 overflow-y-auto pb-12">
-          <DataTable
-            columns={columns}
-            data={filteredData}
-            onRowClick={(row) => {
-              router.push(`/resource-management/vendor-billing/grn/${row.id}`);
-            }}
-          />
-        </div>
+        <DataTable
+          columns={columns}
+          data={filteredData}
+          onRowClick={(row) => {
+            router.push(`/resource-management/vendor-billing/grn/${row.id}`);
+          }}
+        />
 
         {/* SUMMARY MODAL */}
-        <div className="absolute bottom-[18px] left-[18px] z-30">
+        <div className="mt-3">
           <Dialog>
             <DialogTrigger asChild>
               <button
