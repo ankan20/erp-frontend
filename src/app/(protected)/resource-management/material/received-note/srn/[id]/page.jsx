@@ -32,7 +32,7 @@ export default function Page() {
 
   return (
     <HeaderWrapper header={<PageHeader actions={actions} />}>
-      <GRNForm mode={access.mode} grnId={id} />
+      <GRNForm mode={access.mode} srnId={id} />
 
       <ApprovalActionModal
         open={openApproval}
