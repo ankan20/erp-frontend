@@ -66,7 +66,8 @@ export default function Page() {
             orderNo: p.orderNo,
             orderDate: getfmtDisplaydate(p.orderDate),
             partyName: p.partyName || "",
-            category: getFormatCategoryName( p.categoryCode )|| "",
+            categoryCode: p.categoryCode || "",
+            category: getFormatCategoryName(p.categoryCode) || "",
             basicAmount: formatAmount(p.basicAmount || 0),
             gstAmount: formatAmount(p.gstAmount || 0),
             totalAmount: formatAmount(totalAmount),
@@ -156,13 +157,17 @@ export default function Page() {
     });
   };
 
-  // SUMMARY — updated to match new category names
+  // SUMMARY
   const summaryData = useMemo(() => {
-    const categoryList = ["Purchases Order", "Customer Supply Order", "Site Transfer Order"];
+    const categoryList = [
+      { code: "Purchases_Order", label: "Purchases Order" },
+      { code: "Customer_Supply_Order", label: "Customer Supply Order" },
+      { code: "Site_Transfer_Order", label: "Site Transfer Order" },
+    ];
 
-    const summary = categoryList.map((categoryName) => {
+    const summary = categoryList.map(({ code, label: categoryName }) => {
       const categoryRows = filteredData.filter(
-        (item) => item.category === categoryName,
+        (item) => item.categoryCode === code,
       );
 
       const totalPlaced = categoryRows.reduce(
@@ -239,7 +244,7 @@ export default function Page() {
   return (
     <>
       <HeaderWrapper header={<PageHeader actions={actions} />}>
-        <div className="relative min-h-[calc(100vh-220px)] p-3 overflow-hidden ">
+        <div className="p-3">
           {/*  SEARCH SECTION */}
           <SearchSection
             onSearch={handleSearch}
@@ -267,10 +272,9 @@ export default function Page() {
               router.push(`/resource-management/procurement/order/material-order/${row.id}`);
             }}
           />
-          {/* SUMMARY SECTION */}
+
           {/* SUMMARY BUTTON + MODAL */}
-          <div className="absolute bottom-[18px] left-[18px] z-30">
-            {" "}
+          <div className="mt-3">
             <Dialog>
               <DialogTrigger asChild>
                 <button
