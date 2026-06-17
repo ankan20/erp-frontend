@@ -488,11 +488,11 @@ export default function ProjectRolePage() {
               {/* USER SELECT */}
               <select
                   value={item.userId || ""}
-                  disabled={!isEditing}
+                  disabled={!isEditing || loading}
                   onChange={(e) =>
                       handleUserChange(setTeam, team, index, e.target.value)
                   }
-                  className="border h-[30px] px-2 rounded-sm flex-1 min-w-[160px] max-w-[220px] text-sm"
+                  className="border h-[30px] px-2 rounded-sm flex-1 min-w-[160px] max-w-[220px] text-sm disabled:opacity-40 disabled:cursor-not-allowed"
               >
                 <option value="">Select User</option>
 
@@ -510,7 +510,8 @@ export default function ProjectRolePage() {
                     <button
                         type="button"
                         onClick={() => handleMapUser(item)}
-                        className="border rounded-sm p-1 hover:bg-blue-100 transition"
+                        disabled={loading}
+                        className="border rounded-sm p-1 hover:bg-blue-100 transition disabled:opacity-40 disabled:cursor-not-allowed"
                     >
                       <Link2 size={16} />
                     </button>
@@ -519,7 +520,8 @@ export default function ProjectRolePage() {
                     <button
                         type="button"
                         onClick={() => setDeleteItem(item)}
-                        className="border rounded-sm p-1 hover:bg-red-100 transition"
+                        disabled={loading}
+                        className="border rounded-sm p-1 hover:bg-red-100 transition disabled:opacity-40 disabled:cursor-not-allowed"
                     >
                       <Trash2 size={16} />
                     </button>
