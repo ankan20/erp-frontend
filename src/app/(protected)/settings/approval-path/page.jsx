@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState, useCallback } from "react";
 
-import { Search, Plus, Minus, Save } from "lucide-react";
+import { Search, Plus, Minus, Save, Loader2 } from "lucide-react";
 
 import DataTable from "@/components/common/DataTable";
 import { Button } from "@/components/ui/button";
@@ -223,6 +223,8 @@ export default function ApprovalPathPage() {
 
   const [loading, setLoading] = useState(false);
 
+  const [searching, setSearching] = useState(false);
+
   const [saving, setSaving] = useState(false);
 
   const [selectedUsers, setSelectedUsers] = useState({});
@@ -384,12 +386,15 @@ export default function ApprovalPathPage() {
   // Search Project + Load Users
 
   const handleSearch = async () => {
-    try {
-      if (!projectCode.trim()) {
-        toast.error("Please enter project code");
+    if (!projectCode.trim()) {
+      toast.error("Please enter project code");
+      return;
+    }
 
-        return;
-      }
+    let toastId;
+    try {
+      setSearching(true);
+      toastId = toast.loading("Loading project data...");
 
       const matchedProject = projects.find(
         (project) =>
@@ -398,38 +403,34 @@ export default function ApprovalPathPage() {
       );
 
       if (!matchedProject) {
-        toast.error("Project not found");
-
+        toast.error("Project not found", { id: toastId });
         setProjectName("");
         setProjectTitle("");
         setUsers([]);
-
+        setSelectedUsers({});
         return;
       }
 
       setProjectName(matchedProject.projectName || "");
-
       setProjectTitle(matchedProject.clientName || "");
 
       const usersResponse = await apiRequest({
         url: `${API_ENDPOINTS.SETTINGS.APPROVAL_PATH.GET_USERS_BY_PROJECT}?projectCode=${encodeURIComponent(matchedProject.projectCode)}`,
-
         method: "GET",
       });
 
-      const userData = Array.isArray(usersResponse?.data)
-        ? usersResponse.data
-        : [];
-
+      const userData = Array.isArray(usersResponse?.data) ? usersResponse.data : [];
       setUsers(userData);
 
       await loadApprovalPath(matchedProject.projectCode);
-
       await loadCreatorUsers(matchedProject.projectCode);
+
+      toast.success("Project loaded", { id: toastId });
     } catch (err) {
       console.error("Search failed", err);
-
-      toast.error(err?.message || "Failed to fetch project users");
+      toast.error(err?.message || "Failed to fetch project users", { id: toastId });
+    } finally {
+      setSearching(false);
     }
   };
 
@@ -486,6 +487,8 @@ export default function ApprovalPathPage() {
   );
 
   // Build Table Data
+
+  const tableDisabled = searching || saving;
 
   const tableData = useMemo(() => {
     const rows = [];
@@ -614,6 +617,7 @@ export default function ApprovalPathPage() {
                                     value: user.id,
                                     label: user.userName || "Unknown User",
                                   }))}
+                                  disabled={tableDisabled}
                               />
                           )
                           : "",
@@ -631,7 +635,7 @@ export default function ApprovalPathPage() {
     buildRows(approvalModules, 0);
 
     return rows;
-  }, [levels, selectedUsers, users]);
+  }, [levels, selectedUsers, users, tableDisabled]);
 
   // Build Payload
 
@@ -682,33 +686,33 @@ export default function ApprovalPathPage() {
   // Save Approval Path
 
   const handleSave = async () => {
+    if (!projectCode.trim()) {
+      toast.error("Please search project first");
+      return;
+    }
+
+    const payload = buildPayload();
+
+    if (payload.modules.length === 0) {
+      toast.error("Please select at least one user");
+      return;
+    }
+
+    let toastId;
     try {
-      if (!projectCode.trim()) {
-        toast.error("Please search project first");
-        return;
-      }
-
-      const payload = buildPayload();
-
-      if (payload.modules.length === 0) {
-        toast.error("Please select at least one user");
-        return;
-      }
-
       setSaving(true);
+      toastId = toast.loading("Saving approval path...");
 
       await apiRequest({
         url: API_ENDPOINTS.SETTINGS.APPROVAL_PATH.SAVE,
-
         method: "POST",
         data: payload,
       });
 
-      toast.success("Approval path saved successfully");
+      toast.success("Approval path saved successfully", { id: toastId });
     } catch (err) {
       console.error("Save failed", err);
-
-      toast.error("Failed to save approval path");
+      toast.error("Failed to save approval path", { id: toastId });
     } finally {
       setSaving(false);
     }
@@ -760,19 +764,22 @@ export default function ApprovalPathPage() {
               value={projectCode}
               onChange={(e) => setProjectCode(e.target.value)}
               onKeyDown={(e) => {
-                if (e.key === "Enter") {
-                  handleSearch();
-                }
+                if (e.key === "Enter" && !searching && !saving) handleSearch();
               }}
+              disabled={searching || saving}
             />
 
             <Button
               className="col-span-2"
               onClick={handleSearch}
-              disabled={loading}
+              disabled={loading || searching || saving}
             >
-              <Search className="size-4 mr-2" />
-              Search
+              {searching ? (
+                <Loader2 className="size-4 mr-2 animate-spin" />
+              ) : (
+                <Search className="size-4 mr-2" />
+              )}
+              {searching ? "Searching..." : "Search"}
             </Button>
           </div>
 
@@ -801,19 +808,23 @@ export default function ApprovalPathPage() {
         </div>
 
         <div className="flex justify-end gap-3 mb-5">
-          <Button variant="outline" onClick={removeLevel}>
+          <Button variant="outline" onClick={removeLevel} disabled={searching || saving}>
             <Minus className="size-4 mr-2" />
             Remove Level
           </Button>
 
-          <Button onClick={addLevel}>
+          <Button onClick={addLevel} disabled={searching || saving}>
             <Plus className="size-4 mr-2" />
             Add Level
           </Button>
 
-          <Button onClick={handleSave} disabled={saving}>
-            <Save className="size-4 mr-2" />
-            Save
+          <Button onClick={handleSave} disabled={searching || saving}>
+            {saving ? (
+              <Loader2 className="size-4 mr-2 animate-spin" />
+            ) : (
+              <Save className="size-4 mr-2" />
+            )}
+            {saving ? "Saving..." : "Save"}
           </Button>
         </div>
 
