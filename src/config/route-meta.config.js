@@ -196,6 +196,28 @@ export const routeMetaConfig = [
     basePath: "/resource-management/material/gin/[id]",
     breadcrumbs: ["Resource Management", "Material Management","Goods Issue Note","Edit"],
   },
+  //machinery/log-sheet
+  {
+    basePath: "/resource-management/machinery/log-sheet",
+    breadcrumbs: ["Resource Management", "Machinery Management","Machine Log Book","List"],
+  },
+  {
+    basePath: "/resource-management/machinery/log-sheet/log-book/new",
+    breadcrumbs: ["Resource Management", "Machinery Management","Machine Log Book","Add"],
+  },
+  {
+    basePath: "/resource-management/log-sheet/log-book/[id]",
+    breadcrumbs: ["Resource Management", "Machinery Management","Machine Log Book","Edit"],
+  },
+  {
+    basePath: "/resource-management/machinery/log-sheet/log-entry/new",
+    breadcrumbs: ["Resource Management", "Machinery Management","Log Book Entry","Add"],
+  },
+  {
+    basePath: "/resource-management/log-sheet/log-entry/[id]",
+    breadcrumbs: ["Resource Management", "Machinery Management","Log Book Entry","Edit"],
+  },
+
   //billing by grn
   {
     basePath: "/resource-management/vendor-billing/grn",

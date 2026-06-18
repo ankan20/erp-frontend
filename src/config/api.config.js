@@ -138,6 +138,31 @@ export const API_ENDPOINTS = {
         HISTORY: "/resource/bvs/history", // /:bvsId GET
       },
     },
+    MACHINERY: {
+      LOG_BOOK: {
+        GET_PW_ORDERS: "/resource/machinery/log-book/pw-orders",
+        CREATE:        "/resource/machinery/log-book/create",
+        LIST:          "/resource/machinery/log-book/list",
+        DETAILS:       "/resource/machinery/log-book/details",
+        EDIT:          "/resource/machinery/log-book/edit",
+        SUBMIT:        "/resource/machinery/log-book/submit",
+        APPROVE:       "/resource/machinery/log-book/approve",
+        REBACK:        "/resource/machinery/log-book/reback",
+        REJECT:        "/resource/machinery/log-book/reject",
+        HISTORY:       "/resource/machinery/log-book/history",
+      },
+      LOG_ENTRY: {
+        CREATE:  "/resource/machinery/log-entry/create",
+        LIST:    "/resource/machinery/log-entry/list",
+        DETAILS: "/resource/machinery/log-entry/details",
+        EDIT:    "/resource/machinery/log-entry/edit",
+        SUBMIT:  "/resource/machinery/log-entry/submit",
+        APPROVE: "/resource/machinery/log-entry/approve",
+        REBACK:  "/resource/machinery/log-entry/reback",
+        REJECT:  "/resource/machinery/log-entry/reject",
+        HISTORY: "/resource/machinery/log-entry/history",
+      },
+    },
     MATERIAL_MANAGEMENT: {
       // resource/gin
       GIN: {

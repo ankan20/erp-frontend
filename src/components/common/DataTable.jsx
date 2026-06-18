@@ -385,7 +385,7 @@ export default function DataTable({
                               : "truncate whitespace-nowrap overflow-hidden"
                           }
                         >
-                          {row[col.accessor] ?? "-"}
+                          {col.render ? col.render(row) : (row[col.accessor] ?? "-")}
                         </div>
                       </td>
                     );
