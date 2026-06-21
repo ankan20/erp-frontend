@@ -51,6 +51,7 @@ const SERVICE_ORDER_CATEGORIES = Object.entries(CATEGORY_CONFIG).map(
 
 export default function ServiceOrderBasicSection({
   form,
+  mode = "create",
   disabled,
   fileName,
   setFileName,
@@ -71,7 +72,6 @@ export default function ServiceOrderBasicSection({
   const projectInfo = getLocalStorage("projectInfo");
   const projectId = projectInfo?.projectId;
 
-  const selectedVendorId = watch("vendorId");
   const categoryCode = watch("categoryCode");
   const subCategoryCodes = watch("subCategoryCodes") || [];
 
@@ -128,24 +128,6 @@ export default function ServiceOrderBasicSection({
     fetchProject();
   }, [projectId]);
 
-  // VENDOR AUTO FILL
-  useEffect(() => {
-    if (!selectedVendorId) {
-      setValue("partyAddress", "");
-      setValue("gstn", "");
-      setValue("contactPerson", "");
-      setValue("contactNumber", "");
-      return;
-    }
-    const selectedVendor = ledgerList.find(
-      (item) => String(item.ledgerId) === String(selectedVendorId)
-    );
-    if (!selectedVendor) return;
-    setValue("partyAddress", selectedVendor.corporateAddress || "");
-    setValue("gstn", selectedVendor.gstin || "");
-    setValue("contactPerson", selectedVendor.primaryContactPerson || "");
-    setValue("contactNumber", selectedVendor.primaryContactNumber || "");
-  }, [selectedVendorId, ledgerList, setValue]);
 
   // When category changes — reset sub/costHead/items
   const handleCategoryChange = (value) => {
@@ -336,7 +318,20 @@ export default function ServiceOrderBasicSection({
               render={({ field }) => (
                 <Select
                   value={field.value ? String(field.value) : ""}
-                  onValueChange={field.onChange}
+                  onValueChange={(val) => {
+                    field.onChange(val);
+                    if (!val) {
+                      setValue("partyAddress", ""); setValue("gstn", "");
+                      setValue("contactPerson", ""); setValue("contactNumber", "");
+                      return;
+                    }
+                    const vendor = ledgerList.find((v) => String(v.ledgerId) === String(val));
+                    if (!vendor) return;
+                    setValue("partyAddress",  vendor.corporateAddress     || "");
+                    setValue("gstn",          vendor.gstin                || "");
+                    setValue("contactPerson", vendor.primaryContactPerson || "");
+                    setValue("contactNumber", vendor.primaryContactNumber || "");
+                  }}
                   disabled={disabled}
                 >
                   <SelectTrigger className={`${getInputClass(errors.vendorId, disabled)} w-full h-[36px]`}>

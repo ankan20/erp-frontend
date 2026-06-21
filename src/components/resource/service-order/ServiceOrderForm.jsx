@@ -91,6 +91,24 @@ export default function ServiceOrderForm({ mode = "create", serviceOrderId }) {
         });
         const data = res.data;
 
+        // Fetch vendor party fields — not in service order API response
+        let partyAddress = "";
+        let gstn = "";
+        let contactPerson = "";
+        let contactNumber = "";
+        try {
+          if (data.vendorId) {
+            const ledgerRes = await apiRequest({ url: API_ENDPOINTS.MASTER.GET_ALL_LEDGER, method: "GET" });
+            const vendor = (ledgerRes.data || []).find((v) => String(v.ledgerId) === String(data.vendorId));
+            if (vendor) {
+              partyAddress  = vendor.corporateAddress     || "";
+              gstn          = vendor.gstin                || "";
+              contactPerson = vendor.primaryContactPerson || "";
+              contactNumber = vendor.primaryContactNumber || "";
+            }
+          }
+        } catch { /* party fields stay empty if ledger API fails */ }
+
         const formattedData = {
           categoryCode: data.categoryCode || "Work Order",
           subCategoryCodes: data.subCategoryCodes || [],
@@ -110,6 +128,10 @@ export default function ServiceOrderForm({ mode = "create", serviceOrderId }) {
           basicAmount: Number(data.basicAmount || 0),
           gstAmount: Number(data.gstAmount || 0),
           totalAmount: Number(data.totalAmount || 0),
+          partyAddress,
+          gstn,
+          contactPerson,
+          contactNumber,
         };
 
         reset(formattedData);
@@ -288,6 +310,7 @@ export default function ServiceOrderForm({ mode = "create", serviceOrderId }) {
         {/* LEFT SECTION */}
         <ServiceOrderBasicSection
           form={form}
+          mode={mode}
           disabled={disabled}
           fileName={fileName}
           setFileName={setFileName}
