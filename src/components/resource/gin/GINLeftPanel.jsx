@@ -5,7 +5,11 @@ import { Controller } from "react-hook-form";
 import { toast } from "sonner";
 import { Paperclip, Download } from "lucide-react";
 import {
-  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
 } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import ExpandableTextField from "@/components/common/ExpandableTextField";
@@ -16,12 +20,55 @@ import { getLocalStorage } from "@/lib/localStorage";
 
 // ── GIN CATEGORY CONFIG — underscore keys (URL-safe), label for display ──────
 const GIN_CATEGORY_CONFIG = {
-  "Consumption":           { label: "Consumption",            costHeads: [{ label: "Project Work", value: "Project_Work" }, { label: "Fixed Asset", value: "Fixed_Asset" }] },
-  "Return_to_Vendor":      { label: "Return to Vendor",       costHeads: [{ label: "Project Work", value: "Project_Work" }, { label: "Fixed Asset", value: "Fixed_Asset" }] },
-  "Site_Transfer_Order":   { label: "Site Transfer Order",    costHeads: [{ label: "Project Work", value: "Project_Work" }, { label: "Fixed Asset", value: "Fixed_Asset" }] },
-  "Customer_Delivery":     { label: "Customer Delivery",      costHeads: [{ label: "Project Work", value: "Project_Work" }] },
-  "Without_Purchase_Order":{ label: "Without Purchase Order", costHeads: [{ label: "Project Work", value: "Project_Work" }, { label: "Fixed Asset", value: "Fixed_Asset" }] },
-  "Capital_Issue":         { label: "Capital Issue",          costHeads: [{ label: "Fixed Asset",  value: "Fixed_Asset"  }] },
+  Project_Consumption: {
+    label: "Project Consumption",
+    costHeads: [
+      { label: "Project Work", value: "Project_Work" },
+      { label: "Fixed Asset", value: "Fixed_Asset" },
+    ],
+  },
+  Return_to_Vendor: {
+    label: "Return to Vendor",
+    costHeads: [
+      { label: "Project Work", value: "Project_Work" },
+      { label: "Fixed Asset", value: "Fixed_Asset" },
+    ],
+  },
+  Return_to_Customer: {
+    label: "Return to Customer",
+    costHeads: [
+      { label: "Project Work", value: "Project_Work" },
+      { label: "Fixed Asset", value: "Fixed_Asset" },
+    ],
+  },
+  Site_Transfer_Order: {
+    label: "Site Transfer Order",
+    costHeads: [
+      { label: "Project Work", value: "Project_Work" },
+      { label: "Fixed Asset", value: "Fixed_Asset" },
+    ],
+  },
+  Returnable_Inventory: {
+    label: "Returnable Inventory",
+    costHeads: [
+      { label: "Fixed Asset", value: "Fixed_Asset" },
+    ],
+  },
+  Loan_to_Others :{
+    label: "Loan to Others",
+    costHeads: [
+      { label: "Project Work", value: "Project_Work" },
+      { label: "Fixed Asset", value: "Fixed_Asset" },
+    ],
+  },
+  
+  Chargeable_to_Vendor :{
+    label: "Chargeable to Vendor",
+    costHeads: [
+      { label: "Project Work", value: "Project_Work" },
+      { label: "Fixed Asset", value: "Fixed_Asset" },
+    ],
+  },
 };
 
 export const ISSUE_CATEGORY_OPTIONS = Object.entries(GIN_CATEGORY_CONFIG).map(
@@ -32,7 +79,7 @@ export const ISSUE_CATEGORY_OPTIONS = Object.entries(GIN_CATEGORY_CONFIG).map(
 const ITEM_CATEGORY = "Material";
 
 const COST_FACTOR_OPTIONS = [
-  { label: "Chargeable",     value: "Chargeable"     },
+  { label: "Chargeable", value: "Chargeable" },
   { label: "Non Chargeable", value: "Non_Chargeable" },
 ];
 
@@ -40,7 +87,8 @@ const COST_FACTOR_OPTIONS = [
 const fmt = (d) => {
   if (!d) return "";
   const s = String(d).replace(/-/g, "");
-  if (s.length === 8) return `${s.slice(0, 4)}-${s.slice(4, 6)}-${s.slice(6, 8)}`;
+  if (s.length === 8)
+    return `${s.slice(0, 4)}-${s.slice(4, 6)}-${s.slice(6, 8)}`;
   return d;
 };
 
@@ -52,41 +100,51 @@ export default function GINLeftPanel({
   disabled,
   mode,
   onOrderItemsFetched, // (orderData | null) => void
-  onVendorClear,       // () => void — called when vendor/category changes
+  onVendorClear, // () => void — called when vendor/category changes
   // file props
   fileRef,
   newFileName,
   existingFileUrl,
   onFileChange,
 }) {
-  const { register, control, setValue, watch, formState: { errors } } = form;
+  const {
+    register,
+    control,
+    setValue,
+    watch,
+    formState: { errors },
+  } = form;
 
   const projectInfo = getLocalStorage("projectInfo");
   const projectCode = projectInfo?.projectCode || "";
-  const projectId   = projectInfo?.projectId;
+  const projectId = projectInfo?.projectId;
 
-  const vendorId        = watch("vendorId");
-  const issueCategory   = watch("issueCategory");
-  const costHead        = watch("costHead");
-  const itemCategory    = watch("itemCategory");
+  const vendorId = watch("vendorId");
+  const issueCategory = watch("issueCategory");
+  const costHead = watch("costHead");
+  const itemCategory = watch("itemCategory");
 
   // true only when the user explicitly changed vendor/category (not on initial data load)
   const userChangedRef = useRef(false);
 
-  const [ledgerList,      setLedgerList]      = useState([]);
+  const [ledgerList, setLedgerList] = useState([]);
   const [despatchOptions, setDespatchOptions] = useState([]);
-  const [vendorOrders,    setVendorOrders]    = useState([]);
-  const [loadingOrders,   setLoadingOrders]   = useState(false);
-  const [loadingItems,    setLoadingItems]    = useState(false);
+  const [vendorOrders, setVendorOrders] = useState([]);
+  const [loadingOrders, setLoadingOrders] = useState(false);
+  const [loadingItems, setLoadingItems] = useState(false);
 
-  const categoryConfig  = GIN_CATEGORY_CONFIG[issueCategory] || { costHeads: [] };
+  const categoryConfig = GIN_CATEGORY_CONFIG[issueCategory] || {
+    costHeads: [],
+  };
   const costHeadOptions = categoryConfig.costHeads;
 
   // ── LOAD LEDGER LIST (vendors / parties) ──────────────────────────────────
   useEffect(() => {
     const fetch = async () => {
       try {
-        const res = await apiRequest({ url: API_ENDPOINTS.MASTER.GET_ALL_LEDGER });
+        const res = await apiRequest({
+          url: API_ENDPOINTS.MASTER.GET_ALL_LEDGER,
+        });
         setLedgerList(res.data || []);
       } catch {
         toast.error("Failed to load vendor list");
@@ -123,13 +181,13 @@ export default function GINLeftPanel({
   useEffect(() => {
     if (!vendorId) {
       setValue("partyAddress", "");
-      setValue("partyGstn",    "");
+      setValue("partyGstn", "");
       return;
     }
     const v = ledgerList.find((l) => String(l.ledgerId) === String(vendorId));
     if (!v) return;
     setValue("partyAddress", v.corporateAddress || "");
-    setValue("partyGstn",    v.gstin            || "");
+    setValue("partyGstn", v.gstin || "");
   }, [vendorId, ledgerList]);
 
   // ── FETCH VENDOR ORDERS when vendor or category changes ───────────────────
@@ -142,14 +200,18 @@ export default function GINLeftPanel({
       setLoadingOrders(true);
       try {
         let url = `${API_ENDPOINTS.RESOURCE.MATERIAL_MANAGEMENT.GIN.GET_VENDOR_ORDERS}?vendorId=${vendorId}&projectCode=${projectCode}`;
-        if (issueCategory) url += `&issueCategory=${encodeURIComponent(issueCategory)}`;
-        if (itemCategory)  url += `&itemCategory=${encodeURIComponent(itemCategory)}`;
-        if (costHead)      url += `&costHead=${encodeURIComponent(costHead)}`;
+        if (issueCategory)
+          url += `&issueCategory=${encodeURIComponent(issueCategory)}`;
+        if (itemCategory)
+          url += `&itemCategory=${encodeURIComponent(itemCategory)}`;
+        if (costHead) url += `&costHead=${encodeURIComponent(costHead)}`;
         const res = await apiRequest({ url });
         const orders = res.data || [];
         setVendorOrders(orders);
         if (orders.length === 0 && userChangedRef.current) {
-          toast.info("No approved orders found for the selected party / category filters");
+          toast.info(
+            "No approved orders found for the selected party / category filters",
+          );
         }
         userChangedRef.current = false;
       } catch {
@@ -166,7 +228,7 @@ export default function GINLeftPanel({
     userChangedRef.current = true;
     setValue("vendorId", val);
     if (mode === "create") {
-      setValue("orderId",   "");
+      setValue("orderId", "");
       setValue("orderDate", "");
       onVendorClear?.();
     }
@@ -183,10 +245,11 @@ export default function GINLeftPanel({
       setValue("costHead", config.costHeads[0].value);
     } else {
       const cur = watch("costHead");
-      if (cur && !config?.costHeads.some((h) => h.value === cur)) setValue("costHead", "");
+      if (cur && !config?.costHeads.some((h) => h.value === cur))
+        setValue("costHead", "");
     }
     if (mode === "create") {
-      setValue("orderId",   "");
+      setValue("orderId", "");
       setValue("orderDate", "");
       onVendorClear?.();
     }
@@ -198,7 +261,10 @@ export default function GINLeftPanel({
     const order = vendorOrders.find((o) => String(o.id) === String(val));
     setValue("orderDate", order?.orderDate ? fmt(order.orderDate) : "");
 
-    if (!val) { onOrderItemsFetched(null); return; }
+    if (!val) {
+      onOrderItemsFetched(null);
+      return;
+    }
 
     setLoadingItems(true);
     try {
@@ -217,343 +283,399 @@ export default function GINLeftPanel({
   // ── RENDER ────────────────────────────────────────────────────────────────
   return (
     <div className="flex flex-col gap-y-4 w-full xl:w-[410px] shrink-0 xl:overflow-y-auto xl:max-h-[calc(100vh-110px)] pr-1">
-
       {/* Groups: 1-col on mobile, 2-col on lg (tablet/laptop), 1-col on xl (side panel) */}
       <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-1 gap-4">
+        {/* ── GROUP 1: GIN INFO ────────────────────────────────────────────── */}
+        <div className="flex flex-col gap-[2px]">
+          {/* GIN No */}
+          <div className="flex items-center">
+            <div className={LABEL}>GIN No</div>
+            <Input
+              {...register("ginNo")}
+              disabled
+              placeholder="[Auto]"
+              className={`${getInputClass(false, true)} w-[220px] h-[30px]`}
+            />
+          </div>
 
-      {/* ── GROUP 1: GIN INFO ────────────────────────────────────────────── */}
-      <div className="flex flex-col gap-[2px]">
-        {/* GIN No */}
-        <div className="flex items-center">
-          <div className={LABEL}>GIN No</div>
-          <Input
-            {...register("ginNo")}
-            disabled
-            placeholder="[Auto]"
-            className={`${getInputClass(false, true)} w-[220px] h-[30px]`}
-          />
-        </div>
-
-        {/* GIN Date */}
-        <div className="flex items-center">
-          <div className={LABEL}>GIN Date</div>
-          <Input
-            type="date"
-            {...register("ginDate")}
-            disabled={disabled}
-            className={`${getInputClass(!!errors.ginDate, disabled)} w-[220px] h-[30px]`}
-          />
-        </div>
-        {/* {errors.ginDate && (
+          {/* GIN Date */}
+          <div className="flex items-center">
+            <div className={LABEL}>GIN Date</div>
+            <Input
+              type="date"
+              {...register("ginDate")}
+              disabled={disabled}
+              className={`${getInputClass(!!errors.ginDate, disabled)} w-[220px] h-[30px]`}
+            />
+          </div>
+          {/* {errors.ginDate && (
           <p className="text-red-500 text-[11px] ml-[184px]">{errors.ginDate.message}</p>
         )} */}
-      </div>
+        </div>
 
-      {/* ── GROUP 2: CATEGORY ────────────────────────────────────────────── */}
-      <div className="flex flex-col gap-[2px]">
-        {/* Issue Category */}
-        <div className="flex items-center">
-          <div className={LABEL}>Issue Category</div>
-          <div className="w-[220px]">
-            <Controller
-              control={control}
-              name="issueCategory"
-              render={({ field }) => (
-                <Select
-                  value={field.value || ""}
-                  onValueChange={(v) => { field.onChange(v); handleIssueCategoryChange(v); }}
-                  disabled={disabled}
-                >
-                  <SelectTrigger className={`${getInputClass(false, disabled)} w-full h-[30px]`}>
-                    <SelectValue placeholder="As per List" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {ISSUE_CATEGORY_OPTIONS.map((opt) => (
-                      <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              )}
+        {/* ── GROUP 2: CATEGORY ────────────────────────────────────────────── */}
+        <div className="flex flex-col gap-[2px]">
+          {/* Issue Category */}
+          <div className="flex items-center">
+            <div className={LABEL}>Issue Category</div>
+            <div className="w-[220px]">
+              <Controller
+                control={control}
+                name="issueCategory"
+                render={({ field }) => (
+                  <Select
+                    value={field.value || ""}
+                    onValueChange={(v) => {
+                      field.onChange(v);
+                      handleIssueCategoryChange(v);
+                    }}
+                    disabled={disabled}
+                  >
+                    <SelectTrigger
+                      className={`${getInputClass(false, disabled)} w-full h-[30px]`}
+                    >
+                      <SelectValue placeholder="As per List" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {ISSUE_CATEGORY_OPTIONS.map((opt) => (
+                        <SelectItem key={opt.value} value={opt.value}>
+                          {opt.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
+              />
+            </div>
+          </div>
+
+          {/* Item Category — always Material, shown as disabled */}
+          <div className="flex items-center">
+            <div className={LABEL}>Item Category</div>
+            <Input
+              value={ITEM_CATEGORY}
+              disabled
+              className={`${getInputClass(false, true)} w-[220px] h-[30px]`}
             />
+          </div>
+
+          {/* Cost Head */}
+          <div className="flex items-center">
+            <div className={LABEL}>Cost Head</div>
+            <div className="w-[220px]">
+              <Controller
+                control={control}
+                name="costHead"
+                render={({ field }) => (
+                  <Select
+                    value={field.value || ""}
+                    onValueChange={(v) => {
+                      userChangedRef.current = true;
+                      field.onChange(v);
+                    }}
+                    disabled={disabled || costHeadOptions.length === 0}
+                  >
+                    <SelectTrigger
+                      className={`${getInputClass(false, disabled)} w-full h-[30px]`}
+                    >
+                      <SelectValue placeholder="Project Work / Fixed Asset" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {costHeadOptions.map((opt) => (
+                        <SelectItem key={opt.value} value={opt.value}>
+                          {opt.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
+              />
+            </div>
+          </div>
+
+          {/* Cost Factor */}
+          <div className="flex items-center">
+            <div className={LABEL}>Cost Factor</div>
+            <div className="w-[220px]">
+              <Controller
+                control={control}
+                name="costFactor"
+                render={({ field }) => (
+                  <Select
+                    value={field.value || ""}
+                    onValueChange={field.onChange}
+                    disabled={disabled}
+                  >
+                    <SelectTrigger
+                      className={`${getInputClass(false, disabled)} w-full h-[30px]`}
+                    >
+                      <SelectValue placeholder="Chargeable / Non Chargeable" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {COST_FACTOR_OPTIONS.map((opt) => (
+                        <SelectItem key={opt.value} value={opt.value}>
+                          {opt.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
+              />
+            </div>
           </div>
         </div>
 
-        {/* Item Category — always Material, shown as disabled */}
-        <div className="flex items-center">
-          <div className={LABEL}>Item Category</div>
-          <Input
-            value={ITEM_CATEGORY}
-            disabled
-            className={`${getInputClass(false, true)} w-[220px] h-[30px]`}
-          />
-        </div>
-
-        {/* Cost Head */}
-        <div className="flex items-center">
-          <div className={LABEL}>Cost Head</div>
-          <div className="w-[220px]">
-            <Controller
-              control={control}
-              name="costHead"
-              render={({ field }) => (
-                <Select
-                  value={field.value || ""}
-                  onValueChange={(v) => { userChangedRef.current = true; field.onChange(v); }}
-                  disabled={disabled || costHeadOptions.length === 0}
-                >
-                  <SelectTrigger className={`${getInputClass(false, disabled)} w-full h-[30px]`}>
-                    <SelectValue placeholder="Project Work / Fixed Asset" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {costHeadOptions.map((opt) => (
-                      <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              )}
-            />
+        {/* ── GROUP 3: PARTY ───────────────────────────────────────────────── */}
+        <div className="flex flex-col gap-[2px]">
+          {/* Party Name */}
+          <div className="flex items-center">
+            <div className={LABEL}>Party Name</div>
+            <div className="w-[220px]">
+              <Controller
+                control={control}
+                name="vendorId"
+                render={({ field }) => (
+                  <Select
+                    value={field.value ? String(field.value) : ""}
+                    onValueChange={(v) => {
+                      field.onChange(v);
+                      handleVendorChange(v);
+                    }}
+                    disabled={disabled}
+                  >
+                    <SelectTrigger
+                      className={`${getInputClass(!!errors.vendorId, disabled)} w-full h-[30px]`}
+                    >
+                      <SelectValue placeholder="Select from Vendor List" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {ledgerList.map((l) => (
+                        <SelectItem key={l.ledgerId} value={String(l.ledgerId)}>
+                          {l.ledgerName}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
+              />
+            </div>
           </div>
-        </div>
-
-        {/* Cost Factor */}
-        <div className="flex items-center">
-          <div className={LABEL}>Cost Factor</div>
-          <div className="w-[220px]">
-            <Controller
-              control={control}
-              name="costFactor"
-              render={({ field }) => (
-                <Select
-                  value={field.value || ""}
-                  onValueChange={field.onChange}
-                  disabled={disabled}
-                >
-                  <SelectTrigger className={`${getInputClass(false, disabled)} w-full h-[30px]`}>
-                    <SelectValue placeholder="Chargeable / Non Chargeable" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {COST_FACTOR_OPTIONS.map((opt) => (
-                      <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              )}
-            />
-          </div>
-        </div>
-      </div>
-
-      {/* ── GROUP 3: PARTY ───────────────────────────────────────────────── */}
-      <div className="flex flex-col gap-[2px]">
-        {/* Party Name */}
-        <div className="flex items-center">
-          <div className={LABEL}>Party Name</div>
-          <div className="w-[220px]">
-            <Controller
-              control={control}
-              name="vendorId"
-              render={({ field }) => (
-                <Select
-                  value={field.value ? String(field.value) : ""}
-                  onValueChange={(v) => { field.onChange(v); handleVendorChange(v); }}
-                  disabled={disabled}
-                >
-                  <SelectTrigger className={`${getInputClass(!!errors.vendorId, disabled)} w-full h-[30px]`}>
-                    <SelectValue placeholder="Select from Vendor List" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {ledgerList.map((l) => (
-                      <SelectItem key={l.ledgerId} value={String(l.ledgerId)}>
-                        {l.ledgerName}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              )}
-            />
-          </div>
-        </div>
-        {/* {errors.vendorId && (
+          {/* {errors.vendorId && (
           <p className="text-red-500 text-[11px] ml-[184px]">{errors.vendorId.message}</p>
         )} */}
 
-        {/* Party Address — auto */}
-        <div className="flex items-center">
-          <div className={LABEL}>Party Address</div>
-          <div className="w-[220px]">
-            <Controller control={control} name="partyAddress" render={({ field }) => (
-              <ExpandableTextField
-                value={field.value} onChange={field.onChange}
-                disabled title="Party Address" placeholder="[Auto]"
-                minHeight="min-h-[30px]" modalHeight="min-h-[180px]"
+          {/* Party Address — auto */}
+          <div className="flex items-center">
+            <div className={LABEL}>Party Address</div>
+            <div className="w-[220px]">
+              <Controller
+                control={control}
+                name="partyAddress"
+                render={({ field }) => (
+                  <ExpandableTextField
+                    value={field.value}
+                    onChange={field.onChange}
+                    disabled
+                    title="Party Address"
+                    placeholder="[Auto]"
+                    minHeight="min-h-[30px]"
+                    modalHeight="min-h-[180px]"
+                  />
+                )}
               />
-            )} />
+            </div>
+          </div>
+
+          {/* Party GSTN — auto */}
+          <div className="flex items-center">
+            <div className={LABEL}>Party GSTN</div>
+            <div className="w-[220px]">
+              <Controller
+                control={control}
+                name="partyGstn"
+                render={({ field }) => (
+                  <ExpandableTextField
+                    value={field.value}
+                    onChange={field.onChange}
+                    disabled
+                    title="Party GSTN"
+                    placeholder="[Auto]"
+                    minHeight="min-h-[30px]"
+                    modalHeight="min-h-[140px]"
+                  />
+                )}
+              />
+            </div>
           </div>
         </div>
 
-        {/* Party GSTN — auto */}
-        <div className="flex items-center">
-          <div className={LABEL}>Party GSTN</div>
-          <div className="w-[220px]">
-            <Controller control={control} name="partyGstn" render={({ field }) => (
-              <ExpandableTextField
-                value={field.value} onChange={field.onChange}
-                disabled title="Party GSTN" placeholder="[Auto]"
-                minHeight="min-h-[30px]" modalHeight="min-h-[140px]"
-              />
-            )} />
-          </div>
-        </div>
-      </div>
-
-      {/* ── GROUP 4: ORDER ────────────────────────────────────────────────── */}
-      <div className="flex flex-col gap-[2px]">
-        {/* Order No — yellow, select from vendor orders */}
-        <div className="flex items-center">
-          <div className={LABEL}>Order No</div>
-          <div className="w-[220px]">
-            <Controller
-              control={control}
-              name="orderId"
-              render={({ field }) => (
-                <Select
-                  value={field.value ? String(field.value) : ""}
-                  onValueChange={(v) => { field.onChange(v); handleOrderSelect(v); }}
-                  disabled={disabled || loadingOrders || loadingItems}
-                >
-                  <SelectTrigger
-                    className={`
+        {/* ── GROUP 4: ORDER ────────────────────────────────────────────────── */}
+        <div className="flex flex-col gap-[2px]">
+          {/* Order No — yellow, select from vendor orders */}
+          <div className="flex items-center">
+            <div className={LABEL}>Order No</div>
+            <div className="w-[220px]">
+              <Controller
+                control={control}
+                name="orderId"
+                render={({ field }) => (
+                  <Select
+                    value={field.value ? String(field.value) : ""}
+                    onValueChange={(v) => {
+                      field.onChange(v);
+                      handleOrderSelect(v);
+                    }}
+                    disabled={disabled || loadingOrders || loadingItems}
+                  >
+                    <SelectTrigger
+                      className={`
                       ${getInputClass(!!errors.orderId, disabled)}
                       w-full h-[30px]
                       ${!disabled && !errors.orderId ? "bg-[#fff8c5] border-[#c9a800]" : ""}
                     `}
-                  >
-                    <SelectValue
-                      placeholder={
-                        loadingOrders
-                          ? "Loading orders..."
-                          : loadingItems
-                            ? "Loading items..."
-                            : "Select from Filter Order List"
-                      }
-                    />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {vendorOrders.map((o) => (
-                      <SelectItem key={o.id} value={String(o.id)}>
-                        {o.orderNo}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              )}
-            />
+                    >
+                      <SelectValue
+                        placeholder={
+                          loadingOrders
+                            ? "Loading orders..."
+                            : loadingItems
+                              ? "Loading items..."
+                              : "Select from Filter Order List"
+                        }
+                      />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {vendorOrders.map((o) => (
+                        <SelectItem key={o.id} value={String(o.id)}>
+                          {o.orderNo}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
+              />
+            </div>
           </div>
-        </div>
-        {/* {errors.orderId && (
+          {/* {errors.orderId && (
           <p className="text-red-500 text-[11px] ml-[184px]">{errors.orderId.message}</p>
         )} */}
 
-        {/* Order Date — auto */}
-        <div className="flex items-center">
-          <div className={LABEL}>Order Date</div>
-          <Input
-            {...register("orderDate")}
-            disabled
-            placeholder="[Auto]"
-            className={`${getInputClass(false, true)} w-[220px] h-[30px]`}
-          />
-        </div>
-      </div>
-
-      {/* ── GROUP 5: SITE & ADDRESSES ─────────────────────────────────────── */}
-      <div className="flex flex-col gap-[2px]">
-        {/* Site — auto */}
-        <div className="flex items-center">
-          <div className={LABEL}>Site</div>
-          <Input
-            value={projectCode}
-            disabled
-            placeholder="[Auto]"
-            className={`${getInputClass(false, true)} w-[220px] h-[30px]`}
-          />
-        </div>
-
-        {/* Despatch From — select from project store locations */}
-        <div className="flex items-center">
-          <div className={LABEL}>Despatch From</div>
-          <div className="w-[220px]">
-            <Controller control={control} name="despatchFrom" render={({ field }) => (
-              <Select value={field.value || ""} onValueChange={field.onChange} disabled={disabled}>
-                <SelectTrigger className={`${getInputClass(false, disabled)} w-full h-[30px]`}>
-                  <SelectValue placeholder="Select from List" />
-                </SelectTrigger>
-                <SelectContent>
-                  {despatchOptions.map((item, i) => (
-                    <SelectItem key={i} value={item}>{item}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            )} />
+          {/* Order Date — auto */}
+          <div className="flex items-center">
+            <div className={LABEL}>Order Date</div>
+            <Input
+              {...register("orderDate")}
+              disabled
+              placeholder="[Auto]"
+              className={`${getInputClass(false, true)} w-[220px] h-[30px]`}
+            />
           </div>
         </div>
 
-        {/* Shipping To — expandable text */}
-        <div className="flex items-center">
-          <div className={LABEL}>Shipping To</div>
-          <div className="w-[220px]">
-            <Controller control={control} name="shippingTo" render={({ field }) => (
-              <ExpandableTextField
-                value={field.value}
-                onChange={field.onChange}
-                disabled={disabled}
-                title="Shipping To"
-                placeholder="Text"
-                minHeight="min-h-[30px]"
-                modalHeight="min-h-[200px]"
+        {/* ── GROUP 5: SITE & ADDRESSES ─────────────────────────────────────── */}
+        <div className="flex flex-col gap-[2px]">
+          {/* Site — auto */}
+          <div className="flex items-center">
+            <div className={LABEL}>Site</div>
+            <Input
+              value={projectCode}
+              disabled
+              placeholder="[Auto]"
+              className={`${getInputClass(false, true)} w-[220px] h-[30px]`}
+            />
+          </div>
+
+          {/* Despatch From — select from project store locations */}
+          <div className="flex items-center">
+            <div className={LABEL}>Despatch From</div>
+            <div className="w-[220px]">
+              <Controller
+                control={control}
+                name="despatchFrom"
+                render={({ field }) => (
+                  <Select
+                    value={field.value || ""}
+                    onValueChange={field.onChange}
+                    disabled={disabled}
+                  >
+                    <SelectTrigger
+                      className={`${getInputClass(false, disabled)} w-full h-[30px]`}
+                    >
+                      <SelectValue placeholder="Select from List" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {despatchOptions.map((item, i) => (
+                        <SelectItem key={i} value={item}>
+                          {item}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
               />
-            )} />
+            </div>
+          </div>
+
+          {/* Shipping To — expandable text */}
+          <div className="flex items-center">
+            <div className={LABEL}>Shipping To</div>
+            <div className="w-[220px]">
+              <Controller
+                control={control}
+                name="shippingTo"
+                render={({ field }) => (
+                  <ExpandableTextField
+                    value={field.value}
+                    onChange={field.onChange}
+                    disabled={disabled}
+                    title="Shipping To"
+                    placeholder="Text"
+                    minHeight="min-h-[30px]"
+                    modalHeight="min-h-[200px]"
+                  />
+                )}
+              />
+            </div>
+          </div>
+        </div>
+
+        {/* ── GROUP 6: ADDITIONAL DETAILS ───────────────────────────────────── */}
+        <div className="flex flex-col gap-[2px]">
+          {/* Recommendation By */}
+          <div className="flex items-center">
+            <div className={LABEL}>Recommendation By</div>
+            <Input
+              {...register("recommendationBy")}
+              disabled={disabled}
+              placeholder="Text"
+              className={`${getInputClass(false, disabled)} w-[220px] h-[30px]`}
+            />
+          </div>
+
+          {/* Issue Slip No */}
+          <div className="flex items-center">
+            <div className={LABEL}>Issue Slip No</div>
+            <Input
+              {...register("issueSlipNo")}
+              disabled={disabled}
+              placeholder="Text"
+              className={`${getInputClass(false, disabled)} w-[220px] h-[30px]`}
+            />
+          </div>
+
+          {/* Handed Over To */}
+          <div className="flex items-center">
+            <div className={LABEL}>Handed Over To</div>
+            <Input
+              {...register("handedOverTo")}
+              disabled={disabled}
+              placeholder="Text"
+              className={`${getInputClass(false, disabled)} w-[220px] h-[30px]`}
+            />
           </div>
         </div>
       </div>
-
-      {/* ── GROUP 6: ADDITIONAL DETAILS ───────────────────────────────────── */}
-      <div className="flex flex-col gap-[2px]">
-        {/* Recommendation By */}
-        <div className="flex items-center">
-          <div className={LABEL}>Recommendation By</div>
-          <Input
-            {...register("recommendationBy")}
-            disabled={disabled}
-            placeholder="Text"
-            className={`${getInputClass(false, disabled)} w-[220px] h-[30px]`}
-          />
-        </div>
-
-        {/* Issue Slip No */}
-        <div className="flex items-center">
-          <div className={LABEL}>Issue Slip No</div>
-          <Input
-            {...register("issueSlipNo")}
-            disabled={disabled}
-            placeholder="Text"
-            className={`${getInputClass(false, disabled)} w-[220px] h-[30px]`}
-          />
-        </div>
-
-        {/* Handed Over To */}
-        <div className="flex items-center">
-          <div className={LABEL}>Handed Over To</div>
-          <Input
-            {...register("handedOverTo")}
-            disabled={disabled}
-            placeholder="Text"
-            className={`${getInputClass(false, disabled)} w-[220px] h-[30px]`}
-          />
-        </div>
-      </div>
-
-      </div>{/* end groups grid */}
+      {/* end groups grid */}
 
       {/* ── DOCUMENT ATTACHMENT ───────────────────────────────────────────── */}
       <div className="flex flex-wrap items-center gap-3 pb-2">
@@ -561,9 +683,10 @@ export default function GINLeftPanel({
           type="button"
           onClick={() => !disabled && fileRef?.current?.click()}
           className={`h-[32px] px-4 rounded-md border border-[#c96b2c] text-sm font-medium flex items-center gap-1.5 transition
-            ${disabled
-              ? "bg-[#e9a06d] opacity-60 cursor-not-allowed"
-              : "bg-[#e9a06d] hover:bg-[#d88b5a] cursor-pointer"
+            ${
+              disabled
+                ? "bg-[#e9a06d] opacity-60 cursor-not-allowed"
+                : "bg-[#e9a06d] hover:bg-[#d88b5a] cursor-pointer"
             }`}
         >
           <Paperclip className="w-4 h-4" />
@@ -598,14 +721,15 @@ export default function GINLeftPanel({
         )}
 
         {!newFileName && !existingFileUrl && disabled && (
-          <span className="text-[12px] italic text-gray-400">No document attached</span>
+          <span className="text-[12px] italic text-gray-400">
+            No document attached
+          </span>
         )}
 
         {mode === "create" && (
           <span className="text-[11px] text-red-500">* required</span>
         )}
       </div>
-
     </div>
   );
 }
