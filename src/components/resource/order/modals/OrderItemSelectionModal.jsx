@@ -59,11 +59,7 @@ export default function OrderItemSelectionModal({
       return;
     }
 
-    if (!costHead) {
-      toast.error("Please select cost head first");
-      onClose?.();
-      return;
-    }
+    if (!costHead) return;
 
     const fetchItems = async () => {
       try {

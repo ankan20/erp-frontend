@@ -20,10 +20,11 @@ import { getLocalStorage } from "@/lib/localStorage";
 import { useRouter } from "next/navigation";
 
 const defaultValues = {
-  categoryCode: "Purchases Order",
+  categoryCode: "Purchases_Order",
   subCategoryCode: "MAT_001",
-  costHead: "", // CHANGED: new field
+  costHead: "",
   vendorId: "",
+  transferProjectSite: "",
   orderNo: "",
   orderDate: "",
   validityDate: "",
@@ -105,11 +106,53 @@ export default function OrderForm({ mode = "create", orderId }) {
         });
         const data = res.data;
 
+        // Fetch party fields — not in order API, must be derived from secondary APIs
+        let partyAddress = "";
+        let gstn = "";
+        let contactPerson = "";
+        let contactNumber = "";
+
+        try {
+          if (data.categoryCode === "Purchases_Order" && data.vendorId) {
+            const ledgerRes = await apiRequest({ url: API_ENDPOINTS.MASTER.GET_ALL_LEDGER, method: "GET" });
+            const vendor = (ledgerRes.data || []).find((v) => String(v.ledgerId) === String(data.vendorId));
+            if (vendor) {
+              partyAddress  = vendor.corporateAddress       || "";
+              gstn          = vendor.gstin                  || "";
+              contactPerson = vendor.primaryContactPerson   || "";
+              contactNumber = vendor.primaryContactNumber   || "";
+            }
+          } else if (data.categoryCode === "Customer_Supply_Order") {
+            const projRes = await apiRequest({ url: `${API_ENDPOINTS.SETTINGS.GET_PROJECT_BY_ID}/${projectInfo?.projectId}`, method: "GET" });
+            const projData = projRes.data?.[0];
+            if (projData) {
+              partyAddress  = projData.registeredAddress     || "";
+              gstn          = projData.gstn                  || "";
+              contactPerson = projData.commercialManager     || "";
+              contactNumber = projData.commMgmtContactNumber || "";
+            }
+          } else if (data.categoryCode === "Site_Transfer_Order" && data.transferProjectSite) {
+            const allProjRes = await apiRequest({ url: API_ENDPOINTS.SETTINGS.GET_ALL_PROJECTS, method: "GET" });
+            const transferProj = (allProjRes.data || []).find((p) => p.projectCode === data.transferProjectSite);
+            if (transferProj) {
+              const tpRes = await apiRequest({ url: `${API_ENDPOINTS.SETTINGS.GET_PROJECT_BY_ID}/${transferProj.id}`, method: "GET" });
+              const tpData = tpRes.data?.[0];
+              if (tpData) {
+                partyAddress  = tpData.registeredAddress     || "";
+                gstn          = tpData.gstn                  || "";
+                contactPerson = tpData.projectManager        || "";
+                contactNumber = tpData.projMgmtContactNumber || "";
+              }
+            }
+          }
+        } catch { /* party fields stay empty if secondary API fails */ }
+
         const formattedData = {
-          categoryCode: data.categoryCode || "Purchases Order",
+          categoryCode: data.categoryCode || "Purchases_Order",
           subCategoryCode: data.subCategoryCode || "MAT_001",
-          costHead: data.costHead || "", // CHANGED: load costHead
-          vendorId: String(data.vendorId || ""),
+          costHead: data.costHead || "",
+          vendorId: data.vendorId ? String(data.vendorId) : "",
+          transferProjectSite: data.transferProjectSite || "",
           orderNo: data.orderNo || "",
           orderDate: data.orderDate || "",
           validityDate: data.validityDate || "",
@@ -126,6 +169,10 @@ export default function OrderForm({ mode = "create", orderId }) {
           basicAmount: Number(data.basicAmount || 0),
           gstAmount: Number(data.gstAmount || 0),
           totalAmount: Number(data.totalAmount || 0),
+          partyAddress,
+          gstn,
+          contactPerson,
+          contactNumber,
         };
 
         reset(formattedData);
@@ -166,16 +213,20 @@ export default function OrderForm({ mode = "create", orderId }) {
 
     formData.append("projectCode", projectCode);
     formData.append("categoryCode", values.categoryCode);
-
-    // CHANGED: subCategoryCode always MAT_001; assetOnly based on costHead
     formData.append("subCategoryCode", "MAT_001");
     formData.append("costHead", values.costHead);
-    formData.append(
-      "assetOnly",
-      values.costHead === "Fixed_Asset" ? "true" : "false",
-    );
+    formData.append("assetOnly", values.costHead === "Fixed_Asset" ? "true" : "false");
 
-    formData.append("vendorId", values.vendorId);
+    // Category-specific payload fields
+    if (values.categoryCode === "Purchases_Order") {
+      formData.append("vendorId", values.vendorId);
+    } else if (values.categoryCode === "Customer_Supply_Order") {
+      formData.append("vendorId", "");
+    } else if (values.categoryCode === "Site_Transfer_Order") {
+      formData.append("vendorId", "");
+      formData.append("transferProjectSite", values.transferProjectSite || "");
+    }
+
     formData.append("orderDate", values.orderDate);
     formData.append("validityDate", values.validityDate);
     formData.append("billingAddress", values.billingAddress);
@@ -343,6 +394,7 @@ export default function OrderForm({ mode = "create", orderId }) {
         {/* LEFT SECTION */}
         <OrderBasicSection
           form={form}
+          mode={mode}
           disabled={disabled}
           fileName={fileName}
           setFileName={setFileName}
@@ -394,7 +446,13 @@ export default function OrderForm({ mode = "create", orderId }) {
                 {activeTab === "items" && !disabled && (
                   <button
                     type="button"
-                    onClick={() => setOpenItemModal(true)}
+                    onClick={() => {
+                      if (!getValues("costHead")) {
+                        toast.error("Please select cost head first");
+                        return;
+                      }
+                      setOpenItemModal(true);
+                    }}
                     className="h-[34px] min-w-[170px] px-4 bg-[#9F96F2] border border-[#5D58A5] rounded-md text-black text-sm font-medium flex items-center justify-center hover:opacity-90 transition"
                   >
                     + Add Order Items

@@ -24,14 +24,13 @@ const termSchema = z.object({
 export const orderSchema = z
   .object({
     categoryCode: z.string({ required_error: "Category is required" }).min(1, "Category is required"),
-
-    // Always "Material" in display, sends MAT_001 to API
     subCategoryCode: z.string({ required_error: "Sub Category is required" }).min(1, "Sub Category is required"),
-
-    // "Project Work" or "Fixed Asset" — determines assetOnly flag
     costHead: z.string({ required_error: "Cost Head is required" }).min(1, "Cost Head is required"),
 
-    vendorId: z.string({ required_error: "Party Name is required" }).min(1, "Party Name is required"),
+    // Optional at schema level — conditionally required via superRefine
+    vendorId: z.string().optional(),
+    transferProjectSite: z.string().optional(),
+
     orderDate: z.string({ required_error: "Order Date is required" }).min(1, "Order Date is required"),
     validityDate: z.string({ required_error: "Order Validity is required" }).min(1, "Order Validity is required"),
     billingAddress: z.string({ required_error: "Billing Address is required" }).min(1, "Billing Address is required"),
@@ -45,6 +44,17 @@ export const orderSchema = z
     orderFile: z.any().optional(),
   })
   .superRefine((data, ctx) => {
+    // vendorId required only for Purchases Order
+    if (data.categoryCode === "Purchases_Order" && !data.vendorId) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["vendorId"], message: "Party Name is required" });
+    }
+
+    // transferProjectSite required only for Site Transfer Order
+    if (data.categoryCode === "Site_Transfer_Order" && !data.transferProjectSite) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["transferProjectSite"], message: "Transfer Site is required" });
+    }
+
+    // PDF file validation
     const file = data.orderFile;
     if (file && file instanceof File) {
       if (file.type !== "application/pdf") {
