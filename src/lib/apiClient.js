@@ -1,11 +1,12 @@
 import API_BASE_URL from "@/config/api.config";
 import { getCookie } from "./cookies";
 import { clearAuthCookies } from "@/lib/cookies";
+import { getLocalStorage } from "./localStorage";
 
 const getAuth = () => {
   if (typeof window === "undefined") return {};
   return {
-    token: getCookie("token"),
+    token: getLocalStorage("token") ,
   };
 };
 

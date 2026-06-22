@@ -14,6 +14,7 @@ import { apiRequest } from "@/lib/apiClient";
 
 import ProjectSelectPopup from "@/components/common/ProjectSelectPopup";
 import { getFirstAllowedPage } from "@/helper/getFirstAllowedPage";
+import { getLocalStorage } from "@/lib/localStorage";
 
 export default function HomePage() {
 
@@ -26,7 +27,7 @@ export default function HomePage() {
 
   useEffect(() => {
 
-    const token = getCookie("token");
+    const token = getLocalStorage("token") ;
 
     const role = getCookie("role");
 

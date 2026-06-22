@@ -1,9 +1,10 @@
 import { getCookie } from "@/lib/cookies";
+import { getLocalStorage } from "./localStorage";
 
 // Open file securely with auth
 export const openFileWithAuth = async (url) => {
   try {
-    const token = getCookie("token");
+    const token = getLocalStorage("token");
 
     if (!url) {
       console.error("File URL missing");

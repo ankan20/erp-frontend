@@ -3,6 +3,7 @@
 import { useRouter, usePathname } from "next/navigation";
 import { useEffect } from "react";
 import { getCookie } from "@/lib/cookies";
+import { getLocalStorage } from "@/lib/localStorage";
 
 const roleAccess = {
   super_admin: ["/settings"],
@@ -14,7 +15,7 @@ export const useAuthGuard = () => {
   const router = useRouter();
   const pathname = usePathname();
 
-  const token = getCookie("token");
+  const token = (typeof window !== "undefined" ? getLocalStorage("token") : null) ;
   const role = getCookie("role");
 
   // Redirect logic (side effect only)

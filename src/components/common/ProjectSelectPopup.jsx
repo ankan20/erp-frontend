@@ -106,11 +106,12 @@ export default function ProjectSelectPopup({
       const permissions = res?.data[0].permissions || {};
       const token       = res?.data[0].token;
 
-      // REPLACE TOKEN
-      setCookie("token", token);
+      // REPLACE TOKEN — use localStorage because the project token embeds
+      // all permissions, making it too large for the 4096-byte cookie limit
+      setLocalStorage("token", token);
 
       // SAVE PERMISSION
-      localStorage.setItem("permissions", JSON.stringify(permissions));
+      setLocalStorage("permissions", JSON.stringify(permissions));
 
       toast.success("Project Selected");
 

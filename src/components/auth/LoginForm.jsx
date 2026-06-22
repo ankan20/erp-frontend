@@ -12,7 +12,7 @@ import { apiRequest } from "@/lib/apiClient";
 import { API_ENDPOINTS } from "@/config/api.config";
 import { getCookie, setCookie } from "@/lib/cookies";
 import { ROLE } from "@/config/role.config";
-import { setLocalStorage } from "@/lib/localStorage";
+import { getLocalStorage, setLocalStorage } from "@/lib/localStorage";
 
 const LoginForm = () => {
   const [formData, setFormData] = useState({
@@ -36,7 +36,7 @@ const LoginForm = () => {
 
   const handleSubmit = async (e) => {
   e.preventDefault();
-  const isTokenPresent = getCookie("token");
+  const isTokenPresent = getLocalStorage("token");
   if(isTokenPresent)return;
 
 
@@ -68,7 +68,7 @@ const LoginForm = () => {
       throw new Error("Invalid response from server");
     }
 
-    setCookie("token", user.token);
+    setLocalStorage("token", user.token)
     setCookie("userId", user.id);
     setLocalStorage("userName", user.username);
     setCookie("role", user.role);
@@ -81,7 +81,7 @@ const LoginForm = () => {
     }
     toast.success("Login successful");
 
-    const token = getCookie("token");
+    const token = getLocalStorage("token");
     const role = getCookie("role");
 
     if (token) {
@@ -103,7 +103,7 @@ const LoginForm = () => {
 };
 
 useEffect(()=>{
-    const token = getCookie("token");
+    const token = getLocalStorage("token");
     const role = getCookie("role");
 
     if (token) {
