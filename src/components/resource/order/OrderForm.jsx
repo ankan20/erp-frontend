@@ -106,30 +106,24 @@ export default function OrderForm({ mode = "create", orderId }) {
         });
         const data = res.data;
 
-        // Fetch party fields — not in order API, must be derived from secondary APIs
+        // Fetch party address/gstn — derived from secondary APIs
         let partyAddress = "";
         let gstn = "";
-        let contactPerson = "";
-        let contactNumber = "";
 
         try {
           if (data.categoryCode === "Purchases_Order" && data.vendorId) {
             const ledgerRes = await apiRequest({ url: API_ENDPOINTS.MASTER.GET_ALL_LEDGER, method: "GET" });
             const vendor = (ledgerRes.data || []).find((v) => String(v.ledgerId) === String(data.vendorId));
             if (vendor) {
-              partyAddress  = vendor.corporateAddress       || "";
-              gstn          = vendor.gstin                  || "";
-              contactPerson = vendor.primaryContactPerson   || "";
-              contactNumber = vendor.primaryContactNumber   || "";
+              partyAddress = vendor.corporateAddress || "";
+              gstn         = vendor.gstin            || "";
             }
           } else if (data.categoryCode === "Customer_Supply_Order") {
             const projRes = await apiRequest({ url: `${API_ENDPOINTS.SETTINGS.GET_PROJECT_BY_ID}/${projectInfo?.projectId}`, method: "GET" });
             const projData = projRes.data?.[0];
             if (projData) {
-              partyAddress  = projData.registeredAddress     || "";
-              gstn          = projData.gstn                  || "";
-              contactPerson = projData.commercialManager     || "";
-              contactNumber = projData.commMgmtContactNumber || "";
+              partyAddress = projData.registeredAddress || "";
+              gstn         = projData.gstn              || "";
             }
           } else if (data.categoryCode === "Site_Transfer_Order" && data.transferProjectSite) {
             const allProjRes = await apiRequest({ url: API_ENDPOINTS.SETTINGS.GET_ALL_PROJECTS, method: "GET" });
@@ -138,10 +132,8 @@ export default function OrderForm({ mode = "create", orderId }) {
               const tpRes = await apiRequest({ url: `${API_ENDPOINTS.SETTINGS.GET_PROJECT_BY_ID}/${transferProj.id}`, method: "GET" });
               const tpData = tpRes.data?.[0];
               if (tpData) {
-                partyAddress  = tpData.registeredAddress     || "";
-                gstn          = tpData.gstn                  || "";
-                contactPerson = tpData.projectManager        || "";
-                contactNumber = tpData.projMgmtContactNumber || "";
+                partyAddress = tpData.registeredAddress || "";
+                gstn         = tpData.gstn              || "";
               }
             }
           }
@@ -171,8 +163,8 @@ export default function OrderForm({ mode = "create", orderId }) {
           totalAmount: Number(data.totalAmount || 0),
           partyAddress,
           gstn,
-          contactPerson,
-          contactNumber,
+          contactPerson: data.contactPerson || "",
+          contactNumber: data.contactNumber || "",
         };
 
         reset(formattedData);

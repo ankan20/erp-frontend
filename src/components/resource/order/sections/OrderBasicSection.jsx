@@ -42,11 +42,9 @@ export default function OrderBasicSection({
   fileRef,
 }) {
   const [ledgerList,          setLedgerList]          = useState([]);
-  const [billingOptions,      setBillingOptions]      = useState([]);
-  const [shippingOptions,     setShippingOptions]     = useState([]);
-  const [currentProjectData,  setCurrentProjectData]  = useState(null); // full data for current project
-  const [allProjects,         setAllProjects]         = useState([]);   // for site transfer select
-  const [transferProjectData, setTransferProjectData] = useState(null); // selected transfer project details
+  const [currentProjectData,  setCurrentProjectData]  = useState(null);
+  const [allProjects,         setAllProjects]         = useState([]);
+  const [transferProjectData, setTransferProjectData] = useState(null);
 
   const { register, control, setValue, watch, formState: { errors } } = form;
 
@@ -75,7 +73,7 @@ export default function OrderBasicSection({
       .catch(() => {});
   }, []);
 
-  // ── LOAD CURRENT PROJECT DETAILS (for billing/shipping + Customer Supply auto-fill)
+  // ── LOAD CURRENT PROJECT DETAILS (for billing/shipping options + Customer Supply auto-fill)
   useEffect(() => {
     if (!projectId) return;
     apiRequest({ url: `${API_ENDPOINTS.SETTINGS.GET_PROJECT_BY_ID}/${projectId}`, method: "GET" })
@@ -83,22 +81,35 @@ export default function OrderBasicSection({
         const data = res.data?.[0];
         if (!data) return;
         setCurrentProjectData(data);
-        const billing  = [data.billingAddress].filter(Boolean);
-        const shipping = [data.shippingAddress, data.shippingAddress2, data.shippingAddress3].filter(Boolean);
-        setBillingOptions(billing);
-        setShippingOptions(shipping);
       })
       .catch(() => toast.error("Failed to load project details"));
   }, [projectId]);
 
-  // ── AUTO-FILL: Customer Supply Order → from current project (create mode only — edit mode handled in fetchOrder)
+  // ── COMPUTE billing/shipping options from current category + project data
+  const billingOptions = (() => {
+    if (!currentProjectData) return [];
+    if (categoryCode === "Purchases_Order") {
+      return [currentProjectData.companyBillingAddress].filter(Boolean);
+    }
+    // Customer Supply and Site Transfer (FROM = current project)
+    return [currentProjectData.shippingAddress, currentProjectData.shippingAddress2, currentProjectData.shippingAddress3].filter(Boolean);
+  })();
+
+  const shippingOptions = (() => {
+    if (categoryCode === "Site_Transfer_Order") {
+      if (!transferProjectData) return [];
+      return [transferProjectData.shippingAddress, transferProjectData.shippingAddress2, transferProjectData.shippingAddress3].filter(Boolean);
+    }
+    if (!currentProjectData) return [];
+    return [currentProjectData.shippingAddress, currentProjectData.shippingAddress2, currentProjectData.shippingAddress3].filter(Boolean);
+  })();
+
+  // ── AUTO-FILL: Customer Supply Order → from current project (create mode only)
   useEffect(() => {
     if (mode !== "create") return;
     if (categoryCode !== "Customer_Supply_Order" || !currentProjectData) return;
-    setValue("partyAddress",   currentProjectData.registeredAddress     || "");
-    setValue("gstn",           currentProjectData.gstn                  || "");
-    setValue("contactPerson",  currentProjectData.commercialManager     || "");
-    setValue("contactNumber",  currentProjectData.commMgmtContactNumber || "");
+    setValue("partyAddress", currentProjectData.registeredAddress || "");
+    setValue("gstn",         currentProjectData.gstn              || "");
   }, [categoryCode, currentProjectData]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── FALLBACK FILL: Site Transfer initial load — fires only when partyAddress is still empty
@@ -113,33 +124,29 @@ export default function OrderBasicSection({
         const data = res.data?.[0];
         if (!data) return;
         setTransferProjectData(data);
-        setValue("partyAddress",  data.registeredAddress     || "");
-        setValue("gstn",          data.gstn                  || "");
-        setValue("contactPerson", data.projectManager        || "");
-        setValue("contactNumber", data.projMgmtContactNumber || "");
+        setValue("partyAddress", data.registeredAddress || "");
+        setValue("gstn",         data.gstn              || "");
       })
       .catch(() => {});
   }, [transferProjectSite, categoryCode, allProjects, partyAddress]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── CATEGORY CHANGE: reset party fields + re-fill Customer Supply immediately if data ready
   const handleCategoryChange = (value) => {
-    setValue("categoryCode",       value);
-    setValue("subCategoryCode",    "MAT_001");
-    setValue("costHead",           "");
-    setValue("items",              []);
-    setValue("vendorId",           "");
-    setValue("transferProjectSite","");
-    setValue("partyAddress",       "");
-    setValue("gstn",               "");
-    setValue("contactPerson",      "");
-    setValue("contactNumber",      "");
+    setValue("categoryCode",        value);
+    setValue("subCategoryCode",     "MAT_001");
+    setValue("costHead",            "");
+    setValue("items",               []);
+    setValue("vendorId",            "");
+    setValue("transferProjectSite", "");
+    setValue("partyAddress",        "");
+    setValue("gstn",                "");
+    setValue("billingAddress",      "");
+    setValue("shippingAddress",     "");
+    setTransferProjectData(null);
 
-    // Immediately populate if Customer Supply and project data already loaded
     if (value === "Customer_Supply_Order" && currentProjectData) {
-      setValue("partyAddress",  currentProjectData.registeredAddress     || "");
-      setValue("gstn",          currentProjectData.gstn                  || "");
-      setValue("contactPerson", currentProjectData.commercialManager     || "");
-      setValue("contactNumber", currentProjectData.commMgmtContactNumber || "");
+      setValue("partyAddress", currentProjectData.registeredAddress || "");
+      setValue("gstn",         currentProjectData.gstn              || "");
     }
   };
 
@@ -273,16 +280,14 @@ export default function OrderBasicSection({
                       onValueChange={(val) => {
                         field.onChange(val);
                         if (!val) {
-                          setValue("partyAddress", ""); setValue("gstn", "");
-                          setValue("contactPerson", ""); setValue("contactNumber", "");
+                          setValue("partyAddress", "");
+                          setValue("gstn", "");
                           return;
                         }
                         const vendor = ledgerList.find((v) => String(v.ledgerId) === String(val));
                         if (!vendor) return;
-                        setValue("partyAddress",  vendor.corporateAddress     || "");
-                        setValue("gstn",          vendor.gstin                || "");
-                        setValue("contactPerson", vendor.primaryContactPerson || "");
-                        setValue("contactNumber", vendor.primaryContactNumber || "");
+                        setValue("partyAddress", vendor.corporateAddress || "");
+                        setValue("gstn",         vendor.gstin            || "");
                       }}
                       disabled={disabled}
                     >
@@ -328,10 +333,9 @@ export default function OrderBasicSection({
                             const d = res.data?.[0];
                             if (!d) return;
                             setTransferProjectData(d);
-                            setValue("partyAddress",  d.registeredAddress     || "");
-                            setValue("gstn",          d.gstn                  || "");
-                            setValue("contactPerson", d.projectManager        || "");
-                            setValue("contactNumber", d.projMgmtContactNumber || "");
+                            setValue("partyAddress", d.registeredAddress || "");
+                            setValue("gstn",         d.gstn              || "");
+                            setValue("shippingAddress", "");
                           })
                           .catch(() => {});
                       }}
@@ -417,11 +421,11 @@ export default function OrderBasicSection({
         <div className="flex flex-col gap-[2px] break-inside-avoid">
           <div className="flex items-center">
             <div className={LABEL}>Contact Person</div>
-            <Input {...register("contactPerson")} disabled placeholder="[Auto]" className={`${getInputClass(false, true)} ${INPUT_W} h-[34px]`} />
+            <Input {...register("contactPerson")} disabled={disabled} placeholder="Text" className={`${getInputClass(errors.contactPerson, disabled)} ${INPUT_W} h-[34px]`} />
           </div>
           <div className="flex items-center">
             <div className={LABEL}>Contact Number</div>
-            <Input {...register("contactNumber")} disabled placeholder="[Auto]" className={`${getInputClass(false, true)} ${INPUT_W} h-[34px]`} />
+            <Input {...register("contactNumber")} disabled={disabled} placeholder="Text" className={`${getInputClass(errors.contactNumber, disabled)} ${INPUT_W} h-[34px]`} />
           </div>
         </div>
 

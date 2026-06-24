@@ -94,17 +94,13 @@ export default function ServiceOrderForm({ mode = "create", serviceOrderId }) {
         // Fetch vendor party fields — not in service order API response
         let partyAddress = "";
         let gstn = "";
-        let contactPerson = "";
-        let contactNumber = "";
         try {
           if (data.vendorId) {
             const ledgerRes = await apiRequest({ url: API_ENDPOINTS.MASTER.GET_ALL_LEDGER, method: "GET" });
             const vendor = (ledgerRes.data || []).find((v) => String(v.ledgerId) === String(data.vendorId));
             if (vendor) {
-              partyAddress  = vendor.corporateAddress     || "";
-              gstn          = vendor.gstin                || "";
-              contactPerson = vendor.primaryContactPerson || "";
-              contactNumber = vendor.primaryContactNumber || "";
+              partyAddress = vendor.corporateAddress || "";
+              gstn         = vendor.gstin            || "";
             }
           }
         } catch { /* party fields stay empty if ledger API fails */ }
@@ -119,6 +115,8 @@ export default function ServiceOrderForm({ mode = "create", serviceOrderId }) {
           validityDate: data.validityDate || "",
           billingAddress: data.billingAddress || "",
           shippingAddress: data.shippingAddress || "",
+          contactPerson: data.contactPerson || "",
+          contactNumber: data.contactNumber || "",
           quotationNo: data.quotationNo || "",
           quotationDate: data.quotationDate || "",
           orderMessage: data.orderMessage || "",
@@ -130,8 +128,6 @@ export default function ServiceOrderForm({ mode = "create", serviceOrderId }) {
           totalAmount: Number(data.totalAmount || 0),
           partyAddress,
           gstn,
-          contactPerson,
-          contactNumber,
         };
 
         reset(formattedData);

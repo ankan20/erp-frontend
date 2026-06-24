@@ -322,15 +322,12 @@ export default function ServiceOrderBasicSection({
                     field.onChange(val);
                     if (!val) {
                       setValue("partyAddress", ""); setValue("gstn", "");
-                      setValue("contactPerson", ""); setValue("contactNumber", "");
                       return;
                     }
                     const vendor = ledgerList.find((v) => String(v.ledgerId) === String(val));
                     if (!vendor) return;
-                    setValue("partyAddress",  vendor.corporateAddress     || "");
-                    setValue("gstn",          vendor.gstin                || "");
-                    setValue("contactPerson", vendor.primaryContactPerson || "");
-                    setValue("contactNumber", vendor.primaryContactNumber || "");
+                    setValue("partyAddress", vendor.corporateAddress || "");
+                    setValue("gstn",         vendor.gstin            || "");
                   }}
                   disabled={disabled}
                 >
@@ -409,11 +406,11 @@ export default function ServiceOrderBasicSection({
       <div className="flex flex-col gap-[2px] break-inside-avoid">
         <div className="flex items-center">
           <div className={`${labelClass} w-[180px] min-w-[180px] max-w-[180px]`}>Contact Person</div>
-          <Input {...register("contactPerson")} disabled placeholder="[Auto]" className={`${getInputClass(false, true)} w-[220px] h-[34px]`} />
+          <Input {...register("contactPerson")} disabled={disabled} placeholder="Text" className={`${getInputClass(errors.contactPerson, disabled)} w-[220px] h-[34px]`} />
         </div>
         <div className="flex items-center">
           <div className={`${labelClass} w-[180px] min-w-[180px] max-w-[180px]`}>Contact Number</div>
-          <Input {...register("contactNumber")} disabled placeholder="[Auto]" className={`${getInputClass(false, true)} w-[220px] h-[34px]`} />
+          <Input {...register("contactNumber")} disabled={disabled} placeholder="Text" className={`${getInputClass(errors.contactNumber, disabled)} w-[220px] h-[34px]`} />
         </div>
       </div>
 
