@@ -115,6 +115,19 @@ export const routeMetaConfig = [
     basePath: "/master/unit/[id]",
     breadcrumbs: ["Master", "Unit", "Edit"],
   },
+  //bank & cash
+  {
+    basePath: "/master/bank-cash",
+    breadcrumbs: ["Master", "Bank & Cash ID" ],
+  },
+  {
+    basePath: "/master/bank-cash/new",
+    breadcrumbs: ["Master", "Bank & Cash ID", "New"],
+  },
+  {
+    basePath: "/master/bank-cash/[id]",
+    breadcrumbs: ["Master", "Bank & Cash ID", "Edit"],
+  },
   //resource-management/procurement
   //indent
   {

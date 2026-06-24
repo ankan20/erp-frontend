@@ -65,6 +65,13 @@ export const API_ENDPOINTS = {
       UPDATE: "/master/term/update",
       DELETE: "/master/term/delete",
     },
+    BANK_CASH: {
+      LIST:      "/master/bank-cash/list",
+      CREATE:    "/master/bank-cash/create",
+      GET_BY_ID: "/master/bank-cash",       // /<id>
+      UPDATE:    "/master/bank-cash/update", // /<id>
+      DELETE:    "/master/bank-cash/delete", // /<id>
+    },
   },
   // resource/indent
   RESOURCE: {

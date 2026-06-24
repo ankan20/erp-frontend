@@ -82,6 +82,11 @@ export const sidebarConfig = [
         title: "Terms & Conditions",
         path: "/master/terms-condition",
         permissionKey: "terms_condition",
+      },
+      {
+        title: "Bank & Cash ID",
+        path: "/master/bank-cash",
+        permissionKey: "bank_cash",
       }
     ],
   },
