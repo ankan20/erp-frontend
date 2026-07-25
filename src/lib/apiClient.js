@@ -51,8 +51,12 @@ export const apiRequest = async ({
 
   if (!res.ok) {
     if (res.status === 401 && requireAuth && typeof window !== "undefined") {
-      clearAuthCookies();
-      window.location.href = "/login";
+      const alreadyOnLogin = window.location.pathname === "/login";
+      if (!alreadyOnLogin) {
+        clearAuthCookies();
+        window.location.href = "/login";
+        return; // stop further processing while navigating
+      }
     }
     if (res.status === 403 && typeof window !== "undefined") {
       import("sonner").then(({ toast }) => {
