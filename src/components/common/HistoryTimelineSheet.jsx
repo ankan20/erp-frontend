@@ -1,684 +1,275 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
-
+import { useEffect, useState } from "react";
 import Image from "next/image";
-
-// CHANGED: Replaced Sheet with Dialog for centered modal positioning
-import {
-  Dialog,
-  DialogContent,
-} from "@/components/ui/dialog";
-
+import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
-
-import { Input } from "@/components/ui/input";
-
-import { Separator } from "@/components/ui/separator";
-
-import {
-  Loader2,
-  Search,
-  Clock3,
-  User2,
-} from "lucide-react";
-
-// CHANGED: Removed ChevronLeft — no longer needed (Dialog handles close via backdrop/X)
-
+import { Loader2, Clock3, User2, CheckCircle2, Circle, Layers } from "lucide-react";
 import { toast } from "sonner";
-
 import { apiRequest } from "@/lib/apiClient";
-
 import { WORKFLOW_ACTIONS } from "@/config/workflowAction.config";
 
-export default function HistoryTimelineSheet({
-  open,
-  onClose,
-  title = "History",
-  api,
-  entityId,
-}) {
+function formatDate(date) {
+  if (!date) return "";
+  return new Date(date).toLocaleString("en-IN", {
+    day: "2-digit", month: "short", year: "numeric",
+    hour: "2-digit", minute: "2-digit", hour12: true,
+  });
+}
 
-  const [loading, setLoading] = useState(false);
+function isDone(status) {
+  const s = (status || "").toLowerCase();
+  return s !== "not reached" && s !== "pending" && s !== "not_reached" && s !== "";
+}
 
-  const [search, setSearch] = useState("");
+// ── Dot icon for each node ────────────────────────────────────────────────────
+function NodeDot({ action, done }) {
+  const isFinal = action?.toUpperCase() === "FINAL_APPROVE";
+  const config  = WORKFLOW_ACTIONS[action?.toUpperCase()] || WORKFLOW_ACTIONS.DRAFT;
+  const Icon    = config?.icon;
 
-  const [history, setHistory] = useState([]);
+  if (!done) {
+    return (
+      <div className="w-8 h-8 rounded-full border-2 border-yellow-400 bg-white flex items-center justify-center shrink-0 z-10">
+        <Circle className="w-3 h-3 text-yellow-400" />
+      </div>
+    );
+  }
 
-  // — unchanged logic —
+  if (isFinal) {
+    return (
+      <div className="w-8 h-8 rounded-full border border-emerald-200 bg-white flex items-center justify-center shrink-0 z-10 overflow-hidden shadow-sm">
+        <Image src={config.image} alt="Final Approved" width={40} height={40} unoptimized className="w-full h-full object-contain scale-[1.2]" />
+      </div>
+    );
+  }
+
+  return (
+    <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 z-10 shadow-sm ${config.color} text-white`}>
+      {Icon && <Icon className="w-4 h-4" />}
+    </div>
+  );
+}
+
+// ── Single timeline node ──────────────────────────────────────────────────────
+function TimelineNode({ node, isLast, nextDone }) {
+  const isFinal   = node.action?.toUpperCase() === "FINAL_APPROVE";
+  const config    = WORKFLOW_ACTIONS[node.action?.toUpperCase()] || WORKFLOW_ACTIONS.DRAFT;
+  const badgeClass = node.done
+    ? (isFinal ? "bg-emerald-100 text-emerald-700" : config.badge)
+    : "bg-yellow-100 text-yellow-700";
+  const label = node.done
+    ? (isFinal ? "Final Approved" : config.label)
+    : "Pending";
+
+  return (
+    <div className="relative flex gap-3">
+      {/* dot + vertical line */}
+      <div className="flex flex-col items-center">
+        <NodeDot action={node.action} done={node.done} />
+        {!isLast && (
+          <div className={`w-[2px] flex-1 min-h-[28px] mt-[3px] mb-[3px] ${node.done && nextDone ? "bg-green-400" : "bg-yellow-300"}`} />
+        )}
+      </div>
+
+      {/* card */}
+      <div className={`pb-4 flex-1 min-w-0 ${isLast ? "pb-1" : ""}`}>
+        <div className={`rounded-xl border px-4 py-3 ${node.done ? "bg-white shadow-sm border-gray-200" : "bg-yellow-50 border-yellow-200 border-dashed"}`}>
+
+          {/* ── big screen: one row ── */}
+          <div className="hidden sm:flex items-center justify-between gap-3 flex-nowrap">
+            <div className="flex items-center gap-2 flex-wrap min-w-0">
+              {/* level pill — hidden for SUBMIT */}
+              {node.level != null && node.action?.toUpperCase() !== "SUBMIT" && (
+                <span className="inline-flex items-center gap-1 text-[11px] font-medium text-gray-500 bg-gray-100 px-2 py-0.5 rounded shrink-0">
+                  <Layers className="w-3 h-3" />
+                  Level {node.level}
+                </span>
+              )}
+              {/* status badge */}
+              <span className={`text-[12px] font-semibold px-2.5 py-0.5 rounded-md whitespace-nowrap ${badgeClass}`}>
+                {label}
+              </span>
+              {/* by user */}
+              {node.by && (
+                <div className="flex items-center gap-1 text-[12px] text-gray-500">
+                  <User2 className="w-3.5 h-3.5 shrink-0 text-gray-400" />
+                  <span>by <span className="font-medium text-gray-700">{node.by}</span></span>
+                </div>
+              )}
+            </div>
+            {/* date */}
+            {node.at && (
+              <span className="text-[11px] text-gray-400 whitespace-nowrap shrink-0">{formatDate(node.at)}</span>
+            )}
+          </div>
+
+          {/* ── small screen: two rows ── */}
+          <div className="flex flex-col gap-1 sm:hidden">
+            <div className="flex items-center justify-between gap-2">
+              <div className="flex items-center gap-1.5 flex-wrap">
+                {node.level != null && (
+                  <span className="text-[11px] font-medium text-gray-400 bg-gray-100 px-1.5 py-0.5 rounded shrink-0">
+                    L{node.level}
+                  </span>
+                )}
+                <span className={`text-[12px] font-semibold px-2.5 py-0.5 rounded-md whitespace-nowrap ${badgeClass}`}>
+                  {label}
+                </span>
+              </div>
+              {node.at && (
+                <span className="text-[11px] text-gray-400 whitespace-nowrap shrink-0">{formatDate(node.at)}</span>
+              )}
+            </div>
+            {node.by && (
+              <div className="flex items-center gap-1 text-[12px] text-gray-500">
+                <User2 className="w-3.5 h-3.5 shrink-0 text-gray-400" />
+                <span>by <span className="font-medium text-gray-700">{node.by}</span></span>
+              </div>
+            )}
+          </div>
+
+          {/* pending hint */}
+          {!node.done && (
+            <p className="text-[11px] text-yellow-500 italic mt-1.5">Waiting for approval…</p>
+          )}
+
+          {/* comments */}
+          {node.comments && (
+            <div className="mt-2.5 rounded-lg bg-slate-50 border px-3 py-2">
+              <p className="text-[12px] text-gray-600 break-words leading-5">{node.comments}</p>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── Main component ────────────────────────────────────────────────────────────
+export default function HistoryTimelineSheet({ open, onClose, title = "History", api, entityId }) {
+  const [loading, setLoading]           = useState(false);
+  const [nodes, setNodes]               = useState([]);
+  const [workflowStatus, setWorkflowStatus] = useState("");
+
   useEffect(() => {
-
     if (!open || !entityId) return;
 
     const fetchHistory = async () => {
-
       try {
-
         setLoading(true);
+        const res = await apiRequest({ url: `${api}/${entityId}`, method: "GET" });
+        const d = res?.data;
 
-        const res = await apiRequest({
-          url: `${api}/${entityId}`,
-          method: "GET",
-        });
+        if (d && !Array.isArray(d) && d.history) {
+          // ── history items → done nodes ────────────────────────
+          const doneNodes = (d.history || []).map(item => ({
+            done:     true,
+            action:   item.action,
+            level:    item.level ?? null,
+            by:       item.actionBy,
+            at:       item.createdAt,
+            comments: item.comments || null,
+          }));
 
-        setHistory(res?.data || []);
+          // levels already covered by history
+          const coveredLevels = new Set((d.history || []).map(h => h.level));
 
+          // ── pending approvalSteps not yet in history → pending nodes ──
+          const pendingNodes = (d.approvalSteps || [])
+            .filter(s => !isDone(s.status) && !coveredLevels.has(s.level))
+            .sort((a, b) => a.level - b.level)
+            .map(s => ({
+              done:     false,
+              action:   null,
+              level:    s.level,
+              by:       s.approver?.username || null,
+              at:       null,
+              comments: null,
+            }));
+
+          setNodes([...doneNodes, ...pendingNodes]);
+          setWorkflowStatus(d.workflowStatus || "");
+
+        } else {
+          // old flat-array fallback
+          const arr = Array.isArray(d) ? d : [];
+          setNodes(arr.map(item => ({
+            done:     true,
+            action:   item.action,
+            level:    item.level ?? null,
+            by:       item.actionBy,
+            at:       item.createdAt,
+            comments: item.comments || null,
+          })));
+          setWorkflowStatus("");
+        }
       } catch (err) {
-
         toast.error(err?.message || "Failed to fetch history");
-
       } finally {
-
         setLoading(false);
       }
     };
 
     fetchHistory();
-
   }, [open, api, entityId]);
 
-  // — unchanged logic —
-  const filteredHistory = useMemo(() => {
-
-    if (!search) return history;
-
-    return history.filter((item) => {
-
-      const value = `
-        ${item.action}
-        ${item.comments}
-        ${item.actionBy}
-      `.toLowerCase();
-
-      return value.includes(search.toLowerCase());
-    });
-
-  }, [history, search]);
-
-  // — unchanged logic —
-  const formatDate = (date) => {
-
-    if (!date) return "";
-
-    const parsed = new Date(date);
-
-    return parsed.toLocaleString("en-IN", {
-      day: "2-digit",
-      month: "short",
-      year: "numeric",
-      hour: "2-digit",
-      minute: "2-digit",
-      hour12: true,
-    });
-  };
+  const statusBadge =
+    workflowStatus === "Approved"  ? "bg-green-100 text-green-700 border-green-200"     :
+    workflowStatus === "Rejected"  ? "bg-red-100 text-red-700 border-red-200"           :
+    workflowStatus === "Reback"    ? "bg-yellow-100 text-yellow-700 border-yellow-200"  :
+    workflowStatus              ? "bg-blue-100 text-blue-700 border-blue-200"        : "";
 
   return (
-
-    // CHANGED: Dialog replaces Sheet — renders centered on page, not as a side drawer
     <Dialog open={open} onOpenChange={onClose}>
+      <DialogContent className="w-[95vw] sm:max-w-[580px] max-h-[90vh] p-0 flex flex-col overflow-hidden gap-0">
 
-      {/*
-        CHANGED: DialogContent sized to match old Sheet width.
-        - w-[95vw] on mobile (no full bleed)
-        - sm:max-w-[520px] on bigger screens
-        - max-h-[90vh] so it never overflows the viewport
-        - flex flex-col so header/footer stay fixed and only timeline scrolls
-      */}
-      <DialogContent
-        className="
-          w-[95vw]
-          sm:max-w-[520px]
-
-          max-h-[90vh]
-
-          p-0
-
-          flex
-          flex-col
-
-          overflow-hidden
-
-          gap-0
-        "
-      >
-
-        {/* HEADER — unchanged styles, removed ChevronLeft button */}
-        <div
-          className="
-            h-[64px]
-
-            px-4
-
-            flex
-            items-center
-            gap-3
-
-            border-b
-
-            bg-[#e8f2ff]
-
-            shrink-0
-          "
-        >
-
-          <h2
-            className="
-              text-[20px]
-              font-semibold
-            "
-          >
-            {title}
-          </h2>
-
+        {/* header — pr-10 reserves space for the Dialog close button */}
+        <div className="h-[56px] pl-5 pr-10 flex items-center justify-between border-b bg-[#e8f2ff] shrink-0">
+          <h2 className="text-[18px] font-semibold">{title}</h2>
+          {workflowStatus && (
+            <span className={`text-[11px] font-semibold px-3 py-1 rounded-full border ${statusBadge}`}>
+              {workflowStatus}
+            </span>
+          )}
         </div>
 
-        {/* SEARCH — unchanged */}
-        <div
-          className="
-            px-4
-            py-3
-
-            border-b
-
-            shrink-0
-
-            bg-white
-          "
-        >
-
-          <div className="relative">
-
-            <Search
-              className="
-                absolute
-                left-3
-                top-1/2
-                -translate-y-1/2
-
-                w-4
-                h-4
-
-                text-gray-400
-              "
-            />
-
-            <Input
-              placeholder="Search history..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="
-                pl-9
-                h-[40px]
-              "
-            />
-
-          </div>
-
-        </div>
-
-        {/* TIMELINE */}
-        <ScrollArea
-          className="
-            flex-1
-            min-h-0
-            overflow-x-hidden
-          "
-        >
-
+        {/* body */}
+        <ScrollArea className="flex-1 min-h-0">
           <div className="px-5 py-5">
-
             {loading ? (
-
-              <div
-                className="
-                  h-[300px]
-
-                  flex
-                  items-center
-                  justify-center
-                "
-              >
-                <Loader2 className="w-6 h-6 animate-spin" />
+              <div className="h-[280px] flex items-center justify-center">
+                <Loader2 className="w-6 h-6 animate-spin text-gray-400" />
               </div>
-
-            ) : filteredHistory.length === 0 ? (
-
-              <div
-                className="
-                  h-[300px]
-
-                  flex
-                  flex-col
-                  items-center
-                  justify-center
-
-                  text-gray-500
-                "
-              >
-                <Clock3 className="w-10 h-10 mb-3" />
-                <p className="text-sm">No history found</p>
+            ) : nodes.length === 0 ? (
+              <div className="h-[280px] flex flex-col items-center justify-center text-gray-400 gap-3">
+                <Clock3 className="w-10 h-10" />
+                <p className="text-sm">No history yet</p>
               </div>
-
             ) : (
-
-              <div className="relative space-y-7">
-
-                {filteredHistory.map((item, index) => {
-
-                  const config =
-                    WORKFLOW_ACTIONS[item.action] ||
-                    WORKFLOW_ACTIONS[item.action?.toUpperCase()] ||
-                    WORKFLOW_ACTIONS.DRAFT;
-
-                  const Icon = config.icon;
-
-                  const isLast = index === filteredHistory.length - 1;
-
-                  const isFinalApprove =
-                    item.action?.toUpperCase() === "FINAL_APPROVE";
-
-                  const showLevel =
-                    item.action?.toUpperCase() !== "SUBMIT" && item.level;
-
-                  return (
-
-                    <div
-                      key={item.id}
-                      className="
-                        relative
-                        pl-10
-                        min-w-0
-                      "
-                    >
-
-                      {/* CONNECTOR LINE — unchanged */}
-                      {!isLast && (
-                        <div
-                          className={`
-                            absolute
-                            left-[15px]
-                            top-8
-
-                            w-[2px]
-                            h-[calc(100%+28px)]
-
-                            ${
-                              item.action === "REJECT"
-                                ? "bg-red-200"
-                                : "bg-gray-200"
-                            }
-                          `}
-                        />
-                      )}
-
-                      {/* TIMELINE ICON — unchanged */}
-                      <div
-                        className={`
-                          absolute
-                          left-0
-                          top-1
-
-                          w-8
-                          h-8
-
-                          rounded-full
-
-                          flex
-                          items-center
-                          justify-center
-
-                          shadow-sm
-
-                          shrink-0
-
-                          overflow-hidden
-
-                          ${
-                            isFinalApprove
-                              ? "bg-white border border-emerald-200"
-                              : `${config.color} text-white`
-                          }
-                        `}
-                      >
-
-                        {isFinalApprove ? (
-                          <Image
-                            src={config.image}
-                            alt="Final Approved"
-                            width={40}
-                            height={40}
-                            unoptimized
-                            className="
-                              w-full
-                              h-full
-                              object-contain
-                              scale-[1.2]
-                            "
-                          />
-                        ) : (
-                          <Icon className="w-4 h-4" />
-                        )}
-
-                      </div>
-
-                      {/* CARD */}
-                      {/* CHANGED: overflow-hidden prevents card from expanding past its container */}
-                      <div
-                        className="
-                          rounded-xl
-                          border
-                          bg-white
-
-                          shadow-sm
-
-                          px-4
-                          py-3
-
-                          overflow-hidden
-                        "
-                      >
-
-                        {/*
-                          CHANGED: Responsive card body layout
-                          ─────────────────────────────────────────────
-                          SMALL screens (default):
-                            Row 1 → [Status badge]  [time] (space-between)
-                            Row 2 → [Level badge]   (if present)
-                            Row 3 → [User icon] by username
-
-                          BIGGER screens (sm+):
-                            Row 1 → [Status] [Level] [by user]  [time]  — all one line
-                          ─────────────────────────────────────────────
-                        */}
-
-                        {/* ── SMALL SCREEN LAYOUT (hidden on sm+) ── */}
-                        <div className="flex flex-col gap-1.5 sm:hidden">
-
-                          {/* Row 1 small: status + time */}
-                          <div className="flex items-center justify-between gap-2">
-
-                            <span
-                              className={`
-                                px-2.5
-                                py-1
-
-                                rounded-md
-
-                                text-[12px]
-                                font-semibold
-
-                                whitespace-nowrap
-
-                                ${
-                                  isFinalApprove
-                                    ? "bg-emerald-100 text-emerald-700"
-                                    : config.badge
-                                }
-                              `}
-                            >
-                              {config.label}
-                            </span>
-
-                            <span
-                              className="
-                                text-xs
-                                text-gray-400
-                                whitespace-nowrap
-                                shrink-0
-                              "
-                            >
-                              {formatDate(item.createdAt)}
-                            </span>
-
-                          </div>
-
-                          {/* Row 2 small: level badge (if present) */}
-                          {showLevel && (
-                            <span
-                              className="
-                                self-start
-
-                                text-xs
-                                font-medium
-
-                                text-gray-500
-
-                                bg-gray-100
-
-                                px-2
-                                py-1
-
-                                rounded-md
-
-                                whitespace-nowrap
-                              "
-                            >
-                              {`Level ${item.level}`}
-                            </span>
-                          )}
-
-                          {/* Row 3 small: by username */}
-                          <div
-                            className="
-                              flex
-                              items-center
-                              gap-1.5
-
-                              text-sm
-                              text-gray-500
-                            "
-                          >
-                            <User2 className="w-4 h-4 shrink-0" />
-                            <span>
-                              by{" "}
-                              <span className="font-medium text-gray-700">
-                                {item.actionBy || "System"}
-                              </span>
-                            </span>
-                          </div>
-
-                        </div>
-
-                        {/* ── BIGGER SCREEN LAYOUT (hidden below sm) ── */}
-                        <div className="hidden sm:flex items-center justify-between gap-3">
-
-                          {/* Left cluster: status + level + by user — all in one line */}
-                          <div
-                            className="
-                              flex
-                              items-center
-                              gap-2
-
-                              flex-wrap
-
-                              min-w-0
-                            "
-                          >
-
-                            {/* Status badge */}
-                            <span
-                              className={`
-                                px-2.5
-                                py-1
-
-                                rounded-md
-
-                                text-[12px]
-                                font-semibold
-
-                                whitespace-nowrap
-
-                                ${
-                                  isFinalApprove
-                                    ? "bg-emerald-100 text-emerald-700"
-                                    : config.badge
-                                }
-                              `}
-                            >
-                              {config.label}
-                            </span>
-
-                            {/* Level badge */}
-                            {showLevel && (
-                              <span
-                                className="
-                                  text-xs
-                                  font-medium
-
-                                  text-gray-500
-
-                                  bg-gray-100
-
-                                  px-2
-                                  py-1
-
-                                  rounded-md
-
-                                  whitespace-nowrap
-                                  shrink-0
-                                "
-                              >
-                                {`Level ${item.level}`}
-                              </span>
-                            )}
-
-                            {/* By username */}
-                            <div
-                              className="
-                                flex
-                                items-center
-                                gap-1.5
-
-                                text-sm
-                                text-gray-500
-                              "
-                            >
-                              <User2 className="w-4 h-4 shrink-0" />
-                              <span>
-                                by{" "}
-                                <span className="font-medium text-gray-700">
-                                  {item.actionBy || "System"}
-                                </span>
-                              </span>
-                            </div>
-
-                          </div>
-
-                          {/* Right: time */}
-                          <span
-                            className="
-                              text-xs
-                              text-gray-400
-
-                              whitespace-nowrap
-
-                              shrink-0
-                            "
-                          >
-                            {formatDate(item.createdAt)}
-                          </span>
-
-                        </div>
-
-                        {/* COMMENTS — unchanged, shared across both layouts */}
-                        {item.comments && (
-                          <div className="mt-3">
-
-                            <p
-                              className="
-                                text-[12px]
-                                font-medium
-
-                                text-gray-500
-
-                                mb-1.5
-                              "
-                            >
-                              Comments
-                            </p>
-
-                            <div
-                              className="
-                                rounded-lg
-                                border
-
-                                bg-slate-50
-
-                                px-3
-                                py-2.5
-
-                                overflow-hidden
-                              "
-                            >
-                              {/* CHANGED: break-all forces wrap on any character — handles no-space strings like "aaaa..." */}
-                              <p
-                                className="
-                                  text-sm
-                                  text-gray-700
-                                  leading-6
-
-                                  break-all
-                                "
-                              >
-                                {item.comments}
-                              </p>
-                            </div>
-
-                          </div>
-                        )}
-
-                      </div>
-
-                    </div>
-                  );
-                })}
-
-              </div>
+              nodes.map((node, idx) => (
+                <TimelineNode
+                  key={idx}
+                  node={node}
+                  isLast={idx === nodes.length - 1}
+                  nextDone={nodes[idx + 1]?.done ?? true}
+                />
+              ))
             )}
-
           </div>
-
         </ScrollArea>
 
-        <Separator />
-
-        {/* FOOTER — unchanged */}
-        <div
-          className="
-            p-4
-            shrink-0
-            bg-white
-          "
-        >
-
-          <div className="flex justify-end">
-
-            <button
-              onClick={onClose}
-              className="
-                h-[40px]
-                px-5
-
-                rounded-md
-                border
-
-                text-sm
-                font-medium
-
-                hover:bg-gray-50
-
-                cursor-pointer
-              "
-            >
-              Close
-            </button>
-
-          </div>
-
+        {/* footer */}
+        <div className="px-5 py-3 border-t bg-white shrink-0 flex justify-end">
+          <button
+            onClick={onClose}
+            className="h-[36px] px-5 rounded-md border text-sm font-medium hover:bg-gray-50 cursor-pointer"
+          >
+            Close
+          </button>
         </div>
 
       </DialogContent>
-
     </Dialog>
   );
 }
