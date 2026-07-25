@@ -35,11 +35,12 @@ export const deleteCookie = (name, path = "/") => {
 // CLEAR AUTH
 export const clearAuthCookies = () => {
   deleteCookie("userId");
-  deleteCookie("userName");
   deleteCookie("role");
   deleteCookie("companyId");
   if (typeof window !== "undefined") {
     localStorage.removeItem("token");
     localStorage.removeItem("permissions");
+    localStorage.removeItem("userName");
+    localStorage.removeItem("projectInfo");
   }
 };
