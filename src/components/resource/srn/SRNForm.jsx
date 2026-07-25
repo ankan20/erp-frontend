@@ -65,7 +65,7 @@ const defaultValues = {
 };
 
 // ── COMPONENT ─────────────────────────────────────────────────────────────────
-export default function SRNForm({ mode = "create", srnId }) {
+export default function SRNForm({ mode = "create", srnId, onUuid }) {
   const isViewMode = mode === "view" || mode === "approver";
   const router = useRouter();
   const fileRef = useRef(null);
@@ -182,6 +182,8 @@ export default function SRNForm({ mode = "create", srnId }) {
         const furl = d.attachedDoc || "";
         setExistingFileUrl(furl);
         setInitialFileUrl(furl);
+
+        if (d.uuid && onUuid) onUuid(d.uuid);
 
         // Lock state
         const editable = ["draft", "reback"].includes(
@@ -331,6 +333,7 @@ export default function SRNForm({ mode = "create", srnId }) {
       });
 
       if (res?.data?.srnNo) form.setValue("srnNo", res.data.srnNo);
+      if (res?.data?.uuid && onUuid) onUuid(res.data.uuid);
 
       if (res?.data?.attachedDoc) {
         const url = res.data.attachedDoc;

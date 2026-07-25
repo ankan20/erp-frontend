@@ -59,7 +59,7 @@ const defaultValues = {
 };
 
 // ── COMPONENT ─────────────────────────────────────────────────────────────────
-export default function GINForm({ mode = "create", ginId }) {
+export default function GINForm({ mode = "create", ginId, onUuid }) {
   const isViewMode = mode === "view" || mode === "approver";
   const router     = useRouter();
   const fileRef    = useRef(null);
@@ -159,6 +159,8 @@ export default function GINForm({ mode = "create", ginId }) {
         const furl = d.attachedDoc || "";
         setExistingFileUrl(furl);
         setInitialFileUrl(furl);
+
+        if (d.uuid && onUuid) onUuid(d.uuid);
 
         // Lock state based on workflowStatus
         const editable = ["draft", "reback"].includes(
@@ -298,6 +300,7 @@ export default function GINForm({ mode = "create", ginId }) {
       });
 
       if (res?.data?.ginNo) form.setValue("ginNo", res.data.ginNo);
+      if (res?.data?.uuid && onUuid) onUuid(res.data.uuid);
 
       if (res?.data?.attachedDoc) {
         const url = res.data.attachedDoc;

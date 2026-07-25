@@ -65,7 +65,7 @@ const defaultValues = {
 };
 
 // ── COMPONENT ─────────────────────────────────────────────────────────────────
-export default function GRNForm({ mode = "create", grnId }) {
+export default function GRNForm({ mode = "create", grnId, onUuid }) {
   const isViewMode = mode === "view" || mode === "approver";
   const router = useRouter();
   const fileRef = useRef(null);
@@ -180,6 +180,8 @@ export default function GRNForm({ mode = "create", grnId }) {
         const furl = d.attachedDoc || "";
         setExistingFileUrl(furl);
         setInitialFileUrl(furl);
+
+        if (d.uuid && onUuid) onUuid(d.uuid);
 
         // Lock state
         const editable = ["draft", "reback"].includes(
@@ -329,6 +331,7 @@ export default function GRNForm({ mode = "create", grnId }) {
       });
 
       if (res?.data?.grnNo) form.setValue("grnNo", res.data.grnNo);
+      if (res?.data?.uuid && onUuid) onUuid(res.data.uuid);
 
       if (res?.data?.attachedDoc) {
         const url = res.data.attachedDoc;

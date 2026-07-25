@@ -82,12 +82,17 @@ export default function OrderItemSelectionModal({
             (ex) => String(ex.indentItemId) === String(item.indentItemId),
           );
 
+          const myCurrentQty = existing ? Number(existing.qty || 0) : 0;
+          const effectiveBalance = Number(item.balanceQty) + myCurrentQty;
+
           return {
             ...item,
 
             selected: !!existing,
 
             orderQty: existing?.qty || item.orderQty || item.balanceQty,
+
+            effectiveBalance,
 
             note: existing?.note || item.note || "",
 
@@ -188,7 +193,7 @@ export default function OrderItemSelectionModal({
     for (const item of selectedRows) {
       const qty = Number(item.orderQty);
 
-      const balance = Number(item.balanceQty);
+      const balance = Number(item.effectiveBalance ?? item.balanceQty);
 
       if (qty < 0.001) {
         toast.error(`${item.itemName} qty must be greater than 0`);
@@ -461,7 +466,7 @@ export default function OrderItemSelectionModal({
                 filteredItems.map((item) => {
                   const qtyError =
                     Number(item.orderQty) < 0.001 ||
-                    Number(item.orderQty) > Number(item.balanceQty);
+                    Number(item.orderQty) > Number(item.effectiveBalance ?? item.balanceQty);
 
                   return (
                     <tr key={item.indentItemId}>

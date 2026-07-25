@@ -10,7 +10,7 @@ import { getPageActions }       from "@/components/common/PageActionButtons";
 import { getPageAccess }        from "@/helper/getPageAccess";
 import ApprovalActionModal      from "@/components/common/ApprovalActionModal";
 import HistoryTimelineSheet     from "@/components/common/HistoryTimelineSheet";
-import GRNForm from "@/components/resource/srn/SRNForm";
+import SRNForm from "@/components/resource/srn/SRNForm";
 import { API_ENDPOINTS } from "@/config/api.config";
 
 export default function Page() {
@@ -19,6 +19,7 @@ export default function Page() {
 
   const [openApproval, setOpenApproval] = useState(false);
   const [openTimeline, setOpenTimeline] = useState(false);
+  const [uuid, setUuid] = useState(null);
 
   const access = getPageAccess({ pageCode: "goods_received_note", pageType: "EDIT" });
 
@@ -28,11 +29,12 @@ export default function Page() {
     router,
     onTimeLine: () => setOpenTimeline(true),
     onApprove:  access.canApprove ? () => setOpenApproval(true) : undefined,
+    onDownload: uuid ? () => window.open(`/print/srn/${uuid}`, "_blank") : undefined,
   });
 
   return (
     <HeaderWrapper header={<PageHeader actions={actions} />}>
-      <GRNForm mode={access.mode} srnId={id} />
+      <SRNForm mode={access.mode} srnId={id} onUuid={setUuid} />
 
       <ApprovalActionModal
         open={openApproval}
