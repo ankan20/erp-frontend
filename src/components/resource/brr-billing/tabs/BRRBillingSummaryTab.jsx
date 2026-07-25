@@ -1,7 +1,7 @@
 "use client";
 
 import { Checkbox } from "@/components/ui/checkbox";
-import { toWords } from "number-to-words";
+import { amountToWordsIN } from "@/lib/amountToWords";
 
 export default function BRRBillingSummaryTab({ form }) {
   const { watch, setValue } = form;
@@ -22,9 +22,7 @@ export default function BRRBillingSummaryTab({ form }) {
   const cgstAmount = isCGSTSGST ? backendGstAmount / 2   : 0;
   const sgstAmount = isCGSTSGST ? backendGstAmount / 2   : 0;
 
-  const amountInWords = backendTotalAmount > 0
-    ? `${toWords(Math.floor(backendTotalAmount))} Only`
-    : "Zero Only";
+  const amountInWords = amountToWordsIN(backendTotalAmount);
 
   return (
     <div className="space-y-3 p-3">

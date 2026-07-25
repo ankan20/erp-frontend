@@ -3,7 +3,7 @@
 import { useEffect, useMemo } from "react";
 
 import { Checkbox } from "@/components/ui/checkbox";
-import { toWords } from "number-to-words";
+import { amountToWordsIN } from "@/lib/amountToWords";
 
 export default function OrderSummaryTab({
   form,
@@ -109,12 +109,7 @@ export default function OrderSummaryTab({
 
   const sgstAmount = isCGSTSGST ? backendGstAmount / 2 : 0;
 
-  const amountInWords =
-  `${toWords(
-    Math.floor(
-      backendTotalAmount,
-    ),
-  )} Only`;
+  const amountInWords = amountToWordsIN(backendTotalAmount);
 
   return (
     <div
