@@ -111,15 +111,15 @@ function ThreeBoxSection({ data }) {
         <tr>
           <td className={`${TD} pt-3 border-r border-[#b0b0b0]`}>
             <div className="space-y-0.5">
-              {v.primaryContact && <p className={VAL}><span className={LBL}>Contact Person</span> : {v.primaryContact}</p>}
-              {v.primaryPhone   && <p className={VAL}><span className={LBL}>Contact No</span> : {v.primaryPhone}</p>}
+              <p className={VAL}><span className={LBL}>Contact Person</span> : {v.primaryContact || ""}</p>
+              <p className={VAL}><span className={LBL}>Contact No</span> : {v.primaryPhone || ""}</p>
             </div>
           </td>
           <td className={`${TD} pt-3 border-r border-[#b0b0b0]`}>
             <div className="space-y-0.5">
-              {p.projMgmtEmail    && <p className={VAL}><span className={LBL}>Email</span> : {p.projMgmtEmail}</p>}
-              {data.contactPerson && <p className={VAL}><span className={LBL}>Contact Person</span> : {data.contactPerson}</p>}
-              {data.contactNumber && <p className={VAL}><span className={LBL}>Contact No</span> : {data.contactNumber}</p>}
+              <p className={VAL}><span className={LBL}>Email</span> : {p.projMgmtEmail || ""}</p>
+              <p className={VAL}><span className={LBL}>Contact Person</span> : {data.contactPerson || ""}</p>
+              <p className={VAL}><span className={LBL}>Contact No</span> : {data.contactNumber || ""}</p>
             </div>
           </td>
           <td className={`${TD} pt-3`}>
@@ -134,22 +134,22 @@ function ThreeBoxSection({ data }) {
         <tr>
           <td className={`${TD} pt-3 pb-2.5 border-r border-[#b0b0b0]`}>
             <div className="space-y-0.5">
-              {v.pan            && <p className={VAL}><span className={LBL}>PAN No.</span> : {v.pan}</p>}
-              {v.gstin          && <p className={VAL}><span className={LBL}>GSTIN NO.</span> : {v.gstin}</p>}
-              {v.stateName      && <p className={VAL}><span className={LBL}>State</span> : {v.stateName}{v.stateCode ? ` | State Code : ${v.stateCode}` : ""}</p>}
+              <p className={VAL}><span className={LBL}>PAN No.</span> : {v.pan || ""}</p>
+              <p className={VAL}><span className={LBL}>GSTIN NO.</span> : {v.gstin || ""}</p>
+              <p className={VAL}><span className={LBL}>State</span> : {v.stateName || ""}{v.stateCode ? ` | State Code : ${v.stateCode}` : ""}</p>
               {data.quotationNo && <p className={VAL}><span className={LBL}>Quotation No.</span> : {data.quotationNo}{data.quotationDate ? ` dtd.-${fmt.date(data.quotationDate)}` : ""}</p>}
             </div>
           </td>
           <td className={`${TD} pt-3 pb-2.5 border-r border-[#b0b0b0]`}>
             <div className="space-y-0.5">
-              {p.gstn            && <p className={VAL}><span className={LBL}>GSTIN NO.</span> : {p.gstn}</p>}
-              {p.state           && <p className={VAL}><span className={LBL}>State</span> : {p.state}{p.stateCode ? ` | State Code : ${p.stateCode}` : ""}</p>}
-              {data.orderMessage && <p className={VAL}><span className={LBL}>Enquiry No</span> :</p>}
+              <p className={VAL}><span className={LBL}>GSTIN NO.</span> : {p.gstn || ""}</p>
+              <p className={VAL}><span className={LBL}>State</span> : {p.state || ""}{p.stateCode ? ` | State Code : ${p.stateCode}` : ""}</p>
+              <p className={VAL}><span className={LBL}>Enquiry No</span> : {data.orderMessage || ""}</p>
             </div>
           </td>
           <td className={`${TD} pt-3 pb-2.5`}>
             <div className="space-y-0.5">
-              {data.createdBy && <p className={VAL}><span className={LBL}>Created by</span> : {data.createdBy}</p>}
+              <p className={VAL}><span className={LBL}>Created by</span> : {data.createdBy || ""}</p>
               <p className={VAL}><span className={LBL}>Status</span> : {data.workflowStatus || "-"}</p>
             </div>
           </td>
