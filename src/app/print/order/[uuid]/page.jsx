@@ -12,9 +12,10 @@ import { SIZE, WEIGHT, COLOR, fmt, FmtNum } from "@/components/print/printStyles
 
 /* ─── helpers ─────────────────────────────────────────────────── */
 function categoryLabel(data) {
+  // if (data.categoryCode === "Purchases_Order")       return "PURCHASE ORDER";
   if (data.categoryCode === "Customer_Supply_Order") return "CUSTOMER SUPPLY ORDER";
   if (data.categoryCode === "Site_Transfer_Order")   return "SITE TRANSFER ORDER";
-  return "PURCHASES";
+  return (data.categoryCode || "ORDER").replace(/_/g, " ").toUpperCase();
 }
 
 function toWordsRupees(amount) {
