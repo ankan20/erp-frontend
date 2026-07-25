@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Image from "next/image";
-import { Dialog, DialogContent } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Loader2, Clock3, User2, CheckCircle2, Circle, Layers } from "lucide-react";
 import { toast } from "sonner";
@@ -226,7 +226,7 @@ export default function HistoryTimelineSheet({ open, onClose, title = "History",
 
         {/* header — pr-10 reserves space for the Dialog close button */}
         <div className="h-[56px] pl-5 pr-10 flex items-center justify-between border-b bg-[#e8f2ff] shrink-0">
-          <h2 className="text-[18px] font-semibold">{title}</h2>
+          <DialogTitle className="text-[18px] font-semibold">{title}</DialogTitle>
           {workflowStatus && (
             <span className={`text-[11px] font-semibold px-3 py-1 rounded-full border ${statusBadge}`}>
               {workflowStatus}
