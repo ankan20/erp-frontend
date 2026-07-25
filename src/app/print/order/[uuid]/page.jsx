@@ -45,7 +45,7 @@ const LBL = `${SIZE.labelText} ${WEIGHT.semibold} text-gray-800`;
 const VAL = `${SIZE.labelText} text-gray-700`;
 
 /* Shared table-row layout so every group row aligns across all 3 columns */
-function ThreeBoxSection({ data }) {
+function ThreeBoxSection({ data, pageUrl }) {
   const v = data.vendor || {};
   const p = data.project || {};
   const TD = "align-top px-2.5 py-0";
@@ -71,7 +71,7 @@ function ThreeBoxSection({ data }) {
           <td className={`${TD} pt-2 border-r border-[#b0b0b0]`}>
             <p className={`${SIZE.labelText} ${WEIGHT.bold} text-gray-900`}>
               {v.ledgerName || data.partyName || "-"}
-              {v.ledgerCode && <span className={`${SIZE.subText} text-gray-500 ml-1`}>({v.ledgerCode})</span>}
+              {v.ledgerCode && <span className={`${SIZE.subText} text-gray-500 ml-1`}>(VC: {v.ledgerCode})</span>}
             </p>
           </td>
           <td className={`${TD} pt-2 border-r border-[#b0b0b0]`}>
@@ -80,15 +80,8 @@ function ThreeBoxSection({ data }) {
           </td>
           <td className={`${TD} pt-2`}>
             <div className="space-y-0.5">
-              {p.projectCode && <p className={VAL}><span className={LBL}>SGB No.</span> : {p.projectCode}</p>}
-              <p className={VAL}><span className={LBL}>Date</span> : {fmt.date(data.orderDate)}</p>
-              {(p.projMgmtContact || p.commMgmtContact) && (
-                <p className={`${SIZE.subText} text-gray-500`}>
-                  {p.projMgmtContact ? `Ph: ${p.projMgmtContact}` : ""}
-                  {p.commMgmtContact ? ` | Mobile: ${p.commMgmtContact}` : ""}
-                </p>
-              )}
-              <p className={`${SIZE.subText} text-gray-400`}>Website: www.dishaanhitech.com</p>
+              <p className={VAL}><span className={LBL}>Order No.</span> : {data.orderNo || "-"}</p>
+              <p className={VAL}><span className={LBL}>Order Date</span> : {fmt.date(data.orderDate)}</p>
             </div>
           </td>
         </tr>
@@ -102,8 +95,15 @@ function ThreeBoxSection({ data }) {
             <p className={VAL}><span className={LBL}>Address</span> : {data.shippingAddress || "-"}</p>
           </td>
           <td className={`${TD} pt-3`}>
-            {/* Address label always shown; value vacant until field is determined */}
-            <p className={VAL}><span className={LBL}>Address</span> :</p>
+            <div className="flex justify-end pr-1">
+              <div className="relative p-[5px]">
+                <span className="absolute top-0 left-0 w-3 h-3 border-t-2 border-l-2 border-gray-900" />
+                <span className="absolute top-0 right-0 w-3 h-3 border-t-2 border-r-2 border-gray-900" />
+                <span className="absolute bottom-0 left-0 w-3 h-3 border-b-2 border-l-2 border-gray-900" />
+                <span className="absolute bottom-0 right-0 w-3 h-3 border-b-2 border-r-2 border-gray-900" />
+                <QRCodeSVG value={pageUrl} size={60} bgColor="#ffffff" fgColor="#000000" level="M" />
+              </div>
+            </div>
           </td>
         </tr>
 
@@ -111,6 +111,7 @@ function ThreeBoxSection({ data }) {
         <tr>
           <td className={`${TD} pt-3 border-r border-[#b0b0b0]`}>
             <div className="space-y-0.5">
+              <p className={VAL}><span className={LBL}>Email</span> : {v.email || ""}</p>
               <p className={VAL}><span className={LBL}>Contact Person</span> : {v.primaryContact || ""}</p>
               <p className={VAL}><span className={LBL}>Contact No</span> : {v.primaryPhone || ""}</p>
             </div>
@@ -124,8 +125,7 @@ function ThreeBoxSection({ data }) {
           </td>
           <td className={`${TD} pt-3`}>
             <div className="space-y-0.5">
-              <p className={VAL}><span className={LBL}>Order No.</span> : {data.orderNo || "-"}</p>
-              <p className={VAL}><span className={LBL}>Order Date</span> : {fmt.date(data.orderDate)}</p>
+              <p className={VAL}><span className={LBL}>Site</span> : {p.projectCode || "-"}</p>
             </div>
           </td>
         </tr>
@@ -137,17 +137,18 @@ function ThreeBoxSection({ data }) {
               <p className={VAL}><span className={LBL}>PAN No.</span> : {v.pan || ""}</p>
               <p className={VAL}><span className={LBL}>GSTIN NO.</span> : {v.gstin || ""}</p>
               <p className={VAL}><span className={LBL}>State</span> : {v.stateName || ""}{v.stateCode ? ` | State Code : ${v.stateCode}` : ""}</p>
-              {data.quotationNo && <p className={VAL}><span className={LBL}>Quotation No.</span> : {data.quotationNo}{data.quotationDate ? ` dtd.-${fmt.date(data.quotationDate)}` : ""}</p>}
+              {data.quotationNo && <p className={VAL}><span className={LBL}>Quotation No.</span> : {data.quotationNo}{data.quotationDate ? ` | dtd.-${fmt.date(data.quotationDate)}` : ""}</p>}
             </div>
           </td>
           <td className={`${TD} pt-3 pb-2.5 border-r border-[#b0b0b0]`}>
             <div className="space-y-0.5">
+              <p className={VAL}><span className={LBL}>PAN No.</span> : {/* TODO: add value */}</p>
               <p className={VAL}><span className={LBL}>GSTIN NO.</span> : {p.gstn || ""}</p>
               <p className={VAL}><span className={LBL}>State</span> : {p.state || ""}{p.stateCode ? ` | State Code : ${p.stateCode}` : ""}</p>
-              <p className={VAL}><span className={LBL}>Enquiry No</span> : {data.orderMessage || ""}</p>
+              <p className={VAL}><span className={LBL}>Enquiry No</span> : {data.enquiryNo || ""}</p>
             </div>
           </td>
-          <td className={`${TD} pt-3 pb-2.5`}>
+          <td className={`${TD} pb-2.5`} style={{ verticalAlign: "top", paddingTop: "12px" }}>
             <div className="space-y-0.5">
               <p className={VAL}><span className={LBL}>Created by</span> : {data.createdBy || ""}</p>
               <p className={VAL}><span className={LBL}>Status</span> : {data.workflowStatus || "-"}</p>
@@ -160,10 +161,10 @@ function ThreeBoxSection({ data }) {
 }
 
 /* ─── Terms helpers ──────────────────────────────────────────── */
-function renderGroups(groups) {
+function renderGroups(groups, startIndex = 0) {
   return (groups || []).map((grp, gi) => (
     <div key={gi} className="mb-2">
-      <p className={`${SIZE.labelText} ${WEIGHT.bold} text-gray-900`}>{grp.title}</p>
+      <p className={`${SIZE.labelText} ${WEIGHT.bold} text-gray-900`}>{startIndex + gi + 1}. {grp.title}</p>
       {grp.description && <p className={`${SIZE.labelText} text-gray-700`}>{grp.description}</p>}
       {(grp.points || []).length > 0 && (
         <ul className="ml-4 mt-0.5">
@@ -180,12 +181,13 @@ function renderGroups(groups) {
 function SpecificTerms({ terms }) {
   const specific = (terms || []).filter((t) => t.termType === "Special_Terms").sort((a, b) => a.sequenceNo - b.sequenceNo);
   if (!specific.length) return null;
+  const allGroups = specific.flatMap((term) => (term.termGroups || []).sort((a, b) => a.sortOrder - b.sortOrder));
   return (
     <div className="px-6 pb-2">
       <div className={`${SIZE.sectionTitle} ${WEIGHT.bold} text-gray-900 uppercase text-center py-1 mb-2`}>
         Specific Terms and Conditions
       </div>
-      {specific.map((term) => renderGroups((term.termGroups || []).sort((a, b) => a.sortOrder - b.sortOrder)))}
+      {renderGroups(allGroups)}
     </div>
   );
 }
@@ -193,12 +195,13 @@ function SpecificTerms({ terms }) {
 function GeneralTerms({ terms }) {
   const general = (terms || []).filter((t) => t.termType === "General_Terms").sort((a, b) => a.sequenceNo - b.sequenceNo);
   if (!general.length) return null;
+  const allGroups = general.flatMap((term) => (term.termGroups || []).sort((a, b) => a.sortOrder - b.sortOrder));
   return (
     <div className="px-6 pb-2">
       <div className={`${SIZE.sectionTitle} ${WEIGHT.bold} text-gray-900 uppercase text-center py-1 mb-2`}>
         General Terms and Conditions
       </div>
-      {general.map((term) => renderGroups((term.termGroups || []).sort((a, b) => a.sortOrder - b.sortOrder)))}
+      {renderGroups(allGroups)}
     </div>
   );
 }
@@ -398,7 +401,7 @@ export default function OrderPrintPage() {
                 <div className="bg-white shadow-md print:shadow-none print-body-cover">
 
                   {/* ── FIRST-PAGE HEADER — visible on screen and page 1 of print ── */}
-                  <div className="print-full-header flex items-center justify-between px-6 pt-4 pb-3">
+                  <div className="print-full-header flex items-center px-6 pt-4 pb-3">
                     <div className="w-[160px] shrink-0">
                       <Image src="/assets/pdf-images/erp_company_img_pdf.png" alt="Logo"
                         width={160} height={80} className="object-contain" priority />
@@ -408,26 +411,22 @@ export default function OrderPrintPage() {
                         {categoryLabel(data)}
                       </h1>
                     </div>
-                    <div className="flex flex-col items-end gap-1 shrink-0">
-                      <span className={`${SIZE.subText} text-gray-700`}>www.dishaanhitech.com</span>
-                      <div className="relative p-[5px]">
-                        <span className="absolute top-0 left-0 w-3 h-3 border-t-2 border-l-2 border-gray-900" />
-                        <span className="absolute top-0 right-0 w-3 h-3 border-t-2 border-r-2 border-gray-900" />
-                        <span className="absolute bottom-0 left-0 w-3 h-3 border-b-2 border-l-2 border-gray-900" />
-                        <span className="absolute bottom-0 right-0 w-3 h-3 border-b-2 border-r-2 border-gray-900" />
-                        <QRCodeSVG value={pageUrl} size={68} bgColor="#ffffff" fgColor="#000000" level="M" />
-                      </div>
+                    <div className="w-[185px] shrink-0 flex flex-col items-start gap-0.5">
+                      <p className={`${SIZE.labelText} ${WEIGHT.normal} text-gray-800`}><span className={WEIGHT.bold}>Address</span> :</p>
+                      {/* TODO: Ph and Mobile values */}
+                      <p className={`${SIZE.subText} text-gray-700`}>Ph: | Mobile:</p>
+                      <a href="https://www.dishaanhitech.com" className={`${SIZE.subText} text-gray-700`}>Website: www.dishaanhitech.com</a>
                     </div>
                   </div>
 
                   {/* ── 3-BOX SECTION — outer border connects with table ── */}
                   <div className="mx-6 border border-[#b0b0b0]">
-                    <ThreeBoxSection data={data} />
+                    <ThreeBoxSection data={data} pageUrl={pageUrl} />
                   </div>
 
                   {/* ── INTRO TEXT — same left/right border as table ── */}
                   <div className="mx-6 border-x border-b border-[#b0b0b0] px-2.5 py-2">
-                    <p className={`${SIZE.labelText} text-gray-700 italic`}>Dear Sir / Madam,</p>
+                    <p className={`${SIZE.labelText} text-gray-700`}>Dear Sir / Madam,</p>
                     <p className={`${SIZE.labelText} text-gray-700 mt-1`}>
                       With reference to your above mentioned offer and subsequent discussion we had with you, we are pleased to place our Purchase Order / Service Order in your favour for supply of following items as per terms and conditions mentioned herein.
                     </p>
@@ -470,8 +469,9 @@ export default function OrderPrintPage() {
                               <td className={`border ${COLOR.tableBorder} px-1 py-1.5 ${SIZE.tableCell} text-center`}>{idx + 1}.</td>
                               <td className={`border ${COLOR.tableBorder} px-1 py-1.5`}>
                                 <p className={`${SIZE.tableCell} text-gray-900 ${WEIGHT.medium}`}>{item.itemName || "-"}</p>
-                                {item.itemDescription && <p className={`${SIZE.subText} text-gray-500`}>{item.itemDescription}</p>}
-                                {item.customNote      && <p className={`${SIZE.subText} text-gray-400 italic`}>{item.customNote}</p>}
+                                {/* {item.itemDescription && <p className={`${SIZE.subText} text-gray-500`}>{item.itemDescription}</p>} */}
+                                {item.customNote && <p className={`${SIZE.tableCell} text-gray-500`}>{item.customNote}</p>}
+                                {item.itemCode && <p className={`${SIZE.tableCell} text-gray-500`}><span className={WEIGHT.medium}>Item Code</span> : {item.itemCode}</p>}
                               </td>
                               <td className={`border ${COLOR.tableBorder} px-1 py-1.5 ${SIZE.tableCell} text-center`}>{item.hsnSac || "-"}</td>
                               <td className={`border ${COLOR.tableBorder} px-1 py-1.5 ${SIZE.tableCell} text-center`}>{item.unit || "-"}</td>
@@ -513,9 +513,9 @@ export default function OrderPrintPage() {
                           <tr>
                             <td colSpan={5} style={{ borderLeft: "1px solid #b0b0b0", borderTop: "none", borderBottom: "1px solid #b0b0b0", borderRight: "none", padding: 0 }} />
                             <td colSpan={4}
-                              style={{ border: "1px solid #b0b0b0", padding: "4px 6px", fontWeight: 700, backgroundColor: "#b6dde8" }}
+                              style={{ border: "1px solid #b0b0b0", padding: "4px 6px", fontWeight: 700, backgroundColor: "#d9d9d9" }}
                               className={`${SIZE.tableCell} text-left`}>Total Order Amount</td>
-                            <td style={{ border: "1px solid #b0b0b0", padding: "4px 4px", fontWeight: 700, backgroundColor: "#b6dde8" }}
+                            <td style={{ border: "1px solid #b0b0b0", padding: "4px 4px", fontWeight: 700, backgroundColor: "#d9d9d9" }}
                               className={`${SIZE.tableCell} text-right`}><FmtNum value={fin.totalAmount} /></td>
                           </tr>
 
@@ -549,6 +549,7 @@ export default function OrderPrintPage() {
                     <p className={`${SIZE.subText} text-gray-500`}>
                       Note: This is an electronically verified document and does not require any physical signature or stamp.
                     </p>
+                    <hr className="mt-2 border-t border-gray-400" />
                   </div>
                 </div>
               </td>

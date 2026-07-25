@@ -54,6 +54,7 @@ const schema = z.object({
   primaryContactNumber:  z.string().optional(),
   designation:           z.string().optional(),
   whatsappNumber:        z.string().optional(),
+  email:                 z.string().optional(),
   bankAccountNumber:     z.string().optional(),
   bankName:              z.string().optional(),
   branchName:            z.string().optional(),
@@ -210,7 +211,7 @@ export default function LedgerFormNew({
     defaultValues: {
       ledgerName: "", registeredAddress: "", corporateAddress: "",
       pan: "", gstin: "", stateCode: "", stateName: "",
-      primaryContactPerson: "", primaryContactNumber: "", designation: "", whatsappNumber: "",
+      primaryContactPerson: "", primaryContactNumber: "", designation: "", whatsappNumber: "", email: "",
       bankAccountNumber: "", bankName: "", branchName: "", ifscCode: "",
     },
   });
@@ -250,6 +251,7 @@ export default function LedgerFormNew({
       primaryContactNumber: initialData.primaryContactNumber || "",
       designation:          initialData.designation          || "",
       whatsappNumber:       initialData.whatsappNumber       || "",
+      email:                initialData.email                || "",
       bankAccountNumber:    initialData.bankAccountNumber    || "",
       bankName:             initialData.bankName             || "",
       branchName:           initialData.branchName           || "",
@@ -304,6 +306,7 @@ export default function LedgerFormNew({
       primaryContactNumber: s.mobileNumber           || prev.primaryContactNumber,
       designation:          s.designation            || prev.designation,
       whatsappNumber:       s.whatsappNumber         || prev.whatsappNumber,
+      email:                s.email                  || prev.email,
     }));
     setNameQuery(s.supplierName || "");
     setSupplierTypes(Array.isArray(s.supplierTypes) ? s.supplierTypes : []);
@@ -390,7 +393,7 @@ export default function LedgerFormNew({
         return digits.length === 10 ? `+91${digits}` : "";
       };
       const formData = new FormData();
-      const allowed = ["ledgerName","registeredAddress","corporateAddress","pan","gstin","stateCode","stateName","primaryContactPerson","designation","bankAccountNumber","bankName","branchName","ifscCode"];
+      const allowed = ["ledgerName","registeredAddress","corporateAddress","pan","gstin","stateCode","stateName","primaryContactPerson","designation","email","bankAccountNumber","bankName","branchName","ifscCode"];
       allowed.forEach((k) => formData.append(k, data[k] ?? ""));
       formData.append("primaryContactNumber", normalizePhone(data.primaryContactNumber));
       formData.append("whatsappNumber", normalizePhone(data.whatsappNumber));
@@ -616,6 +619,15 @@ export default function LedgerFormNew({
               render={({ field }) => (
                 <PhoneInput {...field} disabled={fieldDisabled} outputFormat="e164" className="w-52" />
               )}
+            />
+          </Row>
+          <Row label="Email">
+            <Input
+              {...register("email")}
+              disabled={fieldDisabled}
+              placeholder="email@example.com"
+              type="email"
+              className={`flex-1 ${getInputClass(false, fieldDisabled)}`}
             />
           </Row>
           <Row label="Designation">

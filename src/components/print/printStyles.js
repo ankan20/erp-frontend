@@ -56,7 +56,7 @@ export function FmtNum({ value, decimals = 2 }) {
   return (
     <>
       {integer}
-      <span style={{ fontSize: "0.82em", color: "#6b7280", fontWeight: 400 }}>{frac}</span>
+      <span style={{ fontSize: "0.90em", color: "#6b7280", fontWeight: 400 }}>{frac}</span>
     </>
   );
 }
