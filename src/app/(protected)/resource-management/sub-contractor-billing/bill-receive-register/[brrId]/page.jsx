@@ -12,6 +12,7 @@ import ApprovalActionModal from "@/components/common/ApprovalActionModal";
 import HistoryTimelineSheet from "@/components/common/HistoryTimelineSheet";
 import { API_ENDPOINTS } from "@/config/api.config";
 import BRRForm from "@/components/resource/brr/BRRForm";
+import { useMyApprovalStatus } from "@/hooks/useMyApprovalStatus";
 
 // Categories that route to GRN (BRG) billing; rest go to SRN (BRS)
 const GRN_CATEGORIES = ["Purchases_Order", "Site_Transfer_Order", "Customer_Supply_Order"];
@@ -27,6 +28,11 @@ export default function Page() {
   const [orderCategory, setOrderCategory] = useState("");
 
   const access = getPageAccess({ pageCode: "bill_receive_register", pageType: "EDIT" });
+  const { isPendingForMe, myLevel } = useMyApprovalStatus(
+    API_ENDPOINTS.RESOURCE.BILL_RECEIVE_REGISTER.MY_APPROVAL_STATUS,
+    brrId,
+    access.canApprove,
+  );
 
   if (!access.allowed) return <PageNotAvailable />;
 
@@ -34,6 +40,7 @@ export default function Page() {
     router,
     onTimeLine: () => setOpenTimeline(true),
     onApprove: access.canApprove ? () => setOpenApproval(true) : undefined,
+    isPendingApproval: isPendingForMe,
   });
 
   const isApproved  = brrStatus.toLowerCase() === "approved";
@@ -47,7 +54,10 @@ export default function Page() {
   };
 
   return (
-    <HeaderWrapper header={<PageHeader actions={actions} />}>
+    <HeaderWrapper
+      header={<PageHeader actions={actions} />}
+      pendingApproval={isPendingForMe ? `Your approval is required at Level ${myLevel} for this BRR.` : null}
+    >
       <BRRForm
         mode={access.mode}
         brrId={brrId}
@@ -88,6 +98,7 @@ export default function Page() {
         open={openApproval}
         onClose={() => setOpenApproval(false)}
         payload={{ id: brrId }}
+        pendingInfo={{ isPendingForMe, myLevel }}
         actions={[
           { type: "approve", api: API_ENDPOINTS.RESOURCE.BILL_RECEIVE_REGISTER.APPROVE },
           { type: "reback", api: API_ENDPOINTS.RESOURCE.BILL_RECEIVE_REGISTER.REBACK },

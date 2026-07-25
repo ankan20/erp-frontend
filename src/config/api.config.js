@@ -94,6 +94,7 @@ export const API_ENDPOINTS = {
         DELETE: "/resource/indent/delete", //indentId DELETE
         HISTORY: "/resource/indent/history", //indentId GET
         GET_BY_UUID: "/resource/indent/uuid", // /:uuid GET — no auth required
+        MY_APPROVAL_STATUS: "/resource/indent/my-approval-status", // /:id GET
       },
       ORDER: {
         GET_ALL_ORDER: "/resource/order/list",
@@ -109,6 +110,7 @@ export const API_ENDPOINTS = {
         DELETE: "/resource/order/delete", //orderId DELETE
         HISTORY: "/resource/order/history", //orderId GET
         GET_BY_UUID: "/resource/order/uuid", // /:uuid GET — no auth required
+        MY_APPROVAL_STATUS: "/resource/order/my-approval-status", // /:id GET
         PROJECT_WORK: {
           GET_ALL_ORDER: "/resource/pw-order/list", //projectCode GET
           CREATE_ORDER: "/resource/pw-order/create",
@@ -122,6 +124,7 @@ export const API_ENDPOINTS = {
           DELETE: "/resource/pw-order/delete", //orderId DELETE
           HISTORY: "/resource/pw-order/history", //orderId GET
           GET_BY_UUID: "/resource/pw-order/uuid", // /:uuid GET — no auth required
+          MY_APPROVAL_STATUS: "/resource/pw-order/my-approval-status", // /:id GET
         },
       },
     },
@@ -136,6 +139,7 @@ export const API_ENDPOINTS = {
       REBACK:            "/billing/brr/reback",          // /:brrId POST
       REJECT:            "/billing/brr/reject",          // /:brrId POST
       HISTORY:           "/billing/brr/history",         // /:brrId GET
+      MY_APPROVAL_STATUS: "/billing/brr/my-approval-status", // /:id GET
     },
     BRB: {
       ITEMS_BY_BRR: "/billing/brb/items-by-brr", // /:brrId GET — returns grns[] or srns[] based on billingType
@@ -147,7 +151,8 @@ export const API_ENDPOINTS = {
       APPROVE:      "/billing/brb/approve",         // /:brbId POST
       REBACK:       "/billing/brb/reback",          // /:brbId POST
       REJECT:       "/billing/brb/reject",          // /:brbId POST
-      HISTORY:      "/billing/brb/history",         // /:brbId GET
+      HISTORY:           "/billing/brb/history",            // /:brbId GET
+      MY_APPROVAL_STATUS: "/billing/brb/my-approval-status", // /:id GET
     },
     MACHINERY: {
       LOG_BOOK: {
@@ -160,7 +165,8 @@ export const API_ENDPOINTS = {
         APPROVE:       "/resource/machinery/log-book/approve",
         REBACK:        "/resource/machinery/log-book/reback",
         REJECT:        "/resource/machinery/log-book/reject",
-        HISTORY:       "/resource/machinery/log-book/history",
+        HISTORY:            "/resource/machinery/log-book/history",
+        MY_APPROVAL_STATUS: "/resource/machinery/log-book/my-approval-status", // /:id GET
       },
       LOG_ENTRY: {
         CREATE:  "/resource/machinery/log-entry/create",
@@ -171,7 +177,8 @@ export const API_ENDPOINTS = {
         APPROVE: "/resource/machinery/log-entry/approve",
         REBACK:  "/resource/machinery/log-entry/reback",
         REJECT:  "/resource/machinery/log-entry/reject",
-        HISTORY: "/resource/machinery/log-entry/history",
+        HISTORY:            "/resource/machinery/log-entry/history",
+        MY_APPROVAL_STATUS: "/resource/machinery/log-entry/my-approval-status", // /:id GET
       },
     },
     MATERIAL_MANAGEMENT: {
@@ -189,6 +196,7 @@ export const API_ENDPOINTS = {
         REJECT: "/resource/gin/reject", // /:ginId POST
         HISTORY: "/resource/gin/history", // /:ginId GET
         GET_BY_UUID: "/resource/gin/uuid", // /:uuid GET — no auth required
+        MY_APPROVAL_STATUS: "/resource/gin/my-approval-status", // /:id GET
       },
       //resource/grn
       GRN: {
@@ -204,6 +212,7 @@ export const API_ENDPOINTS = {
         REJECT: "/resource/grn/reject", // /:grnId POST
         HISTORY: "/resource/grn/history", // /:grnId GET
         GET_BY_UUID: "/resource/grn/uuid", // /:uuid GET — no auth required
+        MY_APPROVAL_STATUS: "/resource/grn/my-approval-status", // /:id GET
       },
       SRN: {
         GET_VENDOR_ORDERS: "/resource/srn/vendor-orders", // vendorId projectCode filters GET
@@ -218,6 +227,7 @@ export const API_ENDPOINTS = {
         REJECT: "/resource/srn/reject", // /:srnId POST
         HISTORY: "/resource/srn/history", // /:srnId GET
         GET_BY_UUID: "/resource/srn/uuid", // /:uuid GET — no auth required
+        MY_APPROVAL_STATUS: "/resource/srn/my-approval-status", // /:id GET
       },
       LOGISTICS: {
         DC: {
@@ -233,6 +243,7 @@ export const API_ENDPOINTS = {
           REBACK:              "/resource/dc/reback",          // /:dcId POST
           REJECT:              "/resource/dc/reject",          // /:dcId POST
           HISTORY:             "/resource/dc/history",         // /:dcId GET
+          MY_APPROVAL_STATUS:  "/resource/dc/my-approval-status", // /:id GET
         },
       },
       STOCK: {
@@ -267,6 +278,7 @@ export const API_ENDPOINTS = {
         REJECT: "/project-mgmt/register/concrete-registry/reject", //indenId POST
         DELETE: "/project-mgmt/register/concrete-registry/delete", //indentId DELETE
         HISTORY: "/project-mgmt/register/concrete-registry/history", //indentId GET
+        MY_APPROVAL_STATUS: "/project-mgmt/register/concrete-registry/my-approval-status", // /:id GET
       },
       DRAWING_REGISTER: {
         CREATE: "/project-mgmt/register/drawing-register/create", // POST multipart/form-data
@@ -282,6 +294,7 @@ export const API_ENDPOINTS = {
         REBACK: "/project-mgmt/register/drawing-register/reback", // /:drId POST
         REJECT: "/project-mgmt/register/drawing-register/reject", // /:drId POST
         HISTORY: "/project-mgmt/register/drawing-register/history", // /:drId GET
+        MY_APPROVAL_STATUS: "/project-mgmt/register/drawing-register/my-approval-status", // /:id GET
       },
     },
   },

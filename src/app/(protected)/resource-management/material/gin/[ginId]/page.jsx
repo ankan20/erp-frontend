@@ -12,6 +12,7 @@ import ApprovalActionModal from "@/components/common/ApprovalActionModal";
 import HistoryTimelineSheet from "@/components/common/HistoryTimelineSheet";
 import { API_ENDPOINTS } from "@/config/api.config";
 import GINForm from "@/components/resource/gin/GINForm";
+import { useMyApprovalStatus } from "@/hooks/useMyApprovalStatus";
 
 export default function Page() {
   const router  = useRouter();
@@ -22,6 +23,11 @@ export default function Page() {
   const [uuid, setUuid] = useState(null);
 
   const access = getPageAccess({ pageCode: "goods_issue_note", pageType: "EDIT" });
+  const { isPendingForMe, myLevel } = useMyApprovalStatus(
+    API_ENDPOINTS.RESOURCE.MATERIAL_MANAGEMENT.GIN.MY_APPROVAL_STATUS,
+    ginId,
+    access.canApprove,
+  );
 
   if (!access.allowed) return <PageNotAvailable />;
 
@@ -30,16 +36,21 @@ export default function Page() {
     onTimeLine: () => setOpenTimeline(true),
     onApprove:  access.canApprove ? () => setOpenApproval(true) : undefined,
     onDownload: uuid ? () => window.open(`/print/gin/${uuid}`, "_blank") : undefined,
+    isPendingApproval: isPendingForMe,
   });
 
   return (
-    <HeaderWrapper header={<PageHeader actions={actions} />}>
+    <HeaderWrapper
+      header={<PageHeader actions={actions} />}
+      pendingApproval={isPendingForMe ? `Your approval is required at Level ${myLevel} for this GIN.` : null}
+    >
       <GINForm mode={access.mode} ginId={ginId} onUuid={setUuid} />
 
       <ApprovalActionModal
         open={openApproval}
         onClose={() => setOpenApproval(false)}
         payload={{ id: ginId }}
+        pendingInfo={{ isPendingForMe, myLevel }}
         actions={[
           { type: "approve", api: API_ENDPOINTS.RESOURCE.MATERIAL_MANAGEMENT.GIN.APPROVE },
           { type: "reback",  api: API_ENDPOINTS.RESOURCE.MATERIAL_MANAGEMENT.GIN.REBACK  },

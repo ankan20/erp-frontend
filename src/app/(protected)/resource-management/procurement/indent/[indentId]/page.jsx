@@ -15,6 +15,7 @@ import ApprovalActionModal from "@/components/common/ApprovalActionModal";
 import { API_ENDPOINTS } from "@/config/api.config";
 import { useState } from "react";
 import HistoryTimelineSheet from "@/components/common/HistoryTimelineSheet";
+import { useMyApprovalStatus } from "@/hooks/useMyApprovalStatus";
 
 export default function Page() {
   const router = useRouter();
@@ -27,6 +28,11 @@ export default function Page() {
     pageCode: "indent",
     pageType: "EDIT",
   });
+  const { isPendingForMe, myLevel } = useMyApprovalStatus(
+    API_ENDPOINTS.RESOURCE.PROCUREMENT.INDENT.MY_APPROVAL_STATUS,
+    indentId,
+    access.canApprove,
+  );
 
   if (!access.allowed) {
     return <PageNotAvailable />;
@@ -37,10 +43,14 @@ export default function Page() {
     onTimeLine: () => setOpenTimeline(true),
     onApprove: access.canApprove ? () => setOpenApproval(true) : undefined,
     onDownload: uuid ? () => window.open(`/print/indent/${uuid}`, "_blank") : undefined,
+    isPendingApproval: isPendingForMe,
   });
 
   return (
-    <HeaderWrapper header={<PageHeader actions={actions} />}>
+    <HeaderWrapper
+      header={<PageHeader actions={actions} />}
+      pendingApproval={isPendingForMe ? `Your approval is required at Level ${myLevel} for this Indent.` : null}
+    >
       <IndentForm
         mode={access.mode}
         canApprove={access.canApprove}
@@ -53,6 +63,7 @@ export default function Page() {
         payload={{
           id: indentId,
         }}
+        pendingInfo={{ isPendingForMe, myLevel }}
         actions={[
           {
             type: "approve",

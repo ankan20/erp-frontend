@@ -12,6 +12,7 @@ import ApprovalActionModal from "@/components/common/ApprovalActionModal";
 import HistoryTimelineSheet from "@/components/common/HistoryTimelineSheet";
 import { API_ENDPOINTS } from "@/config/api.config";
 import LogEntryForm from "@/components/resource/machinery/log-book/LogEntryForm";
+import { useMyApprovalStatus } from "@/hooks/useMyApprovalStatus";
 
 const LE = API_ENDPOINTS.RESOURCE.MACHINERY.LOG_ENTRY;
 
@@ -23,6 +24,11 @@ export default function Page() {
   const [openTimeline, setOpenTimeline] = useState(false);
 
   const access = getPageAccess({ pageCode: "log_sheet", pageType: "EDIT" });
+  const { isPendingForMe, myLevel } = useMyApprovalStatus(
+    LE.MY_APPROVAL_STATUS,
+    entryId,
+    access.canApprove,
+  );
 
   if (!access.allowed) return <PageNotAvailable />;
 
@@ -30,16 +36,21 @@ export default function Page() {
     router,
     onTimeLine: () => setOpenTimeline(true),
     onApprove:  access.canApprove ? () => setOpenApproval(true) : undefined,
+    isPendingApproval: isPendingForMe,
   });
 
   return (
-    <HeaderWrapper header={<PageHeader actions={actions} />}>
+    <HeaderWrapper
+      header={<PageHeader actions={actions} />}
+      pendingApproval={isPendingForMe ? `Your approval is required at Level ${myLevel} for this Log Entry.` : null}
+    >
       <LogEntryForm mode={access.mode} entryId={entryId} />
 
       <ApprovalActionModal
         open={openApproval}
         onClose={() => setOpenApproval(false)}
         payload={{ id: entryId }}
+        pendingInfo={{ isPendingForMe, myLevel }}
         actions={[
           { type: "approve", api: LE.APPROVE },
           { type: "reback",  api: LE.REBACK  },

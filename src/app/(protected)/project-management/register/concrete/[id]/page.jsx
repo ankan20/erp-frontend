@@ -12,6 +12,7 @@ import { useState } from "react";
 import ApprovalActionModal from "@/components/common/ApprovalActionModal";
 import HistoryTimelineSheet from "@/components/common/HistoryTimelineSheet";
 import { API_ENDPOINTS } from "@/config/api.config";
+import { useMyApprovalStatus } from "@/hooks/useMyApprovalStatus";
 
 export default function Page() {
   const router = useRouter();
@@ -23,6 +24,11 @@ export default function Page() {
     pageCode: "concrete_register",
     pageType: "EDIT",
   });
+  const { isPendingForMe, myLevel } = useMyApprovalStatus(
+    API_ENDPOINTS.PROJECT.REGISTER.CONCRETE.MY_APPROVAL_STATUS,
+    id,
+    access.canApprove,
+  );
 
   if (!access.allowed) {
     return <PageNotAvailable />;
@@ -32,10 +38,14 @@ export default function Page() {
     router,
     onTimeLine: () => setOpenTimeline(true),
     onApprove: access.canApprove ? () => setOpenApproval(true) : undefined,
+    isPendingApproval: isPendingForMe,
   });
 
   return (
-    <HeaderWrapper header={<PageHeader actions={actions} />}>
+    <HeaderWrapper
+      header={<PageHeader actions={actions} />}
+      pendingApproval={isPendingForMe ? `Your approval is required at Level ${myLevel} for this Concrete Register.` : null}
+    >
       <ConcreteForm mode={access.mode} registryId={id} />
       <ApprovalActionModal
               open={openApproval}
@@ -43,6 +53,7 @@ export default function Page() {
               payload={{
                 id: id,
               }}
+              pendingInfo={{ isPendingForMe, myLevel }}
               actions={[
                 {
                   type: "approve",

@@ -12,6 +12,7 @@ import HistoryTimelineSheet from "@/components/common/HistoryTimelineSheet";
 import { API_ENDPOINTS } from "@/config/api.config";
 import BRRBillingForm from "@/components/resource/brr-billing/BRRBillingForm";
 import BRRSelector from "@/components/resource/brr-billing/BRRSelector";
+import { useMyApprovalStatus } from "@/hooks/useMyApprovalStatus";
 
 export default function Page() {
   const router  = useRouter();
@@ -31,6 +32,11 @@ export default function Page() {
   const [openTimeline, setOpenTimeline] = useState(false);
 
   const access = getPageAccess({ pageCode, pageType });
+  const { isPendingForMe, myLevel } = useMyApprovalStatus(
+    API_ENDPOINTS.RESOURCE.BRB.MY_APPROVAL_STATUS,
+    isNew ? null : id,
+    !isNew && access.canApprove,
+  );
 
   if (!access.allowed) return <PageNotAvailable />;
 
@@ -44,6 +50,7 @@ export default function Page() {
       : {
           onTimeLine: () => setOpenTimeline(true),
           onApprove: access.canApprove ? () => setOpenApproval(true) : undefined,
+          isPendingApproval: isPendingForMe,
         }),
   });
 
@@ -62,7 +69,10 @@ export default function Page() {
   }
 
   return (
-    <HeaderWrapper header={<PageHeader actions={actions} />}>
+    <HeaderWrapper
+      header={<PageHeader actions={actions} />}
+      pendingApproval={!isNew && isPendingForMe ? `Your approval is required at Level ${myLevel} for this ${billingLabel}.` : null}
+    >
       <BRRBillingForm
         mode={isNew ? "create" : access.mode}
         billingType={billingType}
@@ -76,6 +86,7 @@ export default function Page() {
             open={openApproval}
             onClose={() => setOpenApproval(false)}
             payload={{ id }}
+            pendingInfo={{ isPendingForMe, myLevel }}
             actions={[
               { type: "approve", api: ENDPOINT.APPROVE },
               { type: "reback", api: ENDPOINT.REBACK },

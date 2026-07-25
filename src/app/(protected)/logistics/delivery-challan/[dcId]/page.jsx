@@ -12,6 +12,7 @@ import ApprovalActionModal from "@/components/common/ApprovalActionModal";
 import HistoryTimelineSheet from "@/components/common/HistoryTimelineSheet";
 import { API_ENDPOINTS } from "@/config/api.config";
 import DCForm from "@/components/resource/logistics/delivery-challan/DCForm";
+import { useMyApprovalStatus } from "@/hooks/useMyApprovalStatus";
 
 export default function Page() {
   const router   = useRouter();
@@ -21,6 +22,11 @@ export default function Page() {
   const [openTimeline, setOpenTimeline] = useState(false);
 
   const access = getPageAccess({ pageCode: "delivery_challan", pageType: "EDIT" });
+  const { isPendingForMe, myLevel } = useMyApprovalStatus(
+    API_ENDPOINTS.RESOURCE.MATERIAL_MANAGEMENT.LOGISTICS.DC.MY_APPROVAL_STATUS,
+    dcId,
+    access.canApprove,
+  );
 
   if (!access.allowed) return <PageNotAvailable />;
 
@@ -28,16 +34,21 @@ export default function Page() {
     router,
     onTimeLine: () => setOpenTimeline(true),
     onApprove:  access.canApprove ? () => setOpenApproval(true) : undefined,
+    isPendingApproval: isPendingForMe,
   });
 
   return (
-    <HeaderWrapper header={<PageHeader actions={actions} />}>
+    <HeaderWrapper
+      header={<PageHeader actions={actions} />}
+      pendingApproval={isPendingForMe ? `Your approval is required at Level ${myLevel} for this Delivery Challan.` : null}
+    >
       <DCForm mode={access.mode} dcId={dcId} />
 
       <ApprovalActionModal
         open={openApproval}
         onClose={() => setOpenApproval(false)}
         payload={{ id: dcId }}
+        pendingInfo={{ isPendingForMe, myLevel }}
         actions={[
           { type: "approve", api: API_ENDPOINTS.RESOURCE.MATERIAL_MANAGEMENT.LOGISTICS.DC.APPROVE },
           { type: "reback",  api: API_ENDPOINTS.RESOURCE.MATERIAL_MANAGEMENT.LOGISTICS.DC.REBACK  },

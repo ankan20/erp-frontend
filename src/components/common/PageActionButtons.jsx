@@ -21,6 +21,7 @@ export const getPageActions = ({
   onDownload,
   onApprove,
   onTimeLine,
+  isPendingApproval = false,
 }) => {
   // eslint-disable-next-line react-hooks/rules-of-hooks
   const { stack } = useNavigationHistory();
@@ -60,13 +61,19 @@ export const getPageActions = ({
     tip(
       <button
         key="approve"
-        className={`${getButtonClass(!!onApprove)} ${iconWrapperClass}`}
+        className={`${getButtonClass(!!onApprove)} ${iconWrapperClass} relative ${isPendingApproval && !!onApprove ? "ring-2 ring-green-500/70 ring-offset-1 rounded-md" : ""}`}
         onClick={onApprove}
         disabled={!onApprove}
       >
+        {isPendingApproval && !!onApprove && (
+          <span className="absolute -top-0.5 -right-0.5 flex h-2.5 w-2.5 z-20 pointer-events-none">
+            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75" />
+            <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-green-500" />
+          </span>
+        )}
         <Image src="/assets/icons/approval-action.png" alt="approve" width={28} height={28} />
       </button>,
-      onApprove ? "Approve / Action" : "Approval not available"
+      onApprove ? (isPendingApproval ? "Approve / Action — Your approval is needed!" : "Approve / Action") : "Approval not available"
     ),
 
     divider("divider-1"),
