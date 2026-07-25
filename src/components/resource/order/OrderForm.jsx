@@ -47,7 +47,7 @@ const defaultValues = {
   totalAmount: 0,
 };
 
-export default function OrderForm({ mode = "create", orderId, onUuid }) {
+export default function OrderForm({ mode = "create", orderId, onUuid, onAfterSubmit }) {
   const [activeTab, setActiveTab] = useState("items");
   const [loading, setLoading] = useState(false);
   const [isEditing, setIsEditing] = useState(mode === "create");
@@ -390,6 +390,7 @@ export default function OrderForm({ mode = "create", orderId, onUuid }) {
       setIsSubmitted(true);
       setIsEditing(false);
       setAllowSubmit(false);
+      onAfterSubmit?.();
     } catch (err) {
       toast.error(err.message || "Failed to submit order", { id: toastId });
     }

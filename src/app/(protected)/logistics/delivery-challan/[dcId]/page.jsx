@@ -43,7 +43,7 @@ export default function Page() {
       pendingApproval={isPendingForMe ? `Your approval is required at Level ${myLevel} for this Delivery Challan.` : null}
       onDismissApproval={isPendingForMe ? dismiss : undefined}
     >
-      <DCForm mode={access.mode} dcId={dcId} />
+      <DCForm mode={access.mode} dcId={dcId} onAfterSubmit={refresh} />
 
       <ApprovalActionModal
         open={openApproval}

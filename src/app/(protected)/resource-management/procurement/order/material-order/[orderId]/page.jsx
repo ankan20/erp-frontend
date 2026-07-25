@@ -43,7 +43,7 @@ export default function Page() {
       pendingApproval={isPendingForMe ? `Your approval is required at Level ${myLevel} for this Order.` : null}
       onDismissApproval={isPendingForMe ? dismiss : undefined}
     >
-      <OrderForm mode={access.mode} canApprove={access.canApprove} orderId={orderId} onUuid={setUuid} />
+      <OrderForm mode={access.mode} canApprove={access.canApprove} orderId={orderId} onUuid={setUuid} onAfterSubmit={refresh} />
 
       <ApprovalActionModal
         open={openApproval}

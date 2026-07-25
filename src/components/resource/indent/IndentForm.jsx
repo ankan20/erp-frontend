@@ -75,6 +75,7 @@ export default function IndentForm({
   canApprove = false,
   indentId,
   onUuid,
+  onAfterSubmit,
 }) {
   const isViewMode = mode === "view" || mode === "approver";
 
@@ -406,10 +407,9 @@ export default function IndentForm({
       });
 
       setIsSubmitted(true);
-
       setIsEditing(false);
-
       setAllowSubmit(false);
+      onAfterSubmit?.();
 
       // router.push("/resource-management/procurement/indent")
     } catch (err) {

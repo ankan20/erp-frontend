@@ -79,6 +79,7 @@ export default function Page() {
         billingType={billingType}
         brrId={isNew ? brrId : undefined}
         billingId={isNew ? undefined : id}
+        onAfterSubmit={refresh}
       />
 
       {!isNew && (

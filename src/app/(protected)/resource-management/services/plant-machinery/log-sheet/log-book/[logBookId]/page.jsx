@@ -45,7 +45,7 @@ export default function Page() {
       pendingApproval={isPendingForMe ? `Your approval is required at Level ${myLevel} for this Log Book.` : null}
       onDismissApproval={isPendingForMe ? dismiss : undefined}
     >
-      <LogBookForm mode={access.mode} logBookId={logBookId} />
+      <LogBookForm mode={access.mode} logBookId={logBookId} onAfterSubmit={refresh} />
 
       <ApprovalActionModal
         open={openApproval}

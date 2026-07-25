@@ -45,7 +45,7 @@ export default function Page() {
       pendingApproval={isPendingForMe ? `Your approval is required at Level ${myLevel} for this SRN.` : null}
       onDismissApproval={isPendingForMe ? dismiss : undefined}
     >
-      <SRNForm mode={access.mode} srnId={id} onUuid={setUuid} />
+      <SRNForm mode={access.mode} srnId={id} onUuid={setUuid} onAfterSubmit={refresh} />
 
       <ApprovalActionModal
         open={openApproval}

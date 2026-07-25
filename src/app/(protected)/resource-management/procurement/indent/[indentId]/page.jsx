@@ -57,6 +57,7 @@ export default function Page() {
         canApprove={access.canApprove}
         indentId={indentId}
         onUuid={setUuid}
+        onAfterSubmit={refresh}
       />
       <ApprovalActionModal
         open={openApproval}

@@ -65,7 +65,7 @@ const defaultValues = {
 };
 
 // ── COMPONENT ─────────────────────────────────────────────────────────────────
-export default function SRNForm({ mode = "create", srnId, onUuid }) {
+export default function SRNForm({ mode = "create", srnId, onUuid, onAfterSubmit }) {
   const isViewMode = mode === "view" || mode === "approver";
   const router = useRouter();
   const fileRef = useRef(null);
@@ -387,6 +387,7 @@ export default function SRNForm({ mode = "create", srnId, onUuid }) {
       setIsSubmitted(true);
       setIsEditing(false);
       setAllowSubmit(false);
+      onAfterSubmit?.();
     } catch (err) {
       toast.error(err.message || "Failed to submit SRN", { id: toastId });
     }

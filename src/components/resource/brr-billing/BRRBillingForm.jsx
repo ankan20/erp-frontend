@@ -55,7 +55,7 @@ const defaultValues = {
   basicAmount: 0, gstAmount: 0, totalAmount: 0,
 };
 
-export default function BRRBillingForm({ mode = "create", billingType, brrId, billingId }) {
+export default function BRRBillingForm({ mode = "create", billingType, brrId, billingId, onAfterSubmit }) {
   const [activeTab, setActiveTab]     = useState("details");
   const [loading, setLoading]         = useState(!!(brrId || billingId));
   const [isEditing, setIsEditing]     = useState(mode === "create");
@@ -298,6 +298,7 @@ export default function BRRBillingForm({ mode = "create", billingType, brrId, bi
       setIsSubmitted(true);
       setIsEditing(false);
       setAllowSubmit(false);
+      onAfterSubmit?.();
     } catch (err) {
       toast.error(err.message || "Failed to submit", { id: toastId });
     }

@@ -59,7 +59,7 @@ const defaultValues = {
 };
 
 // ── COMPONENT ─────────────────────────────────────────────────────────────────
-export default function GINForm({ mode = "create", ginId, onUuid }) {
+export default function GINForm({ mode = "create", ginId, onUuid, onAfterSubmit }) {
   const isViewMode = mode === "view" || mode === "approver";
   const router     = useRouter();
   const fileRef    = useRef(null);
@@ -352,6 +352,7 @@ export default function GINForm({ mode = "create", ginId, onUuid }) {
       setIsSubmitted(true);
       setIsEditing(false);
       setAllowSubmit(false);
+      onAfterSubmit?.();
     } catch (err) {
       toast.error(err.message || "Failed to submit GIN", { id: toastId });
     }

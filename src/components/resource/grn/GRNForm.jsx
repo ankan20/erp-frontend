@@ -65,7 +65,7 @@ const defaultValues = {
 };
 
 // ── COMPONENT ─────────────────────────────────────────────────────────────────
-export default function GRNForm({ mode = "create", grnId, onUuid }) {
+export default function GRNForm({ mode = "create", grnId, onUuid, onAfterSubmit }) {
   const isViewMode = mode === "view" || mode === "approver";
   const router = useRouter();
   const fileRef = useRef(null);
@@ -385,6 +385,7 @@ export default function GRNForm({ mode = "create", grnId, onUuid }) {
       setIsSubmitted(true);
       setIsEditing(false);
       setAllowSubmit(false);
+      onAfterSubmit?.();
     } catch (err) {
       toast.error(err.message || "Failed to submit GRN", { id: toastId });
     }

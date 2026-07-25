@@ -45,7 +45,7 @@ export default function Page() {
       pendingApproval={isPendingForMe ? `Your approval is required at Level ${myLevel} for this GIN.` : null}
       onDismissApproval={isPendingForMe ? dismiss : undefined}
     >
-      <GINForm mode={access.mode} ginId={ginId} onUuid={setUuid} />
+      <GINForm mode={access.mode} ginId={ginId} onUuid={setUuid} onAfterSubmit={refresh} />
 
       <ApprovalActionModal
         open={openApproval}

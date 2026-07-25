@@ -145,7 +145,7 @@ const SECTIONS = [
 ];
 
 // ─── COMPONENT
-export default function ConcreteForm({ mode = "create", registryId }) {
+export default function ConcreteForm({ mode = "create", registryId, onAfterSubmit }) {
   const isViewMode = mode === "view" || mode === "approver";
 
   const [isEditing, setIsEditing] = useState(mode === "create");
@@ -427,7 +427,7 @@ export default function ConcreteForm({ mode = "create", registryId }) {
       setIsSubmitted(true);
       setAllowSubmit(false);
       setIsEditing(false);
-
+      onAfterSubmit?.();
       toast.success("Submitted successfully", { id: toastId });
     } catch (err) {
       toast.error(err.message || "Submit failed", { id: toastId });

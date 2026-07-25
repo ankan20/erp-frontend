@@ -62,7 +62,7 @@ const defaultValues = {
 };
 
 // ── COMPONENT ─────────────────────────────────────────────────────────────────
-export default function DrawingRegisterForm({ mode = "create", drId }) {
+export default function DrawingRegisterForm({ mode = "create", drId, onAfterSubmit }) {
   const isViewMode = mode === "view" || mode === "approver";
 
   const [isEditing,       setIsEditing]       = useState(mode === "create");
@@ -293,6 +293,7 @@ export default function DrawingRegisterForm({ mode = "create", drId }) {
       setIsSubmitted(true);
       setIsEditing(false);
       setAllowSubmit(false);
+      onAfterSubmit?.();
     } catch (err) {
       toast.error(err.message || "Failed to submit", { id: toastId });
     }

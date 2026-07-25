@@ -51,7 +51,7 @@ const SectionTitle = ({ children }) => (
   </div>
 );
 
-export default function LogEntryForm({ mode = "create", entryId }) {
+export default function LogEntryForm({ mode = "create", entryId, onAfterSubmit }) {
   const [loading, setLoading] = useState(false);
   const [isEditing, setIsEditing] = useState(mode === "create");
   const [isSubmitted, setIsSubmitted] = useState(false);
@@ -176,6 +176,7 @@ export default function LogEntryForm({ mode = "create", entryId }) {
       setIsSubmitted(true);
       setIsEditing(false);
       setAllowSubmit(false);
+      onAfterSubmit?.();
     } catch (err) {
       toast.error(err.message || "Failed to submit", { id: toastId });
     }

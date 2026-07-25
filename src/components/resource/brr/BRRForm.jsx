@@ -88,7 +88,7 @@ function FieldRow({ label, children, required }) {
 }
 
 /* ─── BRRForm ──────────────────────────────────────────────── */
-export default function BRRForm({ mode = "create", brrId, onDataLoaded }) {
+export default function BRRForm({ mode = "create", brrId, onDataLoaded, onAfterSubmit }) {
   const [loading, setLoading]       = useState(false);
   const [isEditing, setIsEditing]   = useState(mode === "create");
   const [isSubmitted, setIsSubmitted] = useState(false);
@@ -297,6 +297,7 @@ export default function BRRForm({ mode = "create", brrId, onDataLoaded }) {
       setIsSubmitted(true);
       setIsEditing(false);
       setAllowSubmit(false);
+      onAfterSubmit?.();
     } catch (err) {
       toast.error(err.message || "Failed to submit", { id: toastId });
     }

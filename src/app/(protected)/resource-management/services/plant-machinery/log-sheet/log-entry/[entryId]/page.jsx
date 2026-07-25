@@ -45,7 +45,7 @@ export default function Page() {
       pendingApproval={isPendingForMe ? `Your approval is required at Level ${myLevel} for this Log Entry.` : null}
       onDismissApproval={isPendingForMe ? dismiss : undefined}
     >
-      <LogEntryForm mode={access.mode} entryId={entryId} />
+      <LogEntryForm mode={access.mode} entryId={entryId} onAfterSubmit={refresh} />
 
       <ApprovalActionModal
         open={openApproval}

@@ -43,7 +43,7 @@ export default function Page() {
       pendingApproval={isPendingForMe ? `Your approval is required at Level ${myLevel} for this Drawing Register.` : null}
       onDismissApproval={isPendingForMe ? dismiss : undefined}
     >
-      <DrawingRegisterForm mode={access.mode} drId={id} />
+      <DrawingRegisterForm mode={access.mode} drId={id} onAfterSubmit={refresh} />
 
       <ApprovalActionModal
         open={openApproval}

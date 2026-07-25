@@ -51,6 +51,7 @@ export default function Page() {
         canApprove={access.canApprove}
         serviceOrderId={serviceOrderId}
         onUuid={setUuid}
+        onAfterSubmit={refresh}
       />
 
       <ApprovalActionModal

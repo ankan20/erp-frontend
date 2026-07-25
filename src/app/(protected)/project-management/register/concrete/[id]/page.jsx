@@ -47,7 +47,7 @@ export default function Page() {
       pendingApproval={isPendingForMe ? `Your approval is required at Level ${myLevel} for this Concrete Register.` : null}
       onDismissApproval={isPendingForMe ? dismiss : undefined}
     >
-      <ConcreteForm mode={access.mode} registryId={id} />
+      <ConcreteForm mode={access.mode} registryId={id} onAfterSubmit={refresh} />
       <ApprovalActionModal
               open={openApproval}
               onClose={() => setOpenApproval(false)}

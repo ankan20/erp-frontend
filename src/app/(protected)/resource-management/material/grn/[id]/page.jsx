@@ -45,7 +45,7 @@ export default function Page() {
       pendingApproval={isPendingForMe ? `Your approval is required at Level ${myLevel} for this GRN.` : null}
       onDismissApproval={isPendingForMe ? dismiss : undefined}
     >
-      <GRNForm mode={access.mode} grnId={id} onUuid={setUuid} />
+      <GRNForm mode={access.mode} grnId={id} onUuid={setUuid} onAfterSubmit={refresh} />
 
       <ApprovalActionModal
         open={openApproval}

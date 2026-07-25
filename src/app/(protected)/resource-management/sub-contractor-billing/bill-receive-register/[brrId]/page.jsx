@@ -66,6 +66,7 @@ export default function Page() {
           setBrrStatus(workflowStatus);
           setOrderCategory(cat);
         }}
+        onAfterSubmit={refresh}
       />
 
       {/* E-Reconcile Bill connect button — only active when BRR is Approved */}

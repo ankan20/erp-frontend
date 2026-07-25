@@ -69,7 +69,7 @@ const defaultValues = {
 };
 
 // ── COMPONENT ─────────────────────────────────────────────────────────────────
-export default function DCForm({ mode = "create", dcId }) {
+export default function DCForm({ mode = "create", dcId, onAfterSubmit }) {
   const isViewMode = mode === "view" || mode === "approver";
   const router     = useRouter();
   const fileRef    = useRef(null);
@@ -334,6 +334,7 @@ export default function DCForm({ mode = "create", dcId }) {
       setIsSubmitted(true);
       setIsEditing(false);
       setAllowSubmit(false);
+      onAfterSubmit?.();
     } catch (err) {
       toast.error(err.message || "Failed to submit DC", { id: toastId });
     }

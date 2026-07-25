@@ -46,7 +46,7 @@ const defaultValues = {
   totalAmount: 0,
 };
 
-export default function ServiceOrderForm({ mode = "create", serviceOrderId, onUuid }) {
+export default function ServiceOrderForm({ mode = "create", serviceOrderId, onUuid, onAfterSubmit }) {
   const [activeTab, setActiveTab] = useState("items");
   const [loading, setLoading] = useState(false);
   const [isEditing, setIsEditing] = useState(mode === "create");
@@ -281,6 +281,7 @@ export default function ServiceOrderForm({ mode = "create", serviceOrderId, onUu
       setIsSubmitted(true);
       setIsEditing(false);
       setAllowSubmit(false);
+      onAfterSubmit?.();
     } catch (err) {
       toast.error(err.message || "Failed to submit service order", { id: toastId });
     }
