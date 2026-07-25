@@ -28,7 +28,7 @@ export default function Page() {
     pageCode: "indent",
     pageType: "EDIT",
   });
-  const { isPendingForMe, myLevel } = useMyApprovalStatus(
+  const { isPendingForMe, myLevel, refresh, dismiss } = useMyApprovalStatus(
     API_ENDPOINTS.RESOURCE.PROCUREMENT.INDENT.MY_APPROVAL_STATUS,
     indentId,
     access.canApprove,
@@ -50,6 +50,7 @@ export default function Page() {
     <HeaderWrapper
       header={<PageHeader actions={actions} />}
       pendingApproval={isPendingForMe ? `Your approval is required at Level ${myLevel} for this Indent.` : null}
+      onDismissApproval={isPendingForMe ? dismiss : undefined}
     >
       <IndentForm
         mode={access.mode}
@@ -82,6 +83,7 @@ export default function Page() {
         ]}
         onSuccess={() => {
           setOpenApproval(false);
+          refresh();
           router.refresh();
         }}
       />

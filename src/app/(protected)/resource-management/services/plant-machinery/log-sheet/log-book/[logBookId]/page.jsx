@@ -24,7 +24,7 @@ export default function Page() {
   const [openTimeline, setOpenTimeline] = useState(false);
 
   const access = getPageAccess({ pageCode: "log_sheet", pageType: "EDIT" });
-  const { isPendingForMe, myLevel } = useMyApprovalStatus(
+  const { isPendingForMe, myLevel, refresh, dismiss } = useMyApprovalStatus(
     LB.MY_APPROVAL_STATUS,
     logBookId,
     access.canApprove,
@@ -43,6 +43,7 @@ export default function Page() {
     <HeaderWrapper
       header={<PageHeader actions={actions} />}
       pendingApproval={isPendingForMe ? `Your approval is required at Level ${myLevel} for this Log Book.` : null}
+      onDismissApproval={isPendingForMe ? dismiss : undefined}
     >
       <LogBookForm mode={access.mode} logBookId={logBookId} />
 
@@ -58,6 +59,7 @@ export default function Page() {
         ]}
         onSuccess={() => {
           setOpenApproval(false);
+          refresh();
           router.refresh();
         }}
       />

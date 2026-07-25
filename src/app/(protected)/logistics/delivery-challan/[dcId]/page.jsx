@@ -22,7 +22,7 @@ export default function Page() {
   const [openTimeline, setOpenTimeline] = useState(false);
 
   const access = getPageAccess({ pageCode: "delivery_challan", pageType: "EDIT" });
-  const { isPendingForMe, myLevel } = useMyApprovalStatus(
+  const { isPendingForMe, myLevel, refresh, dismiss } = useMyApprovalStatus(
     API_ENDPOINTS.RESOURCE.MATERIAL_MANAGEMENT.LOGISTICS.DC.MY_APPROVAL_STATUS,
     dcId,
     access.canApprove,
@@ -41,6 +41,7 @@ export default function Page() {
     <HeaderWrapper
       header={<PageHeader actions={actions} />}
       pendingApproval={isPendingForMe ? `Your approval is required at Level ${myLevel} for this Delivery Challan.` : null}
+      onDismissApproval={isPendingForMe ? dismiss : undefined}
     >
       <DCForm mode={access.mode} dcId={dcId} />
 
@@ -56,6 +57,7 @@ export default function Page() {
         ]}
         onSuccess={() => {
           setOpenApproval(false);
+          refresh();
           router.refresh();
         }}
       />

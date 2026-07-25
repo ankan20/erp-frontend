@@ -28,7 +28,7 @@ export default function Page() {
   const [orderCategory, setOrderCategory] = useState("");
 
   const access = getPageAccess({ pageCode: "bill_receive_register", pageType: "EDIT" });
-  const { isPendingForMe, myLevel } = useMyApprovalStatus(
+  const { isPendingForMe, myLevel, refresh, dismiss } = useMyApprovalStatus(
     API_ENDPOINTS.RESOURCE.BILL_RECEIVE_REGISTER.MY_APPROVAL_STATUS,
     brrId,
     access.canApprove,
@@ -57,6 +57,7 @@ export default function Page() {
     <HeaderWrapper
       header={<PageHeader actions={actions} />}
       pendingApproval={isPendingForMe ? `Your approval is required at Level ${myLevel} for this BRR.` : null}
+      onDismissApproval={isPendingForMe ? dismiss : undefined}
     >
       <BRRForm
         mode={access.mode}
@@ -104,7 +105,7 @@ export default function Page() {
           { type: "reback", api: API_ENDPOINTS.RESOURCE.BILL_RECEIVE_REGISTER.REBACK },
           { type: "reject", api: API_ENDPOINTS.RESOURCE.BILL_RECEIVE_REGISTER.REJECT },
         ]}
-        onSuccess={() => { setOpenApproval(false); router.refresh(); }}
+        onSuccess={() => { setOpenApproval(false); refresh(); router.refresh(); }}
       />
 
       <HistoryTimelineSheet

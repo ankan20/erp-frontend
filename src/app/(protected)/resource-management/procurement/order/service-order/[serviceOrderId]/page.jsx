@@ -24,7 +24,7 @@ export default function Page() {
 
   // Access uses "order" pageCode — same module access as order
   const access = getPageAccess({ pageCode: "order", pageType: "EDIT" });
-  const { isPendingForMe, myLevel } = useMyApprovalStatus(
+  const { isPendingForMe, myLevel, refresh, dismiss } = useMyApprovalStatus(
     PW.MY_APPROVAL_STATUS,
     serviceOrderId,
     access.canApprove,
@@ -44,6 +44,7 @@ export default function Page() {
     <HeaderWrapper
       header={<PageHeader actions={actions} />}
       pendingApproval={isPendingForMe ? `Your approval is required at Level ${myLevel} for this Service Order.` : null}
+      onDismissApproval={isPendingForMe ? dismiss : undefined}
     >
       <ServiceOrderForm
         mode={access.mode}
@@ -62,7 +63,7 @@ export default function Page() {
           { type: "reback", api: PW.REBACK },
           { type: "reject", api: PW.REJECT },
         ]}
-        onSuccess={() => { setOpenApproval(false); router.refresh(); }}
+        onSuccess={() => { setOpenApproval(false); refresh(); router.refresh(); }}
       />
 
       <HistoryTimelineSheet

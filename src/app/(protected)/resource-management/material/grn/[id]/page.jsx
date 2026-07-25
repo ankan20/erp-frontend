@@ -23,7 +23,7 @@ export default function Page() {
   const [uuid, setUuid] = useState(null);
 
   const access = getPageAccess({ pageCode: "goods_received_note", pageType: "EDIT" });
-  const { isPendingForMe, myLevel } = useMyApprovalStatus(
+  const { isPendingForMe, myLevel, refresh, dismiss } = useMyApprovalStatus(
     API_ENDPOINTS.RESOURCE.MATERIAL_MANAGEMENT.GRN.MY_APPROVAL_STATUS,
     id,
     access.canApprove,
@@ -43,6 +43,7 @@ export default function Page() {
     <HeaderWrapper
       header={<PageHeader actions={actions} />}
       pendingApproval={isPendingForMe ? `Your approval is required at Level ${myLevel} for this GRN.` : null}
+      onDismissApproval={isPendingForMe ? dismiss : undefined}
     >
       <GRNForm mode={access.mode} grnId={id} onUuid={setUuid} />
 
@@ -56,7 +57,7 @@ export default function Page() {
           { type: "reback",  api: API_ENDPOINTS.RESOURCE.MATERIAL_MANAGEMENT.GRN.REBACK   },
           { type: "reject",  api: API_ENDPOINTS.RESOURCE.MATERIAL_MANAGEMENT.GRN.REJECT   },
         ]}
-        onSuccess={() => { setOpenApproval(false); router.refresh(); }}
+        onSuccess={() => { setOpenApproval(false); refresh(); router.refresh(); }}
       />
 
       <HistoryTimelineSheet

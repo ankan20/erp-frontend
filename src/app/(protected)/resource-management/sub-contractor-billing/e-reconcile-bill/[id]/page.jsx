@@ -32,7 +32,7 @@ export default function Page() {
   const [openTimeline, setOpenTimeline] = useState(false);
 
   const access = getPageAccess({ pageCode, pageType });
-  const { isPendingForMe, myLevel } = useMyApprovalStatus(
+  const { isPendingForMe, myLevel, refresh, dismiss } = useMyApprovalStatus(
     API_ENDPOINTS.RESOURCE.BRB.MY_APPROVAL_STATUS,
     isNew ? null : id,
     !isNew && access.canApprove,
@@ -72,6 +72,7 @@ export default function Page() {
     <HeaderWrapper
       header={<PageHeader actions={actions} />}
       pendingApproval={!isNew && isPendingForMe ? `Your approval is required at Level ${myLevel} for this ${billingLabel}.` : null}
+      onDismissApproval={!isNew && isPendingForMe ? dismiss : undefined}
     >
       <BRRBillingForm
         mode={isNew ? "create" : access.mode}
@@ -92,7 +93,7 @@ export default function Page() {
               { type: "reback", api: ENDPOINT.REBACK },
               { type: "reject",  api: ENDPOINT.REJECT  },
             ]}
-            onSuccess={() => { setOpenApproval(false); router.refresh(); }}
+            onSuccess={() => { setOpenApproval(false); refresh(); router.refresh(); }}
           />
 
           <HistoryTimelineSheet

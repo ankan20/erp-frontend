@@ -1,11 +1,13 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { apiRequest } from "@/lib/apiClient";
 
 export function useMyApprovalStatus(api, entityId, enabled = true) {
   const [isPendingForMe, setIsPendingForMe] = useState(false);
   const [myLevel, setMyLevel]               = useState(null);
+  const [fetchKey, setFetchKey]             = useState(0);
+  const [dismissed, setDismissed]           = useState(false);
 
   useEffect(() => {
     if (!api || !entityId || !enabled) {
@@ -15,6 +17,7 @@ export function useMyApprovalStatus(api, entityId, enabled = true) {
     }
 
     let cancelled = false;
+    setDismissed(false); // reset dismiss on every re-fetch
 
     apiRequest({ url: `${api}/${entityId}`, method: "GET" })
       .then((res) => {
@@ -31,7 +34,18 @@ export function useMyApprovalStatus(api, entityId, enabled = true) {
       });
 
     return () => { cancelled = true; };
-  }, [api, entityId, enabled]);
+  }, [api, entityId, enabled, fetchKey]);
 
-  return { isPendingForMe, myLevel };
+  // Call after approve/reback/reject to re-check status from server
+  const refresh = useCallback(() => setFetchKey((k) => k + 1), []);
+
+  // Session-only dismiss — banner hides until next page load or refresh()
+  const dismiss = useCallback(() => setDismissed(true), []);
+
+  return {
+    isPendingForMe: isPendingForMe && !dismissed,
+    myLevel,
+    refresh,
+    dismiss,
+  };
 }

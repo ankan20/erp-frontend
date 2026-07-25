@@ -23,7 +23,7 @@ export default function Page() {
   const [uuid, setUuid] = useState(null);
 
   const access = getPageAccess({ pageCode: "goods_issue_note", pageType: "EDIT" });
-  const { isPendingForMe, myLevel } = useMyApprovalStatus(
+  const { isPendingForMe, myLevel, refresh, dismiss } = useMyApprovalStatus(
     API_ENDPOINTS.RESOURCE.MATERIAL_MANAGEMENT.GIN.MY_APPROVAL_STATUS,
     ginId,
     access.canApprove,
@@ -43,6 +43,7 @@ export default function Page() {
     <HeaderWrapper
       header={<PageHeader actions={actions} />}
       pendingApproval={isPendingForMe ? `Your approval is required at Level ${myLevel} for this GIN.` : null}
+      onDismissApproval={isPendingForMe ? dismiss : undefined}
     >
       <GINForm mode={access.mode} ginId={ginId} onUuid={setUuid} />
 
@@ -58,6 +59,7 @@ export default function Page() {
         ]}
         onSuccess={() => {
           setOpenApproval(false);
+          refresh();
           router.refresh();
         }}
       />

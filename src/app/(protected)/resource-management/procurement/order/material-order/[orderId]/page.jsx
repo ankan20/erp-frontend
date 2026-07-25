@@ -21,7 +21,7 @@ export default function Page() {
   const [uuid, setUuid] = useState(null);
 
   const access = getPageAccess({ pageCode: "order", pageType: "EDIT" });
-  const { isPendingForMe, myLevel } = useMyApprovalStatus(
+  const { isPendingForMe, myLevel, refresh, dismiss } = useMyApprovalStatus(
     API_ENDPOINTS.RESOURCE.PROCUREMENT.ORDER.MY_APPROVAL_STATUS,
     orderId,
     access.canApprove,
@@ -41,6 +41,7 @@ export default function Page() {
     <HeaderWrapper
       header={<PageHeader actions={actions} />}
       pendingApproval={isPendingForMe ? `Your approval is required at Level ${myLevel} for this Order.` : null}
+      onDismissApproval={isPendingForMe ? dismiss : undefined}
     >
       <OrderForm mode={access.mode} canApprove={access.canApprove} orderId={orderId} onUuid={setUuid} />
 
@@ -54,7 +55,7 @@ export default function Page() {
           { type: "reback", api: API_ENDPOINTS.RESOURCE.PROCUREMENT.ORDER.REBACK },
           { type: "reject", api: API_ENDPOINTS.RESOURCE.PROCUREMENT.ORDER.REJECT },
         ]}
-        onSuccess={() => { setOpenApproval(false); router.refresh(); }}
+        onSuccess={() => { setOpenApproval(false); refresh(); router.refresh(); }}
       />
 
       <HistoryTimelineSheet

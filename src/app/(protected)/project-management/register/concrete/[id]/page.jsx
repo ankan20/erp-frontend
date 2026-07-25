@@ -24,7 +24,7 @@ export default function Page() {
     pageCode: "concrete_register",
     pageType: "EDIT",
   });
-  const { isPendingForMe, myLevel } = useMyApprovalStatus(
+  const { isPendingForMe, myLevel, refresh, dismiss } = useMyApprovalStatus(
     API_ENDPOINTS.PROJECT.REGISTER.CONCRETE.MY_APPROVAL_STATUS,
     id,
     access.canApprove,
@@ -45,6 +45,7 @@ export default function Page() {
     <HeaderWrapper
       header={<PageHeader actions={actions} />}
       pendingApproval={isPendingForMe ? `Your approval is required at Level ${myLevel} for this Concrete Register.` : null}
+      onDismissApproval={isPendingForMe ? dismiss : undefined}
     >
       <ConcreteForm mode={access.mode} registryId={id} />
       <ApprovalActionModal
@@ -72,6 +73,7 @@ export default function Page() {
               ]}
               onSuccess={() => {
                 setOpenApproval(false);
+                refresh();
                 router.refresh();
               }}
             />
