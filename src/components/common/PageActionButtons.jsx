@@ -15,7 +15,7 @@ const tip = (btn, label) => (
 // Back navigation is now handled internally via goToBackPage — ERP-style.
 // All pages that previously passed onBack: () => router.back() can safely
 // remove that prop — it will be silently ignored if passed.
-export const getPageActions = ({
+export const usePageActions = ({
   router,
   onPrint,
   onDownload,
@@ -23,8 +23,8 @@ export const getPageActions = ({
   onTimeLine,
   isPendingApproval = false,
 }) => {
-  // eslint-disable-next-line react-hooks/rules-of-hooks
   const { stack } = useNavigationHistory();
+
   const baseBtnClass =
     "transition flex items-center justify-center w-[32px] h-[32px]";
 
@@ -48,6 +48,7 @@ export const getPageActions = ({
   const actions = [
     tip(
       <button
+        type="button"
         key="timeline"
         className={`${getButtonClass(!!onTimeLine)} ${iconWrapperClass}`}
         onClick={onTimeLine}
@@ -60,6 +61,7 @@ export const getPageActions = ({
 
     tip(
       <button
+        type="button"
         key="approve"
         className={`${getButtonClass(!!onApprove)} ${iconWrapperClass} relative ${isPendingApproval && !!onApprove ? "ring-2 ring-green-500/70 ring-offset-1 rounded-md" : ""}`}
         onClick={onApprove}
@@ -80,6 +82,7 @@ export const getPageActions = ({
 
     tip(
       <button
+        type="button"
         key="home"
         className={`${getButtonClass(true)} ${iconWrapperClass}`}
         onClick={() => goToHomePage(router)}
@@ -91,6 +94,7 @@ export const getPageActions = ({
 
     tip(
       <button
+        type="button"
         key="back"
         className={`${getButtonClass(true)} ${iconWrapperClass}`}
         onClick={() => goToBackPage(router, stack)}
@@ -104,6 +108,7 @@ export const getPageActions = ({
 
     tip(
       <button
+        type="button"
         key="download"
         className={`${getButtonClass(!!onDownload)} ${iconWrapperClass}`}
         onClick={onDownload}
@@ -116,6 +121,7 @@ export const getPageActions = ({
 
     tip(
       <button
+        type="button"
         key="print"
         className={`${getButtonClass(!!onPrint)} ${iconWrapperClass}`}
         onClick={onPrint}
@@ -129,3 +135,6 @@ export const getPageActions = ({
 
   return actions;
 };
+
+// Backwards-compatible alias — remove once all callers are updated
+export const getPageActions = usePageActions;
