@@ -14,6 +14,8 @@ const getStatusRank = (val) => {
 };
 
 const STATUS_STYLES = {
+  active:     "bg-emerald-100 text-emerald-700",
+  inactive:   "bg-red-100 text-red-600",
   approved:   "bg-green-100 text-green-700",
   completed:  "bg-green-100 text-green-700",
   ongoing:    "bg-amber-100 text-amber-700",
@@ -191,9 +193,10 @@ export default function DataTable({
       return sortConfig.direction === "asc" ? dateA - dateB : dateB - dateA;
     }
 
-    // Numeric-aware comparison — strip commas to handle Indian/international formatting
-    const numA = parseFloat(String(valA).replace(/,/g, ""));
-    const numB = parseFloat(String(valB).replace(/,/g, ""));
+    // Numeric-aware comparison — strip commas and leading currency symbols (₹, $, etc.)
+    const toNum = (v) => parseFloat(String(v).replace(/,/g, "").replace(/^[^\d\-\.]+/, ""));
+    const numA = toNum(valA);
+    const numB = toNum(valB);
     if (!isNaN(numA) && !isNaN(numB)) {
       return sortConfig.direction === "asc" ? numA - numB : numB - numA;
     }

@@ -251,6 +251,15 @@ export const API_ENDPOINTS = {
         ITEM_DETAIL: "/resource/stock/item-detail", // GET ?project_code&item_code
       },
     },
+    MANPOWER: {
+      VENDOR_DROPDOWN: "/master/ledger/dropdown", // GET — returns id, ledgerCode, ledgerName
+      LABOUR_ID: {
+        LIST:       "/resource/manpower/list",    // GET
+        CREATE:     "/resource/manpower/create",  // POST multipart/form-data
+        GET_BY_ID:  "/resource/manpower",         // /:workerId GET
+        UPDATE:     "/resource/manpower/update",  // /:workerId PUT multipart/form-data
+      },
+    },
   },
   SUPPLIER: {
     LIST:               "/master/supplier/list",             // GET ?supplierType= ?supplierName=
