@@ -3,7 +3,6 @@
 import { useEffect, useState } from "react";
 import Image from "next/image";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { Loader2, Clock3, User2, CheckCircle2, Circle, Layers } from "lucide-react";
 import { toast } from "sonner";
 import { apiRequest } from "@/lib/apiClient";
@@ -104,29 +103,31 @@ function TimelineNode({ node, isLast, nextDone }) {
             )}
           </div>
 
-          {/* ── small screen: two rows ── */}
+          {/* ── small screen ── */}
           <div className="flex flex-col gap-1 sm:hidden">
-            <div className="flex items-center justify-between gap-2">
-              <div className="flex items-center gap-1.5 flex-wrap">
-                {node.level != null && (
-                  <span className="text-[11px] font-medium text-gray-400 bg-gray-100 px-1.5 py-0.5 rounded shrink-0">
-                    L{node.level}
-                  </span>
-                )}
-                <span className={`text-[12px] font-semibold px-2.5 py-0.5 rounded-md whitespace-nowrap ${badgeClass}`}>
-                  {label}
+            {/* row 1: level + status badge */}
+            <div className="flex items-center gap-1.5 flex-wrap">
+              {node.level != null && node.action?.toUpperCase() !== "SUBMIT" && (
+                <span className="text-[11px] font-medium text-gray-400 bg-gray-100 px-1.5 py-0.5 rounded shrink-0">
+                  L{node.level}
                 </span>
-              </div>
+              )}
+              <span className={`text-[12px] font-semibold px-2.5 py-0.5 rounded-md ${badgeClass}`}>
+                {label}
+              </span>
+            </div>
+            {/* row 2: by + date (both fit comfortably side by side) */}
+            <div className="flex items-center justify-between gap-2 flex-wrap">
+              {node.by && (
+                <div className="flex items-center gap-1 text-[12px] text-gray-500">
+                  <User2 className="w-3.5 h-3.5 shrink-0 text-gray-400" />
+                  <span>by <span className="font-medium text-gray-700">{node.by}</span></span>
+                </div>
+              )}
               {node.at && (
-                <span className="text-[11px] text-gray-400 whitespace-nowrap shrink-0">{formatDate(node.at)}</span>
+                <span className="text-[11px] text-gray-400 shrink-0">{formatDate(node.at)}</span>
               )}
             </div>
-            {node.by && (
-              <div className="flex items-center gap-1 text-[12px] text-gray-500">
-                <User2 className="w-3.5 h-3.5 shrink-0 text-gray-400" />
-                <span>by <span className="font-medium text-gray-700">{node.by}</span></span>
-              </div>
-            )}
           </div>
 
           {/* pending hint */}
@@ -214,6 +215,11 @@ export default function HistoryTimelineSheet({ open, onClose, title = "History",
     fetchHistory();
   }, [open, api, entityId]);
 
+  const formatWorkflowStatus = (s) => {
+    const m = s?.match(/^Pending_L(\d+)$/i);
+    return m ? `Pending at Level ${m[1]}` : s?.replace(/_/g, " ") || s;
+  };
+
   const statusBadge =
     workflowStatus === "Approved"  ? "bg-green-100 text-green-700 border-green-200"     :
     workflowStatus === "Rejected"  ? "bg-red-100 text-red-700 border-red-200"           :
@@ -222,20 +228,20 @@ export default function HistoryTimelineSheet({ open, onClose, title = "History",
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="w-[95vw] sm:max-w-[580px] max-h-[90vh] p-0 flex flex-col overflow-hidden gap-0">
+      <DialogContent className="w-[95vw] sm:max-w-[580px] p-0 flex flex-col overflow-hidden gap-0 max-h-[90dvh]">
 
-        {/* header — pr-10 reserves space for the Dialog close button */}
-        <div className="h-[56px] pl-5 pr-10 flex items-center justify-between border-b bg-[#e8f2ff] shrink-0">
+        {/* header */}
+        <div className="min-h-[56px] pl-5 pr-10 py-2 flex flex-wrap items-center justify-between gap-x-3 gap-y-1 border-b bg-[#e8f2ff] shrink-0">
           <DialogTitle className="text-[18px] font-semibold">{title}</DialogTitle>
           {workflowStatus && (
             <span className={`text-[11px] font-semibold px-3 py-1 rounded-full border ${statusBadge}`}>
-              {workflowStatus}
+              {formatWorkflowStatus(workflowStatus)}
             </span>
           )}
         </div>
 
         {/* body */}
-        <ScrollArea className="flex-1 min-h-0">
+        <div className="flex-1 min-h-0 overflow-y-auto">
           <div className="px-5 py-5">
             {loading ? (
               <div className="h-[280px] flex items-center justify-center">
@@ -257,7 +263,7 @@ export default function HistoryTimelineSheet({ open, onClose, title = "History",
               ))
             )}
           </div>
-        </ScrollArea>
+        </div>
 
         {/* footer */}
         <div className="px-5 py-3 border-t bg-white shrink-0 flex justify-end">

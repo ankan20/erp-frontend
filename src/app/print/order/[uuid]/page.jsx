@@ -48,6 +48,7 @@ const VAL = `${SIZE.labelText} text-gray-700`;
 function ThreeBoxSection({ data, pageUrl }) {
   const v = data.vendor || {};
   const p = data.project || {};
+  const c = data.company || {};
   const TD = "align-top px-2.5 py-0";
   const DIVIDER_TD = "py-2";  // gap row between groups
 
@@ -142,9 +143,10 @@ function ThreeBoxSection({ data, pageUrl }) {
           </td>
           <td className={`${TD} pt-3 pb-2.5 border-r border-[#b0b0b0]`}>
             <div className="space-y-0.5">
-              <p className={VAL}><span className={LBL}>PAN No.</span> : {/* TODO: add value */}</p>
-              <p className={VAL}><span className={LBL}>GSTIN NO.</span> : {p.gstn || ""}</p>
-              <p className={VAL}><span className={LBL}>State</span> : {p.state || ""}{p.stateCode ? ` | State Code : ${p.stateCode}` : ""}</p>
+              {/* company details */}
+              <p className={VAL}><span className={LBL}>PAN No.</span> : {c.pan || ""}</p>
+              <p className={VAL}><span className={LBL}>GSTIN NO.</span> : {c.gstn || ""}</p>
+              <p className={VAL}><span className={LBL}>State</span> : {c.state || ""}{c.stateCode ? ` | State Code : ${c.stateCode}` : ""}</p>
               <p className={VAL}><span className={LBL}>Enquiry No</span> : {data.enquiryNo || ""}</p>
             </div>
           </td>
@@ -362,6 +364,7 @@ export default function OrderPrintPage() {
 
   const items  = data.items || [];
   const fin    = data.financials || {};
+  const company = data.company || {};
   const isIGST = (data.gstType || "") === "IGST";
   const cgstAmt = isIGST ? 0 : (fin.gstAmount || 0) / 2;
   const sgstAmt = isIGST ? 0 : (fin.gstAmount || 0) / 2;
@@ -411,10 +414,9 @@ export default function OrderPrintPage() {
                         {categoryLabel(data)}
                       </h1>
                     </div>
-                    <div className="w-[185px] shrink-0 flex flex-col items-start gap-0.5">
-                      <p className={`${SIZE.labelText} ${WEIGHT.normal} text-gray-800`}><span className={WEIGHT.bold}>Address</span> :</p>
-                      {/* TODO: Ph and Mobile values */}
-                      <p className={`${SIZE.subText} text-gray-700`}>Ph: | Mobile:</p>
+                    <div className="w-[27%] shrink-0 flex flex-col items-start gap-0.5">
+                      <p className={`${SIZE.labelText} ${WEIGHT.normal} text-gray-800`}><span className={WEIGHT.bold}>Address</span> : {company.registeredAddress || ""}</p>
+                      <p className={`${SIZE.subText} text-gray-700`}>Mobile: {company.contactNumber || ""}</p>
                       <a href="https://www.dishaanhitech.com" className={`${SIZE.subText} text-gray-700`}>Website: www.dishaanhitech.com</a>
                     </div>
                   </div>
