@@ -20,6 +20,7 @@ export default function Page() {
   const [loadErr, setLoadErr] = useState(false);
 
   const access = getPageAccess({ pageCode: "labour_id", pageType: "EDIT" });
+  const actions = getPageActions({ router });
 
   useEffect(() => {
     if (!workerId || !access.allowed) return;
@@ -48,8 +49,6 @@ export default function Page() {
       </div>
     );
   }
-
-  const actions = getPageActions({ router });
 
   return (
     <HeaderWrapper header={<PageHeader actions={actions} />}>

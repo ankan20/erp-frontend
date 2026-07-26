@@ -12,9 +12,9 @@ import ManpowerForm from "@/components/resource/manpower/ManpowerForm";
 export default function Page() {
   const router = useRouter();
   const access = getPageAccess({ pageCode: "labour_id", pageType: "ADD" });
-  if (!access.allowed) return <PageNotAvailable />;
-
   const actions = getPageActions({ router });
+
+  if (!access.allowed) return <PageNotAvailable />;
 
   return (
     <HeaderWrapper header={<PageHeader actions={actions} />}>
