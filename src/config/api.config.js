@@ -259,6 +259,21 @@ export const API_ENDPOINTS = {
         GET_BY_ID:  "/resource/manpower",         // /:workerId GET
         UPDATE:     "/resource/manpower/update",  // /:workerId PUT multipart/form-data
       },
+      DLR: {
+        LIST:               "/resource/dlr/list",
+        CREATE:             "/resource/dlr/create",
+        GET_BY_ID:          "/resource/dlr/details",
+        UPDATE:             "/resource/dlr/edit",
+        SUBMIT:             "/resource/dlr/submit",
+        APPROVE:            "/resource/dlr/approve",
+        REBACK:             "/resource/dlr/reback",
+        REJECT:             "/resource/dlr/reject",
+        HISTORY:            "/resource/dlr/history",
+        MY_APPROVAL_STATUS: "/resource/dlr/my-approval-status",
+        SUMMARY:            "/resource/dlr/summary",
+        LABOUR_BY_SUPPLIER: "/resource/dlr/labour-by-supplier",
+        VENDOR_ORDERS:      "/resource/dlr/vendor-orders",
+      },
     },
   },
   SUPPLIER: {
