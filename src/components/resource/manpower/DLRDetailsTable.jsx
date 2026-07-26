@@ -1,7 +1,10 @@
 "use client";
 
-import { useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import SearchableSelect from "@/components/common/SearchableSelect";
+import { apiRequest } from "@/lib/apiClient";
+import { API_ENDPOINTS } from "@/config/api.config";
+import { getLocalStorage } from "@/lib/localStorage";
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -56,6 +59,22 @@ export default function DLRDetailsTable({
   disabled     = false,
   labourList   = [],
 }) {
+  const projectCode = getLocalStorage("projectInfo")?.projectCode || "";
+  const [locationOptions, setLocationOptions] = useState([]);
+
+  useEffect(() => {
+    if (!projectCode) return;
+    apiRequest({
+      url: `${API_ENDPOINTS.SETTINGS.PROJECT_LOCATION.LIST}/${projectCode}`,
+      method: "GET",
+    })
+      .then((res) => {
+        const data = Array.isArray(res?.data) ? res.data : [];
+        setLocationOptions(data.filter((l) => l.locationType === "Use"));
+      })
+      .catch(() => setLocationOptions([]));
+  }, [projectCode]);
+
   // Initialise with one empty row when items is empty
   const rows = items.length > 0 ? items : [emptyRow()];
 
@@ -307,12 +326,15 @@ export default function DLRDetailsTable({
                     {disabled ? (
                       <span className="px-1">{row.jobLocation || "—"}</span>
                     ) : (
-                      <input
-                        type="text"
+                      <SearchableSelect
+                        options={locationOptions}
                         value={row.jobLocation || ""}
-                        onChange={(e) => handleChange(idx, "jobLocation", e.target.value)}
-                        className={inputCls}
-                        placeholder="Location"
+                        onChange={(val) => handleChange(idx, "jobLocation", val || "")}
+                        disabled={disabled}
+                        placeholder="Select"
+                        labelKey="locationName"
+                        valueKey="locationName"
+                        searchKeys={["locationName"]}
                       />
                     )}
                   </td>
