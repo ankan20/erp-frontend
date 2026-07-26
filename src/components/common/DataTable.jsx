@@ -4,11 +4,13 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { ArrowUp, ArrowDown, ArrowUpDown, ChevronDown, Search } from "lucide-react";
 
 const STATUS_STYLES = {
-  approved:  "bg-green-100 text-green-700",
-  draft:     "bg-gray-100 text-gray-600",
-  reback:    "bg-amber-100 text-amber-700",
-  reject:    "bg-red-100 text-red-600",
-  rejected:  "bg-red-100 text-red-600",
+  approved:   "bg-green-100 text-green-700",
+  completed:  "bg-green-100 text-green-700",
+  ongoing:    "bg-amber-100 text-amber-700",
+  draft:      "bg-gray-100 text-gray-600",
+  reback:     "bg-amber-100 text-amber-700",
+  reject:     "bg-red-100 text-red-600",
+  rejected:   "bg-red-100 text-red-600",
 };
 
 function StatusBadge({ value }) {
