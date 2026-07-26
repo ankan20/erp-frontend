@@ -134,7 +134,7 @@ export default function DLRForm({
       return;
     }
     apiRequest({
-      url: `${API_ENDPOINTS.RESOURCE.MANPOWER.DLR.VENDOR_ORDERS}?vendorId=${vendorId}`,
+      url: `${API_ENDPOINTS.RESOURCE.MANPOWER.DLR.VENDOR_ORDERS}/${vendorId}`,
       method: "GET",
     })
       .then((res) => {
@@ -421,8 +421,8 @@ export default function DLRForm({
                         disabled={fieldDisabled}
                         placeholder="Select Supplier"
                         labelKey="supplierName"
-                        valueKey="id"
-                        searchKeys={["supplierName"]}
+                        valueKey="supplierId"
+                        searchKeys={["supplierName", "supplierCode"]}
                       />
                     )}
                   />

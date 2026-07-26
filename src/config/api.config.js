@@ -272,7 +272,7 @@ export const API_ENDPOINTS = {
         MY_APPROVAL_STATUS: "/resource/dlr/my-approval-status",
         SUMMARY:            "/resource/dlr/summary",
         LABOUR_BY_SUPPLIER: "/resource/dlr/labour-by-supplier",
-        VENDOR_ORDERS:      "/resource/dlr/vendor-orders",
+        VENDOR_ORDERS:      "/resource/dlr/pw-orders-by-supplier",
       },
     },
   },

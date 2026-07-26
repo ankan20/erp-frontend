@@ -184,13 +184,13 @@ export default function SearchableSelect({
           {/* OPTIONS */}
           <div className="max-h-[220px] overflow-y-auto">
             {filteredOptions.length > 0 ? (
-              filteredOptions.map((item) => {
+              filteredOptions.map((item, idx) => {
                 const isSelected = String(item[valueKey]) === String(value);
 
                 return (
                   <button
                     type="button"
-                    key={item[valueKey]}
+                    key={item[valueKey] != null ? String(item[valueKey]) : idx}
                     onClick={() => handleSelect(item)}
                     className={`
                       w-full
