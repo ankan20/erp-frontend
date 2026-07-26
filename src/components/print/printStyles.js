@@ -26,6 +26,12 @@ export const WEIGHT = {
   bold:       "font-bold",     // 700
 };
 
+// Shared item sub-line style (note/customNote/itemCode below item name)
+export const ITEM_SUB = "text-[11px] text-gray-500";
+
+// Shared item name style
+export const ITEM_NAME = "text-[11px] font-medium text-gray-900";
+
 // Colors (matched to Indent.docx reference)
 export const COLOR = {
   tableHeadBg:    "bg-[#d9d9d9]",   // #D9D9D9 — doc reference gray header

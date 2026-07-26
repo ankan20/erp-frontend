@@ -8,7 +8,7 @@ import { publicRequest } from "@/lib/publicRequest";
 import { API_ENDPOINTS } from "@/config/api.config";
 import PrintTopBar from "@/components/print/PrintTopBar";
 import PrintErrorPage from "@/components/print/PrintErrorPage";
-import { SIZE, WEIGHT, COLOR, fmt } from "@/components/print/printStyles";
+import { SIZE, WEIGHT, COLOR, fmt, ITEM_NAME, ITEM_SUB } from "@/components/print/printStyles";
 
 /* ─── helpers ─────────────────────────────────────────────── */
 function InfoRow({ label, value }) {
@@ -448,10 +448,8 @@ export default function IndentPrintPage() {
                       <td className={`border ${COLOR.tableBorder} px-2 py-2 ${SIZE.tableCell} text-center`}>{idx + 1}</td>
                       <td className={`border ${COLOR.tableBorder} px-2 py-2 ${SIZE.tableCell}`}>{item.itemCode}</td>
                       <td className={`border ${COLOR.tableBorder} px-2 py-2`}>
-                        <p className={`${SIZE.tableCell} text-gray-900`}>{item.itemName}</p>
-                        {item.note && (
-                          <p className={`${SIZE.subText} text-gray-400 mt-0.5`}>{item.note}</p>
-                        )}
+                        <p className={ITEM_NAME}>{item.itemName}</p>
+                        {item.note && <p className={ITEM_SUB}>{item.note}</p>}
                       </td>
                       <td className={`border ${COLOR.tableBorder} px-2 py-2 ${SIZE.tableCell} text-center`}>{item.unit}</td>
                       <td className={`border ${COLOR.tableBorder} px-2 py-2 ${SIZE.tableCell} text-center`}>{item.totalQty}</td>

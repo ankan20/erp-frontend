@@ -8,7 +8,7 @@ import { publicRequest } from "@/lib/publicRequest";
 import { API_ENDPOINTS } from "@/config/api.config";
 import PrintTopBar from "@/components/print/PrintTopBar";
 import PrintErrorPage from "@/components/print/PrintErrorPage";
-import { SIZE, WEIGHT, COLOR, fmt, FmtNum } from "@/components/print/printStyles";
+import { SIZE, WEIGHT, COLOR, fmt, FmtNum, ITEM_NAME, ITEM_SUB } from "@/components/print/printStyles";
 
 /* ─── helpers ─────────────────────────────────────────────────── */
 function categoryLabel(data) {
@@ -470,10 +470,10 @@ export default function OrderPrintPage() {
                             <tr key={idx} style={{ breakInside: "avoid" }}>
                               <td className={`border ${COLOR.tableBorder} px-1 py-1.5 ${SIZE.tableCell} text-center`}>{idx + 1}.</td>
                               <td className={`border ${COLOR.tableBorder} px-1 py-1.5`}>
-                                <p className={`${SIZE.tableCell} text-gray-900 ${WEIGHT.medium}`}>{item.itemName || "-"}</p>
-                                {/* {item.itemDescription && <p className={`${SIZE.subText} text-gray-500`}>{item.itemDescription}</p>} */}
-                                {item.customNote && <p className={`${SIZE.tableCell} text-gray-500`}>{item.customNote}</p>}
-                                {item.itemCode && <p className={`${SIZE.tableCell} text-gray-500`}><span className={WEIGHT.medium}>Item Code</span> : {item.itemCode}</p>}
+                                <p className={ITEM_NAME}>{item.itemName || "-"}</p>
+                                {/* {item.itemDescription && <p className={ITEM_SUB}>{item.itemDescription}</p>} */}
+                                {item.customNote && <p className={ITEM_SUB}>{item.customNote}</p>}
+                                {item.itemCode && <p className={ITEM_SUB}><span className={WEIGHT.medium}>Item Code</span> : {item.itemCode}</p>}
                               </td>
                               <td className={`border ${COLOR.tableBorder} px-1 py-1.5 ${SIZE.tableCell} text-center`}>{item.hsnSac || "-"}</td>
                               <td className={`border ${COLOR.tableBorder} px-1 py-1.5 ${SIZE.tableCell} text-center`}>{item.unit || "-"}</td>
