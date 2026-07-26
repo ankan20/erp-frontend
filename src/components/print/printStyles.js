@@ -6,15 +6,25 @@
 export const PRINT_FONT   = "var(--font-print), sans-serif";
 
 // Text sizes (px as inline style numbers, or Tailwind classes)
+// export const SIZE = {
+//   pageTitle:    "text-[22px]",
+//   sectionTitle: "text-[13px]",
+//   labelText:    "text-[11px]",
+//   valueText:    "text-[11px]",
+//   tableHead:    "text-[11px]",
+//   tableCell:    "text-[11px]",
+//   subText:      "text-[9.5px]",
+//   footerText:   "text-[10px]",
+// };
 export const SIZE = {
   pageTitle:    "text-[22px]",
-  sectionTitle: "text-[13px]",
-  labelText:    "text-[11px]",
-  valueText:    "text-[11px]",
-  tableHead:    "text-[11px]",
-  tableCell:    "text-[11px]",
-  subText:      "text-[9.5px]",
-  footerText:   "text-[10px]",
+  sectionTitle: "text-[15px]",
+  labelText:    "text-[13px]",
+  valueText:    "text-[13px]",
+  tableHead:    "text-[13px]",
+  tableCell:    "text-[13px]",
+  subText:      "text-[11.5px]",
+  footerText:   "text-[12px]",
 };
 
 // Weights
@@ -62,7 +72,7 @@ export function FmtNum({ value, decimals = 2 }) {
   return (
     <>
       {integer}
-      <span style={{ fontSize: "0.90em", color: "#6b7280", fontWeight: 400 }}>{frac}</span>
+      <span style={{ fontSize: "0.90em" }}>{frac}</span>
     </>
   );
 }

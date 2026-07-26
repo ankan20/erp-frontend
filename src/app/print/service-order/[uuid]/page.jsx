@@ -185,7 +185,7 @@ function SpecificTerms({ terms }) {
   return (
     <div className="px-6 pb-2">
       <div className={`${SIZE.sectionTitle} ${WEIGHT.bold} text-gray-900 uppercase text-center py-1 mb-2`}>
-        Specific Terms and Conditions
+        Special Terms and Conditions
       </div>
       {renderGroups(allGroups)}
     </div>
@@ -541,10 +541,10 @@ export default function ServiceOrderPrintPage() {
 
                   {/* ── BOTTOM NOTE (static) ───────────────── */}
                   <div className="px-6 pb-6">
+                    <hr className="mb-2 border-t border-gray-400" />
                     <p className={`${SIZE.subText} text-gray-500`}>
                       Note: This is an electronically verified document and does not require any physical signature or stamp.
                     </p>
-                    <hr className="mt-2 border-t border-gray-400" />
                   </div>
                 </div>
               </td>
