@@ -192,9 +192,9 @@ export default function DLRDetailsTable({
                         onChange={(val) => handleManIdChange(idx, val)}
                         disabled={disabled}
                         placeholder="Select"
-                        labelKey="manId"
+                        labelKey="fullName"
                         valueKey="id"
-                        searchKeys={["manId", "fullName"]}
+                        searchKeys={["fullName", "manId"]}
                       />
                     )}
                   </td>
