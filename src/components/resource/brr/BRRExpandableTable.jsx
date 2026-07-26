@@ -34,12 +34,23 @@ function TruncatedCell({ value, maxW }) {
 const fmt = (v) =>
   Number(v || 0).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
+const STATUS_RANK = { draft: 0, ongoing: 2, approved: 3, completed: 4, reback: 5, rejected: 6, reject: 6 };
+
+const getStatusRank = (val) => {
+  if (!val) return 999;
+  const key = String(val).toLowerCase();
+  if (key.startsWith("pending")) return 1;
+  return STATUS_RANK[key] ?? 999;
+};
+
 const STATUS_STYLES = {
-  approved: "bg-green-100 text-green-700",
-  draft:    "bg-gray-100 text-gray-600",
-  reback:   "bg-amber-100 text-amber-700",
-  reject:   "bg-red-100 text-red-600",
-  rejected: "bg-red-100 text-red-600",
+  approved:  "bg-green-100 text-green-700",
+  completed: "bg-green-100 text-green-700",
+  ongoing:   "bg-amber-100 text-amber-700",
+  draft:     "bg-gray-100 text-gray-600",
+  reback:    "bg-amber-100 text-amber-700",
+  reject:    "bg-red-100 text-red-600",
+  rejected:  "bg-red-100 text-red-600",
 };
 
 function StatusBadge({ value }) {
@@ -172,8 +183,32 @@ function ChildTable({ billings, onChildRowClick, search, orderCategory }) {
   const sorted = [...filtered].sort((a, b) => {
     if (!sortConfig.key) return 0;
     const va = a[sortConfig.key] ?? ""; const vb = b[sortConfig.key] ?? "";
-    if (!isNaN(va) && !isNaN(vb))
-      return sortConfig.direction === "asc" ? Number(va) - Number(vb) : Number(vb) - Number(va);
+
+    if (sortConfig.key?.toLowerCase().endsWith("status")) {
+      const rankA = getStatusRank(va), rankB = getStatusRank(vb);
+      if (rankA !== rankB) return sortConfig.direction === "asc" ? rankA - rankB : rankB - rankA;
+      return sortConfig.direction === "asc"
+        ? String(va).toLowerCase().localeCompare(String(vb).toLowerCase())
+        : String(vb).toLowerCase().localeCompare(String(va).toLowerCase());
+    }
+
+    const parseDate = (v) => {
+      const s = String(v).trim();
+      const dmy = s.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})$/);
+      if (dmy) return new Date(`${dmy[3]}-${dmy[2].padStart(2,"0")}-${dmy[1].padStart(2,"0")}`);
+      if (s.match(/^(\d{4})[\/\-](\d{1,2})[\/\-](\d{1,2})$/)) return new Date(s);
+      if (s.match(/^(\d{1,2})\s+[A-Za-z]+\s+(\d{4})$/)) return new Date(s);
+      return null;
+    };
+    const dateA = parseDate(va), dateB = parseDate(vb);
+    if (dateA && dateB && !isNaN(dateA) && !isNaN(dateB))
+      return sortConfig.direction === "asc" ? dateA - dateB : dateB - dateA;
+
+    const numA = parseFloat(String(va).replace(/,/g, ""));
+    const numB = parseFloat(String(vb).replace(/,/g, ""));
+    if (!isNaN(numA) && !isNaN(numB))
+      return sortConfig.direction === "asc" ? numA - numB : numB - numA;
+
     const sa = String(va).toLowerCase(); const sb = String(vb).toLowerCase();
     if (sa < sb) return sortConfig.direction === "asc" ? -1 : 1;
     if (sa > sb) return sortConfig.direction === "asc" ? 1 : -1;
@@ -475,8 +510,32 @@ export default function BRRExpandableTable({
   const sorted = [...filtered].sort((a, b) => {
     if (!sortConfig.key) return 0;
     const va = a[sortConfig.key] ?? ""; const vb = b[sortConfig.key] ?? "";
-    if (!isNaN(va) && !isNaN(vb))
-      return sortConfig.direction === "asc" ? Number(va) - Number(vb) : Number(vb) - Number(va);
+
+    if (sortConfig.key?.toLowerCase().endsWith("status")) {
+      const rankA = getStatusRank(va), rankB = getStatusRank(vb);
+      if (rankA !== rankB) return sortConfig.direction === "asc" ? rankA - rankB : rankB - rankA;
+      return sortConfig.direction === "asc"
+        ? String(va).toLowerCase().localeCompare(String(vb).toLowerCase())
+        : String(vb).toLowerCase().localeCompare(String(va).toLowerCase());
+    }
+
+    const parseDate = (v) => {
+      const s = String(v).trim();
+      const dmy = s.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})$/);
+      if (dmy) return new Date(`${dmy[3]}-${dmy[2].padStart(2,"0")}-${dmy[1].padStart(2,"0")}`);
+      if (s.match(/^(\d{4})[\/\-](\d{1,2})[\/\-](\d{1,2})$/)) return new Date(s);
+      if (s.match(/^(\d{1,2})\s+[A-Za-z]+\s+(\d{4})$/)) return new Date(s);
+      return null;
+    };
+    const dateA = parseDate(va), dateB = parseDate(vb);
+    if (dateA && dateB && !isNaN(dateA) && !isNaN(dateB))
+      return sortConfig.direction === "asc" ? dateA - dateB : dateB - dateA;
+
+    const numA = parseFloat(String(va).replace(/,/g, ""));
+    const numB = parseFloat(String(vb).replace(/,/g, ""));
+    if (!isNaN(numA) && !isNaN(numB))
+      return sortConfig.direction === "asc" ? numA - numB : numB - numA;
+
     const sa = String(va).toLowerCase(); const sb = String(vb).toLowerCase();
     if (sa < sb) return sortConfig.direction === "asc" ? -1 : 1;
     if (sa > sb) return sortConfig.direction === "asc" ? 1 : -1;

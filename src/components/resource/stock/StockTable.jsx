@@ -12,6 +12,15 @@ import {
 } from "lucide-react";
 
 
+const STATUS_RANK = { draft: 0, ongoing: 2, approved: 3, completed: 4, reback: 5, rejected: 6, reject: 6 };
+
+const getStatusRank = (val) => {
+  if (!val) return 999;
+  const key = String(val).toLowerCase();
+  if (key.startsWith("pending")) return 1;
+  return STATUS_RANK[key] ?? 999;
+};
+
 const CHILD_COLS = [
   { key: "itemCode",    label: "Item Code",    cls: "text-left",   cellCls: "text-blue-600 font-medium", numeric: false },
   { key: "itemName",    label: "Item Name",    cls: "text-left",   cellCls: "truncate",                  numeric: false },
@@ -95,7 +104,32 @@ function ChildTable({ items = [], onItemClick }) {
     if (!sortConfig.key) return 0;
     const va = a[sortConfig.key] ?? "";
     const vb = b[sortConfig.key] ?? "";
-    if (!isNaN(va) && !isNaN(vb)) return sortConfig.direction === "asc" ? Number(va) - Number(vb) : Number(vb) - Number(va);
+
+    if (sortConfig.key?.toLowerCase().endsWith("status")) {
+      const rankA = getStatusRank(va), rankB = getStatusRank(vb);
+      if (rankA !== rankB) return sortConfig.direction === "asc" ? rankA - rankB : rankB - rankA;
+      return sortConfig.direction === "asc"
+        ? String(va).toLowerCase().localeCompare(String(vb).toLowerCase())
+        : String(vb).toLowerCase().localeCompare(String(va).toLowerCase());
+    }
+
+    const parseDate = (v) => {
+      const s = String(v).trim();
+      const dmy = s.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})$/);
+      if (dmy) return new Date(`${dmy[3]}-${dmy[2].padStart(2,"0")}-${dmy[1].padStart(2,"0")}`);
+      if (s.match(/^(\d{4})[\/\-](\d{1,2})[\/\-](\d{1,2})$/)) return new Date(s);
+      if (s.match(/^(\d{1,2})\s+[A-Za-z]+\s+(\d{4})$/)) return new Date(s);
+      return null;
+    };
+    const dateA = parseDate(va), dateB = parseDate(vb);
+    if (dateA && dateB && !isNaN(dateA) && !isNaN(dateB))
+      return sortConfig.direction === "asc" ? dateA - dateB : dateB - dateA;
+
+    const numA = parseFloat(String(va).replace(/,/g, ""));
+    const numB = parseFloat(String(vb).replace(/,/g, ""));
+    if (!isNaN(numA) && !isNaN(numB))
+      return sortConfig.direction === "asc" ? numA - numB : numB - numA;
+
     const sa = String(va).toLowerCase(), sb = String(vb).toLowerCase();
     if (sa < sb) return sortConfig.direction === "asc" ? -1 : 1;
     if (sa > sb) return sortConfig.direction === "asc" ? 1 : -1;
@@ -343,9 +377,35 @@ export default function StockTable({ data = [], onItemClick, pagination, onPageC
     if (!sortConfig.key) return 0;
     const va = a[sortConfig.key] ?? "";
     const vb = b[sortConfig.key] ?? "";
-    if (!isNaN(va) && !isNaN(vb)) {
-      return sortConfig.direction === "asc" ? Number(va) - Number(vb) : Number(vb) - Number(va);
+
+    if (sortConfig.key?.toLowerCase().endsWith("status")) {
+      const rankA = getStatusRank(va), rankB = getStatusRank(vb);
+      if (rankA !== rankB) return sortConfig.direction === "asc" ? rankA - rankB : rankB - rankA;
+      return sortConfig.direction === "asc"
+        ? String(va).toLowerCase().localeCompare(String(vb).toLowerCase())
+        : String(vb).toLowerCase().localeCompare(String(va).toLowerCase());
     }
+
+    const parseDate = (v) => {
+      const s = String(v).trim();
+      const dmy = s.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})$/);
+      if (dmy) return new Date(`${dmy[3]}-${dmy[2].padStart(2,"0")}-${dmy[1].padStart(2,"0")}`);
+      if (s.match(/^(\d{4})[\/\-](\d{1,2})[\/\-](\d{1,2})$/)) return new Date(s);
+      if (s.match(/^(\d{1,2})\s+[A-Za-z]+\s+(\d{4})$/)) return new Date(s);
+      return null;
+    };
+    const dateA = parseDate(va);
+    const dateB = parseDate(vb);
+    if (dateA && dateB && !isNaN(dateA) && !isNaN(dateB)) {
+      return sortConfig.direction === "asc" ? dateA - dateB : dateB - dateA;
+    }
+
+    const numA = parseFloat(String(va).replace(/,/g, ""));
+    const numB = parseFloat(String(vb).replace(/,/g, ""));
+    if (!isNaN(numA) && !isNaN(numB)) {
+      return sortConfig.direction === "asc" ? numA - numB : numB - numA;
+    }
+
     const sa = String(va).toLowerCase();
     const sb = String(vb).toLowerCase();
     if (sa < sb) return sortConfig.direction === "asc" ? -1 : 1;

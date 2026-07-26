@@ -3,6 +3,16 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { ArrowUp, ArrowDown, ArrowUpDown, ChevronDown, Search } from "lucide-react";
 
+// Workflow sort order — statuses not listed here rank 999 and sort alphabetically among themselves
+const STATUS_RANK = { draft: 0, ongoing: 2, approved: 3, completed: 4, reback: 5, rejected: 6, reject: 6 };
+
+const getStatusRank = (val) => {
+  if (!val) return 999;
+  const key = String(val).toLowerCase();
+  if (key.startsWith("pending")) return 1; // pending, pending_l1, pending_l2 … all group here
+  return STATUS_RANK[key] ?? 999;
+};
+
 const STATUS_STYLES = {
   approved:   "bg-green-100 text-green-700",
   completed:  "bg-green-100 text-green-700",
@@ -146,14 +156,46 @@ export default function DataTable({
 
   const sortedData = [...filteredData].sort((a, b) => {
     if (!sortConfig.key) return 0;
-    // FIXED: null/undefined treated as empty string for safe comparison
     const valA = a[sortConfig.key] ?? "";
     const valB = b[sortConfig.key] ?? "";
-    // Numeric-aware comparison
-    if (!isNaN(valA) && !isNaN(valB)) {
+
+    // Status columns — workflow order; same-rank values (e.g. pending_l1 vs pending_l2) sort alphabetically
+    if (sortConfig.key?.toLowerCase().endsWith("status")) {
+      const rankA = getStatusRank(valA);
+      const rankB = getStatusRank(valB);
+      if (rankA !== rankB) {
+        return sortConfig.direction === "asc" ? rankA - rankB : rankB - rankA;
+      }
       return sortConfig.direction === "asc"
-        ? Number(valA) - Number(valB)
-        : Number(valB) - Number(valA);
+        ? String(valA).toLowerCase().localeCompare(String(valB).toLowerCase())
+        : String(valB).toLowerCase().localeCompare(String(valA).toLowerCase());
+    }
+
+    // Date-aware comparison — handles DD/MM/YYYY, DD-MM-YYYY, YYYY-MM-DD
+    const parseDate = (v) => {
+      const s = String(v).trim();
+      // DD/MM/YYYY or DD-MM-YYYY
+      const dmy = s.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})$/);
+      if (dmy) return new Date(`${dmy[3]}-${dmy[2].padStart(2,"0")}-${dmy[1].padStart(2,"0")}`);
+      // YYYY-MM-DD or YYYY/MM/DD
+      const ymd = s.match(/^(\d{4})[\/\-](\d{1,2})[\/\-](\d{1,2})$/);
+      if (ymd) return new Date(s);
+      // DD MMM YYYY (e.g. "28 May 2026")
+      const dmmmy = s.match(/^(\d{1,2})\s+([A-Za-z]+)\s+(\d{4})$/);
+      if (dmmmy) return new Date(s);
+      return null;
+    };
+    const dateA = parseDate(valA);
+    const dateB = parseDate(valB);
+    if (dateA && dateB && !isNaN(dateA) && !isNaN(dateB)) {
+      return sortConfig.direction === "asc" ? dateA - dateB : dateB - dateA;
+    }
+
+    // Numeric-aware comparison — strip commas to handle Indian/international formatting
+    const numA = parseFloat(String(valA).replace(/,/g, ""));
+    const numB = parseFloat(String(valB).replace(/,/g, ""));
+    if (!isNaN(numA) && !isNaN(numB)) {
+      return sortConfig.direction === "asc" ? numA - numB : numB - numA;
     }
     const strA = String(valA).toLowerCase();
     const strB = String(valB).toLowerCase();
