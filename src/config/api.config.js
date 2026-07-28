@@ -320,6 +320,20 @@ export const API_ENDPOINTS = {
         HISTORY: "/project-mgmt/register/drawing-register/history", // /:drId GET
         MY_APPROVAL_STATUS: "/project-mgmt/register/drawing-register/my-approval-status", // /:id GET
       },
+      BBS_REGISTER: {
+        CREATE:             "/project-mgmt/register/bbs-register/create",              // POST multipart/form-data
+        LIST:               "/project-mgmt/register/bbs-register/list",               // GET ?projectCode
+        GET_BY_ID:          "/project-mgmt/register/bbs-register/details",            // /:id GET
+        GET_BY_UUID:        "/project-mgmt/register/bbs-register/uuid",               // /:uuid GET — no auth
+        UPDATE:             "/project-mgmt/register/bbs-register/edit",               // /:id PUT multipart/form-data
+        SUBMIT:             "/project-mgmt/register/bbs-register/submit",             // /:id POST
+        APPROVE:            "/project-mgmt/register/bbs-register/approve",            // /:id POST
+        REBACK:             "/project-mgmt/register/bbs-register/reback",             // /:id POST
+        REJECT:             "/project-mgmt/register/bbs-register/reject",             // /:id POST
+        DELETE:             "/project-mgmt/register/bbs-register/delete",             // /:id DELETE
+        HISTORY:            "/project-mgmt/register/bbs-register/history",            // /:id GET
+        MY_APPROVAL_STATUS: "/project-mgmt/register/bbs-register/my-approval-status", // /:id GET
+      },
     },
   },
 };

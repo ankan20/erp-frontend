@@ -1,10 +1,7 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import SearchableSelect from "@/components/common/SearchableSelect";
-import { apiRequest } from "@/lib/apiClient";
-import { API_ENDPOINTS } from "@/config/api.config";
-import { getLocalStorage } from "@/lib/localStorage";
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -54,26 +51,12 @@ const calcCls    = `${inputCls} bg-gray-100 cursor-default`;
 // ── Main component ────────────────────────────────────────────────────────────
 
 export default function DLRDetailsTable({
-  items        = [],
+  items           = [],
   onItemsChange,
-  disabled     = false,
-  labourList   = [],
+  disabled        = false,
+  labourList      = [],
+  locationOptions = [],
 }) {
-  const projectCode = getLocalStorage("projectInfo")?.projectCode || "";
-  const [locationOptions, setLocationOptions] = useState([]);
-
-  useEffect(() => {
-    if (!projectCode) return;
-    apiRequest({
-      url: `${API_ENDPOINTS.SETTINGS.PROJECT_LOCATION.LIST}/${projectCode}`,
-      method: "GET",
-    })
-      .then((res) => {
-        const data = Array.isArray(res?.data) ? res.data : [];
-        setLocationOptions(data.filter((l) => l.locationType === "Use"));
-      })
-      .catch(() => setLocationOptions([]));
-  }, [projectCode]);
 
   // Initialise with one empty row when items is empty
   const rows = items.length > 0 ? items : [emptyRow()];

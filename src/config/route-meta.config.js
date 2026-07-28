@@ -395,5 +395,30 @@ export const routeMetaConfig = [
     basePath: "/project-management/register/concrete/[id]",
     breadcrumbs: ["Project Management", "Register","Concrete Register","Edit"],
   },
-  
+  // drawing register
+  {
+    basePath: "/project-management/register/drawing",
+    breadcrumbs: ["Project Management", "Register", "Drawing Register", "List"],
+  },
+  {
+    basePath: "/project-management/register/drawing/new",
+    breadcrumbs: ["Project Management", "Register", "Drawing Register", "New"],
+  },
+  {
+    basePath: "/project-management/register/drawing/[id]",
+    breadcrumbs: ["Project Management", "Register", "Drawing Register", "Edit"],
+  },
+  // bbs register
+  {
+    basePath: "/project-management/register/bbs",
+    breadcrumbs: ["Project Management", "Register", "BBS Register", "List"],
+  },
+  {
+    basePath: "/project-management/register/bbs/new",
+    breadcrumbs: ["Project Management", "Register", "BBS Register", "New"],
+  },
+  {
+    basePath: "/project-management/register/bbs/[id]",
+    breadcrumbs: ["Project Management", "Register", "BBS Register", "Edit"],
+  },
 ];

@@ -458,7 +458,7 @@ export default function DataTable({
             ? col.render(row)
             : col.accessor?.toLowerCase().endsWith("status")
               ? <StatusBadge value={row[col.accessor]} />
-              : (row[col.accessor] ?? "-")}
+              : (row[col.accessor] == null || row[col.accessor] === "" ? "-" : row[col.accessor])}
                         </div>
                       </td>
                     );
