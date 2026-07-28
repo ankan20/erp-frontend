@@ -320,6 +320,20 @@ export const API_ENDPOINTS = {
         HISTORY: "/project-mgmt/register/drawing-register/history", // /:drId GET
         MY_APPROVAL_STATUS: "/project-mgmt/register/drawing-register/my-approval-status", // /:id GET
       },
+      HINDRANCE_REGISTER: {
+        CREATE:             "/project-mgmt/register/hindrance-register/create",             // POST multipart/form-data
+        LIST:               "/project-mgmt/register/hindrance-register/list",               // GET ?projectCode
+        GET_BY_ID:          "/project-mgmt/register/hindrance-register/details",            // /:id GET
+        GET_BY_UUID:        "/project-mgmt/register/hindrance-register/uuid",               // /:uuid GET no-auth
+        UPDATE:             "/project-mgmt/register/hindrance-register/edit",               // /:id PUT multipart/form-data
+        SUBMIT:             "/project-mgmt/register/hindrance-register/submit",             // /:id POST
+        APPROVE:            "/project-mgmt/register/hindrance-register/approve",            // /:id POST
+        REBACK:             "/project-mgmt/register/hindrance-register/reback",             // /:id POST
+        REJECT:             "/project-mgmt/register/hindrance-register/reject",             // /:id POST
+        DELETE:             "/project-mgmt/register/hindrance-register/delete",             // /:id DELETE
+        HISTORY:            "/project-mgmt/register/hindrance-register/history",            // /:id GET
+        MY_APPROVAL_STATUS: "/project-mgmt/register/hindrance-register/my-approval-status", // /:id GET
+      },
       BBS_REGISTER: {
         CREATE:             "/project-mgmt/register/bbs-register/create",              // POST multipart/form-data
         LIST:               "/project-mgmt/register/bbs-register/list",               // GET ?projectCode

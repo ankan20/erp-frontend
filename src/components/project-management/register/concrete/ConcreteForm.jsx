@@ -32,7 +32,7 @@ const concreteSchema = z.object({
   pouringStartDate:   z.string().min(1, "Pouring Start Time is required"),
   pouringEndDate:     z.string().min(1, "Pouring Finish Time is required"),
   gradeConcrete:      z.string().min(1, "Grade of Concrete is required"),
-  concreteVolume:     z.string().min(1, "Concrete Volume is required"),
+  concreteVolume:     z.string().min(1, "Concrete Volume is required").refine((v) => Number(v) >= 0, { message: "Concrete Volume must be 0 or greater" }),
   requisitionNo:      z.string().min(1, "Requisition Slip No is required"),
   requisitionBy:      z.string().min(1, "Requisition By is required"),
   vehicleNumber:      z.string().min(1, "Vehicle Number is required"),
@@ -348,6 +348,7 @@ export default function ConcreteForm({ mode = "create", registryId, onAfterSubmi
             hasError={errors.concreteVolume}
             expandable={false}
             placeholder="Enter volume"
+            min="0"
             className="max-w-[200px]"
           />
         </PMFormRow>

@@ -421,4 +421,17 @@ export const routeMetaConfig = [
     basePath: "/project-management/register/bbs/[id]",
     breadcrumbs: ["Project Management", "Register", "BBS Register", "Edit"],
   },
+  // hindrance register
+  {
+    basePath: "/project-management/register/hindrance",
+    breadcrumbs: ["Project Management", "Register", "Hindrance Register", "List"],
+  },
+  {
+    basePath: "/project-management/register/hindrance/new",
+    breadcrumbs: ["Project Management", "Register", "Hindrance Register", "New"],
+  },
+  {
+    basePath: "/project-management/register/hindrance/[id]",
+    breadcrumbs: ["Project Management", "Register", "Hindrance Register", "Edit"],
+  },
 ];
