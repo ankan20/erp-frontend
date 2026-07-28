@@ -50,7 +50,7 @@ export default function Page() {
           drawingNo:      r.drawingNo      || "",
           revision:       r.revision       || "",
           drawingTitle:   r.drawingTitle   || "",
-          receivedDate:  getfmtDisplaydate( r.receivedDate)   || "",
+          receivedDate:   getfmtDisplaydate(r.receivedDate) || "",
           receivedBy:     r.receivedBy     || "",
           workflowStatus: r.workflowStatus || "",
         }));

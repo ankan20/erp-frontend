@@ -1,6 +1,7 @@
 "use client";
 
 import { cn } from "@/lib/utils";
+import { PM } from "./pmTheme";
 
 /**
  * PMSection — bordered section container for PM module forms.
@@ -20,13 +21,13 @@ export default function PMSection({
   return (
     <div
       className={cn(
-        "border border-[#b0c5d5] rounded-sm bg-[#e8e8e8] overflow-hidden",
+        PM.sectionBorder, "rounded-sm overflow-hidden", PM.sectionBg,
         className,
       )}
     >
       {title && (
         <div className="px-3 pt-2 pb-0.5">
-          <span className="text-[13px] font-semibold text-[#1c3a5e]">
+          <span className={PM.sectionTitle}>
             {title}
           </span>
         </div>

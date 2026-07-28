@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect } from "react";
 import { Maximize2, X, Check } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { PM } from "./pmTheme";
 import {
   Dialog,
   DialogContent,
@@ -69,15 +70,14 @@ export default function PMTextarea({
   const handleCancel = () => { setDraft(value); setOpen(false); };
 
   const baseCls = cn(
-    "w-full resize-none rounded-sm text-[13px] px-2 py-1.5 pr-7 outline-none transition-colors",
-    "border",
+    "w-full resize-none rounded-sm px-2 py-1.5 pr-7 outline-none transition-colors border",
+    PM.inputText, PM.inputPlaceholder,
+    "disabled:opacity-100 disabled:cursor-default",
     isErr
       ? "border-red-400 bg-red-50 text-red-900 placeholder:text-red-300"
       : disabled
-      ? "border-transparent bg-[#edf8ed] text-gray-500 cursor-default"
-      : "border-transparent bg-transparent focus:border-transparent",
-    "placeholder:text-gray-400 placeholder:text-[13px]",
-    "disabled:opacity-100 disabled:cursor-default",
+      ? cn("border-transparent text-gray-500 cursor-default", PM.disabledBg)
+      : cn("border-transparent bg-transparent", PM.focusBorder),
   );
 
   return (

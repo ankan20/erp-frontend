@@ -1,6 +1,7 @@
 "use client";
 
 import { cn } from "@/lib/utils";
+import { PM } from "./pmTheme";
 
 /**
  * PMFormRow — label + input slot row for PM module forms.
@@ -31,11 +32,11 @@ export default function PMFormRow({
           labelWidth,
         )}
       >
-        <span className="flex-1 text-[13px] text-[#444444] leading-none">
+        <span className={cn("flex-1 leading-none", PM.label)}>
           {label}
           {required && <span className="text-red-500 ml-0.5">*</span>}
         </span>
-        <span className="text-[13px] text-[#444444] mx-1.5 shrink-0">:</span>
+        <span className={cn("mx-1.5 shrink-0", PM.label)}>:</span>
       </div>
 
       {/* Input slot */}

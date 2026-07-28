@@ -2,6 +2,7 @@
 
 import { forwardRef } from "react";
 import { cn } from "@/lib/utils";
+import { PM } from "./pmTheme";
 
 /**
  * PMSelect — flat <select> for PM module forms.
@@ -36,14 +37,14 @@ const PMSelect = forwardRef(function PMSelect(
       ref={ref}
       disabled={disabled}
       className={cn(
-        "w-full h-[30px] px-2 text-[13px] rounded-sm",
-        "outline-none border transition-colors",
+        "w-full px-2 rounded-sm outline-none border transition-colors",
+        PM.inputHeight, PM.inputText,
         "disabled:opacity-100 disabled:cursor-default",
         isErr
           ? "border-red-400 bg-red-50 text-red-900"
           : disabled
-          ? "border-transparent bg-[#edf8ed] text-gray-500"
-          : "border-transparent bg-transparent focus:border-[#93b5cc]",
+          ? cn("border-transparent text-gray-500", PM.disabledBg)
+          : cn("border-transparent bg-transparent", PM.focusBorder),
         className,
       )}
       {...props}

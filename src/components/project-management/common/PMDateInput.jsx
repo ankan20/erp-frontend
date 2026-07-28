@@ -3,6 +3,7 @@
 import { forwardRef, useCallback, useRef } from "react";
 import { cn } from "@/lib/utils";
 import PMInput from "./PMInput";
+import { PM } from "./pmTheme";
 
 /**
  * PMDateInput — PM module date picker with a "Today" quick-fill button.
@@ -74,7 +75,7 @@ const PMDateInput = forwardRef(function PMDateInput(
         <button
           type="button"
           onClick={handleToday}
-          className="h-[30px] px-2.5 text-[11px] font-medium rounded-sm border border-[#93b5cc] bg-[#dce9f3] text-[#1c3a5e] hover:bg-[#c6daea] transition-colors whitespace-nowrap shrink-0"
+          className={PM.quickFillBtn}
         >
           Today
         </button>

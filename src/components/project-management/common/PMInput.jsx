@@ -9,6 +9,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { PM } from "./pmTheme";
 
 /**
  * PMInput — flat input for PM module forms.
@@ -91,17 +92,15 @@ const PMInput = forwardRef(function PMInput(
         type={type}
         disabled={disabled}
         className={cn(
-          "w-full h-[30px] pl-2 text-[13px] rounded-sm outline-none border transition-colors",
-          "placeholder:text-gray-400 placeholder:text-[13px]",
+          "w-full pl-2 rounded-sm outline-none border transition-colors",
+          PM.inputHeight, PM.inputText, PM.inputPlaceholder,
           "disabled:opacity-100 disabled:cursor-default",
-          // right padding — make room for icon when present
           showIcon ? "pr-7" : "pr-2",
-          // colour variants
           isErr
             ? "border-red-400 bg-red-50 text-red-900 placeholder:text-red-300"
             : disabled
-            ? "border-transparent bg-[#edf8ed] text-gray-500"
-            : "border-transparent bg-transparent focus:border-[#93b5cc]",
+            ? cn("border-transparent text-gray-500", PM.disabledBg)
+            : cn("border-transparent bg-transparent", PM.focusBorder),
         )}
         {...props}
       />
