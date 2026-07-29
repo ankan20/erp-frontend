@@ -48,10 +48,11 @@ function downloadExcel(data) {
     [],
     ["Site Code",       data.project?.projectCode || "-", "", "GRN No",          data.grnNo],
     ["Project Name",    data.project?.projectName || "-", "", "GRN Date",         fmt.date(data.grnDate)],
-    ["Customer Name",   data.project?.clientName  || "-", "", "Unloading Date",   fmt.date(data.unloadingDatetime)],
+    ["Customer Name",   data.project?.clientName  || "-", "", "Shipping Address", data.shippingAddress || "-"],
     ["Party Name",      data.vendor?.ledgerName   || "-", "", "PO No",            data.order?.orderNo || "-"],
     ["Party Bill No",   data.partyBillNo          || "-", "", "Challan No",       data.challanNo || "-"],
-    ["Party Bill Date", fmt.date(data.partyBillDate),    "", "Shipping Address",  data.shippingAddress || "-"],
+    ["Party Bill Date", fmt.date(data.partyBillDate),    "", "Challan Date",      fmt.date(data.challanDate) || "-"],
+    ["", "",                                             "", "Unloading Date",    fmt.date(data.unloadingDatetime) || "-"],
     ["Delivery Vehicle",data.deliverVehicleNo     || "-", "", "", ""],
     ["Delivery Concern",data.deliveredConcern     || "-", "", "", ""],
     [],
@@ -64,8 +65,8 @@ function downloadExcel(data) {
     [],
     ["", "", "", "", "", "", "", "Total", "", s.totalBasicAmount, "", s.totalGstAmount, s.totalAmount],
     [],
-    ["Physically Received By", `${data.submittedBy || "-"}  [${fmt.dateTime(data.submittedAt)}]`],
     ["Physically Verified By", `${data.physicallyVerifiedBy || "-"}`],
+    ["GRN Create By",          `${data.submittedBy || "-"}  [${fmt.dateTime(data.submittedAt)}]`],
     ["Document Verified By",   `${data.approvedBy || "-"}  [${fmt.dateTime(data.finalApprovedAt)}]`],
   ];
   const wb = XLSX.utils.book_new();
@@ -149,11 +150,11 @@ async function downloadDocx(data, qrCanvasRef) {
   const rightInfo = [
     ["GRN No",          data.grnNo],
     ["GRN Date",        fmt.date(data.grnDate)],
-    ["Unloading Date",  fmt.date(data.unloadingDatetime)],
+    ["Shipping Address",data.shippingAddress],
     ["PO No",           data.order?.orderNo],
     ["Challan No",      data.challanNo],
-    ["Challan Date",    ""],
-    ["Shipping Address",data.shippingAddress],
+    ["Challan Date",    fmt.date(data.challanDate)],
+    ["Unloading Date",  fmt.date(data.unloadingDatetime)],
     ["", ""],
   ];
   const infoTable = new Table({
@@ -188,7 +189,7 @@ async function downloadDocx(data, qrCanvasRef) {
         iCell(item.itemCode || "-", cW[1]),
         iCell(item.itemName, cW[2]),
         iCell(item.unit, cW[3], false, undefined, AlignmentType.CENTER),
-        iCell(item.currentReceivedQty, cW[4], false, undefined, AlignmentType.RIGHT),
+        iCell(item.currentReceivedQty, cW[4], false, undefined, AlignmentType.CENTER),
         iCell(fmtNum(item.rate), cW[5], false, undefined, AlignmentType.RIGHT),
         iCell(fmtNum(item.basicAmount), cW[6], false, undefined, AlignmentType.RIGHT),
         iCell(item.gstPercent != null ? `${item.gstPercent}%` : "-", cW[7], false, undefined, AlignmentType.CENTER),
@@ -217,8 +218,8 @@ async function downloadDocx(data, qrCanvasRef) {
       itemsTable,
       new Paragraph({ text: "", spacing: { after: 200 } }),
       ...[
-        ["Physically Received By", data.submittedBy,           fmt.dateTime(data.submittedAt)],
         ["Physically Verified By", data.physicallyVerifiedBy,  null],
+        ["GRN Create By",          data.submittedBy,           fmt.dateTime(data.submittedAt)],
         ["Document Verified By",   data.approvedBy,            fmt.dateTime(data.finalApprovedAt)],
       ].map(([lbl, name, date]) => new Paragraph({
         children: [
@@ -303,7 +304,7 @@ export default function GRNPrintPage() {
           </div>
 
           {/* ── INFO SECTION ── */}
-          <div className="grid grid-cols-2 gap-x-8 px-6 py-3" style={{ gridTemplateColumns: "1fr 1.15fr" }}>
+          <div className="grid grid-cols-2 px-6 py-3" style={{ gridTemplateColumns: "60% 40%" }}>
             <div>
               <InfoRow label="Site Code"       value={data.project?.projectCode} />
               <InfoRow label="Project Name"    value={data.project?.projectName} />
@@ -314,14 +315,14 @@ export default function GRNPrintPage() {
               <InfoRow label="Delivery Vehicle" value={data.deliverVehicleNo} />
               <InfoRow label="Delivery Concern" value={data.deliveredConcern} />
             </div>
-            <div className="pl-6">
+            <div>
               <InfoRow label="GRN No"           value={data.grnNo} />
               <InfoRow label="GRN Date"          value={fmt.date(data.grnDate)} />
-              <InfoRow label="Unloading Date"    value={fmt.date(data.unloadingDatetime)} />
+              <InfoRow label="Shipping Address"  value={data.shippingAddress} />
               <InfoRow label="PO No"             value={data.order?.orderNo} />
               <InfoRow label="Challan No"        value={data.challanNo} />
-              <InfoRow label="Challan Date"      value="" />
-              <InfoRow label="Shipping Address"  value={data.shippingAddress} />
+              <InfoRow label="Challan Date"      value={fmt.date(data.challanDate)} />
+              <InfoRow label="Unloading Date"    value={fmt.date(data.unloadingDatetime)} />
             </div>
           </div>
 
@@ -355,7 +356,7 @@ export default function GRNPrintPage() {
                       <td className={`border ${COLOR.tableBorder} px-1 py-1.5 ${SIZE.tableCell}`}>{item.itemCode || "-"}</td>
                       <td className={`border ${COLOR.tableBorder} px-1 py-1.5 ${SIZE.tableCell}`}>{item.itemName}</td>
                       <td className={`border ${COLOR.tableBorder} px-1 py-1.5 ${SIZE.tableCell} text-center`}>{item.unit}</td>
-                      <td className={`border ${COLOR.tableBorder} px-1 py-1.5 ${SIZE.tableCell} text-right`}>{item.currentReceivedQty}</td>
+                      <td className={`border ${COLOR.tableBorder} px-1 py-1.5 ${SIZE.tableCell} text-center`}>{item.currentReceivedQty}</td>
                       <td className={`border ${COLOR.tableBorder} px-1 py-1.5 ${SIZE.tableCell} text-right`}><FmtNum value={item.rate} /></td>
                       <td className={`border ${COLOR.tableBorder} px-1 py-1.5 ${SIZE.tableCell} text-right`}><FmtNum value={item.basicAmount} /></td>
                       <td className={`border ${COLOR.tableBorder} px-1 py-1.5 ${SIZE.tableCell} text-center`}>{item.gstPercent != null ? `${item.gstPercent}%` : "-"}</td>
@@ -382,8 +383,8 @@ export default function GRNPrintPage() {
 
           {/* ── SIGNATURES ── */}
           <div className="px-6 pb-6">
-            <SigRow label="Physically Received By" name={data.submittedBy}          dateStr={fmt.dateTime(data.submittedAt)} />
             <SigRow label="Physically Verified By" name={data.physicallyVerifiedBy} />
+            <SigRow label="GRN Create By"          name={data.submittedBy}          dateStr={fmt.dateTime(data.submittedAt)} />
             <SigRow label="Document Verified By"   name={data.approvedBy}           dateStr={fmt.dateTime(data.finalApprovedAt)} />
           </div>
         </div>
@@ -394,7 +395,16 @@ export default function GRNPrintPage() {
       </div>
 
       <style>{`
-        @page { size: A4; margin: 8mm; }
+        @page {
+          size: A4;
+          margin: 8mm 8mm 12mm 8mm;
+          @bottom-center {
+            content: counter(page, decimal-leading-zero) " of " counter(pages, decimal-leading-zero);
+            font-size: 9pt;
+            color: #6b7280;
+            font-family: Calibri, sans-serif;
+          }
+        }
         @media print {
           * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
           html, body, body > * { background: white !important; margin: 0 !important; }

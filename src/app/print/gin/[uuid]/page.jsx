@@ -349,7 +349,16 @@ export default function GINPrintPage() {
       </div>
 
       <style>{`
-        @page { size: A4; margin: 8mm; }
+        @page {
+          size: A4;
+          margin: 8mm 8mm 12mm 8mm;
+          @bottom-center {
+            content: counter(page, decimal-leading-zero) " of " counter(pages, decimal-leading-zero);
+            font-size: 9pt;
+            color: #6b7280;
+            font-family: Calibri, sans-serif;
+          }
+        }
         @media print {
           * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
           html, body, body > * { background: white !important; margin: 0 !important; }

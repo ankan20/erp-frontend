@@ -637,6 +637,17 @@ export default function GRNLeftPanel({
             />
           </div>
 
+          {/* Challan Date */}
+          <div className="flex items-center">
+            <div className={LABEL}>Challan Date</div>
+            <Input
+              type="date"
+              {...register("challanDate")}
+              disabled={disabled}
+              className={`${getInputClass(false, disabled)} w-[220px] h-[30px]`}
+            />
+          </div>
+
           {/* Party Bill No */}
           <div className="flex items-center">
             <div className={LABEL}>Party Bill No</div>

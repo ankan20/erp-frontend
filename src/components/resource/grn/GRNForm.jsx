@@ -34,6 +34,7 @@ const grnSchema = z.object({
   billingAddress: z.string().optional(),
   shippingAddress: z.string().optional(),
   challanNo: z.string().optional(),
+  challanDate: z.string().optional(),
   partyBillNo: z.string().optional(),
   partyBillDate: z.string().optional(),
   deliverVehicleNo: z.string().optional(),
@@ -56,6 +57,7 @@ const defaultValues = {
   billingAddress: "",
   shippingAddress: "",
   challanNo: "",
+  challanDate: "",
   partyBillNo: "",
   partyBillDate: "",
   deliverVehicleNo: "",
@@ -143,6 +145,7 @@ export default function GRNForm({ mode = "create", grnId, onUuid, onAfterSubmit 
           billingAddress: d.billingAddress || "",
           shippingAddress: d.shippingAddress || "",
           challanNo: d.challanNo || "",
+          challanDate: d.challanDate || "",
           partyBillNo: d.partyBillNo || "",
           partyBillDate: (d.partyBillDate),
           deliverVehicleNo: d.deliverVehicleNo || "",
@@ -279,6 +282,7 @@ export default function GRNForm({ mode = "create", grnId, onUuid, onAfterSubmit 
     if (v.billingAddress) fd.append("billingAddress", v.billingAddress);
     if (v.shippingAddress) fd.append("shippingAddress", v.shippingAddress);
     if (v.challanNo) fd.append("challanNo", v.challanNo);
+    if (v.challanDate) fd.append("challanDate", v.challanDate);
     if (v.partyBillNo) fd.append("partyBillNo", v.partyBillNo);
     if (v.partyBillDate) fd.append("partyBillDate", v.partyBillDate);
     if (v.deliverVehicleNo) fd.append("deliverVehicleNo", v.deliverVehicleNo);
