@@ -52,7 +52,7 @@ function downloadExcel(data) {
   const rows = [
     ["INDENT"],
     [],
-    ["Site Code",    data.project?.projectCode || "-",  "", "Indent No",        data.indentNo],
+    ["Site Code",    data.project?.projectCode || "-",  "", "Indent No",        `${data.indentNo}${data.siteRegSerialNo ? ` | RSL : ${data.siteRegSerialNo}` : ""}`],
     ["Project Name", data.project?.projectName || "-",  "", "Indent Date",      fmt.date(data.indentDate)],
     ["Customer Name",data.project?.clientName  || "-",  "", "Required Date",    fmt.date(data.requiredWithin)],
     ["Sale Order No",data.saleOrderNo          || "-",  "", "Indent Category",  data.category?.categoryName || "-"],
@@ -200,7 +200,7 @@ async function downloadDocx(data, qrCanvasRef) {
     ["Sale Order No",data.saleOrderNo],
   ];
   const rightInfo = [
-    ["Indent No",       data.indentNo],
+    ["Indent No",       `${data.indentNo}${data.siteRegSerialNo ? ` | RSL : ${data.siteRegSerialNo}` : ""}`],
     ["Indent Date",     fmt.date(data.indentDate)],
     ["Required Date",   fmt.date(data.requiredWithin)],
     ["Indent Category", data.category?.categoryName],
@@ -403,7 +403,7 @@ export default function IndentPrintPage() {
           </div>
 
           {/* ── INFO SECTION ───────────────────────────────── */}
-          <div className="grid grid-cols-2 gap-x-8 px-6 py-3" style={{ gridTemplateColumns: "1fr 1.15fr" }}>
+          <div className="grid grid-cols-2 px-6 py-3" style={{ gridTemplateColumns: "62% 38%" }}>
             <div>
               <InfoRow label="Site Code"      value={data.project?.projectCode} />
               <InfoRow label="Project Name"   value={data.project?.projectName} />
@@ -411,7 +411,7 @@ export default function IndentPrintPage() {
               <InfoRow label="Sale Order No"  value={data.saleOrderNo} />
             </div>
             <div className="pl-6">
-              <InfoRow label="Indent No"       value={data.indentNo} />
+              <InfoRow label="Indent No"       value={`${data.indentNo}${data.siteRegSerialNo ? ` | RSL : ${data.siteRegSerialNo}` : ""}`} />
               <InfoRow label="Indent Date"     value={fmt.date(data.indentDate)} />
               <InfoRow label="Required Date"   value={fmt.date(data.requiredWithin)} />
               <InfoRow label="Indent Category" value={data.category?.categoryName} />

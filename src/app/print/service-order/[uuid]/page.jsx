@@ -133,9 +133,14 @@ function ThreeBoxSection({ data, pageUrl }) {
         <tr>
           <td className={`${TD} pt-3 pb-2.5 border-r border-[#b0b0b0]`}>
             <div className="space-y-0.5">
-              {v.pan            && <p className={VAL}><span className={LBL}>PAN No.</span> : {v.pan}</p>}
-              {v.gstin          && <p className={VAL}><span className={LBL}>GSTIN NO.</span> : {v.gstin}</p>}
-              {v.stateName      && <p className={VAL}><span className={LBL}>State</span> : {v.stateName}{v.stateCode ? ` | State Code : ${v.stateCode}` : ""}</p>}
+              {v.pan && <p className={VAL}><span className={LBL}>PAN No.</span> : {v.pan}</p>}
+              {/* if gstin is absent/invalid (empty, NA, N/A etc.) → show URGD; state shows "-" for value */}
+              {(() => { const g = (v.gstin || "").trim(); const invalid = !g || /^(na|n\/a|nil|none|invalid)$/i.test(g); return (
+                <>
+                  <p className={VAL}><span className={LBL}>GSTIN NO.</span> : {invalid ? "URGD" : g}</p>
+                  <p className={VAL}><span className={LBL}>State</span> : {invalid ? "-" : v.stateName || ""}{!invalid && v.stateCode ? ` | State Code : ${v.stateCode}` : invalid ? " | State Code : -" : ""}</p>
+                </>
+              ); })()}
               {data.quotationNo && <p className={VAL}><span className={LBL}>Quotation No.</span> : {data.quotationNo}{data.quotationDate ? ` | dtd.-${fmt.date(data.quotationDate)}` : ""}</p>}
             </div>
           </td>
@@ -385,9 +390,17 @@ export default function ServiceOrderPrintPage() {
           {/* ── PRINT-ONLY RUNNING HEADER — small logo repeats on pages 2+ */}
           <thead className="print-thead">
             <tr>
-              <td style={{ paddingLeft: 24, paddingTop: 10, paddingBottom: 8 }}>
+              <td style={{ paddingLeft: 24, paddingTop: 10, paddingBottom: 8, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img src="/assets/pdf-images/erp_company_img_pdf.png" alt="" style={{ width: 130, height: 60, objectFit: "contain", objectPosition: "left center" }} />
+                <div style={{ paddingRight: 24, fontFamily: "var(--font-print), sans-serif" }}>
+                  {[["Order No", data.orderNo || ""], ["Order Date", fmt.date(data.orderDate)]].map(([lbl, val]) => (
+                    <div key={lbl} style={{ display: "flex", alignItems: "baseline", margin: 0 }}>
+                      <span style={{ fontSize: 11, fontWeight: 600, color: "#374151", width: 72, minWidth: 72 }}>{lbl}</span>
+                      <span style={{ fontSize: 11, color: "#374151" }}> : {val}</span>
+                    </div>
+                  ))}
+                </div>
               </td>
             </tr>
           </thead>
@@ -474,8 +487,8 @@ export default function ServiceOrderPrintPage() {
                               <td className={`border ${COLOR.tableBorder} px-1 py-1.5 ${SIZE.tableCell} text-center`}>{item.qty ?? "-"}</td>
                               <td className={`border ${COLOR.tableBorder} px-1 py-1.5 ${SIZE.tableCell} text-right`}><FmtNum value={item.rate} /></td>
                               <td className={`border ${COLOR.tableBorder} px-1 py-1.5 ${SIZE.tableCell} text-right`}><FmtNum value={item.basicAmount} /></td>
-                              <td className={`border ${COLOR.tableBorder} px-1 py-1.5 ${SIZE.tableCell} text-center`}>{item.gstPercent != null ? `${item.gstPercent}%` : "-"}</td>
-                              <td className={`border ${COLOR.tableBorder} px-1 py-1.5 ${SIZE.tableCell} text-right`}><FmtNum value={item.gstAmount} /></td>
+                              <td className={`border ${COLOR.tableBorder} px-1 py-1.5 ${SIZE.tableCell} text-center`}>{item.gstPercent != null && Number(item.gstPercent) !== 0 ? `${item.gstPercent}%` : "-"}</td>
+                              <td className={`border ${COLOR.tableBorder} px-1 py-1.5 ${SIZE.tableCell} text-right`}>{!item.gstAmount || Number(item.gstAmount) === 0 ? "-" : <FmtNum value={item.gstAmount} />}</td>
                               <td className={`border ${COLOR.tableBorder} px-1 py-1.5 ${SIZE.tableCell} text-right`}><FmtNum value={item.lineTotal} /></td>
                             </tr>
                           ))}
@@ -566,7 +579,7 @@ export default function ServiceOrderPrintPage() {
           size: A4;
           margin: 0 8mm 12mm 8mm;
           @bottom-center {
-            content: counter(page);
+            content: counter(page, decimal-leading-zero) " of " counter(pages, decimal-leading-zero);
             font-size: 9pt;
             color: #6b7280;
             font-family: Calibri, sans-serif;
