@@ -91,6 +91,8 @@ export default function IndentForm({
 
   const [attachedFile, setAttachedFile] = useState(null);
 
+  const [imagePreview, setImagePreview] = useState("");
+
   const [isLoading, setIsLoading] = useState(false);
 
   const [isSubmitted, setIsSubmitted] = useState(false);
@@ -261,6 +263,10 @@ export default function IndentForm({
 
     fetchIndent();
   }, [indentId, mode]);
+
+  useEffect(() => {
+    return () => { if (imagePreview) URL.revokeObjectURL(imagePreview); };
+  }, [imagePreview]);
 
   const handleCategoryChange = async (categoryCode) => {
     setValue("categoryCode", categoryCode);
@@ -434,6 +440,8 @@ export default function IndentForm({
 
       setFileName("");
 
+      setImagePreview("");
+
       if (fileRef.current) {
         fileRef.current.value = "";
       }
@@ -583,51 +591,91 @@ export default function IndentForm({
                 ref={fileRef}
                 type="file"
                 hidden
-                accept=".pdf,.xls,.xlsx"
+                accept=".pdf,.xls,.xlsx,.jpg,.jpeg,.png,.webp,.gif"
                 onChange={(e) => {
                   const file = e.target.files?.[0];
                   if (!file) {
                     setAttachedFile(null);
                     setFileName("");
+                    setImagePreview("");
                     return;
                   }
                   const allowedTypes = [
                     "application/pdf",
                     "application/vnd.ms-excel",
                     "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                    "image/jpeg",
+                    "image/png",
+                    "image/webp",
+                    "image/gif",
                   ];
 
                   if (!allowedTypes.includes(file.type)) {
-                    alert("Only PDF or Excel files are allowed");
+                    toast.error("Only PDF, Excel, or image files are allowed");
+                    if (fileRef.current) fileRef.current.value = "";
                     return;
                   }
 
                   setAttachedFile(file);
                   setFileName(file.name);
                   setFileUrl("");
+
+                  if (file.type.startsWith("image/")) {
+                    setImagePreview(URL.createObjectURL(file));
+                  } else {
+                    setImagePreview("");
+                  }
                 }}
               />
             </div>
 
-            {/* FILE NAME */}
+            {/* NEWLY SELECTED FILE */}
             {fileName && (
-              <div className="mt-2 text-[12px] text-gray-700 flex items-center gap-1">
-                <Paperclip className="w-3 h-3" />
-                {fileName}
+              <div className="mt-2 flex flex-col gap-1">
+                <div className="text-[12px] text-gray-700 flex items-center gap-1">
+                  <Paperclip className="w-3 h-3" />
+                  {fileName}
+                </div>
+                {imagePreview && (
+                  <img
+                    src={imagePreview}
+                    alt="preview"
+                    className="mt-1 max-h-[120px] max-w-full rounded border border-gray-200 object-contain"
+                  />
+                )}
               </div>
             )}
 
-            {/* DOWNLOAD */}
+            {/* EXISTING FILE */}
             {!fileName && fileUrl && (
-              <a
-                href={fileUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="mt-2 text-[12px] text-blue-600 hover:underline flex items-center gap-1"
-              >
-                <Paperclip className="w-3 h-3" />
-                Download Attached File
-              </a>
+              /\.(jpg|jpeg|png|webp|gif)$/i.test(fileUrl) ? (
+                <div className="mt-2 flex flex-col gap-1">
+                  <a
+                    href={fileUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-[12px] text-blue-600 hover:underline flex items-center gap-1"
+                  >
+                    <Paperclip className="w-3 h-3" />
+                    View Attached Image
+                  </a>
+                  <img
+                    src={fileUrl}
+                    alt="attached"
+                    className="mt-1 max-h-[120px] max-w-full rounded border border-gray-200 object-contain"
+                  />
+                </div>
+              ) : (
+                <a
+                  href={fileUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="mt-2 text-[12px] text-blue-600 hover:underline flex items-center gap-1"
+                >
+                  <Paperclip className="w-3 h-3" />
+                  Download Attached File
+                </a>
+              )
             )}
           </div>
         </div>
