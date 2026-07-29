@@ -41,15 +41,14 @@ function downloadExcel(data) {
   const items = (data.items || []).filter(Boolean);
   const itemCats = (Array.isArray(data.itemCategory) ? data.itemCategory : data.itemCategory ? [data.itemCategory] : []).map(v => CATEGORY_OPTIONS.itemCategory.find(o => o.value === v)?.label || v).join(", ") || "-";
   const rows = [
-    ["SERVICE RECEIPT NOTE (SRN)"],
+    ["SERVICE RECEIVED NOTE (SRN)"],
     [],
     ["Site Code",       data.project?.projectCode || "-", "", "SRN No",          data.srnNo],
     ["Project Name",    data.project?.projectName || "-", "", "SRN Date",         fmt.date(data.srnDate)],
-    ["Customer Name",   data.project?.clientName  || "-", "", "Unloading Date",   data.unloadingDatetime || "-"],
-    ["Party Name",      data.vendor?.ledgerName   || "-", "", "PO No",            data.order?.orderNo || "-"],
-    ["Party Bill No",   data.partyBillNo          || "-", "", "Challan No",       data.challanNo || "-"],
-    ["Party Bill Date", fmt.date(data.partyBillDate),    "", "Shipping Address",  data.shippingAddress || "-"],
-    ["Delivery Concern",data.deliveredConcern     || "-", "", "Item Category",    itemCats],
+    ["Customer Name",   data.project?.clientName  || "-", "", "Party Name",       data.vendor?.ledgerName || "-"],
+    ["Service Address", data.shippingAddress      || "-", "", "PO No",            data.order?.orderNo || "-"],
+    ["", "",                                             "", "Supervised By",     ""], /* r6 — will map from api later */
+    ["", "",                                             "", "Item Category",     itemCats],
     [],
     ["Sl No", "Item Name", "Unit", "Order Qty", "Prev Rcvd", "Today Rcvd", "Cumul Rcvd", "Use Location"],
     ...items.map((item, i) => [i + 1, item.itemName, item.unit, item.orderQty, item.preReceivedQty, item.currentReceivedQty, (item.preReceivedQty || 0) + (item.currentReceivedQty || 0), item.useLocation || ""]),
@@ -115,7 +114,7 @@ async function downloadDocx(data, qrCanvasRef) {
       new TableCell({ children: [new Paragraph({ text: "" })], width: { size: titleSideW, type: WidthType.DXA }, borders: nilBorders, margins: { top: 0, bottom: 0, left: 0, right: 0 } }),
       new TableCell({
         children: [
-          new Paragraph({ alignment: AlignmentType.CENTER, children: [run("SERVICE RECEIPT NOTE", { bold: true, size: 44 })] }),
+          new Paragraph({ alignment: AlignmentType.CENTER, children: [run("SERVICE RECEIVED NOTE", { bold: true, size: 44 })] }),
           new Paragraph({ alignment: AlignmentType.CENTER, children: [run("[SRN]", { bold: true, size: 32 })] }),
         ],
         width: { size: titleColW, type: WidthType.DXA }, borders: nilBorders, margins: { top: 80, bottom: 80, left: 0, right: 0 },
@@ -131,18 +130,14 @@ async function downloadDocx(data, qrCanvasRef) {
     ["Site Code",       data.project?.projectCode],
     ["Project Name",    data.project?.projectName],
     ["Customer Name",   data.project?.clientName],
-    ["Party Name",      data.vendor?.ledgerName],
-    ["Party Bill No",   data.partyBillNo],
-    ["Party Bill Date", fmt.date(data.partyBillDate)],
-    ["Delivery Concern",data.deliveredConcern],
+    ["Service Address", data.shippingAddress],
   ];
   const rightInfo = [
     ["SRN No",          data.srnNo],
     ["SRN Date",        fmt.date(data.srnDate)],
+    ["Party Name",      data.vendor?.ledgerName],
     ["PO No",           data.order?.orderNo],
-    ["Challan No",      data.challanNo],
-    ["Challan Date",    ""],
-    ["Shipping Address",data.shippingAddress],
+    ["Supervised By",   ""], /* r6 — will map from api later */
     ["Item Category",   itemCats],
   ];
   const infoTable = new Table({
@@ -262,7 +257,7 @@ export default function SRNPrintPage() {
               <Image src="/assets/pdf-images/erp_company_img_pdf.png" alt="Logo" width={160} height={80} className="object-contain" priority />
             </div>
             <div className="flex-1 flex flex-col items-center justify-center">
-              <h1 className={`${SIZE.pageTitle} ${WEIGHT.bold} tracking-widest text-gray-900 uppercase`}>SERVICE RECEIPT NOTE</h1>
+              <h1 className={`${SIZE.pageTitle} ${WEIGHT.bold} tracking-widest text-gray-900 uppercase`}>SERVICE RECEIVED NOTE</h1>
               <p className={`${SIZE.sectionTitle} ${WEIGHT.bold} text-gray-900 tracking-widest`}>[SRN]</p>
             </div>
             <div className="flex flex-col items-end gap-1 shrink-0">
@@ -278,24 +273,21 @@ export default function SRNPrintPage() {
           </div>
 
           {/* ── INFO SECTION ── */}
-          <div className="grid grid-cols-2 gap-x-8 px-6 py-3" style={{ gridTemplateColumns: "1fr 1.15fr" }}>
+          <div className="grid grid-cols-2 px-6 py-3" style={{ gridTemplateColumns: "60% 40%" }}>
             <div>
               <InfoRow label="Site Code"       value={data.project?.projectCode} />
               <InfoRow label="Project Name"    value={data.project?.projectName} />
               <InfoRow label="Customer Name"   value={data.project?.clientName} />
-              <InfoRow label="Party Name"      value={data.vendor?.ledgerName} />
-              <InfoRow label="Party Bill No"   value={data.partyBillNo} />
-              <InfoRow label="Party Bill Date" value={fmt.date(data.partyBillDate)} />
-              <InfoRow label="Delivery Concern" value={data.deliveredConcern} />
+              <InfoRow label="Service Address" value={data.shippingAddress} />
             </div>
             <div className="pl-6">
-              <InfoRow label="SRN No"           value={data.srnNo} />
-              <InfoRow label="SRN Date"          value={fmt.date(data.srnDate)} />
-              <InfoRow label="PO No"             value={data.order?.orderNo} />
-              <InfoRow label="Challan No"        value={data.challanNo} />
-              <InfoRow label="Challan Date"      value="" />
-              <InfoRow label="Shipping Address"  value={data.shippingAddress} />
-              <InfoRow label="Item Category"     value={itemCats} />
+              <InfoRow label="SRN No"        value={data.srnNo} />
+              <InfoRow label="SRN Date"       value={fmt.date(data.srnDate)} />
+              <InfoRow label="Party Name"     value={data.vendor?.ledgerName} />
+              <InfoRow label="PO No"          value={data.order?.orderNo} />
+              {/* r6 — Supervised By — will map from api later */}
+              <InfoRow label="Supervised By"  value="" />
+              <InfoRow label="Item Category"  value={itemCats} />
             </div>
           </div>
 
