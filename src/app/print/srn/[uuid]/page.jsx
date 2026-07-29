@@ -9,6 +9,7 @@ import { API_ENDPOINTS } from "@/config/api.config";
 import PrintTopBar from "@/components/print/PrintTopBar";
 import PrintErrorPage from "@/components/print/PrintErrorPage";
 import { SIZE, WEIGHT, COLOR, fmt } from "@/components/print/printStyles";
+import { CATEGORY_OPTIONS } from "@/config/categoryOptions.config";
 
 /* ─── helpers ─────────────────────────────────────────────── */
 function InfoRow({ label, value }) {
@@ -38,7 +39,7 @@ function printAsPDF() { window.print(); }
 function downloadExcel(data) {
   const XLSX = require("xlsx");
   const items = (data.items || []).filter(Boolean);
-  const itemCats = Array.isArray(data.itemCategory) ? data.itemCategory.join(", ") : (data.itemCategory || "-");
+  const itemCats = (Array.isArray(data.itemCategory) ? data.itemCategory : data.itemCategory ? [data.itemCategory] : []).map(v => CATEGORY_OPTIONS.itemCategory.find(o => o.value === v)?.label || v).join(", ") || "-";
   const rows = [
     ["SERVICE RECEIPT NOTE (SRN)"],
     [],
@@ -50,8 +51,8 @@ function downloadExcel(data) {
     ["Party Bill Date", fmt.date(data.partyBillDate),    "", "Shipping Address",  data.shippingAddress || "-"],
     ["Delivery Concern",data.deliveredConcern     || "-", "", "Item Category",    itemCats],
     [],
-    ["Sl No", "Item Name", "Unit", "Order Qty", "Received Qty", "Use Location"],
-    ...items.map((item, i) => [i + 1, item.itemName, item.unit, item.orderQty, item.currentReceivedQty, item.useLocation || ""]),
+    ["Sl No", "Item Name", "Unit", "Order Qty", "Prev Rcvd", "Today Rcvd", "Cumul Rcvd", "Use Location"],
+    ...items.map((item, i) => [i + 1, item.itemName, item.unit, item.orderQty, item.preReceivedQty, item.currentReceivedQty, (item.preReceivedQty || 0) + (item.currentReceivedQty || 0), item.useLocation || ""]),
     [],
     ["Physically Received By", `${data.submittedBy || "-"}  [${fmt.dateTime(data.submittedAt)}]`],
     ["Physically Verified By", `${data.physicallyVerifiedBy || "-"}`],
@@ -83,7 +84,7 @@ async function downloadDocx(data, qrCanvasRef) {
   const headShading = { type: ShadingType.CLEAR, color: "D9D9D9", fill: "D9D9D9" };
   const blueShading = { type: ShadingType.CLEAR, color: "B6DDE8", fill: "B6DDE8" };
   const PAGE_W = 10466;
-  const itemCats = Array.isArray(data.itemCategory) ? data.itemCategory.join(", ") : (data.itemCategory || "-");
+  const itemCats = (Array.isArray(data.itemCategory) ? data.itemCategory : data.itemCategory ? [data.itemCategory] : []).map(v => CATEGORY_OPTIONS.itemCategory.find(o => o.value === v)?.label || v).join(", ") || "-";
 
   const hLogoW = 2600; const hQrW = 2400; const hSpacerW = PAGE_W - hLogoW - hQrW;
   const logoContent = logoBuffer
@@ -159,8 +160,8 @@ async function downloadDocx(data, qrCanvasRef) {
   });
 
   const items = (data.items || []).filter(Boolean);
-  const cW = [0.06, 0.40, 0.10, 0.10, 0.14, 0.20].map(p => Math.round(PAGE_W * p));
-  cW[5] = PAGE_W - cW.slice(0, 5).reduce((a, b) => a + b, 0);
+  const cW = [0.06, 0.33, 0.08, 0.08, 0.10, 0.10, 0.10, 0.15].map(p => Math.round(PAGE_W * p));
+  cW[7] = PAGE_W - cW.slice(0, 7).reduce((a, b) => a + b, 0);
   const iCell = (text, w, bold = false, shading) => new TableCell({
     children: [new Paragraph({ children: [run(String(text ?? "-"), { bold, size: bold ? 20 : 18 })] })],
     width: { size: w, type: WidthType.DXA }, shading: shading || undefined,
@@ -169,16 +170,18 @@ async function downloadDocx(data, qrCanvasRef) {
   const itemsTable = new Table({
     columnWidths: cW, width: { size: PAGE_W, type: WidthType.DXA }, borders: tblBorders,
     rows: [
-      new TableRow({ tableHeader: true, children: ["Sl No", "Item Name", "Unit", "Order Qty", "Rcvd Qty", "Use Location"].map((h, i) => iCell(h, cW[i], true, headShading)) }),
+      new TableRow({ tableHeader: true, children: ["Sl No", "Item Name", "Unit", "Order Qty", "Prev Rcvd", "Today Rcvd", "Cumul Rcvd", "Use Location"].map((h, i) => iCell(h, cW[i], true, headShading)) }),
       ...items.map((item, idx) => new TableRow({ children: [
-        iCell(idx + 1, cW[0]),
+        iCell(idx + 1, cW[0], false, undefined, AlignmentType.CENTER),
         iCell(item.itemName, cW[1]),
-        iCell(item.unit, cW[2]),
-        iCell(item.orderQty, cW[3]),
-        iCell(item.currentReceivedQty, cW[4]),
-        iCell(item.useLocation || "-", cW[5]),
+        iCell(item.unit, cW[2], false, undefined, AlignmentType.CENTER),
+        iCell(item.orderQty, cW[3], false, undefined, AlignmentType.CENTER),
+        iCell(item.preReceivedQty, cW[4], false, undefined, AlignmentType.CENTER),
+        iCell(item.currentReceivedQty, cW[5], false, undefined, AlignmentType.CENTER),
+        iCell((item.preReceivedQty || 0) + (item.currentReceivedQty || 0), cW[6], false, undefined, AlignmentType.CENTER),
+        iCell(item.useLocation || "-", cW[7]),
       ]})),
-      new TableRow({ children: cW.map(w => iCell("", w, false, blueShading)) }),
+      new TableRow({ children: cW.map((w) => iCell("", w, false, blueShading)) }),
     ],
   });
 
@@ -238,7 +241,7 @@ export default function SRNPrintPage() {
   if (error || !data) return <PrintErrorPage status={error?.status} message={error?.message} />;
 
   const items = (data.items || []).filter(Boolean);
-  const itemCats = Array.isArray(data.itemCategory) ? data.itemCategory.join(", ") : (data.itemCategory || "");
+  const itemCats = (Array.isArray(data.itemCategory) ? data.itemCategory : data.itemCategory ? [data.itemCategory] : []).map(v => CATEGORY_OPTIONS.itemCategory.find(o => o.value === v)?.label || v).join(", ") || "-";
 
   return (
     <>
@@ -301,14 +304,15 @@ export default function SRNPrintPage() {
             <div className="overflow-x-auto">
               <table className="w-full border-collapse" style={{ tableLayout: "fixed" }}>
                 <colgroup>
-                  <col style={{ width: "6%" }}  /><col style={{ width: "38%" }} /><col style={{ width: "10%" }} />
-                  <col style={{ width: "12%" }} /><col style={{ width: "12%" }} /><col style={{ width: "22%" }} />
+                  <col style={{ width: "6%" }}  /><col style={{ width: "33%" }} /><col style={{ width: "8%" }} />
+                  <col style={{ width: "8%" }}  /><col style={{ width: "10%" }} /><col style={{ width: "10%" }} />
+                  <col style={{ width: "10%" }} /><col style={{ width: "15%" }} />
                 </colgroup>
                 <thead>
                   <tr className={COLOR.tableHeadBg}>
                     {[
                       { label: "SL\nNo" }, { label: "Item Name" }, { label: "Unit" },
-                      { label: "Order\nQty" }, { label: "Rcvd\nQty" }, { label: "Use Location" },
+                      { label: "Order\nQty" }, { label: "Prev\nRcvd" }, { label: "Today\nRcvd" }, { label: "Cumul\nRcvd" }, { label: "Use Location" },
                     ].map(({ label }) => (
                       <th key={label} style={{ whiteSpace: "pre-line" }}
                         className={`border ${COLOR.tableBorder} px-2 py-1.5 text-center ${SIZE.tableHead} ${WEIGHT.bold} text-gray-900`}>
@@ -324,12 +328,14 @@ export default function SRNPrintPage() {
                       <td className={`border ${COLOR.tableBorder} px-2 py-2 ${SIZE.tableCell}`}>{item.itemName}</td>
                       <td className={`border ${COLOR.tableBorder} px-2 py-2 ${SIZE.tableCell} text-center`}>{item.unit}</td>
                       <td className={`border ${COLOR.tableBorder} px-2 py-2 ${SIZE.tableCell} text-center`}>{item.orderQty}</td>
+                      <td className={`border ${COLOR.tableBorder} px-2 py-2 ${SIZE.tableCell} text-center`}>{item.preReceivedQty}</td>
                       <td className={`border ${COLOR.tableBorder} px-2 py-2 ${SIZE.tableCell} text-center`}>{item.currentReceivedQty}</td>
+                      <td className={`border ${COLOR.tableBorder} px-2 py-2 ${SIZE.tableCell} text-center`}>{(item.preReceivedQty || 0) + (item.currentReceivedQty || 0)}</td>
                       <td className={`border ${COLOR.tableBorder} px-2 py-2 ${SIZE.tableCell}`}>{item.useLocation || ""}</td>
                     </tr>
                   ))}
                   <tr className={COLOR.signatureBg}>
-                    {Array(6).fill(null).map((_, j) => (
+                    {Array(8).fill(null).map((_, j) => (
                       <td key={j} className={`border ${COLOR.tableBorder} px-2 py-2`} />
                     ))}
                   </tr>
