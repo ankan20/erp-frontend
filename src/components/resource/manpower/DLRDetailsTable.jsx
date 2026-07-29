@@ -359,12 +359,6 @@ export default function DLRDetailsTable({
     }
   };
 
-  // Unadded = in labourList but not yet in table
-  const unaddedCount = useMemo(
-    () => labourList.filter((l) => !selectedManIds.includes(l.manId)).length,
-    [labourList, selectedManIds]
-  );
-
   const showMassBtn = labourList.length > 0;
   const massLabel   = anyChecked ? "Mass Change" : "Mass Entry";
   // Add Row only when no supplier loaded (manual free-text entry)

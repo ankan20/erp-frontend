@@ -254,7 +254,8 @@ export default function DLRForm({
     if (v.verifiedBy) fd.append("verifiedBy", v.verifiedBy);
     if (scanFile)     fd.append("scanCopy",   scanFile);
 
-    const validItems = items.filter((r) => r.manId);
+    // eslint-disable-next-line no-unused-vars
+    const validItems = items.filter((r) => r.manId).map(({ _checked, ...rest }) => rest);
     fd.append("items", JSON.stringify(validItems));
     return fd;
   };
