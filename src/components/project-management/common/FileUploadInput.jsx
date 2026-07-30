@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useRef, useState } from "react";
 import { Paperclip, Download, X } from "lucide-react";
 import { toast } from "sonner";
 
@@ -45,13 +45,16 @@ export default function FileUploadInput({
   className = "",
 }) {
   const [selectedFile, setSelectedFile] = useState(null);
+  const [prevResetKey, setPrevResetKey] = useState(resetKey);
   const fileRef = useRef(null);
 
-  // Reset internal file selection when parent increments resetKey
-  useEffect(() => {
+  // Derived-state reset: calling setState during render is React's recommended pattern
+  // for adjusting state when a prop changes (avoids cascading effect renders).
+  // The hidden input DOM value is cleared via key={resetKey} below.
+  if (prevResetKey !== resetKey) {
+    setPrevResetKey(resetKey);
     setSelectedFile(null);
-    if (fileRef.current) fileRef.current.value = "";
-  }, [resetKey]);
+  }
 
   const handleTrigger = () => {
     // Clear existing selection before opening dialog.
@@ -110,6 +113,7 @@ export default function FileUploadInput({
 
       {/* Hidden file input */}
       <input
+        key={resetKey}
         ref={fileRef}
         type="file"
         hidden
