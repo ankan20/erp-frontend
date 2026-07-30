@@ -234,7 +234,9 @@ function SignatureSection({ data }) {
     <div className="px-6 pb-4 flex justify-end pr-20">
       <div className="flex flex-col items-center">
         <p className={`${SIZE.labelText} ${WEIGHT.semibold} text-gray-800`}>Dishaan Hi-tech (India) Pvt. Ltd.</p>
-        <div className="mt-10 mb-1 border-b border-gray-700 w-[180px]" />
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src="/assets/pdf-images/signature_order.jpeg" alt="Signature" className="mt-2 mb-1" style={{ height: 60, objectFit: "contain" }} />
+        <div className="border-b border-gray-700 w-[180px]" />
         <p className={`${SIZE.labelText} ${WEIGHT.bold} text-gray-900 text-center`}>Signature</p>
         <p className={`${SIZE.labelText} ${WEIGHT.semibold} text-gray-800 text-center`}>Biswajit Dinda</p>
       </div>
