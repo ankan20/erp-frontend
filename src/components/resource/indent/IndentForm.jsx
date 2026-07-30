@@ -1,12 +1,13 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { useFormWithToast as useForm } from "@/hooks/useFormWithToast";
 import { useFieldArray } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
-import { Loader2, Paperclip, PanelLeftClose, PanelLeftOpen } from "lucide-react";
+import { Loader2, PanelLeftClose, PanelLeftOpen } from "lucide-react";
+import FileUpload, { ACCEPT_ALL, TYPES_ALL } from "@/components/common/FileUpload";
 
 import { Input } from "@/components/ui/input";
 
@@ -85,13 +86,10 @@ export default function IndentForm({
 
   const [itemsOptions, setItemsOptions] = useState([]);
 
-  const [fileName, setFileName] = useState("");
-
-  const [fileUrl, setFileUrl] = useState("");
-
   const [attachedFile, setAttachedFile] = useState(null);
-
-  const [imagePreview, setImagePreview] = useState("");
+  const [existingFileUrl, setExistingFileUrl] = useState("");
+  const [initialFileUrl, setInitialFileUrl] = useState("");
+  const [fileResetKey, setFileResetKey] = useState(0);
 
   const [isLoading, setIsLoading] = useState(false);
 
@@ -100,12 +98,6 @@ export default function IndentForm({
   const [allowSubmit, setAllowSubmit] = useState(mode === "edit");
   const [sidebarOpen, setSidebarOpen] = useState(true);
 
-  const [initialFileData, setInitialFileData] = useState({
-    fileName: "",
-    fileUrl: "",
-  });
-
-  const fileRef = useRef(null);
   const router = useRouter();
 
   const {
@@ -218,16 +210,8 @@ export default function IndentForm({
 
         setInitialData(formattedData);
         if (data.uuid && onUuid) onUuid(data.uuid);
-        setFileUrl(data.indentFile || "");
-
-        const extractedFileName = data.indentFile?.split("/")?.pop() || "";
-
-        setFileName("");
-
-        setInitialFileData({
-          fileName: extractedFileName,
-          fileUrl: data.indentFile || "",
-        });
+        setExistingFileUrl(data.indentFile || "");
+        setInitialFileUrl(data.indentFile || "");
         // data.indentStatus === "Submitted" || data.indentStatus==="Approved"
         if (
           data.indentStatus !== "Reback" &&
@@ -264,9 +248,6 @@ export default function IndentForm({
     fetchIndent();
   }, [indentId, mode]);
 
-  useEffect(() => {
-    return () => { if (imagePreview) URL.revokeObjectURL(imagePreview); };
-  }, [imagePreview]);
 
   const handleCategoryChange = async (categoryCode) => {
     setValue("categoryCode", categoryCode);
@@ -359,12 +340,10 @@ export default function IndentForm({
       }
       if (res?.data?.uuid && onUuid) onUuid(res.data.uuid);
       if (res?.data?.indentFile) {
-        setFileUrl(res.data.indentFile);
-
-        setInitialFileData({
-          fileName: res.data.indentFile?.split("/")?.pop() || "",
-          fileUrl: res.data.indentFile,
-        });
+        setExistingFileUrl(res.data.indentFile);
+        setInitialFileUrl(res.data.indentFile);
+        setAttachedFile(null);
+        setFileResetKey((k) => k + 1);
       }
 
       setInitialData(getValues());
@@ -435,16 +414,8 @@ export default function IndentForm({
       }
 
       setAttachedFile(null);
-
-      setFileUrl(initialFileData.fileUrl);
-
-      setFileName("");
-
-      setImagePreview("");
-
-      if (fileRef.current) {
-        fileRef.current.value = "";
-      }
+      setExistingFileUrl(initialFileUrl);
+      setFileResetKey((k) => k + 1);
 
       setIsEditing(false);
 
@@ -566,117 +537,17 @@ export default function IndentForm({
 
           {/* ATTACHMENT */}
           <div className="mt-4">
-            <div className="flex items-center gap-2">
-              {/* FILE NAME BUTTON */}
-              <button
-                type="button"
-                disabled={disabled}
-                className="py-1 px-3.5 rounded-md border border-[#c96b2c] bg-[#e9a06d] text-[#1f1f1f] text-[16px] font-md shadow-sm disabled:opacity-60"
-              >
-                Attached Indent Slip
-              </button>
-
-              {/* OPEN FILE BUTTON */}
-              <button
-                type="button"
-                disabled={disabled}
-                onClick={() => fileRef.current?.click()}
-                className="py-1 w-[48px] flex items-center justify-center rounded-md border border-[#c96b2c] bg-[#f3d27c] text-[16px] font-bold text-[#1f1f1f] shadow-sm disabled:opacity-60 cursor-pointer disabled:cursor-none"
-              >
-                @
-              </button>
-
-              {/* HIDDEN INPUT */}
-              <input
-                ref={fileRef}
-                type="file"
-                hidden
-                accept=".pdf,.xls,.xlsx,.jpg,.jpeg,.png,.webp,.gif"
-                onChange={(e) => {
-                  const file = e.target.files?.[0];
-                  if (!file) {
-                    setAttachedFile(null);
-                    setFileName("");
-                    setImagePreview("");
-                    return;
-                  }
-                  const allowedTypes = [
-                    "application/pdf",
-                    "application/vnd.ms-excel",
-                    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-                    "image/jpeg",
-                    "image/png",
-                    "image/webp",
-                    "image/gif",
-                  ];
-
-                  if (!allowedTypes.includes(file.type)) {
-                    toast.error("Only PDF, Excel, or image files are allowed");
-                    if (fileRef.current) fileRef.current.value = "";
-                    return;
-                  }
-
-                  setAttachedFile(file);
-                  setFileName(file.name);
-                  setFileUrl("");
-
-                  if (file.type.startsWith("image/")) {
-                    setImagePreview(URL.createObjectURL(file));
-                  } else {
-                    setImagePreview("");
-                  }
-                }}
-              />
-            </div>
-
-            {/* NEWLY SELECTED FILE */}
-            {fileName && (
-              <div className="mt-2 flex flex-col gap-1">
-                <div className="text-[12px] text-gray-700 flex items-center gap-1">
-                  <Paperclip className="w-3 h-3" />
-                  {fileName}
-                </div>
-                {imagePreview && (
-                  <img
-                    src={imagePreview}
-                    alt="preview"
-                    className="mt-1 max-h-[120px] max-w-full rounded border border-gray-200 object-contain"
-                  />
-                )}
-              </div>
-            )}
-
-            {/* EXISTING FILE */}
-            {!fileName && fileUrl && (
-              /\.(jpg|jpeg|png|webp|gif)$/i.test(fileUrl) ? (
-                <div className="mt-2 flex flex-col gap-1">
-                  <a
-                    href={fileUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-[12px] text-blue-600 hover:underline flex items-center gap-1"
-                  >
-                    <Paperclip className="w-3 h-3" />
-                    View Attached Image
-                  </a>
-                  <img
-                    src={fileUrl}
-                    alt="attached"
-                    className="mt-1 max-h-[120px] max-w-full rounded border border-gray-200 object-contain"
-                  />
-                </div>
-              ) : (
-                <a
-                  href={fileUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="mt-2 text-[12px] text-blue-600 hover:underline flex items-center gap-1"
-                >
-                  <Paperclip className="w-3 h-3" />
-                  Download Attached File
-                </a>
-              )
-            )}
+            <FileUpload
+              label="Attached Indent Slip"
+              onChange={(file) => setAttachedFile(file)}
+              existingUrl={existingFileUrl}
+              onClearExisting={() => setExistingFileUrl("")}
+              disabled={disabled}
+              resetKey={fileResetKey}
+              accept={ACCEPT_ALL}
+              allowedTypes={TYPES_ALL}
+              showImagePreview
+            />
           </div>
         </div>
         )}

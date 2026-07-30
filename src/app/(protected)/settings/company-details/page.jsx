@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { Controller } from "react-hook-form";
 import { Input } from "@/components/ui/input";
 import PhoneInput from "@/components/common/PhoneInput";
@@ -11,8 +11,7 @@ import { API_ENDPOINTS } from "@/config/api.config";
 import { toast } from "sonner";
 import { Loader2 } from "lucide-react";
 import { clearAuthCookies, getCookie, setCookie } from "@/lib/cookies";
-import { Paperclip } from "lucide-react";
-import { openFileWithAuth } from "@/lib/fileViewer";
+import FileUploadInline, { ACCEPT_PDF, TYPES_PDF } from "@/components/common/FileUploadInline";
 
 import { useFormWithToast as useForm } from "@/hooks/useFormWithToast";
 import { z } from "zod";
@@ -28,7 +27,6 @@ import {
 import { activeLabelClass, getInputClass, labelClass } from "@/lib/formStyles";
 
 // ---------------- SCHEMA ----------------
-const MAX_SIZE = 5 * 1024 * 1024;
 
 const schema = z.object({
   companyName: z.string().min(1, "Required"),
@@ -55,15 +53,12 @@ const schema = z.object({
 export default function CompanyDetailsPage() {
   const [isEditing, setIsEditing] = useState(false);
 
-  const panRef = useRef(null);
-  const gstnRef = useRef(null);
   const [panUrl, setPanUrl] = useState("");
   const [gstUrl, setGstUrl] = useState("");
-
-  const [panFileName, setPanFileName] = useState("");
-  const [gstFileName, setGstFileName] = useState("");
-  const [panFileError, setPanFileError] = useState("");
-  const [gstFileError, setGstFileError] = useState("");
+  const [panFile, setPanFile] = useState(null);
+  const [gstFile, setGstFile] = useState(null);
+  const [panResetKey, setPanResetKey] = useState(0);
+  const [gstResetKey, setGstResetKey] = useState(0);
   const [loadingData, setLoadingData] = useState(true);
   const [initialData, setInitialData] = useState(null);
   const emptyFormValues = {
@@ -155,50 +150,17 @@ export default function CompanyDetailsPage() {
     fetchData();
   }, []);
 
-  //  FILE HANDLER
-  const handleFileChange = (type, file) => {
-    if (!file) {
-      // clear if user cancels selection
-      if (type === "pan") setPanFileName("");
-      else setGstFileName("");
-      return;
-    }
-
-    if (file.size > MAX_SIZE) {
-      type === "pan"
-        ? setPanFileError("File must be ≤ 5MB")
-        : setGstFileError("File must be ≤ 5MB");
-      return;
-    }
-
-    const display = `${file.name} (${(file.size / 1024).toFixed(1)} KB)`;
-
-    if (type === "pan") {
-      setPanFileError("");
-      setPanFileName(display);
-    } else {
-      setGstFileError("");
-      setGstFileName(display);
-    }
-  };
 
   // SUBMIT
   const onSubmit = async () => {
     let toastId;
     try {
-      let hasError = false;
-      if (!panRef.current?.files?.[0] && !panUrl) {
-        setPanFileError("Pan File Required");
-        hasError = true;
+      if (!panFile && !panUrl) {
+        toast.error("PAN file is required.");
+        return;
       }
-
-      if (!gstnRef.current?.files?.[0] && !gstUrl) {
-        setGstFileError("GSTN File Required");
-        hasError = true;
-      }
-
-      if (hasError) {
-        toast.info("Some Fields required.");
+      if (!gstFile && !gstUrl) {
+        toast.error("GSTN file is required.");
         return;
       }
 
@@ -227,13 +189,8 @@ export default function CompanyDetailsPage() {
         formDataPayload.append(key, value);
       });
 
-      if (panRef.current?.files?.[0]) {
-        formDataPayload.append("panFile", panRef.current.files[0]);
-      }
-
-      if (gstnRef.current?.files?.[0]) {
-        formDataPayload.append("gstnFile", gstnRef.current.files[0]);
-      }
+      if (panFile) formDataPayload.append("panFile", panFile);
+      if (gstFile) formDataPayload.append("gstnFile", gstFile);
 
       let resp = await apiRequest({
         url: isUpdate
@@ -261,8 +218,12 @@ export default function CompanyDetailsPage() {
       setInitialData(updatedValues);
 
       reset(updatedValues);
-      setPanUrl(resp.data[0].panUrl);
-      setGstUrl(resp.data[0].gstUrl);
+      setPanUrl(resp.data[0].panUrl || "");
+      setGstUrl(resp.data[0].gstUrl || "");
+      setPanFile(null);
+      setGstFile(null);
+      setPanResetKey((k) => k + 1);
+      setGstResetKey((k) => k + 1);
       setIsEditing(false);
       setTimeout(() => {
         // window.location.reload();
@@ -280,9 +241,10 @@ export default function CompanyDetailsPage() {
     // CANCEL CLICKED
     if (!nextEditingState) {
       reset(initialData || emptyFormValues);
-
-      setPanFileName("");
-      setGstFileName("");
+      setPanFile(null);
+      setGstFile(null);
+      setPanResetKey((k) => k + 1);
+      setGstResetKey((k) => k + 1);
     }
 
     setIsEditing(nextEditingState);
@@ -352,121 +314,54 @@ export default function CompanyDetailsPage() {
             <div>
               {/* PAN */}
               <div>
-                <div className="md:flex md:items-center gap-2">
+                <div className="md:flex md:items-center gap-8 lg:gap-28 xl:gap-56 flex-wrap">
                   <div className="md:flex md:items-center">
                     <div className={labelClass}>PAN</div>
-
                     <Input
                       {...register("pan")}
-                      onChange={(e) =>
-                        setValue("pan", e.target.value.toUpperCase())
-                      }
+                      onChange={(e) => setValue("pan", e.target.value.toUpperCase())}
                       disabled={!isEditing || isSubmitting}
                       className={`${getInputClass(errors.pan, !isEditing || isSubmitting)} w-65 -ml-px`}
                     />
                   </div>
-
-                  <button className="md:ml-[250px] px-3 py-1  bg-[#8e7cc3] text-white text-sm rounded-sm">
-                    Attached PAN
-                  </button>
-
-                  <button
-                    onClick={() => panRef.current.click()}
+                  <FileUploadInline
+                    label="Attached PAN"
+                    onChange={(file) => setPanFile(file)}
+                    existingUrl={panUrl}
+                    onClearExisting={() => setPanUrl("")}
                     disabled={!isEditing || isSubmitting}
-                    className="px-3 py-1 bg-[#f6c85f] text-sm rounded-sm"
-                  >
-                    @
-                  </button>
-                  {/* 🔗 OPEN FILE */}
-                  {panUrl && !panFileName && (
-                    <a
-                      href={panUrl}
-                      download="PAN_File"
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="flex items-center gap-1 text-[11px] text-blue-600 hover:underline ml-2"
-                    >
-                      <Paperclip className="w-3 h-3" />
-                      View Attached PAN
-                    </a>
-                  )}
-
-                  {panFileName && (
-                    <span className="text-[10px] whitespace-nowrap">
-                      {panFileName}
-                    </span>
-                  )}
-
-                  <input
-                    ref={panRef}
-                    type="file"
-                    hidden
-                    accept="application/pdf"
-                    onChange={(e) => handleFileChange("pan", e.target.files[0])}
+                    resetKey={panResetKey}
+                    accept={ACCEPT_PDF}
+                    allowedTypes={TYPES_PDF}
+                    maxSize={5 * 1024 * 1024}
                   />
                 </div>
-
-                {/* <p className={errorText}>{errors.pan?.message}</p>
-        <p className={errorText}>{panFileError}</p> */}
               </div>
 
               {/* GSTN */}
               <div>
-                <div className="md:flex md:items-center gap-2">
+                <div className="md:flex md:items-center gap-8 lg:gap-28 xl:gap-56 flex-wrap">
                   <div className="md:flex md:items-center">
                     <div className={labelClass}>GSTN</div>
                     <Input
                       {...register("gstn")}
-                      onChange={(e) =>
-                        setValue("gstn", e.target.value.toUpperCase())
-                      }
+                      onChange={(e) => setValue("gstn", e.target.value.toUpperCase())}
                       disabled={!isEditing || isSubmitting}
                       className={`${getInputClass(errors.gstn, !isEditing || isSubmitting)} w-65 -ml-px`}
                     />
                   </div>
-
-                  <button className="md:ml-[250px] px-3 py-1 bg-[#8e7cc3] text-white text-sm rounded-sm">
-                    Attached GSTN
-                  </button>
-
-                  <button
-                    onClick={() => gstnRef.current.click()}
+                  <FileUploadInline
+                    label="Attached GSTN"
+                    onChange={(file) => setGstFile(file)}
+                    existingUrl={gstUrl}
+                    onClearExisting={() => setGstUrl("")}
                     disabled={!isEditing || isSubmitting}
-                    className="px-3 py-1 bg-[#f6c85f] text-sm rounded-sm"
-                  >
-                    @
-                  </button>
-
-                  {gstUrl && !gstFileName && (
-                    <a
-                      href={gstUrl}
-                      download="GSTN_File"
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="flex items-center gap-1 text-[11px] text-blue-600 hover:underline ml-2"
-                    >
-                      <Paperclip className="w-3 h-3" />
-                      View Attached GSTN
-                    </a>
-                  )}
-
-                  {gstFileName && (
-                    <span className="text-[10px] whitespace-nowrap">
-                      {gstFileName}
-                    </span>
-                  )}
-
-                  <input
-                    ref={gstnRef}
-                    type="file"
-                    hidden
-                    accept="application/pdf"
-                    onChange={(e) => handleFileChange("gst", e.target.files[0])}
+                    resetKey={gstResetKey}
+                    accept={ACCEPT_PDF}
+                    allowedTypes={TYPES_PDF}
+                    maxSize={5 * 1024 * 1024}
                   />
                 </div>
-
-                {/* <p className={errorText}>{errors.gstn?.message}</p>
-        <p className={errorText}>{gstFileError}</p> */}
               </div>
             </div>
 

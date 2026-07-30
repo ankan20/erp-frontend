@@ -1,9 +1,9 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Download, FileText, Upload } from "lucide-react";
 import { Controller } from "react-hook-form";
 import { toast } from "sonner";
+import FileUpload, { ACCEPT_PDF, TYPES_PDF } from "@/components/common/FileUpload";
 import { Input } from "@/components/ui/input";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
@@ -35,13 +35,10 @@ export default function OrderBasicSection({
   form,
   mode = "create",
   disabled,
-  fileName,
-  setFileName,
-  fileUrl,
-  setFileUrl,
-  attachedFile,
-  setAttachedFile,
-  fileRef,
+  existingFileUrl,
+  onFileChange,
+  onClearExisting,
+  fileResetKey,
   withIndent,
   setWithIndent,
 }) {
@@ -496,57 +493,17 @@ export default function OrderBasicSection({
         </div>
 
         {/* ── FILE SECTION */}
-        <div>
-          <div className="inline-flex items-center justify-center min-h-[38px] px-6 bg-[#FFE7A3] border border-[#E29B34] rounded-[8px] text-[15px] font-semibold text-black">
-            Attached Party Quotation
-          </div>
-          <div className="mt-3">
-            {!disabled ? (
-              <div className="w-[220px]">
-                <input
-                  ref={fileRef}
-                  type="file"
-                  accept=".pdf"
-                  className="hidden"
-                  onChange={(e) => {
-                    const file = e.target.files?.[0];
-                    if (!file) {
-                      setAttachedFile(null);
-                      setFileName("");
-                      if (fileUrl?.startsWith("blob:")) URL.revokeObjectURL(fileUrl);
-                      setFileUrl("");
-                      if (fileRef.current) fileRef.current.value = "";
-                      return;
-                    }
-                    setAttachedFile(file);
-                    setFileName(file.name);
-                    if (fileUrl?.startsWith("blob:")) URL.revokeObjectURL(fileUrl);
-                    setFileUrl(URL.createObjectURL(file));
-                    if (fileRef.current) fileRef.current.value = "";
-                  }}
-                />
-                {fileName ? (
-                  <button type="button" onClick={() => fileRef.current?.click()} className="w-full h-[36px] px-3 flex items-center gap-2 rounded-md border border-gray-300 bg-gray-50 hover:bg-gray-100 transition-colors cursor-pointer text-left">
-                    <FileText className="w-4 h-4 text-gray-500 shrink-0" />
-                    <span className="text-sm text-gray-700 truncate flex-1" title={fileName}>{fileName}</span>
-                  </button>
-                ) : (
-                  <button type="button" onClick={() => fileRef.current?.click()} className="w-full h-[36px] px-3 flex items-center gap-2 rounded-md border border-dashed border-gray-300 bg-white hover:bg-gray-50 hover:border-gray-400 transition-colors cursor-pointer text-left">
-                    <Upload className="w-4 h-4 text-gray-400 shrink-0" />
-                    <span className="text-sm text-gray-400">Click to upload PDF</span>
-                  </button>
-                )}
-              </div>
-            ) : (
-              !attachedFile && fileUrl && (
-                <a href={fileUrl} target="_blank" rel="noreferrer" className="inline-flex items-center gap-2 text-blue-700 text-sm font-medium hover:underline">
-                  <Download className="w-4 h-4" />
-                  Download Attachment
-                </a>
-              )
-            )}
-          </div>
-        </div>
+        <FileUpload
+          label="Attached Party Quotation"
+          onChange={onFileChange}
+          existingUrl={existingFileUrl}
+          onClearExisting={onClearExisting}
+          disabled={disabled}
+          resetKey={fileResetKey}
+          required={mode === "create"}
+          accept={ACCEPT_PDF}
+          allowedTypes={TYPES_PDF}
+        />
 
       </div>
     </div>

@@ -1,11 +1,11 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { useFormWithToast as useForm } from "@/hooks/useFormWithToast";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { Controller } from "react-hook-form";
-import { Loader2, PanelLeftClose, PanelLeftOpen, Download, Paperclip } from "lucide-react";
+import { Loader2, PanelLeftClose, PanelLeftOpen } from "lucide-react";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
 
@@ -21,6 +21,7 @@ import { getInputClass, labelClass } from "@/lib/formStyles";
 
 import DLRDetailsTable, { emptyRow } from "./DLRDetailsTable";
 import DLRSummaryTab from "./DLRSummaryTab";
+import FileUpload, { ACCEPT_DOC, TYPES_DOC } from "@/components/common/FileUpload";
 
 // ── Schema ────────────────────────────────────────────────────────────────────
 
@@ -77,7 +78,6 @@ export default function DLRForm({
   disabled: disabledProp = false,
 }) {
   const router = useRouter();
-  const fileRef = useRef(null);
 
   const projectInfo  = getLocalStorage("projectInfo");
   const projectCode  = projectInfo?.projectCode || "";
@@ -100,9 +100,10 @@ export default function DLRForm({
   const [items,         setItems]         = useState([emptyRow()]);
   const [initialItems,  setInitialItems]  = useState([emptyRow()]);
 
-  const [scanFile,      setScanFile]      = useState(null);
-  const [scanCopyUrl,   setScanCopyUrl]   = useState("");
+  const [scanFile,       setScanFile]       = useState(null);
+  const [scanCopyUrl,    setScanCopyUrl]    = useState("");
   const [initialScanUrl, setInitialScanUrl] = useState("");
+  const [scanResetKey,   setScanResetKey]   = useState(0);
 
   // ── Form ──────────────────────────────────────────────────────────────────
   const form = useForm({
@@ -281,6 +282,7 @@ export default function DLRForm({
         setScanCopyUrl(saved.scanCopy);
         setInitialScanUrl(saved.scanCopy);
         setScanFile(null);
+        setScanResetKey((k) => k + 1);
       }
 
       setInitialFormData(getValues());
@@ -337,25 +339,13 @@ export default function DLRForm({
       setItems([...initialItems]);
       setScanFile(null);
       setScanCopyUrl(initialScanUrl);
+      setScanResetKey((k) => k + 1);
       setIsEditing(false);
       return;
     }
     setIsEditing(true);
   };
 
-  // ── File change ───────────────────────────────────────────────────────────
-  const handleFileChange = (e) => {
-    const file = e.target.files?.[0];
-    if (!file) {
-      setScanFile(null);
-      return;
-    }
-    setScanFile(file);
-    setScanCopyUrl(URL.createObjectURL(file));
-    if (fileRef.current) fileRef.current.value = "";
-  };
-
-  const scanFileName = scanFile?.name || (scanCopyUrl ? scanCopyUrl.split("/").pop() : "");
   const statusLower  = workflowStatus.toLowerCase();
   const isDraftOrReback = ["draft", "reback", ""].includes(statusLower);
   const isLocked     = !isDraftOrReback && workflowStatus !== "";
@@ -491,52 +481,17 @@ export default function DLRForm({
               </div>
             </div>
 
-            {/* ── DOCUMENT ATTACHMENT (Scan Copy) — matches SRN/GRN pattern ── */}
-            <div className="flex flex-wrap items-center gap-3 pb-2">
-              <button
-                type="button"
-                onClick={() => !fieldDisabled && fileRef.current?.click()}
-                className={`h-[32px] px-4 rounded-md border border-[#c96b2c] text-sm font-medium flex items-center gap-1.5 transition
-                  ${fieldDisabled
-                    ? "bg-[#e9a06d] opacity-60 cursor-not-allowed"
-                    : "bg-[#e9a06d] hover:bg-[#d88b5a] cursor-pointer"
-                  }`}
-              >
-                <Paperclip className="w-4 h-4" />
-                Scan Copy @
-              </button>
-
-              <input
-                ref={fileRef}
-                type="file"
-                hidden
-                accept=".pdf,.jpg,.jpeg,.png"
-                onChange={handleFileChange}
-              />
-
-              {scanFile && (
-                <span className="flex items-center gap-1 text-[12px] text-gray-700">
-                  <Paperclip className="w-3 h-3 text-orange-500" />
-                  {scanFile.name}
-                </span>
-              )}
-              {!scanFile && scanCopyUrl && (
-                <a
-                  href={scanCopyUrl}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="flex items-center gap-1 text-[12px] text-blue-600 hover:underline"
-                >
-                  <Download className="w-3.5 h-3.5" />
-                  Download Scan Copy
-                </a>
-              )}
-              {!scanFile && !scanCopyUrl && (
-                <span className="text-[12px] italic text-gray-400">
-                  {fieldDisabled ? "No document attached" : "No file selected"}
-                </span>
-              )}
-            </div>
+            {/* ── DOCUMENT ATTACHMENT ─────────────────────────────────────── */}
+            <FileUpload
+              label="Scan Copy"
+              onChange={(file) => setScanFile(file)}
+              existingUrl={scanCopyUrl}
+              onClearExisting={() => setScanCopyUrl("")}
+              disabled={fieldDisabled}
+              resetKey={scanResetKey}
+              accept={ACCEPT_DOC}
+              allowedTypes={TYPES_DOC}
+            />
 
           </div>
         )}

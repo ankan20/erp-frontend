@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { useFormWithToast as useForm } from "@/hooks/useFormWithToast";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Loader2, PanelLeftClose, PanelLeftOpen } from "lucide-react";
@@ -53,21 +53,17 @@ export default function OrderForm({ mode = "create", orderId, onUuid, onAfterSub
   const [isEditing, setIsEditing] = useState(mode === "create");
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [allowSubmit, setAllowSubmit] = useState(mode === "edit");
-  const [fileName, setFileName] = useState("");
-  const [fileUrl, setFileUrl] = useState("");
   const [attachedFile, setAttachedFile] = useState(null);
+  const [existingFileUrl, setExistingFileUrl] = useState("");
+  const [initialFileUrl, setInitialFileUrl] = useState("");
+  const [fileResetKey, setFileResetKey] = useState(0);
   const [initialData, setInitialData] = useState(null);
-  const [initialFileData, setInitialFileData] = useState({
-    fileName: "",
-    fileUrl: "",
-  });
   const [openItemModal, setOpenItemModal] = useState(false);
   const [withIndent, setWithIndent] = useState(true);
   const [withoutIndentItemOptions, setWithoutIndentItemOptions] = useState([]);
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const router = useRouter();
 
-  const fileRef = useRef(null);
   const projectInfo = getLocalStorage("projectInfo");
   const projectCode = projectInfo?.projectCode;
 
@@ -193,12 +189,8 @@ export default function OrderForm({ mode = "create", orderId, onUuid, onAfterSub
 
         reset(formattedData);
         setInitialData(formattedData);
-        setFileUrl(data.orderFile || "");
-        const extractedFileName = data.orderFile?.split("/")?.pop() || "";
-        setInitialFileData({
-          fileName: extractedFileName,
-          fileUrl: data.orderFile || "",
-        });
+        setExistingFileUrl(data.orderFile || "");
+        setInitialFileUrl(data.orderFile || "");
 
         // FIXED: check what IS editable rather than what isn't —
         // null/undefined/unexpected workflowStatus was incorrectly triggering isSubmitted=true
@@ -342,11 +334,10 @@ export default function OrderForm({ mode = "create", orderId, onUuid, onAfterSub
       if (res?.data?.uuid && onUuid) onUuid(res.data.uuid);
 
       if (res?.data?.orderFile) {
-        setFileUrl(res.data.orderFile);
-        setInitialFileData({
-          fileName: res.data.orderFile?.split("/")?.pop() || "",
-          fileUrl: res.data.orderFile,
-        });
+        setExistingFileUrl(res.data.orderFile);
+        setInitialFileUrl(res.data.orderFile);
+        setAttachedFile(null);
+        setFileResetKey((k) => k + 1);
       }
 
       setInitialData(getValues());
@@ -401,9 +392,8 @@ export default function OrderForm({ mode = "create", orderId, onUuid, onAfterSub
     if (isEditing) {
       if (initialData) reset(initialData);
       setAttachedFile(null);
-      setFileUrl(initialFileData.fileUrl);
-      setFileName("");
-      if (fileRef.current) fileRef.current.value = "";
+      setExistingFileUrl(initialFileUrl);
+      setFileResetKey((k) => k + 1);
       setIsEditing(false);
       setAllowSubmit(true);
       return;
@@ -441,13 +431,10 @@ export default function OrderForm({ mode = "create", orderId, onUuid, onAfterSub
             form={form}
             mode={mode}
             disabled={disabled}
-            fileName={fileName}
-            setFileName={setFileName}
-            fileUrl={fileUrl}
-            setFileUrl={setFileUrl}
-            attachedFile={attachedFile}
-            setAttachedFile={setAttachedFile}
-            fileRef={fileRef}
+            existingFileUrl={existingFileUrl}
+            onFileChange={(file) => setAttachedFile(file)}
+            onClearExisting={() => setExistingFileUrl("")}
+            fileResetKey={fileResetKey}
             withIndent={withIndent}
             setWithIndent={setWithIndent}
           />

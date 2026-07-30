@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Controller } from "react-hook-form";
 import { toast } from "sonner";
-import { Paperclip, Download } from "lucide-react";
+import FileUpload, { ACCEPT_DOC, TYPES_DOC } from "@/components/common/FileUpload";
 import {
   Select,
   SelectContent,
@@ -103,10 +103,10 @@ export default function GINLeftPanel({
   onOrderItemsFetched, // (orderData | null) => void
   onVendorClear, // () => void — called when vendor/category changes
   // file props
-  fileRef,
-  newFileName,
   existingFileUrl,
   onFileChange,
+  onClearExisting,
+  fileResetKey,
 }) {
   const {
     register,
@@ -668,57 +668,18 @@ export default function GINLeftPanel({
       {/* end groups grid */}
 
       {/* ── DOCUMENT ATTACHMENT ───────────────────────────────────────────── */}
-      <div className="flex flex-wrap items-center gap-3 pb-2">
-        <button
-          type="button"
-          onClick={() => !disabled && fileRef?.current?.click()}
-          className={`h-[32px] px-4 rounded-md border border-[#c96b2c] text-sm font-medium flex items-center gap-1.5 transition
-            ${
-              disabled
-                ? "bg-[#e9a06d] opacity-60 cursor-not-allowed"
-                : "bg-[#e9a06d] hover:bg-[#d88b5a] cursor-pointer"
-            }`}
-        >
-          <Paperclip className="w-4 h-4" />
-          Attached Doc @
-        </button>
-
-        <input
-          ref={fileRef}
-          type="file"
-          hidden
-          accept=".pdf,.xls,.xlsx,.jpg,.jpeg,.png"
+      <div className="pb-2">
+        <FileUpload
+          label="Attached Doc"
           onChange={onFileChange}
+          existingUrl={existingFileUrl}
+          onClearExisting={onClearExisting}
+          disabled={disabled}
+          resetKey={fileResetKey}
+          required={mode === "create"}
+          accept={ACCEPT_DOC}
+          allowedTypes={TYPES_DOC}
         />
-
-        {newFileName && (
-          <span className="flex items-center gap-1 text-[12px] text-gray-700">
-            <Paperclip className="w-3 h-3 text-orange-500" />
-            {newFileName}
-          </span>
-        )}
-
-        {!newFileName && existingFileUrl && (
-          <a
-            href={existingFileUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="flex items-center gap-1 text-[12px] text-blue-600 hover:underline"
-          >
-            <Download className="w-3.5 h-3.5" />
-            Download Attached Doc
-          </a>
-        )}
-
-        {!newFileName && !existingFileUrl && disabled && (
-          <span className="text-[12px] italic text-gray-400">
-            No document attached
-          </span>
-        )}
-
-        {mode === "create" && (
-          <span className="text-[11px] text-red-500">* required</span>
-        )}
       </div>
     </div>
   );

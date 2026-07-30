@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { useFormWithToast as useForm } from "@/hooks/useFormWithToast";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -68,7 +68,6 @@ const defaultValues = {
 export default function SRNForm({ mode = "create", srnId, onUuid, onAfterSubmit }) {
   const isViewMode = mode === "view" || mode === "approver";
   const router = useRouter();
-  const fileRef = useRef(null);
 
   const projectInfo = getLocalStorage("projectInfo");
   const projectCode = projectInfo?.projectCode || "";
@@ -81,9 +80,9 @@ export default function SRNForm({ mode = "create", srnId, onUuid, onAfterSubmit 
   const [items, setItems] = useState([]);
   const [initialItems, setInitialItems] = useState([]);
   const [attachedFile, setAttachedFile] = useState(null);
-  const [newFileName, setNewFileName] = useState("");
   const [existingFileUrl, setExistingFileUrl] = useState("");
   const [initialFileUrl, setInitialFileUrl] = useState("");
+  const [fileResetKey, setFileResetKey] = useState(0);
   const [initialFormData, setInitialFormData] = useState(null);
   const [sidebarOpen,    setSidebarOpen]    = useState(true);
   const [storeLocations, setStoreLocations] = useState([]);
@@ -340,8 +339,7 @@ export default function SRNForm({ mode = "create", srnId, onUuid, onAfterSubmit 
         setExistingFileUrl(url);
         setInitialFileUrl(url);
         setAttachedFile(null);
-        setNewFileName("");
-        if (fileRef.current) fileRef.current.value = "";
+        setFileResetKey((k) => k + 1);
       }
 
       setInitialFormData(getValues());
@@ -400,9 +398,8 @@ export default function SRNForm({ mode = "create", srnId, onUuid, onAfterSubmit 
       if (initialFormData) reset(initialFormData);
       setItems([...initialItems]);
       setAttachedFile(null);
-      setNewFileName("");
       setExistingFileUrl(initialFileUrl);
-      if (fileRef.current) fileRef.current.value = "";
+      setFileResetKey((k) => k + 1);
       setIsEditing(false);
       setAllowSubmit(true);
       return;
@@ -411,30 +408,6 @@ export default function SRNForm({ mode = "create", srnId, onUuid, onAfterSubmit 
     setAllowSubmit(false);
   };
 
-  // ── FILE CHANGE ────────────────────────────────────────────────────────────
-  const handleFileChange = (e) => {
-    const file = e.target.files?.[0];
-    if (!file) {
-      setAttachedFile(null);
-      setNewFileName("");
-      return;
-    }
-    const allowed = [
-      "application/pdf",
-      "application/vnd.ms-excel",
-      "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-      "image/jpeg",
-      "image/png",
-    ];
-    if (!allowed.includes(file.type)) {
-      toast.error("Only PDF, Excel, JPG or PNG files are allowed");
-      if (fileRef.current) fileRef.current.value = "";
-      return;
-    }
-    setAttachedFile(file);
-    setNewFileName(file.name);
-    setExistingFileUrl("");
-  };
 
   // ── LOADING ────────────────────────────────────────────────────────────────
   if (isLoading) {
@@ -461,10 +434,10 @@ export default function SRNForm({ mode = "create", srnId, onUuid, onAfterSubmit 
               setItems([]);
               setInitialItems([]);
             }}
-            fileRef={fileRef}
-            newFileName={newFileName}
             existingFileUrl={existingFileUrl}
-            onFileChange={handleFileChange}
+            onFileChange={(file) => setAttachedFile(file)}
+            onClearExisting={() => setExistingFileUrl("")}
+            fileResetKey={fileResetKey}
           />
         )}
 

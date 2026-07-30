@@ -1,11 +1,12 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { useFormWithToast as useForm } from "@/hooks/useFormWithToast";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { Controller } from "react-hook-form";
-import { Loader2, FileText, Upload, Download } from "lucide-react";
+import { Loader2 } from "lucide-react";
+import FileUpload, { ACCEPT_DOC, TYPES_DOC } from "@/components/common/FileUpload";
 import ExpandableTextField from "@/components/common/ExpandableTextField";
 import { toast } from "sonner";
 import { Input } from "@/components/ui/input";
@@ -99,12 +100,10 @@ export default function BRRForm({ mode = "create", brrId, onDataLoaded, onAfterS
   const [vendorOrders, setVendorOrders] = useState([]);
   const [orderMaxTotal, setOrderMaxTotal] = useState(null);
 
-  // File state
-  const [fileName, setFileName]       = useState("");
-  const [fileUrl, setFileUrl]         = useState("");
   const [attachedFile, setAttachedFile] = useState(null);
+  const [existingFileUrl, setExistingFileUrl] = useState("");
   const [initialFileUrl, setInitialFileUrl] = useState("");
-  const fileRef = useRef(null);
+  const [fileResetKey, setFileResetKey] = useState(0);
 
   const router = useRouter();
   const projectInfo = getLocalStorage("projectInfo");
@@ -205,9 +204,8 @@ export default function BRRForm({ mode = "create", brrId, onDataLoaded, onAfterS
         setInitialData(data);
         onDataLoaded?.({ workflowStatus: d.workflowStatus || "", orderCategory: d.orderCategory || "" });
         if (d.attachedDoc) {
-          setFileUrl(d.attachedDoc);
+          setExistingFileUrl(d.attachedDoc);
           setInitialFileUrl(d.attachedDoc);
-          setFileName(d.attachedDoc.split("/").pop() || "");
         }
         const st = (d.workflowStatus || "").toLowerCase();
         if (["draft", "reback"].includes(st)) {
@@ -269,8 +267,12 @@ export default function BRRForm({ mode = "create", brrId, onDataLoaded, onAfterS
       });
       if (res?.data?.brrNo) setValue("brrNo", res.data.brrNo);
       setInitialData(getValues());
-      setInitialFileUrl(fileUrl);
+      if (res?.data?.attachedDoc) {
+        setExistingFileUrl(res.data.attachedDoc);
+        setInitialFileUrl(res.data.attachedDoc);
+      }
       setAttachedFile(null);
+      setFileResetKey((k) => k + 1);
       setIsEditing(false);
       setAllowSubmit(true);
       toast.success("Draft saved", { id: toastId });
@@ -307,10 +309,9 @@ export default function BRRForm({ mode = "create", brrId, onDataLoaded, onAfterS
   const handleEdit = () => {
     if (isEditing) {
       if (initialData) reset(initialData);
-      // Restore file state to what was saved
       setAttachedFile(null);
-      setFileUrl(initialFileUrl);
-      setFileName(initialFileUrl ? initialFileUrl.split("/").pop() : "");
+      setExistingFileUrl(initialFileUrl);
+      setFileResetKey((k) => k + 1);
       setIsEditing(false);
       setAllowSubmit(true);
       return;
@@ -522,59 +523,17 @@ export default function BRRForm({ mode = "create", brrId, onDataLoaded, onAfterS
             </div>
 
             {/* Attachment */}
-            <div>
-              <div className="inline-flex items-center justify-center min-h-[34px] px-5 bg-[#c4b9f7] border border-[#7c6fd4] rounded-[6px] text-[13px] font-semibold text-black mb-2">
-                Attached Doc @
-              </div>
-              <div>
-                {!disabled ? (
-                  <div className="w-full max-w-[280px]">
-                    <input
-                      ref={fileRef}
-                      type="file"
-                      accept=".pdf,.jpg,.jpeg,.png"
-                      className="hidden"
-                      onChange={(e) => {
-                        const file = e.target.files?.[0];
-                        if (!file) {
-                          setAttachedFile(null);
-                          setFileName(initialFileUrl ? initialFileUrl.split("/").pop() : "");
-                          setFileUrl(initialFileUrl || "");
-                          if (fileRef.current) fileRef.current.value = "";
-                          return;
-                        }
-                        setAttachedFile(file);
-                        setFileName(file.name);
-                        if (fileUrl?.startsWith("blob:")) URL.revokeObjectURL(fileUrl);
-                        setFileUrl(URL.createObjectURL(file));
-                        if (fileRef.current) fileRef.current.value = "";
-                      }}
-                    />
-                    {fileName ? (
-                      <button type="button" onClick={() => fileRef.current?.click()}
-                        className="w-full h-[36px] px-3 flex items-center gap-2 rounded-md border border-gray-300 bg-gray-50 hover:bg-gray-100 transition-colors cursor-pointer text-left">
-                        <FileText className="w-4 h-4 text-gray-500 shrink-0" />
-                        <span className="text-sm text-gray-700 truncate flex-1" title={fileName}>{fileName}</span>
-                      </button>
-                    ) : (
-                      <button type="button" onClick={() => fileRef.current?.click()}
-                        className="w-full h-[36px] px-3 flex items-center gap-2 rounded-md border border-dashed border-gray-300 bg-white hover:bg-gray-50 hover:border-gray-400 transition-colors cursor-pointer text-left">
-                        <Upload className="w-4 h-4 text-gray-400 shrink-0" />
-                        <span className="text-sm text-gray-400">Click to upload</span>
-                      </button>
-                    )}
-                  </div>
-                ) : (
-                  fileUrl && (
-                    <a href={fileUrl} target="_blank" rel="noreferrer"
-                      className="inline-flex items-center gap-2 text-blue-700 text-sm font-medium hover:underline">
-                      <Download className="w-4 h-4" />
-                      Download Attachment
-                    </a>
-                  )
-                )}
-              </div>
-            </div>
+            <FileUpload
+              label="Attached Doc"
+              onChange={(file) => setAttachedFile(file)}
+              existingUrl={existingFileUrl}
+              onClearExisting={() => setExistingFileUrl("")}
+              disabled={disabled}
+              resetKey={fileResetKey}
+              accept={ACCEPT_DOC}
+              allowedTypes={TYPES_DOC}
+              showImagePreview
+            />
           </div>
         </div>
       </div>

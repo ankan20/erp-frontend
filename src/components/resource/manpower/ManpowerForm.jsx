@@ -1,12 +1,11 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useFormWithToast as useForm } from "@/hooks/useFormWithToast";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { Controller } from "react-hook-form";
-import { Download, FileText } from "lucide-react";
 import { toast } from "sonner";
 
 import { Input } from "@/components/ui/input";
@@ -18,6 +17,7 @@ import { apiRequest } from "@/lib/apiClient";
 import { API_ENDPOINTS } from "@/config/api.config";
 import { getInputClass, labelClass } from "@/lib/formStyles";
 import { CATEGORY_OPTIONS } from "@/config/labourCategories";
+import FileUploadInline, { ACCEPT_DOC, TYPES_DOC } from "@/components/common/FileUploadInline";
 
 // ─── Schema ───────────────────────────────────────────────────────────────────
 
@@ -83,9 +83,9 @@ function Section({ title, children }) {
 
 // ─── FieldRow ─────────────────────────────────────────────────────────────────
 //
-// Normal:   [Label 200px] [children — capped by INPUT_MAX or explicit width]
-// File row: [Label 200px] [Input 300px] [·····gap·····] [FileWidget]
-//           On mobile / sm the widget wraps below the input automatically.
+// Normal:    [Label 200px] [children]
+// File row:  [Label 200px] [Input 300px] [gap] [FileUploadInline widget]
+//            On narrow viewports the widget wraps below the input.
 
 function FieldRow({ label, required, fileWidget, children }) {
   return (
@@ -93,80 +93,16 @@ function FieldRow({ label, required, fileWidget, children }) {
       <div className={LBL}>
         {label}{required && <span className="text-red-500 ml-0.5">*</span>}
       </div>
-
       {fileWidget ? (
-        // flex-wrap: on narrow viewports the widget falls below the input
         <div className="flex items-start sm:items-center flex-wrap gap-y-1.5 min-w-0">
-          {/* input — 300 px on sm, grows up to 340 px on lg */}
           <div className="w-full sm:w-[300px] lg:w-[340px] shrink-0 min-w-0">
             {children}
           </div>
-          {/* explicit spacer that collapses when the widget wraps */}
-          <div className="hidden sm:block sm:w-6 lg:w-10 shrink-0" />
+          <div className="hidden sm:block sm:w-4 lg:w-8 shrink-0" />
           <div className="shrink-0">{fileWidget}</div>
         </div>
       ) : (
         <div className="flex-1 min-w-0">{children}</div>
-      )}
-    </div>
-  );
-}
-
-// ─── FileWidget ───────────────────────────────────────────────────────────────
-
-function FileWidget({ label, fileKey, entry, onFileChange, disabled }) {
-  const ref = useRef(null);
-  const { newFile, url } = entry;
-
-  return (
-    <div className="flex items-center gap-2">
-      {/* All badges fixed 80 px → they form a vertical column */}
-      <div className="inline-flex items-center justify-center shrink-0
-                      h-[28px] w-[80px]
-                      bg-[#c4b9f7] border border-[#7c6fd4] rounded-[4px]
-                      text-[11.5px] font-semibold text-black">
-        {label}
-      </div>
-
-      {!disabled && (
-        <>
-          <input
-            ref={ref}
-            type="file"
-            accept=".pdf,.jpg,.jpeg,.png"
-            className="hidden"
-            onChange={(e) => {
-              const file = e.target.files?.[0];
-              if (ref.current) ref.current.value = "";
-              if (file) onFileChange(fileKey, file);
-            }}
-          />
-          <button
-            type="button"
-            onClick={() => ref.current?.click()}
-            className="inline-flex items-center justify-center shrink-0
-                       h-[28px] w-[28px]
-                       bg-[#ffd966] border border-[#c9a800] rounded-[4px]
-                       text-[13px] font-bold hover:bg-[#ffc000] transition-colors"
-          >
-            @
-          </button>
-        </>
-      )}
-
-      {newFile ? (
-        <span className="flex items-center gap-1 text-[12px] text-gray-600 max-w-[150px]">
-          <FileText className="w-3 h-3 shrink-0 text-gray-400" />
-          <span className="truncate" title={newFile.name}>{newFile.name}</span>
-        </span>
-      ) : url ? (
-        <a href={url} target="_blank" rel="noreferrer"
-           className="flex items-center gap-1 text-[12px] text-blue-700 font-medium hover:underline">
-          <Download className="w-3 h-3 shrink-0" />
-          Download
-        </a>
-      ) : (
-        <span className="text-[11px] text-gray-400 select-none">No file</span>
       )}
     </div>
   );
@@ -182,11 +118,13 @@ export default function ManpowerForm({
 }) {
   const router = useRouter();
 
-  const [isEditing,  setIsEditing]  = useState(mode === "create");
-  const [saving,     setSaving]     = useState(false);
-  const [manId,      setManId]      = useState("");
-  const [vendorList, setVendorList] = useState([]);
-  const [files,      setFiles]      = useState(emptyFileState);
+  const [isEditing,      setIsEditing]      = useState(mode === "create");
+  const [saving,         setSaving]         = useState(false);
+  const [manId,          setManId]          = useState("");
+  const [vendorList,     setVendorList]     = useState([]);
+  const [files,          setFiles]          = useState(emptyFileState);
+  const [initialFiles,   setInitialFiles]   = useState(emptyFileState);
+  const [filesResetKey,  setFilesResetKey]  = useState(0);
 
   const fieldDisabled = disabledProp || !isEditing || saving;
 
@@ -223,17 +161,22 @@ export default function ManpowerForm({
       ifscCode:          d.ifscCode          || "",
     });
     setManId(d.manId || "");
-    setFiles({
+    const fileState = {
       aadharFile:      { newFile: null, url: d.aadharFile      || null },
       panFile:         { newFile: null, url: d.panFile         || null },
       uanFile:         { newFile: null, url: d.uanFile         || null },
       esicFile:        { newFile: null, url: d.esicFile        || null },
       bankDetailsFile: { newFile: null, url: d.bankDetailsFile || null },
-    });
+    };
+    setFiles(fileState);
+    setInitialFiles(fileState);
   }, [initialData]);
 
   const handleFileChange = (key, file) =>
     setFiles((prev) => ({ ...prev, [key]: { ...prev[key], newFile: file } }));
+
+  const clearExisting = (key) =>
+    setFiles((prev) => ({ ...prev, [key]: { ...prev[key], url: null } }));
 
   const buildFormData = (values) => {
     const fd = new FormData();
@@ -279,13 +222,16 @@ export default function ManpowerForm({
       toast.success(isUpdate ? "Worker updated" : "Worker created", { id: tid });
 
       if (isUpdate && saved) {
-        setFiles((prev) => ({
-          aadharFile:      { newFile: null, url: saved.aadharFile      || prev.aadharFile.url },
-          panFile:         { newFile: null, url: saved.panFile         || prev.panFile.url },
-          uanFile:         { newFile: null, url: saved.uanFile         || prev.uanFile.url },
-          esicFile:        { newFile: null, url: saved.esicFile        || prev.esicFile.url },
-          bankDetailsFile: { newFile: null, url: saved.bankDetailsFile || prev.bankDetailsFile.url },
-        }));
+        const updatedFiles = {
+          aadharFile:      { newFile: null, url: saved.aadharFile      || files.aadharFile.url },
+          panFile:         { newFile: null, url: saved.panFile         || files.panFile.url },
+          uanFile:         { newFile: null, url: saved.uanFile         || files.uanFile.url },
+          esicFile:        { newFile: null, url: saved.esicFile        || files.esicFile.url },
+          bankDetailsFile: { newFile: null, url: saved.bankDetailsFile || files.bankDetailsFile.url },
+        };
+        setFiles(updatedFiles);
+        setInitialFiles(updatedFiles);
+        setFilesResetKey((k) => k + 1);
         setIsEditing(false);
       } else if (!isUpdate && saved?.id) {
         router.push(`/resource-management/services/manpower/labour-id/${saved.id}`);
@@ -298,12 +244,15 @@ export default function ManpowerForm({
   };
 
   const fw = (key) => (
-    <FileWidget
-      fileKey={key}
+    <FileUploadInline
       label={FILE_FIELDS.find((f) => f.key === key)?.label ?? key}
-      entry={files[key]}
-      onFileChange={handleFileChange}
+      onChange={(file) => handleFileChange(key, file)}
+      existingUrl={files[key].url || ""}
+      onClearExisting={() => clearExisting(key)}
       disabled={fieldDisabled}
+      resetKey={filesResetKey}
+      accept={ACCEPT_DOC}
+      allowedTypes={TYPES_DOC}
     />
   );
 
@@ -496,7 +445,16 @@ export default function ManpowerForm({
       {!disabledProp && (
         <div className="flex justify-end gap-3 mt-4 pt-3 border-t border-[#dce7f0]">
           {mode !== "create" && (
-            <EditButton onClick={() => setIsEditing((v) => !v)} disabled={saving}>
+            <EditButton
+              onClick={() => {
+                if (isEditing) {
+                  setFiles(initialFiles);
+                  setFilesResetKey((k) => k + 1);
+                }
+                setIsEditing((v) => !v);
+              }}
+              disabled={saving}
+            >
               {isEditing ? "Cancel" : "Edit"}
             </EditButton>
           )}

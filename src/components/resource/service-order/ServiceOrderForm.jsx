@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { useFormWithToast as useForm } from "@/hooks/useFormWithToast";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Loader2, PanelLeftClose, PanelLeftOpen } from "lucide-react";
@@ -56,12 +56,10 @@ export default function ServiceOrderForm({ mode = "create", serviceOrderId, onUu
   const [openItemModal, setOpenItemModal] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(true);
 
-  // FILE STATE — same as order module
-  const [fileName, setFileName] = useState("");
-  const [fileUrl, setFileUrl] = useState("");
   const [attachedFile, setAttachedFile] = useState(null);
-  const [initialFileData, setInitialFileData] = useState({ fileName: "", fileUrl: "" });
-  const fileRef = useRef(null);
+  const [existingFileUrl, setExistingFileUrl] = useState("");
+  const [initialFileUrl, setInitialFileUrl] = useState("");
+  const [fileResetKey, setFileResetKey] = useState(0);
   const router = useRouter();
 
   const projectInfo = getLocalStorage("projectInfo");
@@ -135,10 +133,8 @@ export default function ServiceOrderForm({ mode = "create", serviceOrderId, onUu
         reset(formattedData);
         setInitialData(formattedData);
 
-        // FILE — same as order module
-        setFileUrl(data.orderFile || "");
-        const extractedFileName = data.orderFile?.split("/")?.pop() || "";
-        setInitialFileData({ fileName: extractedFileName, fileUrl: data.orderFile || "" });
+        setExistingFileUrl(data.orderFile || "");
+        setInitialFileUrl(data.orderFile || "");
 
         // FIXED: same as OrderForm — case-insensitive editable workflowStatus check
         const isEditableStatus = ["draft", "reback"].includes(
@@ -247,8 +243,10 @@ export default function ServiceOrderForm({ mode = "create", serviceOrderId, onUu
       if (res?.data?.uuid && onUuid) onUuid(res.data.uuid);
 
       if (res?.data?.orderFile) {
-        setFileUrl(res.data.orderFile);
-        setInitialFileData({ fileName: res.data.orderFile?.split("/")?.pop() || "", fileUrl: res.data.orderFile });
+        setExistingFileUrl(res.data.orderFile);
+        setInitialFileUrl(res.data.orderFile);
+        setAttachedFile(null);
+        setFileResetKey((k) => k + 1);
       }
 
       setInitialData(getValues());
@@ -292,9 +290,8 @@ export default function ServiceOrderForm({ mode = "create", serviceOrderId, onUu
     if (isEditing) {
       if (initialData) reset(initialData);
       setAttachedFile(null);
-      setFileUrl(initialFileData.fileUrl);
-      setFileName("");
-      if (fileRef.current) fileRef.current.value = "";
+      setExistingFileUrl(initialFileUrl);
+      setFileResetKey((k) => k + 1);
       setIsEditing(false);
       setAllowSubmit(true);
       return;
@@ -326,13 +323,10 @@ export default function ServiceOrderForm({ mode = "create", serviceOrderId, onUu
             form={form}
             mode={mode}
             disabled={disabled}
-            fileName={fileName}
-            setFileName={setFileName}
-            fileUrl={fileUrl}
-            setFileUrl={setFileUrl}
-            attachedFile={attachedFile}
-            setAttachedFile={setAttachedFile}
-            fileRef={fileRef}
+            existingFileUrl={existingFileUrl}
+            onFileChange={(file) => setAttachedFile(file)}
+            onClearExisting={() => setExistingFileUrl("")}
+            fileResetKey={fileResetKey}
           />
         )}
 
