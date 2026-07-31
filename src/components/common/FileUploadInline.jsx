@@ -80,16 +80,17 @@ export const TYPES_PDF = ["application/pdf"];
  *   accept, allowedTypes, maxSize, className
  */
 export default function FileUploadInline({
-  label        = "File",
+  label          = "File",
   onChange,
-  existingUrl  = "",
+  existingUrl    = "",
   onClearExisting,
-  disabled     = false,
-  resetKey     = 0,
-  accept       = ACCEPT_ALL,
-  allowedTypes = TYPES_ALL,
+  disabled       = false,
+  resetKey       = 0,
+  accept         = ACCEPT_ALL,
+  allowedTypes   = TYPES_ALL,
   maxSize,
-  className    = "",
+  className      = "",
+  labelClassName = "",
 }) {
   const fileRef = useRef(null);
   const [selectedFile, setSelectedFile] = useState(null);
@@ -149,10 +150,10 @@ export default function FileUploadInline({
     <div className={`inline-flex items-center gap-1.5 flex-wrap ${className}`}>
 
       {/* ── Label badge */}
-      <div className="inline-flex items-center justify-center shrink-0
+      <div className={`inline-flex items-center justify-center shrink-0
                       h-[28px] px-2.5 min-w-[60px]
                       bg-[#c4b9f7] border border-[#7c6fd4] rounded-[4px]
-                      text-[11.5px] font-semibold text-[#2d1f6e] select-none">
+                      text-[11.5px] font-semibold text-[#2d1f6e] select-none ${labelClassName}`}>
         {label}
       </div>
 

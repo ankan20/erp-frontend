@@ -1,6 +1,7 @@
 "use client";
 
-import React, { useState, useRef, useEffect, useCallback } from "react";
+import React, { useState, useRef, useEffect, useCallback, useMemo } from "react";
+import { createPortal } from "react-dom";
 import {
   ArrowUp,
   ArrowDown,
@@ -31,7 +32,21 @@ const CHILD_COLS = [
   { key: "stockAmount", label: "Stock Amount", cls: "text-right",  cellCls: "text-right font-medium",    numeric: true  },
 ];
 
-function ChildTable({ items = [], onItemClick }) {
+const NON_NUMERIC_CHILD_KEYS = CHILD_COLS.filter((c) => !c.numeric).map((c) => c.key);
+
+function ChildTable({ items: rawItems = [], onItemClick }) {
+  const items = useMemo(() =>
+    rawItems.map((item) => {
+      const cleaned = { ...item };
+      NON_NUMERIC_CHILD_KEYS.forEach((k) => {
+        const v = cleaned[k];
+        if (v == null || String(v).trim() === "") cleaned[k] = "-";
+      });
+      return cleaned;
+    }),
+    [rawItems]
+  );
+
   const [sortConfig, setSortConfig] = useState({ key: null, direction: null });
   const [filterConfig, setFilterConfig] = useState({});
   const [activeFilterCol, setActiveFilterCol] = useState(null);
@@ -72,7 +87,11 @@ function ChildTable({ items = [], onItemClick }) {
 
   const getUniqueValues = useCallback((key) => {
     const seen = new Set();
-    items.forEach((r) => { const v = r[key]; seen.add(v === null || v === undefined ? "-" : String(v)); });
+    items.forEach((r) => {
+      const v = r[key];
+      const s = (v == null || String(v).trim() === "") ? "-" : String(v).trim();
+      seen.add(s);
+    });
     return [...seen].sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
   }, [items]);
 
@@ -96,7 +115,8 @@ function ChildTable({ items = [], onItemClick }) {
     Object.entries(filterConfig).every(([col, sel]) => {
       if (!sel || sel.length === 0) return true;
       const v = row[col];
-      return sel.includes(v === null || v === undefined ? "-" : String(v));
+      const s = (v == null || String(v).trim() === "") ? "-" : String(v).trim();
+      return sel.includes(s);
     })
   );
 
@@ -139,13 +159,13 @@ function ChildTable({ items = [], onItemClick }) {
   const fmtNum = (n) => n === null || n === undefined ? "-" : Number(n).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
   const renderFilterDropdown = () => {
-    if (!activeFilterCol) return null;
+    if (!activeFilterCol || typeof document === "undefined") return null;
     const unique = getUniqueValues(activeFilterCol);
     const selected = filterConfig[activeFilterCol] || [];
     const visible = filterSearch.trim() ? unique.filter((v) => v.toLowerCase().includes(filterSearch.toLowerCase())) : unique;
     const allChecked = selected.length === 0 || selected.length === unique.length;
     const someChecked = selected.length > 0 && selected.length < unique.length;
-    return (
+    return createPortal(
       <div
         ref={dropdownRef}
         style={{ position: "fixed", top: dropdownPos.top, left: dropdownPos.left, zIndex: 9999 }}
@@ -176,7 +196,8 @@ function ChildTable({ items = [], onItemClick }) {
             </div>
           ))}
         </div>
-      </div>
+      </div>,
+      document.body
     );
   };
 
@@ -333,7 +354,8 @@ export default function StockTable({ data = [], onItemClick, pagination, onPageC
       const seen = new Set();
       data.forEach((row) => {
         const v = row[key];
-        seen.add(v === null || v === undefined ? "-" : String(v));
+        const s = (v == null || String(v).trim() === "") ? "-" : String(v).trim();
+        seen.add(s);
       });
       return [...seen].sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
     },
@@ -369,7 +391,8 @@ export default function StockTable({ data = [], onItemClick, pagination, onPageC
     Object.entries(filterConfig).every(([col, sel]) => {
       if (!sel || sel.length === 0) return true;
       const v = row[col];
-      return sel.includes(v === null || v === undefined ? "-" : String(v));
+      const s = (v == null || String(v).trim() === "") ? "-" : String(v).trim();
+      return sel.includes(s);
     })
   );
 

@@ -155,6 +155,25 @@ export const API_ENDPOINTS = {
       MY_APPROVAL_STATUS: "/billing/brb/my-approval-status", // /:id GET
     },
     MACHINERY: {
+      PM_ID: {
+        CREATE:     "/resource/machinery/pm-id/create",
+        LIST:       "/resource/machinery/pm-id/list",
+        GET_BY_ID:  "/resource/machinery/pm-id/",      // + id
+        GET_BY_UID: "/resource/machinery/pm-id/by-uid/", // + uid
+        EDIT:       "/resource/machinery/pm-id/edit/", // + id
+      },
+      SERVICE_HISTORY: {
+        CREATE:    "/resource/machinery/service-history/create",
+        LIST:      "/resource/machinery/service-history/list",
+        GET_BY_ID: "/resource/machinery/service-history/", // + historyId
+        EDIT:      "/resource/machinery/service-history/edit/", // + historyId
+      },
+      SERVICE_SCHEDULE: {
+        CREATE:    "/resource/machinery/service-schedule/create",
+        LIST:      "/resource/machinery/service-schedule/list",
+        GET_BY_ID: "/resource/machinery/service-schedule/", // + scheduleId
+        EDIT:      "/resource/machinery/service-schedule/edit/", // + scheduleId
+      },
       LOG_BOOK: {
         GET_PW_ORDERS: "/resource/machinery/log-book/pw-orders",
         CREATE:        "/resource/machinery/log-book/create",

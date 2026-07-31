@@ -255,6 +255,44 @@ export const routeMetaConfig = [
     breadcrumbs: ["Resources Management", "Materials","Goods Issue Note","Edit"],
   },
   
+  //machinery/pm-inventory
+  {
+    basePath: "/resource-management/services/plant-machinery/pm-inventory",
+    breadcrumbs: ["Resource Management", "Services", "Plant Machinery", "PM Inventory"],
+  },
+  {
+    basePath: "/resource-management/services/plant-machinery/pm-inventory/pm-id",
+    breadcrumbs: ["Resource Management", "Services", "Plant Machinery", "P&M ID", "List"],
+  },
+  {
+    basePath: "/resource-management/services/plant-machinery/pm-inventory/pm-id/new",
+    breadcrumbs: ["Resource Management", "Services", "Plant Machinery", "P&M ID", "Add"],
+  },
+  {
+    basePath: "/resource-management/services/plant-machinery/pm-inventory/pm-id/[id]",
+    breadcrumbs: ["Resource Management", "Services", "Plant Machinery", "P&M ID", "Edit"],
+  },
+  {
+    basePath: "/resource-management/services/plant-machinery/pm-inventory/service-data",
+    breadcrumbs: ["Resource Management", "Services", "Plant Machinery", "Service Data"],
+  },
+  {
+    basePath: "/resource-management/services/plant-machinery/pm-inventory/service-data/service-history/new",
+    breadcrumbs: ["Resource Management", "Services", "Plant Machinery", "Service History", "Add"],
+  },
+  {
+    basePath: "/resource-management/services/plant-machinery/pm-inventory/service-data/service-history/[id]",
+    breadcrumbs: ["Resource Management", "Services", "Plant Machinery", "Service History", "Edit"],
+  },
+  {
+    basePath: "/resource-management/services/plant-machinery/pm-inventory/service-data/service-schedule/new",
+    breadcrumbs: ["Resource Management", "Services", "Plant Machinery", "Service Schedule", "Add"],
+  },
+  {
+    basePath: "/resource-management/services/plant-machinery/pm-inventory/service-data/service-schedule/[id]",
+    breadcrumbs: ["Resource Management", "Services", "Plant Machinery", "Service Schedule", "Edit"],
+  },
+
   //machinery/log-sheet
   {
     basePath: "/resource-management/services/plant-machinery/log-sheet",
