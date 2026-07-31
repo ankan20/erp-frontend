@@ -1,7 +1,8 @@
 import { sidebarConfig } from "@/config/sidebar.config";
+import { routeMetaConfig } from "@/config/route-meta.config";
 import { goToHomePage } from "@/helper/goToHomePage";
 
-// ─── Collect all leaf paths ───────────────────────────────────────────────────
+// ─── Sidebar leaf paths ───────────────────────────────────────────────────────
 const collectLeafPaths = (items) => {
   const paths = [];
   for (const item of items) {
@@ -17,23 +18,44 @@ const collectLeafPaths = (items) => {
 
 const LEAF_PATHS = collectLeafPaths(sidebarConfig);
 
-/**
- * Finds the matching list page for the current pathname.
- * Used when the user is on a detail/create/edit page and clicks back.
- * Returns the list page path, or null if already on a list page.
- */
-const getCurrentModuleListPath = (pathname) => {
-  const match = LEAF_PATHS
+// ─── Intermediate list pages ──────────────────────────────────────────────────
+// Derived automatically from routeMetaConfig — any basePath that:
+//   • doesn't end with /new        (add pages)
+//   • doesn't contain [            (dynamic [id] pages)
+//   • isn't already a sidebar leaf (those are handled separately)
+//
+// This means adding a new nested module only requires populating routeMetaConfig
+// (which you do anyway for breadcrumbs) — no extra maintenance here.
+const INTERMEDIATE_LIST_PATHS = routeMetaConfig
+  .map((r) => r.basePath)
+  .filter(
+    (p) =>
+      !p.endsWith("/new") &&
+      !p.includes("[") &&
+      !LEAF_PATHS.includes(p)
+  );
+
+// ─── Find closest list page ───────────────────────────────────────────────────
+// Checks intermediate list pages first (more specific / longer match),
+// then falls back to sidebar leaf paths.
+const findClosestListPage = (pathname) => {
+  const intermediateMatch = INTERMEDIATE_LIST_PATHS
     .filter((p) => pathname.startsWith(p) && pathname.length > p.length)
     .sort((a, b) => b.length - a.length)[0];
-  return match || null;
+
+  if (intermediateMatch) return intermediateMatch;
+
+  return LEAF_PATHS
+    .filter((p) => pathname.startsWith(p) && pathname.length > p.length)
+    .sort((a, b) => b.length - a.length)[0] || null;
 };
 
 /**
  * ERP-style back navigation — called from PageActionButtons and PageNotAvailable.
  *
  * Behaviour:
- * 1. If on a detail/create/edit page → go to that module's own list page
+ * 1. If on a detail/create/edit page → go to the closest list page
+ *    (intermediate list page if one exists, otherwise the sidebar leaf)
  * 2. If on a list page → pop the previous list page from the navigation stack
  * 3. If stack is empty → fall back to goToHomePage (first allowed page)
  *
@@ -45,8 +67,8 @@ export const goToBackPage = (router, stack) => {
 
   const pathname = window.location.pathname;
 
-  // Case 1: user is deeper than a list page (detail/create/edit) → go to own list
-  const ownListPath = getCurrentModuleListPath(pathname);
+  // Case 1: user is deeper than a list page (detail/create/edit) → go to closest list
+  const ownListPath = findClosestListPage(pathname);
   if (ownListPath) {
     router.push(ownListPath);
     return;
