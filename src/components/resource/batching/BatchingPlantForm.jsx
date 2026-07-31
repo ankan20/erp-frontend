@@ -79,6 +79,7 @@ export default function BatchingPlantForm({ mode = "create", docketId, onAfterSu
   const [allowSubmit,  setAllowSubmit]  = useState(!isCreate);
   const [initialData,  setInitialData]  = useState(null);
   const [despatchNo,   setDespatchNo]   = useState("");
+  const [docketUuid,   setDocketUuid]   = useState("");
   const [pwOrders,     setPwOrders]     = useState([]);
   const [pwOrderId,    setPwOrderId]    = useState("");
   const [vendorId,     setVendorId]     = useState(null);
@@ -110,6 +111,7 @@ export default function BatchingPlantForm({ mode = "create", docketId, onAfterSu
         const res = await apiRequest({ url: `${BP.DETAILS}/${docketId}`, method: "GET" });
         const d = res.data;
         setDespatchNo(d.despatchNo || "");
+        setDocketUuid(d.uuid || "");
         setPwOrderId(d.pwOrderId ? String(d.pwOrderId) : "");
         setVendorId(d.vendorId || null);
         setVendorName(d.vendorName || "");
@@ -245,6 +247,20 @@ export default function BatchingPlantForm({ mode = "create", docketId, onAfterSu
 
   return (
     <div className="p-4">
+      {/* View PDF link */}
+      {!isCreate && docketUuid && (
+        <div className="flex justify-end mb-3">
+          <a
+            href={`/print/batching-plant/${docketUuid}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-[12px] text-blue-600 hover:underline border border-blue-300 rounded px-3 py-1"
+          >
+            View / Print Docket
+          </a>
+        </div>
+      )}
+
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-x-8 gap-y-5">
 
         {/* ── LEFT COLUMN ── */}
