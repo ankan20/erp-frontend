@@ -270,6 +270,22 @@ export const API_ENDPOINTS = {
         ITEM_DETAIL: "/resource/stock/item-detail", // GET ?project_code&item_code
       },
     },
+    BATCHING_PLANT: {
+      CREATE:             "/resource/batching/create",
+      LIST:               "/resource/batching/list",
+      DETAILS:            "/resource/batching/details",             // /<id>
+      EDIT:               "/resource/batching/edit",                // /<id>
+      SUBMIT:             "/resource/batching/submit",              // /<id>
+      APPROVE:            "/resource/batching/approve",             // /<id>
+      REBACK:             "/resource/batching/reback",              // /<id>
+      REJECT:             "/resource/batching/reject",              // /<id>
+      DELETE:             "/resource/batching/delete",              // /<id>
+      HISTORY:            "/resource/batching/history",             // /<id>
+      MY_APPROVAL_STATUS: "/resource/batching/my-approval-status",  // /<id>
+      APPROVED_PW_ORDERS: "/resource/batching/approved-pw-orders",  // ?projectCode
+      VENDOR_FROM_ORDER:  "/resource/batching/vendor-from-order",   // /<pwOrderId>
+      GET_BY_UUID:        "/resource/batching/uuid",                // /<uuid>
+    },
     MANPOWER: {
       VENDOR_DROPDOWN: "/master/ledger/dropdown", // GET — returns id, ledgerCode, ledgerName
       LABOUR_ID: {

@@ -315,6 +315,20 @@ export const routeMetaConfig = [
     breadcrumbs: ["Resource Management", "Services","Plant Machinery" ,"Log Book Entry","Edit"],
   },
 
+  //machinery/batching-plant
+  {
+    basePath: "/resource-management/services/plant-machinery/batching-plant",
+    breadcrumbs: ["Resource Management", "Services", "Plant Machinery", "Batching Plant"],
+  },
+  {
+    basePath: "/resource-management/services/plant-machinery/batching-plant/new",
+    breadcrumbs: ["Resource Management", "Services", "Plant Machinery", "Batching Plant", "New"],
+  },
+  {
+    basePath: "/resource-management/services/plant-machinery/batching-plant/[id]",
+    breadcrumbs: ["Resource Management", "Services", "Plant Machinery", "Batching Plant", "Details"],
+  },
+
   //manpower / labour-id
   {
     basePath: "/resource-management/services/manpower/labour-id",
