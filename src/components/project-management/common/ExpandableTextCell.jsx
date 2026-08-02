@@ -1,20 +1,8 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useLayoutEffect } from "react";
 import { Maximize2, X } from "lucide-react";
 
-/**
- * Compact table cell for long text (descriptions, notes, etc.).
- *
- * Collapsed view: truncated 2-line preview + small expand icon.
- * Modal view: full textarea — read-only when disabled, editable otherwise.
- *
- * Works as a controlled input:
- *   <ExpandableTextCell value={...} onChange={...} disabled={...} label="Description" />
- *
- * Pair with a hidden <input {...register(...)} type="hidden" /> when you need
- * RHF registration but want to keep the UI controlled via Controller/watch.
- */
 export default function ExpandableTextCell({
   value       = "",
   onChange,
@@ -24,8 +12,21 @@ export default function ExpandableTextCell({
   textSize    = "text-[11px]",
   className   = "",
 }) {
-  const [open, setOpen]     = useState(false);
-  const textareaRef         = useRef(null);
+  const [open, setOpen]             = useState(false);
+  const [isOverflowing, setIsOverflowing] = useState(false);
+  const textRef     = useRef(null);
+  const textareaRef = useRef(null);
+
+  // Detect whether the clamped text is actually truncated
+  useLayoutEffect(() => {
+    const el = textRef.current;
+    if (!el) return;
+    const check = () => setIsOverflowing(el.scrollHeight > el.clientHeight + 1);
+    check();
+    const ro = new ResizeObserver(check);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [value]);
 
   // Close on Escape
   useEffect(() => {
@@ -43,12 +44,16 @@ export default function ExpandableTextCell({
     textareaRef.current.setSelectionRange(len, len);
   }, [open, disabled]);
 
+  const canOpen = isOverflowing || (!disabled && value);
+
   return (
     <>
       {/* ── CELL CONTENT ───────────────────────────────────────────────── */}
       <div className={`relative w-full ${className}`}>
         <div
-          className={`w-full px-1.5 py-0.5 leading-tight pr-5 ${textSize} ${disabled ? "text-[#9ca3af]" : "text-inherit"}`}
+          ref={textRef}
+          onClick={() => canOpen && setOpen(true)}
+          className={`w-full px-1.5 py-0.5 leading-tight ${isOverflowing ? "pr-5" : "pr-1.5"} ${textSize} ${disabled ? "text-[#9ca3af]" : "text-inherit"} ${canOpen ? "cursor-pointer" : ""}`}
           style={{
             display:         "-webkit-box",
             WebkitLineClamp: 1,
@@ -60,15 +65,17 @@ export default function ExpandableTextCell({
           {value || <span className="text-[#bbb] italic">{placeholder}</span>}
         </div>
 
-        <button
-          type="button"
-          onClick={() => setOpen(true)}
-          tabIndex={-1}
-          className="absolute bottom-0.5 right-0.5 p-0.5 rounded opacity-40 hover:opacity-100 hover:bg-[#e8f0fa] transition"
-          title={`Expand ${label}`}
-        >
-          <Maximize2 size={9} className="text-[#3b6ea5]" />
-        </button>
+        {isOverflowing && (
+          <button
+            type="button"
+            onClick={() => setOpen(true)}
+            tabIndex={-1}
+            className="absolute bottom-0.5 right-0.5 p-0.5 rounded opacity-40 hover:opacity-100 hover:bg-[#e8f0fa] transition"
+            title={`Expand ${label}`}
+          >
+            <Maximize2 size={9} className="text-[#3b6ea5]" />
+          </button>
+        )}
       </div>
 
       {/* ── MODAL ──────────────────────────────────────────────────────── */}

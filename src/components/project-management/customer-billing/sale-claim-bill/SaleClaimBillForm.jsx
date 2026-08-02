@@ -538,10 +538,19 @@ export default function SaleClaimBillForm({ mode = "create", billId, onAfterSubm
 
                         {/* ITEM NAME & DESCRIPTION — name read-only, desc expandable */}
                         <td className="border border-[#ccc] p-0">
-                          <input
-                            {...register(`items.${index}.itemName`)}
-                            disabled placeholder="—"
-                            className={`${getInputClass(false, true)} border-0 rounded-none w-full h-[30px] text-[13px] px-1.5`}
+                          <Controller
+                            name={`items.${index}.itemName`}
+                            control={control}
+                            render={({ field }) => (
+                              <ExpandableTextCell
+                                value={field.value || ""}
+                                onChange={field.onChange}
+                                disabled={true}
+                                label="Item Name"
+                                placeholder="—"
+                                textSize="text-[13px]"
+                              />
+                            )}
                           />
                           <Controller
                             name={`items.${index}.itemDescription`}
