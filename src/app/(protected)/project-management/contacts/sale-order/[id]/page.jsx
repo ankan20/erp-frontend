@@ -20,10 +20,11 @@ export default function Page() {
 
   const [openApproval, setOpenApproval] = useState(false);
   const [openTimeline, setOpenTimeline] = useState(false);
+  const [uuid,         setUuid]         = useState(null);
 
   const access = getPageAccess({ pageCode: "sale_order", pageType: "EDIT" });
   const { isPendingForMe, myLevel, refresh, dismiss } = useMyApprovalStatus(
-    `${API_ENDPOINTS.PROJECT.OG_SALE_ORDER.MY_APPROVAL_STATUS}${id}/my-approval-status`,
+    `${API_ENDPOINTS.PROJECT.OG_SALE_ORDER.MY_APPROVAL_STATUS}`,
     id,
     access.canApprove,
   );
@@ -32,8 +33,9 @@ export default function Page() {
 
   const actions = getPageActions({
     router,
-    onTimeLine: () => setOpenTimeline(true),
-    onApprove:  access.canApprove ? () => setOpenApproval(true) : undefined,
+    onTimeLine:  () => setOpenTimeline(true),
+    onApprove:   access.canApprove ? () => setOpenApproval(true) : undefined,
+    onDownload:  uuid ? () => window.open(`/print/og-sale-order/${uuid}`, "_blank") : undefined,
     isPendingApproval: isPendingForMe,
   });
 
@@ -47,7 +49,7 @@ export default function Page() {
       }
       onDismissApproval={isPendingForMe ? dismiss : undefined}
     >
-      <OGSaleOrderForm mode={access.mode} saleOrderId={id} onAfterSubmit={refresh} />
+      <OGSaleOrderForm mode={access.mode} saleOrderId={id} onAfterSubmit={refresh} onUuid={setUuid} />
 
       <ApprovalActionModal
         open={openApproval}
@@ -55,9 +57,9 @@ export default function Page() {
         payload={{ id }}
         pendingInfo={{ isPendingForMe, myLevel }}
         actions={[
-          { type: "approve", api: `${API_ENDPOINTS.PROJECT.OG_SALE_ORDER.APPROVE}${id}/approve` },
-          { type: "reback",  api: `${API_ENDPOINTS.PROJECT.OG_SALE_ORDER.REBACK}${id}/reback`   },
-          { type: "reject",  api: `${API_ENDPOINTS.PROJECT.OG_SALE_ORDER.REJECT}${id}/reject`   },
+          { type: "approve", api: `${API_ENDPOINTS.PROJECT.OG_SALE_ORDER.APPROVE}` },
+          { type: "reback",  api: `${API_ENDPOINTS.PROJECT.OG_SALE_ORDER.REBACK}`   },
+          { type: "reject",  api: `${API_ENDPOINTS.PROJECT.OG_SALE_ORDER.REJECT}`   },
         ]}
         onSuccess={() => {
           setOpenApproval(false);
@@ -70,7 +72,7 @@ export default function Page() {
         open={openTimeline}
         onClose={() => setOpenTimeline(false)}
         title="Sale Order History"
-        api={`${API_ENDPOINTS.PROJECT.OG_SALE_ORDER.HISTORY}${id}/history`}
+        api={`${API_ENDPOINTS.PROJECT.OG_SALE_ORDER.HISTORY}`}
         entityId={id}
       />
     </HeaderWrapper>

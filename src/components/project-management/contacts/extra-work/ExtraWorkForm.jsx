@@ -135,7 +135,7 @@ export default function ExtraWorkForm({ mode = "create", extraWorkId, onAfterSub
       setValue(`items.${index}.itemCode`,        item?.itemCode        || "", { shouldDirty: true });
       setValue(`items.${index}.itemDisplayCode`, item?.itemDisplayCode || item?.itemCode || "", { shouldDirty: true });
       setValue(`items.${index}.itemName`,        item?.itemName        || "", { shouldDirty: true });
-      setValue(`items.${index}.itemDescription`, item?.itemDescription || "", { shouldDirty: true });
+      setValue(`items.${index}.itemDescription`, item?.itemDescription || item?.description || "", { shouldDirty: true });
       setValue(`items.${index}.unit`,            item?.unit            || "", { shouldDirty: true });
     },
     [setValue],
@@ -266,7 +266,7 @@ export default function ExtraWorkForm({ mode = "create", extraWorkId, onAfterSub
       const res = await apiRequest({
         url:    mode === "create"
           ? API_ENDPOINTS.PROJECT.EXTRA_WORK.CREATE
-          : `${API_ENDPOINTS.PROJECT.EXTRA_WORK.UPDATE}${extraWorkId}/edit`,
+          : `${API_ENDPOINTS.PROJECT.EXTRA_WORK.UPDATE}${extraWorkId}`,
         method: mode === "create" ? "POST" : "PUT",
         data:   buildPayload(),
       });
@@ -307,7 +307,7 @@ export default function ExtraWorkForm({ mode = "create", extraWorkId, onAfterSub
     try {
       tid = toast.loading("Submitting for approval…");
       await apiRequest({
-        url:    `${API_ENDPOINTS.PROJECT.EXTRA_WORK.SUBMIT}${extraWorkId}/submit`,
+        url:    `${API_ENDPOINTS.PROJECT.EXTRA_WORK.SUBMIT}${extraWorkId}`,
         method: "POST",
       });
       toast.success("Extra Work submitted for approval", { id: tid });
@@ -332,21 +332,21 @@ export default function ExtraWorkForm({ mode = "create", extraWorkId, onAfterSub
   // ── RENDER ────────────────────────────────────────────────────────────────────
   return (
     <div className="p-3">
-      {/* PANEL TOGGLE */}
+      {/* PANEL TOGGLE — desktop only */}
       <button
         type="button"
         onClick={() => setSidebarOpen((o) => !o)}
         title={sidebarOpen ? "Hide left panel" : "Show left panel"}
-        className="mb-2 p-1 rounded hover:bg-gray-100 text-gray-500 transition"
+        className="mb-2 hidden lg:inline-flex p-1 rounded hover:bg-gray-100 text-gray-500 transition"
       >
         {sidebarOpen ? <PanelLeftClose size={18} /> : <PanelLeftOpen size={18} />}
       </button>
 
-      <div className="flex gap-3 items-start">
+      {/* Stack on mobile, side-by-side on desktop */}
+      <div className="flex flex-col gap-3 lg:flex-row lg:items-start">
 
-        {/* ── LEFT PANEL ──────────────────────────────────────────────────── */}
-        {sidebarOpen && (
-          <div className="w-full md:w-[385px] shrink-0 space-y-2">
+        {/* ── LEFT PANEL — always visible on mobile, toggle-controlled on desktop */}
+        <div className={`w-full lg:w-[385px] lg:shrink-0 space-y-2 ${!sidebarOpen ? "lg:hidden" : ""}`}>
 
             {/* ORDER DETAILS SECTION */}
             <PMSection title="Extra Work Details:">
@@ -494,10 +494,9 @@ export default function ExtraWorkForm({ mode = "create", extraWorkId, onAfterSub
             </PMSection>
 
           </div>
-        )}
 
         {/* ── RIGHT PANEL: BOQ TABLE ──────────────────────────────────────── */}
-        <div className="flex-1 min-w-0">
+        <div className="w-full lg:flex-1 min-w-0">
           <div className="border border-[#b5b5b5]">
 
             {/* TABLE TITLE */}
@@ -505,8 +504,8 @@ export default function ExtraWorkForm({ mode = "create", extraWorkId, onAfterSub
               Bill of Quantity [BOQ]
             </div>
 
-            {/* TABLE */}
-            <div className="overflow-auto" style={{ maxHeight: "calc(100vh - 260px)" }}>
+            {/* TABLE — scrolls horizontally on all screens, max-height only on desktop */}
+            <div className="overflow-x-auto overflow-y-auto lg:max-h-[calc(100vh-260px)]">
               <table className="w-full border-collapse text-sm" style={{ minWidth: 860 }}>
 
                 {/* HEADER */}
@@ -569,17 +568,30 @@ export default function ExtraWorkForm({ mode = "create", extraWorkId, onAfterSub
                             searchKeys={["itemName", "itemCode"]}
                             className="rounded-none"
                           />
-                          {/* Bottom: Description — smaller */}
-                          <input
-                            {...register(`items.${index}.itemDescription`)}
-                            disabled={disabled}
-                            placeholder="Description…"
-                            className={`
-                              ${getInputClass(false, disabled)}
-                              border-0 border-t border-[#ddd] rounded-none w-full
-                              h-[22px] text-[11px] px-1.5
-                            `}
-                          />
+                          {/* Bottom: Description — auto-grow textarea */}
+                          {(() => {
+                            const { ref: rhfRef, ...descProps } = register(`items.${index}.itemDescription`);
+                            return (
+                              <textarea
+                                {...descProps}
+                                ref={(el) => {
+                                  rhfRef(el);
+                                  if (el) {
+                                    el.style.height = "auto";
+                                    el.style.height = `${el.scrollHeight}px`;
+                                  }
+                                }}
+                                disabled={disabled}
+                                placeholder="Description…"
+                                rows={1}
+                                onInput={(e) => {
+                                  e.target.style.height = "auto";
+                                  e.target.style.height = `${e.target.scrollHeight}px`;
+                                }}
+                                className={`${getInputClass(false, disabled)} border-0 border-t border-[#ddd] rounded-none w-full min-h-[26px] text-[11px] px-1.5 py-0.5 resize-none overflow-hidden leading-tight`}
+                              />
+                            );
+                          })()}
                         </td>
 
                         {/* UNIT — auto-filled, disabled */}

@@ -326,54 +326,54 @@ export const API_ENDPOINTS = {
   //project-management/register/concrete
   PROJECT: {
     OG_SALE_ORDER: {
-      LIST:               "/project-mgmt/og-sale-order/",            // GET ?projectCode&workflowStatus&search
-      CREATE:             "/project-mgmt/og-sale-order/create",      // POST multipart/form-data
-      GET_BY_ID:          "/project-mgmt/og-sale-order/",            // /:id GET
-      UPDATE:             "/project-mgmt/og-sale-order/",            // /:id/edit PUT multipart/form-data
-      SUBMIT:             "/project-mgmt/og-sale-order/",            // /:id/submit POST
-      APPROVE:            "/project-mgmt/og-sale-order/",            // /:id/approve POST
-      REBACK:             "/project-mgmt/og-sale-order/",            // /:id/reback POST
-      REJECT:             "/project-mgmt/og-sale-order/",            // /:id/reject POST
-      HISTORY:            "/project-mgmt/og-sale-order/",            // /:id/history GET
-      MY_APPROVAL_STATUS: "/project-mgmt/og-sale-order/",            // /:id/my-approval-status GET
-      GET_BY_UUID:        "/project-mgmt/og-sale-order/uuid/",       // /:uuid GET no-auth
+      LIST:               "/project-mgmt/og-sale-order/list",                       // GET ?projectCode&workflowStatus&search
+      CREATE:             "/project-mgmt/og-sale-order/create",                     // POST multipart/form-data
+      GET_BY_ID:          "/project-mgmt/og-sale-order/",                           // /:id GET
+      UPDATE:             "/project-mgmt/og-sale-order/edit/",                      // /:id PUT multipart/form-data
+      SUBMIT:             "/project-mgmt/og-sale-order/submit/",                    // /:id POST
+      APPROVE:            "/project-mgmt/og-sale-order/approve/",                   // /:id POST
+      REBACK:             "/project-mgmt/og-sale-order/reback/",                    // /:id POST
+      REJECT:             "/project-mgmt/og-sale-order/reject/",                    // /:id POST
+      HISTORY:            "/project-mgmt/og-sale-order/history/",                   // /:id GET
+      MY_APPROVAL_STATUS: "/project-mgmt/og-sale-order/my-approval-status/",        // /:id GET
+      GET_BY_UUID:        "/project-mgmt/og-sale-order/uuid/",                      // /:uuid GET no-auth
     },
     SALE_CLAIM_BILL: {
-      LIST:               "/project-mgmt/sale-claim-bill/",           // GET ?projectCode&workflowStatus&search
-      CREATE:             "/project-mgmt/sale-claim-bill/create",     // POST multipart/form-data
-      GET_BY_ID:          "/project-mgmt/sale-claim-bill/",           // /:id GET
-      UPDATE:             "/project-mgmt/sale-claim-bill/",           // /:id/edit PUT multipart/form-data
-      SUBMIT:             "/project-mgmt/sale-claim-bill/",           // /:id/submit POST
-      APPROVE:            "/project-mgmt/sale-claim-bill/",           // /:id/approve POST
-      REBACK:             "/project-mgmt/sale-claim-bill/",           // /:id/reback POST
-      REJECT:             "/project-mgmt/sale-claim-bill/",           // /:id/reject POST
-      HISTORY:            "/project-mgmt/sale-claim-bill/",           // /:id/history GET
-      MY_APPROVAL_STATUS: "/project-mgmt/sale-claim-bill/",           // /:id/my-approval-status GET
+      LIST:               "/project-mgmt/sale-claim-bill/",                         // GET ?projectCode&workflowStatus&search
+      CREATE:             "/project-mgmt/sale-claim-bill/create",                   // POST multipart/form-data
+      GET_BY_ID:          "/project-mgmt/sale-claim-bill/",                         // /:id GET
+      UPDATE:             "/project-mgmt/sale-claim-bill/edit/",                    // /:id PUT multipart/form-data
+      SUBMIT:             "/project-mgmt/sale-claim-bill/submit/",                  // /:id POST
+      APPROVE:            "/project-mgmt/sale-claim-bill/approve/",                 // /:id POST
+      REBACK:             "/project-mgmt/sale-claim-bill/reback/",                  // /:id POST
+      REJECT:             "/project-mgmt/sale-claim-bill/reject/",                  // /:id POST
+      HISTORY:            "/project-mgmt/sale-claim-bill/history/",                 // /:id GET
+      MY_APPROVAL_STATUS: "/project-mgmt/sale-claim-bill/my-approval-status/",      // /:id GET
     },
     EXTRA_WORK: {
-      LIST:               "/project-mgmt/extra-work/",               // GET ?projectCode&workflowStatus&search
-      CREATE:             "/project-mgmt/extra-work/create",         // POST multipart/form-data
-      GET_BY_ID:          "/project-mgmt/extra-work/",               // /:id GET
-      UPDATE:             "/project-mgmt/extra-work/",               // /:id/edit PUT multipart/form-data
-      SUBMIT:             "/project-mgmt/extra-work/",               // /:id/submit POST
-      APPROVE:            "/project-mgmt/extra-work/",               // /:id/approve POST
-      REBACK:             "/project-mgmt/extra-work/",               // /:id/reback POST
-      REJECT:             "/project-mgmt/extra-work/",               // /:id/reject POST
-      HISTORY:            "/project-mgmt/extra-work/",               // /:id/history GET
-      MY_APPROVAL_STATUS: "/project-mgmt/extra-work/",               // /:id/my-approval-status GET
-      GET_BY_UUID:        "/project-mgmt/extra-work/uuid/",          // /:uuid GET no-auth
+      LIST:               "/project-mgmt/extra-work/",                              // GET ?projectCode&workflowStatus&search
+      CREATE:             "/project-mgmt/extra-work/create",                        // POST multipart/form-data
+      GET_BY_ID:          "/project-mgmt/extra-work/",                              // /:id GET
+      UPDATE:             "/project-mgmt/extra-work/edit/",                         // /:id PUT multipart/form-data
+      SUBMIT:             "/project-mgmt/extra-work/submit/",                       // /:id POST
+      APPROVE:            "/project-mgmt/extra-work/approve/",                      // /:id POST
+      REBACK:             "/project-mgmt/extra-work/reback/",                       // /:id POST
+      REJECT:             "/project-mgmt/extra-work/reject/",                       // /:id POST
+      HISTORY:            "/project-mgmt/extra-work/history/",                      // /:id GET
+      MY_APPROVAL_STATUS: "/project-mgmt/extra-work/my-approval-status/",           // /:id GET
+      GET_BY_UUID:        "/project-mgmt/extra-work/uuid/",                         // /:uuid GET no-auth
     },
     SALE_CERTIFIED_BILL: {
-      LIST:               "/project-mgmt/sale-certified-bill/",      // GET ?projectCode&workflowStatus&search
-      CREATE:             "/project-mgmt/sale-certified-bill/create", // POST multipart/form-data
-      GET_BY_ID:          "/project-mgmt/sale-certified-bill/",      // /:id GET
-      UPDATE:             "/project-mgmt/sale-certified-bill/",      // /:id/edit PUT multipart/form-data
-      SUBMIT:             "/project-mgmt/sale-certified-bill/",      // /:id/submit POST
-      APPROVE:            "/project-mgmt/sale-certified-bill/",      // /:id/approve POST
-      REBACK:             "/project-mgmt/sale-certified-bill/",      // /:id/reback POST
-      REJECT:             "/project-mgmt/sale-certified-bill/",      // /:id/reject POST
-      HISTORY:            "/project-mgmt/sale-certified-bill/",      // /:id/history GET
-      MY_APPROVAL_STATUS: "/project-mgmt/sale-certified-bill/",      // /:id/my-approval-status GET
+      LIST:               "/project-mgmt/sale-certified-bill/",                     // GET ?projectCode&workflowStatus&search
+      CREATE:             "/project-mgmt/sale-certified-bill/create",               // POST multipart/form-data
+      GET_BY_ID:          "/project-mgmt/sale-certified-bill/",                     // /:id GET
+      UPDATE:             "/project-mgmt/sale-certified-bill/edit/",                // /:id PUT multipart/form-data
+      SUBMIT:             "/project-mgmt/sale-certified-bill/submit/",              // /:id POST
+      APPROVE:            "/project-mgmt/sale-certified-bill/approve/",             // /:id POST
+      REBACK:             "/project-mgmt/sale-certified-bill/reback/",              // /:id POST
+      REJECT:             "/project-mgmt/sale-certified-bill/reject/",              // /:id POST
+      HISTORY:            "/project-mgmt/sale-certified-bill/history/",             // /:id GET
+      MY_APPROVAL_STATUS: "/project-mgmt/sale-certified-bill/my-approval-status/", // /:id GET
     },
     REGISTER: {
       CONCRETE: {

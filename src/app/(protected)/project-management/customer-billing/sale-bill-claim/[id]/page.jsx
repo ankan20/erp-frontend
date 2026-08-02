@@ -23,7 +23,7 @@ export default function Page() {
 
   const access = getPageAccess({ pageCode: "sale_claim_bill", pageType: "EDIT" });
   const { isPendingForMe, myLevel, refresh, dismiss } = useMyApprovalStatus(
-    `${API_ENDPOINTS.PROJECT.SALE_CLAIM_BILL.MY_APPROVAL_STATUS}${id}/my-approval-status`,
+    `${API_ENDPOINTS.PROJECT.SALE_CLAIM_BILL.MY_APPROVAL_STATUS}`,
     id,
     access.canApprove,
   );
@@ -55,9 +55,9 @@ export default function Page() {
         payload={{ id }}
         pendingInfo={{ isPendingForMe, myLevel }}
         actions={[
-          { type: "approve", api: `${API_ENDPOINTS.PROJECT.SALE_CLAIM_BILL.APPROVE}${id}/approve` },
-          { type: "reback",  api: `${API_ENDPOINTS.PROJECT.SALE_CLAIM_BILL.REBACK}${id}/reback`   },
-          { type: "reject",  api: `${API_ENDPOINTS.PROJECT.SALE_CLAIM_BILL.REJECT}${id}/reject`   },
+          { type: "approve", api: `${API_ENDPOINTS.PROJECT.SALE_CLAIM_BILL.APPROVE}` },
+          { type: "reback",  api: `${API_ENDPOINTS.PROJECT.SALE_CLAIM_BILL.REBACK}`   },
+          { type: "reject",  api: `${API_ENDPOINTS.PROJECT.SALE_CLAIM_BILL.REJECT}`   },
         ]}
         onSuccess={() => {
           setOpenApproval(false);
@@ -70,7 +70,7 @@ export default function Page() {
         open={openTimeline}
         onClose={() => setOpenTimeline(false)}
         title="Sale Bill History"
-        api={`${API_ENDPOINTS.PROJECT.SALE_CLAIM_BILL.HISTORY}${id}/history`}
+        api={`${API_ENDPOINTS.PROJECT.SALE_CLAIM_BILL.HISTORY}`}
         entityId={id}
       />
     </HeaderWrapper>

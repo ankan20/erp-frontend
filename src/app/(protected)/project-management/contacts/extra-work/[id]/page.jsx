@@ -23,7 +23,7 @@ export default function Page() {
 
   const access = getPageAccess({ pageCode: "extra_work", pageType: "EDIT" });
   const { isPendingForMe, myLevel, refresh, dismiss } = useMyApprovalStatus(
-    `${API_ENDPOINTS.PROJECT.EXTRA_WORK.MY_APPROVAL_STATUS}${id}/my-approval-status`,
+    `${API_ENDPOINTS.PROJECT.EXTRA_WORK.MY_APPROVAL_STATUS}`,
     id,
     access.canApprove,
   );
@@ -55,9 +55,9 @@ export default function Page() {
         payload={{ id }}
         pendingInfo={{ isPendingForMe, myLevel }}
         actions={[
-          { type: "approve", api: `${API_ENDPOINTS.PROJECT.EXTRA_WORK.APPROVE}${id}/approve` },
-          { type: "reback",  api: `${API_ENDPOINTS.PROJECT.EXTRA_WORK.REBACK}${id}/reback`   },
-          { type: "reject",  api: `${API_ENDPOINTS.PROJECT.EXTRA_WORK.REJECT}${id}/reject`   },
+          { type: "approve", api: `${API_ENDPOINTS.PROJECT.EXTRA_WORK.APPROVE}` },
+          { type: "reback",  api: `${API_ENDPOINTS.PROJECT.EXTRA_WORK.REBACK}`   },
+          { type: "reject",  api: `${API_ENDPOINTS.PROJECT.EXTRA_WORK.REJECT}`   },
         ]}
         onSuccess={() => {
           setOpenApproval(false);
@@ -70,7 +70,7 @@ export default function Page() {
         open={openTimeline}
         onClose={() => setOpenTimeline(false)}
         title="Extra Work History"
-        api={`${API_ENDPOINTS.PROJECT.EXTRA_WORK.HISTORY}${id}/history`}
+        api={`${API_ENDPOINTS.PROJECT.EXTRA_WORK.HISTORY}`}
         entityId={id}
       />
     </HeaderWrapper>
