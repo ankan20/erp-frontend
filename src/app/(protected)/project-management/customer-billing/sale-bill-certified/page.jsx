@@ -43,7 +43,7 @@ export default function Page() {
     const fetchList = async () => {
       try {
         const res = await apiRequest({
-          url:    `${API_ENDPOINTS.PROJECT.SALE_CERTIFIED_BILL.LIST}?projectCode=${projectCode}&mode=certified_bill`,
+          url:    `${API_ENDPOINTS.PROJECT.SALE_CERTIFIED_BILL.LIST}?projectCode=${projectCode}&mode=sale_certified_bill`,
           method: "GET",
         });
 
