@@ -18,7 +18,8 @@ import PMSection          from "@/components/project-management/common/PMSection
 import PMFormRow          from "@/components/project-management/common/PMFormRow";
 import PMInput            from "@/components/project-management/common/PMInput";
 import PMDateInput        from "@/components/project-management/common/PMDateInput";
-import PMTextarea         from "@/components/project-management/common/PMTextarea";
+import PMTextarea          from "@/components/project-management/common/PMTextarea";
+import ExpandableTextCell  from "@/components/project-management/common/ExpandableTextCell";
 
 import { apiRequest }      from "@/lib/apiClient";
 import { API_ENDPOINTS }   from "@/config/api.config";
@@ -514,15 +515,15 @@ export default function OGSaleOrderForm({ mode = "create", saleOrderId, onAfterS
                 {/* HEADER */}
                 <thead className="sticky top-0 z-20">
                   <tr className="bg-[#3b6ea5] text-white">
-                    <th className="border border-[#2a5080] w-[44px] text-center text-[12px] py-1.5">SL no</th>
-                    <th className="border border-[#2a5080] w-[110px] text-left px-2 text-[12px] py-1.5">Item Code</th>
-                    <th className="border border-[#2a5080] text-left px-2 text-[12px] py-1.5">Item Name &amp; Description</th>
-                    <th className="border border-[#2a5080] w-[70px] text-center text-[12px] py-1.5">Unit</th>
-                    <th className="border border-[#2a5080] w-[90px] text-right px-2 text-[12px] py-1.5">Order Qty</th>
-                    <th className="border border-[#2a5080] w-[100px] text-right px-2 text-[12px] py-1.5">Rate</th>
-                    <th className="border border-[#2a5080] w-[110px] text-right px-2 text-[12px] py-1.5">Amount</th>
+                    <th className="border border-[#2a5080] w-[44px] text-center text-[13px] py-1.5">SL no</th>
+                    <th className="border border-[#2a5080] w-[110px] text-left px-2 text-[13px] py-1.5">Item Code</th>
+                    <th className="border border-[#2a5080] text-left px-2 text-[13px] py-1.5">Item Name &amp; Description</th>
+                    <th className="border border-[#2a5080] w-[70px] text-center text-[13px] py-1.5">Unit</th>
+                    <th className="border border-[#2a5080] w-[90px] text-right px-2 text-[13px] py-1.5">Order Qty</th>
+                    <th className="border border-[#2a5080] w-[100px] text-right px-2 text-[13px] py-1.5">Rate</th>
+                    <th className="border border-[#2a5080] w-[110px] text-right px-2 text-[13px] py-1.5">Amount</th>
                     {!disabled && (
-                      <th className="border border-[#2a5080] w-[40px] text-center text-[12px] py-1.5">Del</th>
+                      <th className="border border-[#2a5080] w-[40px] text-center text-[13px] py-1.5">Del</th>
                     )}
                   </tr>
                 </thead>
@@ -550,7 +551,7 @@ export default function OGSaleOrderForm({ mode = "create", saleOrderId, onAfterS
                             placeholder="Code"
                             className={`
                               ${getInputClass(false, true)}
-                              border-0 rounded-none w-full h-[30px] text-[12px] px-1
+                              border-0 rounded-none w-full h-[30px] text-[13px] px-1
                             `}
                           />
                           <input {...register(`items.${index}.itemCode`)} type="hidden" />
@@ -571,30 +572,20 @@ export default function OGSaleOrderForm({ mode = "create", saleOrderId, onAfterS
                             searchKeys={["itemName", "itemCode"]}
                             className="rounded-none"
                           />
-                          {/* Bottom: Description — auto-grow textarea */}
-                          {(() => {
-                            const { ref: rhfRef, ...descProps } = register(`items.${index}.itemDescription`);
-                            return (
-                              <textarea
-                                {...descProps}
-                                ref={(el) => {
-                                  rhfRef(el);
-                                  if (el) {
-                                    el.style.height = "auto";
-                                    el.style.height = `${el.scrollHeight}px`;
-                                  }
-                                }}
+                          {/* Bottom: Description — expandable cell */}
+                          <Controller
+                            name={`items.${index}.itemDescription`}
+                            control={control}
+                            render={({ field }) => (
+                              <ExpandableTextCell
+                                value={field.value || ""}
+                                onChange={field.onChange}
                                 disabled={disabled}
+                                label="Item Description"
                                 placeholder="Description…"
-                                rows={1}
-                                onInput={(e) => {
-                                  e.target.style.height = "auto";
-                                  e.target.style.height = `${e.target.scrollHeight}px`;
-                                }}
-                                className={`${getInputClass(false, disabled)} border-0 border-t border-[#ddd] rounded-none w-full min-h-[26px] text-[11px] px-1.5 py-0.5 resize-none overflow-hidden leading-tight`}
                               />
-                            );
-                          })()}
+                            )}
+                          />
                         </td>
 
                         {/* UNIT — auto-filled from item, disabled */}
@@ -605,7 +596,7 @@ export default function OGSaleOrderForm({ mode = "create", saleOrderId, onAfterS
                             placeholder="Unit"
                             className={`
                               ${getInputClass(false, true)}
-                              border-0 rounded-none w-full h-[30px] text-[12px] text-center
+                              border-0 rounded-none w-full h-[30px] text-[13px] text-center
                             `}
                           />
                         </td>

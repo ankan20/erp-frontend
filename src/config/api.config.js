@@ -339,16 +339,17 @@ export const API_ENDPOINTS = {
       GET_BY_UUID:        "/project-mgmt/og-sale-order/uuid/",                      // /:uuid GET no-auth
     },
     SALE_CLAIM_BILL: {
-      LIST:               "/project-mgmt/sale-claim-bill/",                         // GET ?projectCode&workflowStatus&search
-      CREATE:             "/project-mgmt/sale-claim-bill/create",                   // POST multipart/form-data
-      GET_BY_ID:          "/project-mgmt/sale-claim-bill/",                         // /:id GET
-      UPDATE:             "/project-mgmt/sale-claim-bill/edit/",                    // /:id PUT multipart/form-data
-      SUBMIT:             "/project-mgmt/sale-claim-bill/submit/",                  // /:id POST
-      APPROVE:            "/project-mgmt/sale-claim-bill/approve/",                 // /:id POST
-      REBACK:             "/project-mgmt/sale-claim-bill/reback/",                  // /:id POST
-      REJECT:             "/project-mgmt/sale-claim-bill/reject/",                  // /:id POST
-      HISTORY:            "/project-mgmt/sale-claim-bill/history/",                 // /:id GET
-      MY_APPROVAL_STATUS: "/project-mgmt/sale-claim-bill/my-approval-status/",      // /:id GET
+      LIST:               "/project-mgmt/billing/list",                             // GET ?projectCode&mode=sale_order_bill
+      CREATE:             "/project-mgmt/billing/create",                           // POST
+      GET_BY_ID:          "/project-mgmt/billing/",                                 // /:id GET
+      UPDATE:             "/project-mgmt/billing/edit/",                            // /:id PUT
+      SUBMIT:             "/project-mgmt/billing/submit/",                          // /:id POST
+      APPROVE:            "/project-mgmt/billing/approve/",                         // /:id POST
+      REBACK:             "/project-mgmt/billing/reback/",                          // /:id POST
+      REJECT:             "/project-mgmt/billing/reject/",                          // /:id POST
+      HISTORY:            "/project-mgmt/billing/history/",                         // /:id GET
+      MY_APPROVAL_STATUS: "/project-mgmt/billing/my-approval-status/",              // /:id GET
+      ORDER_LOOKUP:       "/project-mgmt/billing/order-lookup",                     // GET ?ogSaleOrderNo&projectCode&mode
     },
     EXTRA_WORK: {
       LIST:               "/project-mgmt/extra-work/",                              // GET ?projectCode&workflowStatus&search
@@ -364,16 +365,17 @@ export const API_ENDPOINTS = {
       GET_BY_UUID:        "/project-mgmt/extra-work/uuid/",                         // /:uuid GET no-auth
     },
     SALE_CERTIFIED_BILL: {
-      LIST:               "/project-mgmt/sale-certified-bill/",                     // GET ?projectCode&workflowStatus&search
-      CREATE:             "/project-mgmt/sale-certified-bill/create",               // POST multipart/form-data
-      GET_BY_ID:          "/project-mgmt/sale-certified-bill/",                     // /:id GET
-      UPDATE:             "/project-mgmt/sale-certified-bill/edit/",                // /:id PUT multipart/form-data
-      SUBMIT:             "/project-mgmt/sale-certified-bill/submit/",              // /:id POST
-      APPROVE:            "/project-mgmt/sale-certified-bill/approve/",             // /:id POST
-      REBACK:             "/project-mgmt/sale-certified-bill/reback/",              // /:id POST
-      REJECT:             "/project-mgmt/sale-certified-bill/reject/",              // /:id POST
-      HISTORY:            "/project-mgmt/sale-certified-bill/history/",             // /:id GET
-      MY_APPROVAL_STATUS: "/project-mgmt/sale-certified-bill/my-approval-status/", // /:id GET
+      LIST:               "/project-mgmt/billing/list",                             // GET ?projectCode&mode=certified_bill
+      CREATE:             "/project-mgmt/billing/create",                           // POST
+      GET_BY_ID:          "/project-mgmt/billing/",                                 // /:id GET
+      UPDATE:             "/project-mgmt/billing/edit/",                            // /:id PUT
+      SUBMIT:             "/project-mgmt/billing/submit/",                          // /:id POST
+      APPROVE:            "/project-mgmt/billing/approve/",                         // /:id POST
+      REBACK:             "/project-mgmt/billing/reback/",                          // /:id POST
+      REJECT:             "/project-mgmt/billing/reject/",                          // /:id POST
+      HISTORY:            "/project-mgmt/billing/history/",                         // /:id GET
+      MY_APPROVAL_STATUS: "/project-mgmt/billing/my-approval-status/",              // /:id GET
+      ORDER_LOOKUP:       "/project-mgmt/billing/order-lookup",                     // GET ?ogSaleOrderNo&projectCode&mode
     },
     REGISTER: {
       CONCRETE: {

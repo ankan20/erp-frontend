@@ -43,22 +43,21 @@ export default function Page() {
     const fetchList = async () => {
       try {
         const res = await apiRequest({
-          url:    `${API_ENDPOINTS.PROJECT.SALE_CERTIFIED_BILL.LIST}?projectCode=${projectCode}`,
+          url:    `${API_ENDPOINTS.PROJECT.SALE_CERTIFIED_BILL.LIST}?projectCode=${projectCode}&mode=certified_bill`,
           method: "GET",
         });
 
         const list = (res.data || []).map((r, i) => ({
-          id:               r.id,
-          sl:               i + 1,
-          orderNo:          r.orderNo            || "",
-          date:             getfmtDisplaydate(r.orderDate) || "",
-          billNo:           r.billNo             || "",
-          billDate:         getfmtDisplaydate(r.billDate) || "",
-          orderTitle:       r.orderTitle         || "",
-          claimAmount:      fmtNum(r.claimAmount),
-          certifiedAmount:  fmtNum(r.certifiedAmount),
-          diffAmount:       fmtNum(r.diffAmount),
-          workflowStatus:   r.workflowStatus     || "",
+          id:             r.id,
+          sl:             i + 1,
+          billingNo:      r.billingNo       || "",
+          date:           getfmtDisplaydate(r.billingDate) || "",
+          orderNo:        r.ogSaleOrderNo   || "",
+          title:          r.title           || "",
+          thisBillAmount: fmtNum(r.thisBillClaim),
+          gstAmount:      fmtNum(r.gstAmount),
+          totalBill:      fmtNum(r.totalClaim),
+          workflowStatus: r.workflowStatus  || "",
         }));
 
         setData(list);
@@ -99,16 +98,15 @@ export default function Page() {
   };
 
   const columns = [
-    { header: "Sl. no",                  accessor: "sl",              width: "65px"  },
-    { header: "Order No",                accessor: "orderNo",         width: "120px" },
-    { header: "Date",                    accessor: "date",            width: "110px" },
-    { header: "Bill No",                 accessor: "billNo",          width: "120px" },
-    { header: "Bill Date",               accessor: "billDate",        width: "110px" },
-    { header: "Order Short Description", accessor: "orderTitle"                      },
-    { header: "Claim Amount",            accessor: "claimAmount",     width: "130px", align: "right" },
-    { header: "Certified Amount",        accessor: "certifiedAmount", width: "140px", align: "right" },
-    { header: "Diff. Amount",            accessor: "diffAmount",      width: "120px", align: "right" },
-    { header: "Status",                  accessor: "workflowStatus",  width: "110px" },
+    { header: "Sl. no",          accessor: "sl",             width: "65px"  },
+    { header: "Billing No",      accessor: "billingNo",      width: "120px" },
+    { header: "Bill Date",       accessor: "date",           width: "110px" },
+    { header: "Order No",        accessor: "orderNo",        width: "120px" },
+    { header: "Title",           accessor: "title"                          },
+    { header: "Certified Amount",accessor: "thisBillAmount", width: "140px", align: "right" },
+    { header: "GST Amount",      accessor: "gstAmount",      width: "120px", align: "right" },
+    { header: "Total Bill",      accessor: "totalBill",      width: "120px", align: "right" },
+    { header: "Status",          accessor: "workflowStatus", width: "110px" },
   ];
 
   const actions = getPageActions({ router });
