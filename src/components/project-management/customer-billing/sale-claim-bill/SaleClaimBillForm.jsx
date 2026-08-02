@@ -272,9 +272,6 @@ export default function SaleClaimBillForm({ mode = "create", billId, onAfterSubm
         v.items.map((it, i) => ({
           slNo:              i + 1,
           ogSaleOrderItemId: it.ogSaleOrderItemId || null,
-          itemCode:          it.itemCode          || "",
-          itemDescription:   it.itemDescription   || "",
-          unit:              it.unit              || "",
           claimQty:          Number(it.claimQty   || 0),
           rate:              Number(it.rate        || 0),
           gstPercent:        Number(it.gstPercent  || 0),

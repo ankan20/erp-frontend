@@ -35,6 +35,7 @@ const itemSchema = z.object({
   unit:            z.string().optional(),
   orderQty:        z.coerce.number().min(0).optional(),
   rate:            z.coerce.number().min(0).optional(),
+  gstPercent:      z.coerce.number().min(0).optional(),
 });
 
 const schema = z.object({
@@ -45,7 +46,6 @@ const schema = z.object({
   orderNo:         z.string().optional(),
   orderValidity:   z.string().optional(),
   orderTitle:      z.string().min(1, "Order Title is required"),
-  gstAmount:       z.coerce.number().min(0).optional(),
   items:           z.array(itemSchema).min(1),
 });
 
@@ -57,6 +57,7 @@ const DEFAULT_ITEM = {
   unit:            "",
   orderQty:        "",
   rate:            "",
+  gstPercent:      "",
 };
 
 const defaultValues = {
@@ -67,7 +68,6 @@ const defaultValues = {
   orderNo:         "",
   orderValidity:   "",
   orderTitle:      "",
-  gstAmount:       "",
   items:           [{ ...DEFAULT_ITEM }],
 };
 
@@ -112,16 +112,18 @@ export default function OGSaleOrderForm({ mode = "create", saleOrderId, onAfterS
   const disabled = isViewMode || !isEditing || isSubmitting || isSubmitted;
 
   // ── COMPUTED TOTALS
-  const watchedItems  = watch("items") || [];
-  const watchedGst    = watch("gstAmount") || 0;
+  const watchedItems = watch("items") || [];
 
   const basicAmount = watchedItems.reduce((sum, item) => {
-    const qty  = Number(item?.orderQty || 0);
-    const rate = Number(item?.rate     || 0);
-    return sum + qty * rate;
+    return sum + Number(item?.orderQty || 0) * Number(item?.rate || 0);
   }, 0);
 
-  const totalAmount = basicAmount + Number(watchedGst || 0);
+  const gstAmount = watchedItems.reduce((sum, item) => {
+    const amt = Number(item?.orderQty || 0) * Number(item?.rate || 0);
+    return sum + amt * Number(item?.gstPercent || 0) / 100;
+  }, 0);
+
+  const totalAmount = basicAmount + gstAmount;
 
   // ── FETCH ITEMS MASTER ────────────────────────────────────────────────────────
   useEffect(() => {
@@ -138,6 +140,7 @@ export default function OGSaleOrderForm({ mode = "create", saleOrderId, onAfterS
       setValue(`items.${index}.itemName`,        item?.itemName        || "", { shouldDirty: true });
       setValue(`items.${index}.itemDescription`, item?.itemDescription || item?.description || "", { shouldDirty: true });
       setValue(`items.${index}.unit`,            item?.unit            || "", { shouldDirty: true });
+      setValue(`items.${index}.gstPercent`,      item?.gst             ?? item?.gstPercent ?? "", { shouldDirty: true });
     },
     [setValue],
   );
@@ -163,7 +166,6 @@ export default function OGSaleOrderForm({ mode = "create", saleOrderId, onAfterS
           orderNo:         d.orderNo         || "",
           orderValidity:   d.orderValidity   || "",
           orderTitle:      d.orderTitle      || "",
-          gstAmount:       d.gstAmount       || "",
           items: (d.items || []).map((it) => ({
             itemDisplayCode: it.itemDisplayCode || it.itemCode || "",
             itemCode:        it.itemCode        || "",
@@ -172,6 +174,7 @@ export default function OGSaleOrderForm({ mode = "create", saleOrderId, onAfterS
             unit:            it.unit            || "",
             orderQty:        it.orderQty        || "",
             rate:            it.rate            || "",
+            gstPercent:      it.gstPercent      || "",
           })),
         };
         if (!formatted.items.length) formatted.items = [{ ...DEFAULT_ITEM }];
@@ -246,9 +249,9 @@ export default function OGSaleOrderForm({ mode = "create", saleOrderId, onAfterS
           itemCode:        it.itemCode        || "",
           itemDescription: it.itemDescription || "",
           unit:            it.unit            || "",
-          orderQty:        Number(it.orderQty || 0),
-          rate:            Number(it.rate     || 0),
-          gstPercent:      0,
+          orderQty:        Number(it.orderQty    || 0),
+          rate:            Number(it.rate        || 0),
+          gstPercent:      Number(it.gstPercent  || 0),
         })),
       ),
     );
@@ -404,17 +407,14 @@ export default function OGSaleOrderForm({ mode = "create", saleOrderId, onAfterS
               </PMFormRow>
 
               <PMFormRow label="GST Amount" labelWidth="sm:w-[130px] sm:min-w-[130px]">
-                <PMInput
-                  type="number"
-                  min={0}
-                  step="any"
-                  {...register("gstAmount")}
-                  disabled={disabled}
-                  hasError={errors.gstAmount}
-                  expandable={false}
-                  placeholder="Number"
-                  className="max-w-[180px] text-right"
-                />
+                <div className="max-w-[180px]">
+                  <input
+                    type="text"
+                    value={fmt(gstAmount)}
+                    disabled readOnly
+                    className="w-full h-[30px] text-[13px] rounded-sm border border-[#5f8fbe] bg-[#d6e8f9] text-right px-2 font-semibold text-[#1c3a5e] outline-none"
+                  />
+                </div>
               </PMFormRow>
 
               <PMFormRow label="Total Amount" labelWidth="sm:w-[130px] sm:min-w-[130px]">
@@ -510,7 +510,7 @@ export default function OGSaleOrderForm({ mode = "create", saleOrderId, onAfterS
 
             {/* TABLE — scrolls horizontally on all screens, max-height only on desktop */}
             <div className="overflow-x-auto overflow-y-auto lg:max-h-[calc(100vh-260px)]">
-              <table className="w-full border-collapse text-sm" style={{ minWidth: 860 }}>
+              <table className="w-full border-collapse text-sm" style={{ minWidth: 940 }}>
 
                 {/* HEADER */}
                 <thead className="sticky top-0 z-20">
@@ -521,6 +521,7 @@ export default function OGSaleOrderForm({ mode = "create", saleOrderId, onAfterS
                     <th className="border border-[#2a5080] w-[70px] text-center text-[13px] py-1.5">Unit</th>
                     <th className="border border-[#2a5080] w-[90px] text-right px-2 text-[13px] py-1.5">Order Qty</th>
                     <th className="border border-[#2a5080] w-[100px] text-right px-2 text-[13px] py-1.5">Rate</th>
+                    <th className="border border-[#2a5080] w-[65px] text-right px-2 text-[13px] py-1.5">GST %</th>
                     <th className="border border-[#2a5080] w-[110px] text-right px-2 text-[13px] py-1.5">Amount</th>
                     {!disabled && (
                       <th className="border border-[#2a5080] w-[40px] text-center text-[13px] py-1.5">Del</th>
@@ -637,6 +638,25 @@ export default function OGSaleOrderForm({ mode = "create", saleOrderId, onAfterS
                           />
                         </td>
 
+                        {/* GST % */}
+                        <td className="border border-[#ccc] p-0 align-middle">
+                          <input
+                            type="number"
+                            min={0}
+                            max={100}
+                            step="any"
+                            {...register(`items.${index}.gstPercent`, {
+                              onChange: (e) => { if (Number(e.target.value) < 0) e.target.value = 0; },
+                            })}
+                            disabled={disabled}
+                            placeholder="0"
+                            className={`
+                              ${getInputClass(false, disabled)}
+                              border-0 rounded-none w-full h-[52px] text-[13px] text-right pr-2
+                            `}
+                          />
+                        </td>
+
                         {/* AMOUNT (computed) */}
                         <td className="border border-[#ccc] bg-[#edf8ed] px-2 text-[13px] font-medium text-right align-middle">
                           {fmt(amount)}
@@ -670,6 +690,7 @@ export default function OGSaleOrderForm({ mode = "create", saleOrderId, onAfterS
                     <td className="border border-[#9ec5e0]" />
                     <td className="border border-[#9ec5e0]" />
                     <td className="border border-[#9ec5e0] px-2 text-right text-[13px]">TOTAL=</td>
+                    <td className="border border-[#9ec5e0]" />
                     <td className="border border-[#9ec5e0] px-2 text-right text-[13px]">
                       {fmt(basicAmount)}
                     </td>
