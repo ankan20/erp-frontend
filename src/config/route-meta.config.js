@@ -434,6 +434,19 @@ export const routeMetaConfig = [
     basePath: "/resource-management/contact-dairy/plant-machinery/[id]",
     breadcrumbs: ["Resource Management", "Contact Dairy","Plant & Machinery","Edit"],
   },
+  // Sale Claim Bill
+  {
+    basePath: "/project-management/customer-billing/sale-bill-claim",
+    breadcrumbs: ["Project Management", "Customer Billing", "Sale Bill", "List"],
+  },
+  {
+    basePath: "/project-management/customer-billing/sale-bill-claim/new",
+    breadcrumbs: ["Project Management", "Customer Billing", "Sale Bill", "New"],
+  },
+  {
+    basePath: "/project-management/customer-billing/sale-bill-claim/[id]",
+    breadcrumbs: ["Project Management", "Customer Billing", "Sale Bill", "Details"],
+  },
   // Sale Order
   {
     basePath: "/project-management/contacts/sale-order",

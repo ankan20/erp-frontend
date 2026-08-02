@@ -338,6 +338,18 @@ export const API_ENDPOINTS = {
       MY_APPROVAL_STATUS: "/project-mgmt/og-sale-order/",            // /:id/my-approval-status GET
       GET_BY_UUID:        "/project-mgmt/og-sale-order/uuid/",       // /:uuid GET no-auth
     },
+    SALE_CLAIM_BILL: {
+      LIST:               "/project-mgmt/sale-claim-bill/",           // GET ?projectCode&workflowStatus&search
+      CREATE:             "/project-mgmt/sale-claim-bill/create",     // POST multipart/form-data
+      GET_BY_ID:          "/project-mgmt/sale-claim-bill/",           // /:id GET
+      UPDATE:             "/project-mgmt/sale-claim-bill/",           // /:id/edit PUT multipart/form-data
+      SUBMIT:             "/project-mgmt/sale-claim-bill/",           // /:id/submit POST
+      APPROVE:            "/project-mgmt/sale-claim-bill/",           // /:id/approve POST
+      REBACK:             "/project-mgmt/sale-claim-bill/",           // /:id/reback POST
+      REJECT:             "/project-mgmt/sale-claim-bill/",           // /:id/reject POST
+      HISTORY:            "/project-mgmt/sale-claim-bill/",           // /:id/history GET
+      MY_APPROVAL_STATUS: "/project-mgmt/sale-claim-bill/",           // /:id/my-approval-status GET
+    },
     EXTRA_WORK: {
       LIST:               "/project-mgmt/extra-work/",               // GET ?projectCode&workflowStatus&search
       CREATE:             "/project-mgmt/extra-work/create",         // POST multipart/form-data
