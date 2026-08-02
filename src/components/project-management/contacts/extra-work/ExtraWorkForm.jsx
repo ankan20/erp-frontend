@@ -37,8 +37,8 @@ const itemSchema = z.object({
 });
 
 const schema = z.object({
-  ogSaleOrderNo:   z.string().optional(),
-  ogSaleOrderDate: z.string().min(1, "Order Date is required"),
+  extraWorkNo:     z.string().optional(),
+  extraWorkDate:   z.string().min(1, "Date is required"),
   prefix:          z.string().optional(),
   suffix:          z.string().optional(),
   orderNo:         z.string().optional(),
@@ -59,8 +59,8 @@ const DEFAULT_ITEM = {
 };
 
 const defaultValues = {
-  ogSaleOrderNo:   "",
-  ogSaleOrderDate: "",
+  extraWorkNo:     "",
+  extraWorkDate:   "",
   prefix:          "",
   suffix:          "",
   orderNo:         "",
@@ -80,7 +80,7 @@ const fmt = (val) => {
 
 
 // ── COMPONENT ─────────────────────────────────────────────────────────────────
-export default function OGSaleOrderForm({ mode = "create", saleOrderId, onAfterSubmit }) {
+export default function ExtraWorkForm({ mode = "create", extraWorkId, onAfterSubmit }) {
   const isViewMode = mode === "view" || mode === "approver";
   const router     = useRouter();
 
@@ -143,26 +143,26 @@ export default function OGSaleOrderForm({ mode = "create", saleOrderId, onAfterS
 
   // ── FETCH DETAIL ─────────────────────────────────────────────────────────────
   useEffect(() => {
-    if (mode === "create" || !saleOrderId) return;
+    if (mode === "create" || !extraWorkId) return;
 
     const fetchDetail = async () => {
       setIsLoading(true);
       try {
         const res = await apiRequest({
-          url:    `${API_ENDPOINTS.PROJECT.OG_SALE_ORDER.GET_BY_ID}${saleOrderId}`,
+          url:    `${API_ENDPOINTS.PROJECT.EXTRA_WORK.GET_BY_ID}${extraWorkId}`,
           method: "GET",
         });
         const d = res.data;
 
         const formatted = {
-          ogSaleOrderNo:   d.ogSaleOrderNo   || "",
-          ogSaleOrderDate: d.ogSaleOrderDate || "",
-          prefix:          d.prefix          || "",
-          suffix:          d.suffix          || "",
-          orderNo:         d.orderNo         || "",
-          orderValidity:   d.orderValidity   || "",
-          orderTitle:      d.orderTitle      || "",
-          gstAmount:       d.gstAmount       || "",
+          extraWorkNo:   d.extraWorkNo   || "",
+          extraWorkDate: d.extraWorkDate || "",
+          prefix:        d.prefix        || "",
+          suffix:        d.suffix        || "",
+          orderNo:       d.orderNo       || "",
+          orderValidity: d.orderValidity || "",
+          orderTitle:    d.orderTitle    || "",
+          gstAmount:     d.gstAmount     || "",
           items: (d.items || []).map((it) => ({
             itemDisplayCode: it.itemDisplayCode || it.itemCode || "",
             itemCode:        it.itemCode        || "",
@@ -190,22 +190,22 @@ export default function OGSaleOrderForm({ mode = "create", saleOrderId, onAfterS
         if (mode === "edit" && !editable) {
           setIsSubmitted(true);
           const st = d.workflowStatus || "";
-          if      (st === "Approved") toast.info("Sale Order already Approved");
-          else if (st === "Rejected") toast.info("Sale Order already Rejected");
-          else                         toast.info("Sale Order already Submitted");
+          if      (st === "Approved") toast.info("Extra Work already Approved");
+          else if (st === "Rejected") toast.info("Extra Work already Rejected");
+          else                         toast.info("Extra Work already Submitted");
         } else {
           setIsEditing(false);
           setAllowSubmit(true);
         }
       } catch (err) {
-        toast.error(err.message || "Failed to load Sale Order");
+        toast.error(err.message || "Failed to load Extra Work");
       } finally {
         setIsLoading(false);
       }
     };
 
     fetchDetail();
-  }, [saleOrderId, mode]);
+  }, [extraWorkId, mode]);
 
   // ── EDIT / CANCEL ─────────────────────────────────────────────────────────────
   const handleEdit = () => {
@@ -228,12 +228,12 @@ export default function OGSaleOrderForm({ mode = "create", saleOrderId, onAfterS
     const fd = new FormData();
 
     if (mode === "create") fd.append("projectCode", projectCode);
-    fd.append("ogSaleOrderDate", v.ogSaleOrderDate || "");
-    fd.append("prefix",         v.prefix          || "");
-    fd.append("suffix",         v.suffix          || "");
-    fd.append("orderNo",        v.orderNo         || "");
-    fd.append("orderValidity",  v.orderValidity   || "");
-    fd.append("orderTitle",     v.orderTitle      || "");
+    fd.append("extraWorkDate",  v.extraWorkDate  || "");
+    fd.append("prefix",         v.prefix         || "");
+    fd.append("suffix",         v.suffix         || "");
+    fd.append("orderNo",        v.orderNo        || "");
+    fd.append("orderValidity",  v.orderValidity  || "");
+    fd.append("orderTitle",     v.orderTitle     || "");
 
     fd.append(
       "items",
@@ -265,13 +265,13 @@ export default function OGSaleOrderForm({ mode = "create", saleOrderId, onAfterS
       tid = toast.loading(mode === "create" ? "Creating…" : "Saving…");
       const res = await apiRequest({
         url:    mode === "create"
-          ? API_ENDPOINTS.PROJECT.OG_SALE_ORDER.CREATE
-          : `${API_ENDPOINTS.PROJECT.OG_SALE_ORDER.UPDATE}${saleOrderId}/edit`,
+          ? API_ENDPOINTS.PROJECT.EXTRA_WORK.CREATE
+          : `${API_ENDPOINTS.PROJECT.EXTRA_WORK.UPDATE}${extraWorkId}/edit`,
         method: mode === "create" ? "POST" : "PUT",
         data:   buildPayload(),
       });
 
-      if (res?.data?.ogSaleOrderNo) setValue("ogSaleOrderNo", res.data.ogSaleOrderNo);
+      if (res?.data?.extraWorkNo) setValue("extraWorkNo", res.data.extraWorkNo);
 
       const urls = {
         att1: res.data?.attachment_1 || existingUrls.att1,
@@ -287,13 +287,13 @@ export default function OGSaleOrderForm({ mode = "create", saleOrderId, onAfterS
       setAllowSubmit(true);
 
       toast.success(
-        mode === "create" ? "Sale Order created successfully" : "Sale Order updated successfully",
+        mode === "create" ? "Extra Work created successfully" : "Extra Work updated successfully",
         { id: tid },
       );
 
       if (mode === "create") {
         const newId = res.data?.id;
-        if (newId) setTimeout(() => router.push(`/project-management/order-boq/${newId}`), 400);
+        if (newId) setTimeout(() => router.push(`/project-management/contacts/extra-work/${newId}`), 400);
       }
     } catch (err) {
       toast.error(err.message || "Failed to save", { id: tid });
@@ -302,15 +302,15 @@ export default function OGSaleOrderForm({ mode = "create", saleOrderId, onAfterS
 
   // ── SUBMIT FOR APPROVAL ───────────────────────────────────────────────────────
   const onSubmitForApproval = async () => {
-    if (!saleOrderId) { toast.error("Please save first"); return; }
+    if (!extraWorkId) { toast.error("Please save first"); return; }
     let tid;
     try {
       tid = toast.loading("Submitting for approval…");
       await apiRequest({
-        url:    `${API_ENDPOINTS.PROJECT.OG_SALE_ORDER.SUBMIT}${saleOrderId}/submit`,
+        url:    `${API_ENDPOINTS.PROJECT.EXTRA_WORK.SUBMIT}${extraWorkId}/submit`,
         method: "POST",
       });
-      toast.success("Sale Order submitted for approval", { id: tid });
+      toast.success("Extra Work submitted for approval", { id: tid });
       setIsSubmitted(true);
       setIsEditing(false);
       setAllowSubmit(false);
@@ -349,7 +349,7 @@ export default function OGSaleOrderForm({ mode = "create", saleOrderId, onAfterS
           <div className="w-full md:w-[385px] shrink-0 space-y-2">
 
             {/* ORDER DETAILS SECTION */}
-            <PMSection title="Order Details:">
+            <PMSection title="Extra Work Details:">
 
               {/* Order No: [prefix] [auto-no] [suffix] */}
               <PMFormRow label="Order No" labelWidth="sm:w-[130px] sm:min-w-[130px]">
@@ -363,7 +363,7 @@ export default function OGSaleOrderForm({ mode = "create", saleOrderId, onAfterS
                   />
                   {/* Middle: auto-generated number, always disabled */}
                   <PMInput
-                    {...register("ogSaleOrderNo")}
+                    {...register("extraWorkNo")}
                     disabled
                     placeholder="[Auto]"
                     expandable={false}
@@ -379,11 +379,11 @@ export default function OGSaleOrderForm({ mode = "create", saleOrderId, onAfterS
                 </div>
               </PMFormRow>
 
-              <PMFormRow label="Order Date" required={!disabled} labelWidth="sm:w-[130px] sm:min-w-[130px]">
+              <PMFormRow label="Date" required={!disabled} labelWidth="sm:w-[130px] sm:min-w-[130px]">
                 <PMDateInput
-                  {...register("ogSaleOrderDate")}
+                  {...register("extraWorkDate")}
                   disabled={disabled}
-                  hasError={errors.ogSaleOrderDate}
+                  hasError={errors.extraWorkDate}
                   className="max-w-[200px]"
                 />
               </PMFormRow>
@@ -540,7 +540,7 @@ export default function OGSaleOrderForm({ mode = "create", saleOrderId, onAfterS
                           {index + 1}
                         </td>
 
-                        {/* ITEM CODE — auto-populated from item selection, always disabled */}
+                        {/* ITEM CODE — auto-populated, always disabled */}
                         <td className="border border-[#ccc] p-0 align-middle">
                           <input
                             {...register(`items.${index}.itemDisplayCode`)}
@@ -569,7 +569,7 @@ export default function OGSaleOrderForm({ mode = "create", saleOrderId, onAfterS
                             searchKeys={["itemName", "itemCode"]}
                             className="rounded-none"
                           />
-                          {/* Bottom: Description — smaller, editable */}
+                          {/* Bottom: Description — smaller */}
                           <input
                             {...register(`items.${index}.itemDescription`)}
                             disabled={disabled}
@@ -582,7 +582,7 @@ export default function OGSaleOrderForm({ mode = "create", saleOrderId, onAfterS
                           />
                         </td>
 
-                        {/* UNIT — auto-filled from item, disabled */}
+                        {/* UNIT — auto-filled, disabled */}
                         <td className="border border-[#ccc] p-0 align-middle">
                           <input
                             {...register(`items.${index}.unit`)}
@@ -697,7 +697,7 @@ export default function OGSaleOrderForm({ mode = "create", saleOrderId, onAfterS
                   loading={isSubmitting}
                   disabled={isSubmitting}
                   requireConfirmation
-                  confirmationTitle="Save Sale Order as Draft?"
+                  confirmationTitle="Save Extra Work as Draft?"
                   confirmationMessage="This entry will be saved as a draft and can be edited or submitted later."
                 >
                   Save as Draft
@@ -709,7 +709,7 @@ export default function OGSaleOrderForm({ mode = "create", saleOrderId, onAfterS
                 loading={isSubmitting}
                 disabled={!allowSubmit || isEditing || isSubmitted || isSubmitting || mode === "create"}
                 requireConfirmation
-                confirmationTitle="Submit Sale Order?"
+                confirmationTitle="Submit Extra Work?"
                 confirmationMessage="Once submitted, this entry will be sent for approval."
               >
                 Submit

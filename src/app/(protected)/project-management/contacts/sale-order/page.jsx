@@ -131,23 +131,15 @@ export default function Page() {
           showDateRange
           actions={
             access.canAdd
-              ? [
-                  {
-                    label: "+ New Sale Order",
-                    onClick: () => router.push("/project-management/order-boq/new"),
-                  },
-                ]
+              ? [{ label: "+ New Sale Order", onClick: () => router.push("/project-management/contacts/sale-order/new") }]
               : []
           }
         />
-
         <DataTable
           columns={columns}
           data={filteredData}
           onRowClick={(row) => {
-            if (access.canOpenDetails) {
-              router.push(`/project-management/order-boq/${row.id}`);
-            }
+            if (access.canOpenDetails) router.push(`/project-management/contacts/sale-order/${row.id}`);
           }}
         />
       </div>

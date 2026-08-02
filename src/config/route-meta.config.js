@@ -434,18 +434,31 @@ export const routeMetaConfig = [
     basePath: "/resource-management/contact-dairy/plant-machinery/[id]",
     breadcrumbs: ["Resource Management", "Contact Dairy","Plant & Machinery","Edit"],
   },
-  //og sale order (Sale Order under project-management/order-boq)
+  // Sale Order
   {
-    basePath: "/project-management/order-boq",
+    basePath: "/project-management/contacts/sale-order",
     breadcrumbs: ["Project Management", "Contacts", "Sale Order", "List"],
   },
   {
-    basePath: "/project-management/order-boq/new",
+    basePath: "/project-management/contacts/sale-order/new",
     breadcrumbs: ["Project Management", "Contacts", "Sale Order", "New"],
   },
   {
-    basePath: "/project-management/order-boq/[id]",
+    basePath: "/project-management/contacts/sale-order/[id]",
     breadcrumbs: ["Project Management", "Contacts", "Sale Order", "Details"],
+  },
+  // Extra Work
+  {
+    basePath: "/project-management/contacts/extra-work",
+    breadcrumbs: ["Project Management", "Contacts", "Extra Work", "List"],
+  },
+  {
+    basePath: "/project-management/contacts/extra-work/new",
+    breadcrumbs: ["Project Management", "Contacts", "Extra Work", "New"],
+  },
+  {
+    basePath: "/project-management/contacts/extra-work/[id]",
+    breadcrumbs: ["Project Management", "Contacts", "Extra Work", "Details"],
   },
   //project management
   {

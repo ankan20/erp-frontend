@@ -277,17 +277,17 @@ export const sidebarConfig = [
         children: [
           {
             title: "Sale Order",
-            path: "/project-management/order-boq",
+            path: "/project-management/contacts/sale-order",
             permissionKey: "sale_order",
           },
           {
             title: "Budget Master",
-            path: "/project-management/budget",
+            path: "/project-management/contacts/budget",
             permissionKey: "budget_master",
           },
           {
             title: "Extra Work",
-            path: "/project-management/extra-work",
+            path: "/project-management/contacts/extra-work",
             permissionKey: "extra_work",
           },
         ],

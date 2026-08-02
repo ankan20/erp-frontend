@@ -338,6 +338,19 @@ export const API_ENDPOINTS = {
       MY_APPROVAL_STATUS: "/project-mgmt/og-sale-order/",            // /:id/my-approval-status GET
       GET_BY_UUID:        "/project-mgmt/og-sale-order/uuid/",       // /:uuid GET no-auth
     },
+    EXTRA_WORK: {
+      LIST:               "/project-mgmt/extra-work/",               // GET ?projectCode&workflowStatus&search
+      CREATE:             "/project-mgmt/extra-work/create",         // POST multipart/form-data
+      GET_BY_ID:          "/project-mgmt/extra-work/",               // /:id GET
+      UPDATE:             "/project-mgmt/extra-work/",               // /:id/edit PUT multipart/form-data
+      SUBMIT:             "/project-mgmt/extra-work/",               // /:id/submit POST
+      APPROVE:            "/project-mgmt/extra-work/",               // /:id/approve POST
+      REBACK:             "/project-mgmt/extra-work/",               // /:id/reback POST
+      REJECT:             "/project-mgmt/extra-work/",               // /:id/reject POST
+      HISTORY:            "/project-mgmt/extra-work/",               // /:id/history GET
+      MY_APPROVAL_STATUS: "/project-mgmt/extra-work/",               // /:id/my-approval-status GET
+      GET_BY_UUID:        "/project-mgmt/extra-work/uuid/",          // /:uuid GET no-auth
+    },
     REGISTER: {
       CONCRETE: {
         CREATE: "/project-mgmt/register/concrete-registry/create", //post
