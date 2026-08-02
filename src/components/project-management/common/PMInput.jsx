@@ -100,7 +100,7 @@ const PMInput = forwardRef(function PMInput(
             ? "border-red-400 bg-red-50 text-red-900 placeholder:text-red-300"
             : disabled
             ? cn("border-transparent text-gray-500", PM.disabledBg)
-            : cn("border-transparent bg-transparent", PM.focusBorder),
+            : cn("border-transparent bg-transparent focus:bg-white", PM.focusBorder),
         )}
         {...props}
       />
