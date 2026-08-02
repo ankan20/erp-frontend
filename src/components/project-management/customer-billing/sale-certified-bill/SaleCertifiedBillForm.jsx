@@ -25,7 +25,7 @@ import { API_ENDPOINTS }   from "@/config/api.config";
 import { getLocalStorage } from "@/lib/localStorage";
 import { getInputClass }   from "@/lib/formStyles";
 
-const BILL_MODE = "certified_bill";
+const BILL_MODE = "sale_certified_bill";
 
 // ── SCHEMA ────────────────────────────────────────────────────────────────────
 const itemSchema = z.object({
