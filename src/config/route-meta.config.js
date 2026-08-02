@@ -434,18 +434,31 @@ export const routeMetaConfig = [
     basePath: "/resource-management/contact-dairy/plant-machinery/[id]",
     breadcrumbs: ["Resource Management", "Contact Dairy","Plant & Machinery","Edit"],
   },
+  // Sale Certified Bill
+  {
+    basePath: "/project-management/customer-billing/sale-bill-certified",
+    breadcrumbs: ["Project Management", "Customer Billing", "Sale Bill-Certified", "List"],
+  },
+  {
+    basePath: "/project-management/customer-billing/sale-bill-certified/new",
+    breadcrumbs: ["Project Management", "Customer Billing", "Sale Bill-Certified", "New"],
+  },
+  {
+    basePath: "/project-management/customer-billing/sale-bill-certified/[id]",
+    breadcrumbs: ["Project Management", "Customer Billing", "Sale Bill-Certified", "Details"],
+  },
   // Sale Claim Bill
   {
     basePath: "/project-management/customer-billing/sale-bill-claim",
-    breadcrumbs: ["Project Management", "Customer Billing", "Sale Bill", "List"],
+    breadcrumbs: ["Project Management", "Customer Billing", "Sale Bill-Claim", "List"],
   },
   {
     basePath: "/project-management/customer-billing/sale-bill-claim/new",
-    breadcrumbs: ["Project Management", "Customer Billing", "Sale Bill", "New"],
+    breadcrumbs: ["Project Management", "Customer Billing", "Sale Bill-Claim", "New"],
   },
   {
     basePath: "/project-management/customer-billing/sale-bill-claim/[id]",
-    breadcrumbs: ["Project Management", "Customer Billing", "Sale Bill", "Details"],
+    breadcrumbs: ["Project Management", "Customer Billing", "Sale Bill-Claim", "Details"],
   },
   // Sale Order
   {

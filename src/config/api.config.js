@@ -363,6 +363,18 @@ export const API_ENDPOINTS = {
       MY_APPROVAL_STATUS: "/project-mgmt/extra-work/",               // /:id/my-approval-status GET
       GET_BY_UUID:        "/project-mgmt/extra-work/uuid/",          // /:uuid GET no-auth
     },
+    SALE_CERTIFIED_BILL: {
+      LIST:               "/project-mgmt/sale-certified-bill/",      // GET ?projectCode&workflowStatus&search
+      CREATE:             "/project-mgmt/sale-certified-bill/create", // POST multipart/form-data
+      GET_BY_ID:          "/project-mgmt/sale-certified-bill/",      // /:id GET
+      UPDATE:             "/project-mgmt/sale-certified-bill/",      // /:id/edit PUT multipart/form-data
+      SUBMIT:             "/project-mgmt/sale-certified-bill/",      // /:id/submit POST
+      APPROVE:            "/project-mgmt/sale-certified-bill/",      // /:id/approve POST
+      REBACK:             "/project-mgmt/sale-certified-bill/",      // /:id/reback POST
+      REJECT:             "/project-mgmt/sale-certified-bill/",      // /:id/reject POST
+      HISTORY:            "/project-mgmt/sale-certified-bill/",      // /:id/history GET
+      MY_APPROVAL_STATUS: "/project-mgmt/sale-certified-bill/",      // /:id/my-approval-status GET
+    },
     REGISTER: {
       CONCRETE: {
         CREATE: "/project-mgmt/register/concrete-registry/create", //post
