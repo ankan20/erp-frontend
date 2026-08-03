@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useRef, useEffect, useCallback } from "react";
+import { createPortal } from "react-dom";
 import {
   ArrowUp, ArrowDown, ArrowUpDown, ChevronDown, ChevronRight, Search, Plug,
 } from "lucide-react";
@@ -216,7 +217,7 @@ function ChildTable({ billings, onChildRowClick, search, orderCategory }) {
   });
 
   const renderFilterDropdown = () => {
-    if (!activeFilterCol) return null;
+    if (!activeFilterCol || typeof document === "undefined") return null;
     const unique = getUniqueValues(activeFilterCol);
     const selected = filterConfig[activeFilterCol] || [];
     const visible = filterSearch.trim()
@@ -224,14 +225,14 @@ function ChildTable({ billings, onChildRowClick, search, orderCategory }) {
       : unique;
     const allChecked = selected.length === 0 || selected.length === unique.length;
     const someChecked = selected.length > 0 && selected.length < unique.length;
-    return (
+    return createPortal(
       <div
         ref={dropdownRef}
         style={{ position: "fixed", top: dropdownPos.top, left: dropdownPos.left, zIndex: 9999 }}
         className="w-[200px] bg-white border border-gray-200 rounded-lg shadow-xl overflow-hidden select-none"
         onMouseDown={(e) => e.stopPropagation()}
       >
-        <div className="px-2 py-2 border-b">
+        <div className="px-2 py-2 border-b border-gray-100">
           <div className="relative">
             <Search size={12} className="absolute left-2 top-1/2 -translate-y-1/2 text-gray-400" />
             <input
@@ -243,7 +244,7 @@ function ChildTable({ billings, onChildRowClick, search, orderCategory }) {
         </div>
         <div
           onClick={() => toggleSelectAll(activeFilterCol)}
-          className="flex items-center gap-2 px-3 py-1.5 hover:bg-gray-50 cursor-pointer border-b"
+          className="flex items-center gap-2 px-3 py-1.5 hover:bg-gray-50 cursor-pointer border-b border-gray-100"
         >
           <input
             type="checkbox" readOnly checked={allChecked}
@@ -254,12 +255,14 @@ function ChildTable({ billings, onChildRowClick, search, orderCategory }) {
           {isFilterActive(activeFilterCol) && (
             <button
               onClick={(e) => { e.stopPropagation(); clearFilter(activeFilterCol); }}
-              className="ml-auto text-[10px] text-blue-500 hover:text-blue-700"
+              className="ml-auto text-[10px] text-blue-500 hover:text-blue-700 font-medium"
             >Clear</button>
           )}
         </div>
         <div className="max-h-[200px] overflow-y-auto">
-          {visible.map((val) => (
+          {visible.length === 0 ? (
+            <div className="px-3 py-3 text-xs text-gray-400 text-center">No results</div>
+          ) : visible.map((val) => (
             <div
               key={val} onClick={() => toggleFilterValue(activeFilterCol, val)}
               className="flex items-center gap-2 px-3 py-1.5 hover:bg-blue-50 cursor-pointer"
@@ -269,11 +272,12 @@ function ChildTable({ billings, onChildRowClick, search, orderCategory }) {
                 checked={selected.length === 0 ? false : selected.includes(val)}
                 className="cursor-pointer accent-blue-500 shrink-0"
               />
-              <span className="text-xs text-gray-700 whitespace-normal break-words">{val}</span>
+              <span className="text-xs text-gray-700 truncate">{val}</span>
             </div>
           ))}
         </div>
-      </div>
+      </div>,
+      document.body
     );
   };
 
