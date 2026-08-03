@@ -165,17 +165,23 @@ export default function Page() {
         />
 
         {/* Summary totals */}
-        <div className="flex flex-wrap gap-3 pt-1">
-          {[
-            ["Booked Amount", bookedAmt],
-            ["Paid Amount",   paidAmt],
-            ["Liability",     liability],
-          ].map(([label, val]) => (
-            <div key={label} className="flex items-center border border-gray-300 rounded-sm overflow-hidden text-[13px]">
-              <div className="px-4 py-1.5 bg-[#f0f4eb] font-semibold text-gray-800 border-r border-gray-300">{label}</div>
-              <div className="px-4 py-1.5 bg-[#eaf2f8] font-semibold text-right min-w-[120px]">{fmtNum(val)}</div>
-            </div>
-          ))}
+        <div className="pt-1 overflow-x-auto">
+          <div className="inline-block rounded-md overflow-hidden border border-gray-300">
+            <table className="text-[13px] border-separate border-spacing-0">
+              <tbody>
+                {[
+                  ["Booked Amount", bookedAmt],
+                  ["Paid Amount",   paidAmt],
+                  ["Liability",     liability],
+                ].map(([label, val]) => (
+                  <tr key={label} className="border-t border-gray-300 first:border-t-0">
+                    <td className="px-3 py-1.5 bg-[#e8eee4] font-semibold text-gray-800 border-r border-b border-gray-300 whitespace-nowrap min-w-[120px] sm:min-w-[160px]">{label}</td>
+                    <td className="px-3 py-1.5 bg-[#dce8f0] font-semibold text-right border-b border-gray-300 whitespace-nowrap last:border-b-0">{fmtNum(val)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </div>
       </div>
     </HeaderWrapper>
