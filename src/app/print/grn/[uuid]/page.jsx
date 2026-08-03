@@ -329,7 +329,7 @@ export default function GRNPrintPage() {
           {/* ── ITEMS TABLE ── */}
           <div className="px-6 py-3">
             <div className="overflow-x-auto">
-              <table className="w-full border-collapse" style={{ tableLayout: "fixed" }}>
+              <table className="w-full border-collapse" style={{ tableLayout: "auto" }}>
                 <colgroup>
                   <col style={{ width: "5%" }}  /><col style={{ width: "10%" }} /><col style={{ width: "25%" }} />
                   <col style={{ width: "6%" }}  /><col style={{ width: "7%" }}  /><col style={{ width: "7%" }} />
@@ -352,16 +352,16 @@ export default function GRNPrintPage() {
                 <tbody>
                   {items.map((item, idx) => (
                     <tr key={idx} className={COLOR.tableRowOdd} style={{ breakInside: "avoid" }}>
-                      <td className={`border ${COLOR.tableBorder} px-1 py-1.5 ${SIZE.tableCell} text-center`}>{idx + 1}</td>
-                      <td className={`border ${COLOR.tableBorder} px-1 py-1.5 ${SIZE.tableCell}`}>{item.itemCode || "-"}</td>
+                      <td className={`border ${COLOR.tableBorder} px-1 py-1.5 ${SIZE.tableCell} text-center`} style={{ whiteSpace: "nowrap" }}>{idx + 1}</td>
+                      <td className={`border ${COLOR.tableBorder} px-1 py-1.5 ${SIZE.tableCell}`} style={{ whiteSpace: "nowrap" }}>{item.itemCode || "-"}</td>
                       <td className={`border ${COLOR.tableBorder} px-1 py-1.5 ${SIZE.tableCell}`}>{item.itemName}</td>
-                      <td className={`border ${COLOR.tableBorder} px-1 py-1.5 ${SIZE.tableCell} text-center`}>{item.unit}</td>
-                      <td className={`border ${COLOR.tableBorder} px-1 py-1.5 ${SIZE.tableCell} text-center`}>{item.currentReceivedQty}</td>
-                      <td className={`border ${COLOR.tableBorder} px-1 py-1.5 ${SIZE.tableCell} text-right`}><FmtNum value={item.rate} /></td>
-                      <td className={`border ${COLOR.tableBorder} px-1 py-1.5 ${SIZE.tableCell} text-right`}><FmtNum value={item.basicAmount} /></td>
-                      <td className={`border ${COLOR.tableBorder} px-1 py-1.5 ${SIZE.tableCell} text-center`}>{item.gstPercent != null ? `${item.gstPercent}%` : "-"}</td>
-                      <td className={`border ${COLOR.tableBorder} px-1 py-1.5 ${SIZE.tableCell} text-right`}><FmtNum value={item.gstAmount} /></td>
-                      <td className={`border ${COLOR.tableBorder} px-1 py-1.5 ${SIZE.tableCell} text-right`}><FmtNum value={item.lineTotal} /></td>
+                      <td className={`border ${COLOR.tableBorder} px-1 py-1.5 ${SIZE.tableCell} text-center`} style={{ whiteSpace: "nowrap" }}>{item.unit}</td>
+                      <td className={`border ${COLOR.tableBorder} px-1 py-1.5 ${SIZE.tableCell} text-center`} style={{ whiteSpace: "nowrap" }}>{item.currentReceivedQty}</td>
+                      <td className={`border ${COLOR.tableBorder} px-1 py-1.5 ${SIZE.tableCell} text-right`} style={{ whiteSpace: "nowrap" }}><FmtNum value={item.rate} /></td>
+                      <td className={`border ${COLOR.tableBorder} px-1 py-1.5 ${SIZE.tableCell} text-right`} style={{ whiteSpace: "nowrap" }}><FmtNum value={item.basicAmount} /></td>
+                      <td className={`border ${COLOR.tableBorder} px-1 py-1.5 ${SIZE.tableCell} text-center`} style={{ whiteSpace: "nowrap" }}>{item.gstPercent != null ? `${item.gstPercent}%` : "-"}</td>
+                      <td className={`border ${COLOR.tableBorder} px-1 py-1.5 ${SIZE.tableCell} text-right`} style={{ whiteSpace: "nowrap" }}><FmtNum value={item.gstAmount} /></td>
+                      <td className={`border ${COLOR.tableBorder} px-1 py-1.5 ${SIZE.tableCell} text-right`} style={{ whiteSpace: "nowrap" }}><FmtNum value={item.lineTotal} /></td>
                       <td className={`border ${COLOR.tableBorder} px-1 py-1.5 ${SIZE.tableCell}`}>{item.storeLocation || ""}</td>
                     </tr>
                   ))}

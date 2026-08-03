@@ -421,7 +421,7 @@ export default function IndentPrintPage() {
           {/* ── ITEMS TABLE ────────────────────────────────── */}
           <div className="px-6 py-3">
             <div className="overflow-x-auto">
-              <table className="w-full border-collapse" style={{ tableLayout: "fixed" }}>
+              <table className="w-full border-collapse" style={{ tableLayout: "auto" }}>
                 <thead>
                   <tr className={COLOR.tableHeadBg}>
                     {[
@@ -445,14 +445,14 @@ export default function IndentPrintPage() {
                 <tbody>
                   {items.map((item, idx) => (
                     <tr key={idx} className={COLOR.tableRowOdd} style={{ breakInside: "avoid" }}>
-                      <td className={`border ${COLOR.tableBorder} px-2 py-2 ${SIZE.tableCell} text-center`}>{idx + 1}</td>
-                      <td className={`border ${COLOR.tableBorder} px-2 py-2 ${SIZE.tableCell}`}>{item.itemCode}</td>
+                      <td className={`border ${COLOR.tableBorder} px-2 py-2 ${SIZE.tableCell} text-center`} style={{ whiteSpace: "nowrap" }}>{idx + 1}</td>
+                      <td className={`border ${COLOR.tableBorder} px-2 py-2 ${SIZE.tableCell}`} style={{ whiteSpace: "nowrap" }}>{item.itemCode}</td>
                       <td className={`border ${COLOR.tableBorder} px-2 py-2`}>
                         <p className={ITEM_NAME}>{item.itemName}</p>
                         {item.note && <p className={ITEM_SUB}>{item.note}</p>}
                       </td>
-                      <td className={`border ${COLOR.tableBorder} px-2 py-2 ${SIZE.tableCell} text-center`}>{item.unit}</td>
-                      <td className={`border ${COLOR.tableBorder} px-2 py-2 ${SIZE.tableCell} text-center`}>{item.totalQty}</td>
+                      <td className={`border ${COLOR.tableBorder} px-2 py-2 ${SIZE.tableCell} text-center`} style={{ whiteSpace: "nowrap" }}>{item.unit}</td>
+                      <td className={`border ${COLOR.tableBorder} px-2 py-2 ${SIZE.tableCell} text-center`} style={{ whiteSpace: "nowrap" }}>{item.totalQty}</td>
                       <td className={`border ${COLOR.tableBorder} px-2 py-2 ${SIZE.tableCell}`}>{item.location || ""}</td>
                     </tr>
                   ))}

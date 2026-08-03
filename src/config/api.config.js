@@ -437,6 +437,23 @@ export const API_ENDPOINTS = {
       },
     },
   },
+  FINANCE: {
+    SALE_BILL: {
+      CERTIFIED_BILLS:      "/finance/sale-bill/certified-bills",        // GET ?ogSaleOrderNo&projectCode
+      CERTIFIED_BILL_ITEMS: "/finance/sale-bill/certified-bill-items",   // GET ?certifiedBillId&projectCode
+      CREATE:               "/finance/sale-bill/create",                  // POST JSON
+      LIST:                 "/finance/sale-bill/list",                    // GET ?projectCode&mode&workflowStatus&search
+      GET_BY_ID:            "/finance/sale-bill/",                        // /:id GET
+      EDIT:                 "/finance/sale-bill/edit/",                   // /:id PUT JSON
+      SUBMIT:               "/finance/sale-bill/submit/",                 // /:id POST
+      APPROVE:              "/finance/sale-bill/approve/",                // /:id POST
+      REBACK:               "/finance/sale-bill/reback/",                 // /:id POST
+      REJECT:               "/finance/sale-bill/reject/",                 // /:id POST
+      HISTORY:              "/finance/sale-bill/history/",                // /:id GET
+      MY_APPROVAL_STATUS:   "/finance/sale-bill/my-approval-status/",     // /:id GET
+      GET_BY_UUID:          "/finance/sale-bill/uuid/",                   // /:uuid GET no-auth
+    },
+  },
 };
 
 export default API_BASE_URL;

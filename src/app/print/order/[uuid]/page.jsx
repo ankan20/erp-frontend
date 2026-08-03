@@ -452,11 +452,11 @@ export default function OrderPrintPage() {
                   {/* ── ITEMS TABLE ────────────────────────── */}
                   <div className="px-6 pb-0">
                     <div className="overflow-x-auto">
-                      <table className="w-full border-collapse" style={{ tableLayout: "fixed" }}>
+                      <table className="w-full border-collapse" style={{ tableLayout: "auto" }}>
                         <colgroup>
-                          <col style={{ width: "5%" }}  /><col style={{ width: "27%" }} /><col style={{ width: "9%" }} />
-                          <col style={{ width: "6%" }}  /><col style={{ width: "7%" }}  /><col style={{ width: "10%" }} />
-                          <col style={{ width: "10%" }} /><col style={{ width: "7%" }}  /><col style={{ width: "10%" }} />
+                          <col style={{ width: "4%" }}  /><col style={{ width: "26%" }} /><col style={{ width: "8%" }} />
+                          <col style={{ width: "8%" }}  /><col style={{ width: "6%" }}  /><col style={{ width: "11%" }} />
+                          <col style={{ width: "11%" }} /><col style={{ width: "6%" }}  /><col style={{ width: "11%" }} />
                           <col style={{ width: "9%" }} />
                         </colgroup>
                         <thead>
@@ -490,14 +490,14 @@ export default function OrderPrintPage() {
                                 {item.customNote && <p className={ITEM_SUB}>{item.customNote}</p>}
                                 {item.itemCode && <p className={ITEM_SUB}><span className={WEIGHT.medium}>Item Code</span> : {item.itemCode}</p>}
                               </td>
-                              <td className={`border ${COLOR.tableBorder} px-1 py-1.5 ${SIZE.tableCell} text-center`}>{item.hsnSac || "-"}</td>
-                              <td className={`border ${COLOR.tableBorder} px-1 py-1.5 ${SIZE.tableCell} text-center`}>{item.unit || "-"}</td>
-                              <td className={`border ${COLOR.tableBorder} px-1 py-1.5 ${SIZE.tableCell} text-center`}>{item.qty ?? "-"}</td>
-                              <td className={`border ${COLOR.tableBorder} px-1 py-1.5 ${SIZE.tableCell} text-right`}><FmtNum value={item.rate} /></td>
-                              <td className={`border ${COLOR.tableBorder} px-1 py-1.5 ${SIZE.tableCell} text-right`}><FmtNum value={item.basicAmount} /></td>
-                              <td className={`border ${COLOR.tableBorder} px-1 py-1.5 ${SIZE.tableCell} text-center`}>{item.gstPercent != null && Number(item.gstPercent) !== 0 ? `${item.gstPercent}%` : "-"}</td>
-                              <td className={`border ${COLOR.tableBorder} px-1 py-1.5 ${SIZE.tableCell} text-right`}>{!item.gstAmount || Number(item.gstAmount) === 0 ? "-" : <FmtNum value={item.gstAmount} />}</td>
-                              <td className={`border ${COLOR.tableBorder} px-1 py-1.5 ${SIZE.tableCell} text-right`}><FmtNum value={item.lineTotal} /></td>
+                              <td className={`border ${COLOR.tableBorder} px-1 py-1.5 ${SIZE.tableCell} text-center`} style={{ whiteSpace: "nowrap" }}>{item.hsnSac || "-"}</td>
+                              <td className={`border ${COLOR.tableBorder} px-1 py-1.5 ${SIZE.tableCell} text-center`} style={{ whiteSpace: "nowrap" }}>{item.unit || "-"}</td>
+                              <td className={`border ${COLOR.tableBorder} px-1 py-1.5 ${SIZE.tableCell} text-center`} style={{ whiteSpace: "nowrap" }}>{item.qty ?? "-"}</td>
+                              <td className={`border ${COLOR.tableBorder} px-1 py-1.5 ${SIZE.tableCell} text-right`} style={{ whiteSpace: "nowrap" }}><FmtNum value={item.rate} /></td>
+                              <td className={`border ${COLOR.tableBorder} px-1 py-1.5 ${SIZE.tableCell} text-right`} style={{ whiteSpace: "nowrap" }}><FmtNum value={item.basicAmount} /></td>
+                              <td className={`border ${COLOR.tableBorder} px-1 py-1.5 ${SIZE.tableCell} text-center`} style={{ whiteSpace: "nowrap" }}>{item.gstPercent != null && Number(item.gstPercent) !== 0 ? `${item.gstPercent}%` : "-"}</td>
+                              <td className={`border ${COLOR.tableBorder} px-1 py-1.5 ${SIZE.tableCell} text-right`} style={{ whiteSpace: "nowrap" }}>{!item.gstAmount || Number(item.gstAmount) === 0 ? "-" : <FmtNum value={item.gstAmount} />}</td>
+                              <td className={`border ${COLOR.tableBorder} px-1 py-1.5 ${SIZE.tableCell} text-right`} style={{ whiteSpace: "nowrap" }}><FmtNum value={item.lineTotal} /></td>
                             </tr>
                           ))}
 

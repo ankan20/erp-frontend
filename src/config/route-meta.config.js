@@ -538,4 +538,17 @@ export const routeMetaConfig = [
     basePath: "/project-management/register/hindrance/[id]",
     breadcrumbs: ["Project Management", "Register", "Hindrance Register", "Edit"],
   },
+  // Finance Management — Sale Bill
+  {
+    basePath: "/finance-management/account/sale",
+    breadcrumbs: ["Finance Management", "Accounts", "Sale Invoice", "List"],
+  },
+  {
+    basePath: "/finance-management/account/sale/new",
+    breadcrumbs: ["Finance Management", "Accounts", "Sale Invoice", "New"],
+  },
+  {
+    basePath: "/finance-management/account/sale/[id]",
+    breadcrumbs: ["Finance Management", "Accounts", "Sale Invoice", "Details"],
+  },
 ];

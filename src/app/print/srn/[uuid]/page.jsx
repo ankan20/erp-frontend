@@ -294,7 +294,7 @@ export default function SRNPrintPage() {
           {/* ── ITEMS TABLE ── */}
           <div className="px-6 py-3">
             <div className="overflow-x-auto">
-              <table className="w-full border-collapse" style={{ tableLayout: "fixed" }}>
+              <table className="w-full border-collapse" style={{ tableLayout: "auto" }}>
                 <colgroup>
                   <col style={{ width: "6%" }}  /><col style={{ width: "33%" }} /><col style={{ width: "8%" }} />
                   <col style={{ width: "8%" }}  /><col style={{ width: "10%" }} /><col style={{ width: "10%" }} />
@@ -316,13 +316,13 @@ export default function SRNPrintPage() {
                 <tbody>
                   {items.map((item, idx) => (
                     <tr key={idx} className={COLOR.tableRowOdd} style={{ breakInside: "avoid" }}>
-                      <td className={`border ${COLOR.tableBorder} px-2 py-2 ${SIZE.tableCell} text-center`}>{idx + 1}</td>
+                      <td className={`border ${COLOR.tableBorder} px-2 py-2 ${SIZE.tableCell} text-center`} style={{ whiteSpace: "nowrap" }}>{idx + 1}</td>
                       <td className={`border ${COLOR.tableBorder} px-2 py-2 ${SIZE.tableCell}`}>{item.itemName}</td>
-                      <td className={`border ${COLOR.tableBorder} px-2 py-2 ${SIZE.tableCell} text-center`}>{item.unit}</td>
-                      <td className={`border ${COLOR.tableBorder} px-2 py-2 ${SIZE.tableCell} text-center`}>{item.orderQty}</td>
-                      <td className={`border ${COLOR.tableBorder} px-2 py-2 ${SIZE.tableCell} text-center`}>{item.preReceivedQty}</td>
-                      <td className={`border ${COLOR.tableBorder} px-2 py-2 ${SIZE.tableCell} text-center`}>{item.currentReceivedQty}</td>
-                      <td className={`border ${COLOR.tableBorder} px-2 py-2 ${SIZE.tableCell} text-center`}>{(item.preReceivedQty || 0) + (item.currentReceivedQty || 0)}</td>
+                      <td className={`border ${COLOR.tableBorder} px-2 py-2 ${SIZE.tableCell} text-center`} style={{ whiteSpace: "nowrap" }}>{item.unit}</td>
+                      <td className={`border ${COLOR.tableBorder} px-2 py-2 ${SIZE.tableCell} text-center`} style={{ whiteSpace: "nowrap" }}>{item.orderQty}</td>
+                      <td className={`border ${COLOR.tableBorder} px-2 py-2 ${SIZE.tableCell} text-center`} style={{ whiteSpace: "nowrap" }}>{item.preReceivedQty}</td>
+                      <td className={`border ${COLOR.tableBorder} px-2 py-2 ${SIZE.tableCell} text-center`} style={{ whiteSpace: "nowrap" }}>{item.currentReceivedQty}</td>
+                      <td className={`border ${COLOR.tableBorder} px-2 py-2 ${SIZE.tableCell} text-center`} style={{ whiteSpace: "nowrap" }}>{(item.preReceivedQty || 0) + (item.currentReceivedQty || 0)}</td>
                       <td className={`border ${COLOR.tableBorder} px-2 py-2 ${SIZE.tableCell}`}>{item.useLocation || ""}</td>
                     </tr>
                   ))}

@@ -296,7 +296,7 @@ export default function GINPrintPage() {
           {/* ── ITEMS TABLE ── */}
           <div className="px-6 py-3">
             <div className="overflow-x-auto">
-              <table className="w-full border-collapse" style={{ tableLayout: "fixed" }}>
+              <table className="w-full border-collapse" style={{ tableLayout: "auto" }}>
                 <colgroup>
                   <col style={{ width: "6%" }} /><col style={{ width: "12%" }} /><col style={{ width: "40%" }} />
                   <col style={{ width: "10%" }} /><col style={{ width: "12%" }} /><col style={{ width: "20%" }} />
@@ -317,11 +317,11 @@ export default function GINPrintPage() {
                 <tbody>
                   {items.map((item, idx) => (
                     <tr key={idx} className={COLOR.tableRowOdd} style={{ breakInside: "avoid" }}>
-                      <td className={`border ${COLOR.tableBorder} px-2 py-2 ${SIZE.tableCell} text-center`}>{idx + 1}</td>
-                      <td className={`border ${COLOR.tableBorder} px-2 py-2 ${SIZE.tableCell}`}>{item.ginl || "-"}</td>
+                      <td className={`border ${COLOR.tableBorder} px-2 py-2 ${SIZE.tableCell} text-center`} style={{ whiteSpace: "nowrap" }}>{idx + 1}</td>
+                      <td className={`border ${COLOR.tableBorder} px-2 py-2 ${SIZE.tableCell}`} style={{ whiteSpace: "nowrap" }}>{item.ginl || "-"}</td>
                       <td className={`border ${COLOR.tableBorder} px-2 py-2 ${SIZE.tableCell}`}>{item.itemName}</td>
-                      <td className={`border ${COLOR.tableBorder} px-2 py-2 ${SIZE.tableCell} text-center`}>{item.unit}</td>
-                      <td className={`border ${COLOR.tableBorder} px-2 py-2 ${SIZE.tableCell} text-center`}>{item.issueQty}</td>
+                      <td className={`border ${COLOR.tableBorder} px-2 py-2 ${SIZE.tableCell} text-center`} style={{ whiteSpace: "nowrap" }}>{item.unit}</td>
+                      <td className={`border ${COLOR.tableBorder} px-2 py-2 ${SIZE.tableCell} text-center`} style={{ whiteSpace: "nowrap" }}>{item.issueQty}</td>
                       <td className={`border ${COLOR.tableBorder} px-2 py-2 ${SIZE.tableCell}`}>{item.itemUsedLocation || ""}</td>
                     </tr>
                   ))}
