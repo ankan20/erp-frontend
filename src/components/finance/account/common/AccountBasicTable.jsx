@@ -30,10 +30,10 @@ export default function AccountBasicTable({
         <span className={ACC.sectionTitle}>BASIC</span>
       </div>
 
-      {/* Table */}
-      <div className="overflow-x-auto">
+      {/* Table — scrollable after ~20 rows, header stays fixed */}
+      <div className="overflow-x-auto max-h-[600px] overflow-y-auto">
         <table className="w-full min-w-[420px] border-collapse text-[12px]">
-          <thead>
+          <thead className="sticky top-0 z-10">
             <tr className={ACC.tableHead}>
               <th className="border border-gray-300 px-2 py-1.5 text-center font-semibold w-[46px]">SL no</th>
               <th className="border border-gray-300 px-2 py-1.5 text-left  font-semibold w-[76px]">CC Code</th>

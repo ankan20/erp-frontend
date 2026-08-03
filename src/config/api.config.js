@@ -453,6 +453,35 @@ export const API_ENDPOINTS = {
       MY_APPROVAL_STATUS:   "/finance/sale-bill/my-approval-status/",     // /:id GET
       GET_BY_UUID:          "/finance/sale-bill/uuid/",                   // /:uuid GET no-auth
     },
+    PURCHASE_BILL: {
+      VENDOR_ORDERS: "/finance/purchase-bill/vendor-orders",             // GET ?vendorId&projectCode&orderType
+      BRR_LIST:      "/finance/purchase-bill/brr-list",                  // GET ?orderId&orderType&projectCode
+      BRR_ITEMS:     "/finance/purchase-bill/brr-items",                 // GET ?brrId&projectCode
+      CREATE:        "/finance/purchase-bill/create",                    // POST JSON
+      LIST:          "/finance/purchase-bill/list",                      // GET ?projectCode&mode&workflowStatus&vendorId&search
+      GET_BY_ID:     "/finance/purchase-bill/",                          // /:id GET
+      EDIT:          "/finance/purchase-bill/edit/",                     // /:id PUT JSON
+      SUBMIT:        "/finance/purchase-bill/submit/",                   // /:id POST
+      APPROVE:       "/finance/purchase-bill/approve/",                  // /:id POST
+      REBACK:        "/finance/purchase-bill/reback/",                   // /:id POST
+      REJECT:        "/finance/purchase-bill/reject/",                   // /:id POST
+      HISTORY:       "/finance/purchase-bill/history/",                  // /:id GET
+      MY_APPROVAL_STATUS: "/finance/purchase-bill/my-approval-status/",  // /:id GET
+      GET_BY_UUID:   "/finance/purchase-bill/uuid/",                     // /:uuid GET no-auth
+    },
+    PURCHASE_VOUCHER: {
+      CREATE:        "/finance/purchase-voucher/create",                 // POST JSON
+      LIST:          "/finance/purchase-voucher/list",                   // GET ?projectCode&vendorId&workflowStatus&search
+      GET_BY_ID:     "/finance/purchase-voucher/",                       // /:id GET
+      EDIT:          "/finance/purchase-voucher/edit/",                  // /:id PUT JSON
+      SUBMIT:        "/finance/purchase-voucher/submit/",                // /:id POST
+      APPROVE:       "/finance/purchase-voucher/approve/",               // /:id POST
+      REBACK:        "/finance/purchase-voucher/reback/",                // /:id POST
+      REJECT:        "/finance/purchase-voucher/reject/",                // /:id POST
+      HISTORY:       "/finance/purchase-voucher/history/",               // /:id GET
+      MY_APPROVAL_STATUS: "/finance/purchase-voucher/my-approval-status/", // /:id GET
+      GET_BY_UUID:   "/finance/purchase-voucher/uuid/",                  // /:uuid GET no-auth
+    },
   },
 };
 
