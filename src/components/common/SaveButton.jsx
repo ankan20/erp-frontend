@@ -20,6 +20,7 @@ export default function SaveButton({
   className = "",
   loading = false,
   disabled = true,
+  loadingText = "Saving...",
   requireConfirmation = false,
   confirmationTitle = "Are you sure?",
   confirmationMessage = "This action will continue the process.",
@@ -55,7 +56,7 @@ export default function SaveButton({
         <Loader2 className="h-4 w-4 animate-spin" />
       )}
 
-      {loading ? "Saving..." : children}
+      {loading ? loadingText : children}
     </button>
   );
 

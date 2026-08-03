@@ -44,7 +44,7 @@ export default function ExpandableTextCell({
     textareaRef.current.setSelectionRange(len, len);
   }, [open, disabled]);
 
-  const canOpen = isOverflowing || (!disabled && value);
+  const canOpen = isOverflowing || !disabled;
 
   return (
     <>
@@ -121,7 +121,10 @@ export default function ExpandableTextCell({
             </div>
 
             {/* Footer */}
-            <div className="flex justify-end px-4 pb-4">
+            <div className="flex items-center justify-between px-4 pb-4">
+              <span className="text-[11px] text-gray-400">
+                {value.trim() ? `${value.trim().split(/\s+/).filter(Boolean).length} words` : "0 words"}
+              </span>
               <button
                 type="button"
                 onClick={() => setOpen(false)}
