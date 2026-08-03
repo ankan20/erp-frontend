@@ -344,7 +344,7 @@ export default function SaleBillPrintPage() {
           {/* Name & Description split into 2×25% cols so extension rows start at the 50% mark */}
           <div className="px-6 pb-3">
             <div className="overflow-x-auto">
-              <table className="w-full border-collapse" style={{ tableLayout: "fixed", minWidth: 560 }}>
+              <table className="w-full border-collapse" style={{ tableLayout: "auto" }}>
                 <colgroup>
                   <col style={{ width: "5%" }} />   {/* 0: SL */}
                   <col style={{ width: "11%" }} />  {/* 1: CC Code */}
@@ -355,26 +355,26 @@ export default function SaleBillPrintPage() {
                 </colgroup>
                 <thead>
                   <tr className={COLOR.tableHeadBg}>
-                    <th className={`border ${COLOR.tableBorder} px-2 py-1.5 text-center ${SIZE.tableHead} ${WEIGHT.bold} text-gray-900`}>SL</th>
-                    <th className={`border ${COLOR.tableBorder} px-2 py-1.5 text-center ${SIZE.tableHead} ${WEIGHT.bold} text-gray-900`}>CC Code</th>
+                    <th className={`border ${COLOR.tableBorder} px-2 py-1.5 text-center ${SIZE.tableHead} ${WEIGHT.bold} text-gray-900`} style={{ whiteSpace: "nowrap" }}>SL</th>
+                    <th className={`border ${COLOR.tableBorder} px-2 py-1.5 text-center ${SIZE.tableHead} ${WEIGHT.bold} text-gray-900`} style={{ whiteSpace: "nowrap" }}>CC Code</th>
                     <th colSpan={2} className={`border ${COLOR.tableBorder} px-2 py-1.5 text-center ${SIZE.tableHead} ${WEIGHT.bold} text-gray-900`}>Name & Description</th>
-                    <th className={`border ${COLOR.tableBorder} px-2 py-1.5 text-center ${SIZE.tableHead} ${WEIGHT.bold} text-gray-900`}>HSN/SAC</th>
-                    <th className={`border ${COLOR.tableBorder} px-2 py-1.5 text-center ${SIZE.tableHead} ${WEIGHT.bold} text-gray-900`}>Amount (₹)</th>
+                    <th className={`border ${COLOR.tableBorder} px-2 py-1.5 text-center ${SIZE.tableHead} ${WEIGHT.bold} text-gray-900`} style={{ whiteSpace: "nowrap" }}>HSN/SAC</th>
+                    <th className={`border ${COLOR.tableBorder} px-2 py-1.5 text-center ${SIZE.tableHead} ${WEIGHT.bold} text-gray-900`} style={{ whiteSpace: "nowrap" }}>Amount (₹)</th>
                   </tr>
                 </thead>
                 <tbody>
                   {items.map((item, idx) => (
                     <tr key={idx} style={{ breakInside: "avoid" }}>
-                      <td className={`border ${COLOR.tableBorder} px-2 py-1.5 ${SIZE.tableCell} text-center`}>{idx + 1}</td>
-                      <td className={`border ${COLOR.tableBorder} px-2 py-1.5 ${SIZE.tableCell}`}>{item.ccCode}</td>
+                      <td className={`border ${COLOR.tableBorder} px-2 py-1.5 ${SIZE.tableCell} text-center`} style={{ whiteSpace: "nowrap" }}>{idx + 1}</td>
+                      <td className={`border ${COLOR.tableBorder} px-2 py-1.5 ${SIZE.tableCell}`} style={{ whiteSpace: "nowrap" }}>{item.ccCode}</td>
                       <td colSpan={2} className={`border ${COLOR.tableBorder} px-2 py-1.5`}>
                         <p className={`${SIZE.tableCell} ${WEIGHT.medium} text-gray-900`}>{item.ccName}</p>
                         {item.description && (
                           <p className="text-[11px] text-gray-500 mt-0.5">{item.description}</p>
                         )}
                       </td>
-                      <td className={`border ${COLOR.tableBorder} px-2 py-1.5 ${SIZE.tableCell} text-center`}>{item.hsnSac || "-"}</td>
-                      <td className={`border ${COLOR.tableBorder} px-2 py-1.5 ${SIZE.tableCell} text-right`}>
+                      <td className={`border ${COLOR.tableBorder} px-2 py-1.5 ${SIZE.tableCell} text-center`} style={{ whiteSpace: "nowrap" }}>{item.hsnSac || "-"}</td>
+                      <td className={`border ${COLOR.tableBorder} px-2 py-1.5 ${SIZE.tableCell} text-right`} style={{ whiteSpace: "nowrap" }}>
                         <FmtNum value={item.basicAmount} />
                       </td>
                     </tr>
@@ -400,7 +400,7 @@ export default function SaleBillPrintPage() {
                         className={`${SIZE.tableCell} text-left text-gray-700`}>
                         {label}
                       </td>
-                      <td style={{ borderLeft: "1px solid #b0b0b0", borderRight: "1px solid #b0b0b0", borderTop: "none", borderBottom: "none", padding: "2px 6px" }}
+                      <td style={{ borderLeft: "1px solid #b0b0b0", borderRight: "1px solid #b0b0b0", borderTop: "none", borderBottom: "none", padding: "2px 6px", whiteSpace: "nowrap" }}
                         className={`${SIZE.tableCell} text-right`}>
                         {val}
                       </td>
@@ -414,7 +414,7 @@ export default function SaleBillPrintPage() {
                       className={`${SIZE.tableCell} text-left`}>
                       Total Invoice Amount (Rs.)
                     </td>
-                    <td style={{ border: "1px solid #b0b0b0", padding: "4px 6px", fontWeight: 700, backgroundColor: "#d9d9d9" }}
+                    <td style={{ border: "1px solid #b0b0b0", padding: "4px 6px", fontWeight: 700, backgroundColor: "#d9d9d9", whiteSpace: "nowrap" }}
                       className={`${SIZE.tableCell} text-right`}>
                       <FmtNum value={totalInvoice} />
                     </td>

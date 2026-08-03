@@ -18,7 +18,7 @@ const fmtRoundOff = (val) => {
 
 const ROW   = "flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-1.5";
 const LABEL = `rounded-sm border border-gray-300 px-3 py-[7px] text-[13px] font-semibold sm:flex-1 ${ACC.summaryLabelBg}`;
-const VALUE = "rounded-sm border border-gray-300 px-3 py-[7px] text-[13px] text-right font-semibold sm:w-[180px] sm:shrink-0";
+const VALUE = "rounded-sm border border-gray-300 px-3 py-[7px] text-[13px] text-right font-semibold sm:w-[180px] sm:shrink-0 break-all";
 
 export default function AccountSummary({
   basicTotal   = 0,

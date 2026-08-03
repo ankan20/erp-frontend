@@ -521,11 +521,11 @@ export default function SaleBillForm({
                   valueKey="value"
                   searchKeys={["label"]}
                 />
-                {errors.mode && (
+                {/* {errors.mode && (
                   <p className="text-[11px] text-red-500 mt-0.5">
                     {errors.mode.message}
                   </p>
-                )}
+                )} */}
               </div>
             </PMFormRow>
           </PMSection>
@@ -556,11 +556,11 @@ export default function SaleBillForm({
                   hasError={errors.invoiceDate}
                   className="max-w-[200px]"
                 />
-                {errors.invoiceDate && (
+                {/* {errors.invoiceDate && (
                   <p className="text-[11px] text-red-500 mt-0.5">
                     {errors.invoiceDate.message}
                   </p>
-                )}
+                )} */}
               </div>
             </PMFormRow>
 
@@ -606,11 +606,11 @@ export default function SaleBillForm({
                   valueKey="ogSaleOrderNo"
                   searchKeys={["ogSaleOrderNo", "orderTitle", "displayLabel"]}
                 />
-                {errors.ogSaleOrderNo && (
+                {/* {errors.ogSaleOrderNo && (
                   <p className="text-[11px] text-red-500 mt-0.5">
                     {errors.ogSaleOrderNo.message}
                   </p>
-                )}
+                )} */}
               </div>
             </PMFormRow>
 
@@ -699,11 +699,11 @@ export default function SaleBillForm({
                   valueKey="id"
                   searchKeys={["billingNo"]}
                 />
-                {errors.certifiedBillId && (
+                {/* {errors.certifiedBillId && (
                   <p className="text-[11px] text-red-500 mt-0.5">
                     {errors.certifiedBillId.message}
                   </p>
-                )}
+                )} */}
               </div>
             </PMFormRow>
 
