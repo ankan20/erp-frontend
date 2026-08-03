@@ -551,6 +551,19 @@ export const routeMetaConfig = [
     basePath: "/finance-management/account/sale/[id]",
     breadcrumbs: ["Finance Management", "Accounts", "Sale Invoice", "Details"],
   },
+  // Finance Management — Sale Receipt
+  {
+    basePath: "/finance-management/account/receipt",
+    breadcrumbs: ["Finance Management", "Accounts", "Sale Receipt", "List"],
+  },
+  {
+    basePath: "/finance-management/account/receipt/new",
+    breadcrumbs: ["Finance Management", "Accounts", "Sale Receipt", "New"],
+  },
+  {
+    basePath: "/finance-management/account/receipt/[id]",
+    breadcrumbs: ["Finance Management", "Accounts", "Sale Receipt", "Details"],
+  },
   // Finance Management — Purchases
   {
     basePath: "/finance-management/account/purchases",

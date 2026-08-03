@@ -482,6 +482,21 @@ export const API_ENDPOINTS = {
       MY_APPROVAL_STATUS: "/finance/purchase-voucher/my-approval-status/", // /:id GET
       GET_BY_UUID:   "/finance/purchase-voucher/uuid/",                  // /:uuid GET no-auth
     },
+    SALE_RECEIPT: {
+      CERTIFIED_BILLS: "/finance/sale-receipt/certified-bills",          // GET ?ogSaleOrderNo&projectCode
+      RECEIPT_ITEMS:   "/finance/sale-receipt/receipt-items",            // GET ?certifiedBillId&projectCode
+      CREATE:          "/finance/sale-receipt/create",                   // POST JSON
+      LIST:            "/finance/sale-receipt/list",                     // GET ?projectCode&workflowStatus&ogSaleOrderNo&search
+      GET_BY_ID:       "/finance/sale-receipt/",                         // /:id GET
+      EDIT:            "/finance/sale-receipt/edit/",                    // /:id PUT JSON
+      SUBMIT:          "/finance/sale-receipt/submit/",                  // /:id POST
+      APPROVE:         "/finance/sale-receipt/approve/",                 // /:id POST
+      REBACK:          "/finance/sale-receipt/reback/",                  // /:id POST
+      REJECT:          "/finance/sale-receipt/reject/",                  // /:id POST
+      HISTORY:         "/finance/sale-receipt/history/",                 // /:id GET
+      MY_APPROVAL_STATUS: "/finance/sale-receipt/my-approval-status/",   // /:id GET
+      GET_BY_UUID:     "/finance/sale-receipt/uuid/",                    // /:uuid GET no-auth
+    },
   },
 };
 
