@@ -804,30 +804,27 @@ export default function SaleBillForm({
           {/* Action Buttons */}
           {!isViewMode && (
             <div className="flex items-center justify-end gap-2 pt-1 flex-wrap">
-              {mode !== "create" && (
-                <EditButton
-                  isEditing={isEditing}
-                  onClick={handleEdit}
-                  disabled={isSubmitted}
-                >
-                  {isEditing ? "Cancel" : "Edit"}
-                </EditButton>
-              )}
               {isEditing && (
                 <SaveDraftButton
-                  onClick={handleSubmit(onSave)}
+                  onClick={() => handleSubmit(onSave)()}
+                  loading={isSubmitting}
                   disabled={isSubmitting}
                 />
               )}
-              {allowSubmit && !isEditing && !isSubmitted && (
-                <SaveButton
-                  onClick={onSubmitForApproval}
-                  loading={isSubmitting}
-                  disabled={isSubmitting}
-                  loadingText="Submitting..."
-                >
-                  Submit
-                </SaveButton>
+              <SaveButton
+                onClick={onSubmitForApproval}
+                loading={isSubmitting}
+                disabled={!allowSubmit || isEditing || isSubmitted || isSubmitting || mode === "create"}
+                loadingText="Submitting..."
+                confirmationTitle="Submit Sale Bill?"
+                requireConfirmation
+              >
+                Submit
+              </SaveButton>
+              {mode !== "create" && !isSubmitted && (
+                <EditButton onClick={handleEdit} disabled={isSubmitting}>
+                  {isEditing ? "Cancel" : "Edit"}
+                </EditButton>
               )}
             </div>
           )}
