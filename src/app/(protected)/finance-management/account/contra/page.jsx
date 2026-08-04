@@ -139,13 +139,13 @@ export default function Page() {
         />
 
         {/* Summary cards */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-1">
+        <div className="flex flex-col gap-1 pt-1 w-fit">
           {SUMMARY_ITEMS.map(({ key, label }) => (
             <div key={key} className="rounded-sm overflow-hidden border border-gray-200 flex">
               <div className="bg-[#9590d0] text-white text-[12px] font-medium px-3 py-2 flex items-center w-[120px] shrink-0">
                 {label}
               </div>
-              <div className="bg-white text-[12px] text-right px-3 py-2 flex-1 font-medium text-gray-700 tabular-nums">
+              <div className="bg-white text-[12px] text-right px-3 py-2 min-w-[80px] sm:min-w-[140px] font-medium text-gray-700 tabular-nums">
                 {fmt(summary[key])}
               </div>
             </div>
