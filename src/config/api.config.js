@@ -497,6 +497,19 @@ export const API_ENDPOINTS = {
       MY_APPROVAL_STATUS: "/finance/sale-receipt/my-approval-status/",   // /:id GET
       GET_BY_UUID:     "/finance/sale-receipt/uuid/",                    // /:uuid GET no-auth
     },
+    CONTRA_ENTRY: {
+      CREATE:             "/finance/contra-entry/create",                // POST JSON
+      LIST:               "/finance/contra-entry/list",                  // GET ?projectCode&search&fromDate&toDate&workflowStatus
+      GET_BY_ID:          "/finance/contra-entry/",                      // /:id GET
+      GET_BY_UUID:        "/finance/contra-entry/uuid/",                 // /:uuid GET no-auth
+      EDIT:               "/finance/contra-entry/edit/",                 // /:id PUT JSON
+      SUBMIT:             "/finance/contra-entry/submit/",               // /:id POST
+      APPROVE:            "/finance/contra-entry/approve/",              // /:id POST { comments }
+      REBACK:             "/finance/contra-entry/reback/",               // /:id POST { comments }
+      REJECT:             "/finance/contra-entry/reject/",               // /:id POST { comments }
+      HISTORY:            "/finance/contra-entry/history/",              // /:id GET
+      MY_APPROVAL_STATUS: "/finance/contra-entry/my-approval-status/",   // /:id GET
+    },
   },
 };
 
