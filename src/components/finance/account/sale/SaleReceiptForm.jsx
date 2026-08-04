@@ -149,7 +149,7 @@ export default function SaleReceiptForm({ mode = "create", receiptId, onAfterSub
       .then((res) => {
         const opts = (res.data || []).map((o) => ({
           ...o,
-          displayLabel: [o.prefix, o.ogSaleOrderNo, o.suffix].filter(Boolean).join(" "),
+          displayLabel: o.orderTitle ? `${o.ogSaleOrderNo} — ${o.orderTitle}` : o.ogSaleOrderNo,
         }));
         setSaleOrderOpts(opts);
       })
@@ -450,7 +450,7 @@ export default function SaleReceiptForm({ mode = "create", receiptId, onAfterSub
                   placeholder="Select Sale Order"
                   labelKey="displayLabel"
                   valueKey="ogSaleOrderNo"
-                  searchKeys={["displayLabel", "ogSaleOrderNo"]}
+                  searchKeys={["displayLabel", "ogSaleOrderNo", "orderTitle"]}
                 />
               )} />
             </PMFormRow>

@@ -138,7 +138,7 @@ export default function SaleCertifiedBillForm({ mode = "create", billId, onAfter
       .then((res) => {
         const orders = (Array.isArray(res.data) ? res.data : []).map((o) => ({
           ...o,
-          displayLabel: [o.prefix, o.ogSaleOrderNo, o.suffix].filter(Boolean).join(" | "),
+          displayLabel: o.orderTitle ? `${o.ogSaleOrderNo} — ${o.orderTitle}` : o.ogSaleOrderNo,
         }));
         setSaleOrderOpts(orders);
       })
