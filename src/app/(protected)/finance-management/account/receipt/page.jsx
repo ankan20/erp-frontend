@@ -17,11 +17,6 @@ import { API_ENDPOINTS }   from "@/config/api.config";
 import { getLocalStorage } from "@/lib/localStorage";
 import { getfmtDisplaydate } from "@/helper/getfmtDisplayDate";
 
-const fmtNum = (val) => {
-  const n = Number(val);
-  if (!n || isNaN(n)) return "0.00";
-  return n.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-};
 
 export default function Page() {
   const router = useRouter();
@@ -30,12 +25,7 @@ export default function Page() {
   const [data,         setData]         = useState([]);
   const [filteredData, setFilteredData] = useState([]);
   const [loading,      setLoading]      = useState(true);
-  const [projectCode,  setProjectCode]  = useState("");
-
-  useEffect(() => {
-    const info = getLocalStorage("projectInfo") || {};
-    setProjectCode(info?.projectCode || "");
-  }, []);
+  const projectCode = getLocalStorage("projectInfo")?.projectCode || "";
 
   useEffect(() => {
     if (!projectCode || !access.allowed) return;
@@ -52,7 +42,7 @@ export default function Page() {
           byMode:         r.paymentMode    || "",
           source:         r.bankAcName     || r.cashAcName || "-",
           utrVoucherNo:   r.utrVoucherNo   || "-",
-          amount:         fmtNum(r.totalInvoiceAmount),
+          amount:         Number(r.totalInvoiceAmount || 0).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 }),
           workflowStatus: r.workflowStatus || "",
           _raw:           r,
         }));
@@ -82,8 +72,6 @@ export default function Page() {
     }
     setFilteredData(filtered);
   };
-
-  const totalReceived = filteredData.reduce((s, r) => s + Number(r._raw?.totalInvoiceAmount || 0), 0);
 
   const columns = [
     { header: "Sl. no",          accessor: "sl",             width: "60px"  },
@@ -131,22 +119,6 @@ export default function Page() {
             router.push(`/finance-management/account/receipt/${row._id}`);
           }}
         />
-
-        {/* Summary */}
-        <div className="pt-1 overflow-x-auto">
-          <div className="inline-block rounded-md overflow-hidden border border-gray-300">
-            <table className="text-[13px] border-separate border-spacing-0">
-              <tbody>
-                {[["Total Received", totalReceived]].map(([label, val]) => (
-                  <tr key={label}>
-                    <td className="px-3 py-1.5 bg-[#e8eee4] font-semibold text-gray-800 border-r border-gray-300 whitespace-nowrap min-w-[120px] sm:min-w-[160px]">{label}</td>
-                    <td className="px-3 py-1.5 bg-[#dce8f0] font-semibold text-right whitespace-nowrap">{fmtNum(val)}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
       </div>
     </HeaderWrapper>
   );
