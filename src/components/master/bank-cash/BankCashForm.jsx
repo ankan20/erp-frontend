@@ -175,7 +175,7 @@ export default function BankCashForm({ mode = "create", disabled = false, record
         </div>
 
         <div className="flex gap-2 items-center">
-          <div className={label}>Bank Code</div>
+          <div className={label}>Bank/Cash Code <span className="text-red-500 ml-0.5">*</span></div>
           <Input
             {...register("bankCode")}
             disabled={fieldDisabled || mode !== "create"}
@@ -188,70 +188,76 @@ export default function BankCashForm({ mode = "create", disabled = false, record
       {/* HOLDER + BANK DETAILS */}
       <div className="space-y-1">
         <div className="flex gap-2 items-center">
-          <div className={label}>Bank Holder Name</div>
+          <div className={label}>Bank/Cash Holder Name</div>
           <Input {...register("bankHolderName")} disabled={fieldDisabled} placeholder="Text"
             className={`flex-1 h-[30px] text-[13px] ${getInputClass(errors.bankHolderName, fieldDisabled)}`} />
         </div>
 
-        <div className="flex gap-2 items-center">
-          <div className={label}>Bank A/c Number</div>
-          <Input {...register("bankAcNumber")} disabled={fieldDisabled || isCash} placeholder={isCash ? "N/A for Cash" : "Text"}
-            className={`flex-1 h-[30px] text-[13px] ${getInputClass(false, fieldDisabled || isCash)}`} />
-        </div>
+        {!isCash && (
+          <>
+            <div className="flex gap-2 items-center">
+              <div className={label}>Bank A/c Number</div>
+              <Input {...register("bankAcNumber")} disabled={fieldDisabled} placeholder="Text"
+                className={`flex-1 h-[30px] text-[13px] ${getInputClass(false, fieldDisabled)}`} />
+            </div>
 
-        <div className="flex gap-2 items-center">
-          <div className={label}>Bank Name</div>
-          <Input {...register("bankName")} disabled={fieldDisabled || isCash} placeholder={isCash ? "N/A for Cash" : "Text"}
-            className={`flex-1 h-[30px] text-[13px] ${getInputClass(false, fieldDisabled || isCash)}`} />
-        </div>
+            <div className="flex gap-2 items-center">
+              <div className={label}>Bank Name</div>
+              <Input {...register("bankName")} disabled={fieldDisabled} placeholder="Text"
+                className={`flex-1 h-[30px] text-[13px] ${getInputClass(false, fieldDisabled)}`} />
+            </div>
 
-        <div className="flex gap-2 items-center">
-          <div className={label}>Branch Name</div>
-          <Input {...register("branchName")} disabled={fieldDisabled || isCash} placeholder={isCash ? "N/A for Cash" : "Text"}
-            className={`flex-1 h-[30px] text-[13px] ${getInputClass(false, fieldDisabled || isCash)}`} />
-        </div>
+            <div className="flex gap-2 items-center">
+              <div className={label}>Branch Name</div>
+              <Input {...register("branchName")} disabled={fieldDisabled} placeholder="Text"
+                className={`flex-1 h-[30px] text-[13px] ${getInputClass(false, fieldDisabled)}`} />
+            </div>
 
-        <div className="flex gap-2 items-center">
-          <div className={label}>IFSC Code</div>
-          <Input {...register("ifscCode")} disabled={fieldDisabled || isCash} placeholder={isCash ? "N/A for Cash" : "Text"}
-            className={`flex-1 h-[30px] text-[13px] ${getInputClass(false, fieldDisabled || isCash)}`}
-            onChange={(e) => setValue("ifscCode", e.target.value.toUpperCase())} />
-        </div>
+            <div className="flex gap-2 items-center">
+              <div className={label}>IFSC Code</div>
+              <Input {...register("ifscCode")} disabled={fieldDisabled} placeholder="Text"
+                className={`flex-1 h-[30px] text-[13px] ${getInputClass(false, fieldDisabled)}`}
+                onChange={(e) => setValue("ifscCode", e.target.value.toUpperCase())} />
+            </div>
 
-        <div className="flex gap-2 items-center">
-          <div className={label}>MICR Code</div>
-          <Input {...register("micrCode")} disabled={fieldDisabled || isCash} placeholder={isCash ? "N/A for Cash" : "Text"}
-            className={`flex-1 h-[30px] text-[13px] ${getInputClass(false, fieldDisabled || isCash)}`}
-            onChange={(e) => setValue("micrCode", e.target.value.toUpperCase())} />
-        </div>
+            <div className="flex gap-2 items-center">
+              <div className={label}>MICR Code</div>
+              <Input {...register("micrCode")} disabled={fieldDisabled} placeholder="Text"
+                className={`flex-1 h-[30px] text-[13px] ${getInputClass(false, fieldDisabled)}`}
+                onChange={(e) => setValue("micrCode", e.target.value.toUpperCase())} />
+            </div>
 
-        <div className="flex gap-2 items-center">
-          <div className={label}>Customer ID</div>
-          <Input {...register("customerId")} disabled={fieldDisabled || isCash} placeholder={isCash ? "N/A for Cash" : "Text"}
-            className={`flex-1 h-[30px] text-[13px] ${getInputClass(false, fieldDisabled || isCash)}`} />
-        </div>
+            <div className="flex gap-2 items-center">
+              <div className={label}>Customer ID</div>
+              <Input {...register("customerId")} disabled={fieldDisabled} placeholder="Text"
+                className={`flex-1 h-[30px] text-[13px] ${getInputClass(false, fieldDisabled)}`} />
+            </div>
+          </>
+        )}
       </div>
 
       {/* BRANCH MANAGER */}
-      <div className="space-y-1">
-        <div className="flex gap-2 items-center">
-          <div className={label}>Branch Manager Name</div>
-          <Input {...register("branchManagerName")} disabled={fieldDisabled} placeholder="Text"
-            className={`flex-1 h-[30px] text-[13px] ${getInputClass(false, fieldDisabled)}`} />
-        </div>
+      {!isCash && (
+        <div className="space-y-1">
+          <div className="flex gap-2 items-center">
+            <div className={label}>Branch Manager Name</div>
+            <Input {...register("branchManagerName")} disabled={fieldDisabled} placeholder="Text"
+              className={`flex-1 h-[30px] text-[13px] ${getInputClass(false, fieldDisabled)}`} />
+          </div>
 
-        <div className="flex gap-2 items-center">
-          <div className={label}>Branch Manager Contact Number</div>
-          <Input {...register("branchManagerContact")} disabled={fieldDisabled} placeholder="Text"
-            className={`flex-1 h-[30px] text-[13px] ${getInputClass(false, fieldDisabled)}`} />
-        </div>
+          <div className="flex gap-2 items-center">
+            <div className={label}>Branch Manager Contact Number</div>
+            <Input {...register("branchManagerContact")} disabled={fieldDisabled} placeholder="Text"
+              className={`flex-1 h-[30px] text-[13px] ${getInputClass(false, fieldDisabled)}`} />
+          </div>
 
-        <div className="flex gap-2 items-center">
-          <div className={label}>Branch Manager Mail id</div>
-          <Input {...register("branchManagerMailId")} disabled={fieldDisabled} placeholder="Text"
-            className={`flex-1 h-[30px] text-[13px] ${getInputClass(false, fieldDisabled)}`} />
+          <div className="flex gap-2 items-center">
+            <div className={label}>Branch Manager Mail id</div>
+            <Input {...register("branchManagerMailId")} disabled={fieldDisabled} placeholder="Text"
+              className={`flex-1 h-[30px] text-[13px] ${getInputClass(false, fieldDisabled)}`} />
+          </div>
         </div>
-      </div>
+      )}
 
       {/* BUTTONS */}
       <div className="flex justify-end gap-3 mt-4">

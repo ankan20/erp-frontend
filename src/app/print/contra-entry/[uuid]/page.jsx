@@ -69,8 +69,6 @@ async function downloadDocx(data, uuid, qrCanvasRef) {
   const tblBorders = { top: tblBorder, bottom: tblBorder, left: tblBorder, right: tblBorder, insideH: tblBorder, insideV: tblBorder };
   const noB        = { style: BorderStyle.NIL, size: 0, color: "auto" };
   const headShading = { type: ShadingType.CLEAR, color: "D3D3D3", fill: "D3D3D3" };
-  const drShading   = { type: ShadingType.CLEAR, color: "FFE8E8", fill: "FFE8E8" };
-  const crShading   = { type: ShadingType.CLEAR, color: "E8F5E9", fill: "E8F5E9" };
   const totShading  = { type: ShadingType.CLEAR, color: "D9D9D9", fill: "D9D9D9" };
 
   const PAGE_W = 9638; // A4 portrait usable width in twips at 1cm margins
@@ -237,16 +235,16 @@ async function downloadDocx(data, uuid, qrCanvasRef) {
         ),
       }),
       // Data rows
-      ...lines.map((l) => {
-        const shading = l.drCr === "Dr" ? drShading : crShading;
+      ...lines.map((l, idx) => {
+        const rowShading = idx % 2 === 0 ? undefined : { type: ShadingType.CLEAR, color: "F2F2F2", fill: "F2F2F2" };
         return new TableRow({ children: [
-          tCell(l.drCr,             cW[0], true,  shading, "center"),
-          tCell(l.accountName || "—", cW[1], false, shading),
-          tCell(l.accountType || "—", cW[2], false, shading, "center"),
-          numCell(l.openingBalance, cW[3]),
-          numCell(l.debitAmount,    cW[4], l.drCr === "Dr"),
-          numCell(l.creditAmount,   cW[5], l.drCr === "Cr"),
-          numCell(l.closingBalance, cW[6]),
+          tCell(l.drCr,               cW[0], true,  rowShading, "center"),
+          tCell(l.accountName || "—", cW[1], false, rowShading),
+          tCell(l.accountType || "—", cW[2], false, rowShading, "center"),
+          numCell(l.openingBalance,   cW[3], false, rowShading),
+          numCell(l.debitAmount,      cW[4], l.drCr === "Dr", rowShading),
+          numCell(l.creditAmount,     cW[5], l.drCr === "Cr", rowShading),
+          numCell(l.closingBalance,   cW[6], false, rowShading),
         ]});
       }),
       // Total
@@ -425,7 +423,7 @@ export default function ContraEntryPrintPage() {
                 <tbody>
                   {lines.map((l, idx) => {
                     const isDr = l.drCr === "Dr";
-                    const rowBg = isDr ? "bg-[#fff5f5]" : "bg-[#f0faf3]";
+                    const rowBg = idx % 2 === 0 ? COLOR.tableRowOdd : COLOR.tableRowEven;
                     return (
                       <tr key={idx} className={rowBg}>
                         <td className={`${B} px-2 py-2 ${SIZE.tableCell} text-center ${WEIGHT.bold} ${isDr ? "text-[#c0392b]" : "text-[#1a7a3c]"}`}>
