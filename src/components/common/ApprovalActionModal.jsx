@@ -40,12 +40,15 @@ export default function ApprovalActionModal({
 }) {
   const [selectedAction, setSelectedAction] = useState(null);
 
+  const [selectedSuggestion, setSelectedSuggestion] = useState(null);
+
   const [confirmOpen, setConfirmOpen] = useState(false);
 
   const {
     register,
     handleSubmit,
     reset,
+    setValue,
     formState: { errors, isSubmitting },
   } = useForm({
     resolver: zodResolver(schema),
@@ -60,13 +63,29 @@ export default function ApprovalActionModal({
 
     setSelectedAction(null);
 
+    setSelectedSuggestion(null);
+
     setConfirmOpen(false);
   };
 
   const handleActionClick = (action) => {
     setSelectedAction(action);
 
+    setSelectedSuggestion(null);
+
+    setValue("comments", "");
+
     setConfirmOpen(false);
+  };
+
+  const handleSuggestionClick = (suggestion) => {
+    setSelectedSuggestion(suggestion);
+
+    if (suggestion !== "other") {
+      setValue("comments", suggestion, { shouldValidate: true });
+    } else {
+      setValue("comments", "");
+    }
   };
 
   const handleClose = () => {
@@ -245,41 +264,102 @@ export default function ApprovalActionModal({
           {/* COMMENTS */}
 
           <div className="mt-6">
-            <label
-              className="
-                text-sm
-                font-medium
-              "
-            >
-              Comments
-            </label>
+            <label className="text-sm font-medium">Comments</label>
 
-            <textarea
-              {...register("comments")}
-              disabled={isSubmitting}
-              placeholder="Enter comments"
-              className={`
-                ${getInputClass(errors.comments, isSubmitting)}
+            {/* SUGGESTION LIST */}
+            {selectedAction && (() => {
+              const suggestions =
+                APPROVAL_ACTIONS[selectedAction.type]?.commentSuggestions ?? [];
+              const allOptions = [...suggestions, "Other"];
+              return (
+                <div className="mt-3 flex flex-col divide-y divide-gray-100 border border-gray-200 rounded-lg overflow-hidden">
+                  {allOptions.map((s) => {
+                    const key = s === "Other" ? "other" : s;
+                    const isSelected = selectedSuggestion === key;
+                    return (
+                      <button
+                        key={key}
+                        type="button"
+                        disabled={isSubmitting}
+                        onClick={() => handleSuggestionClick(key)}
+                        className={`
+                          flex items-center gap-3
+                          px-4 py-3
+                          text-sm text-left
+                          transition-colors
+                          cursor-pointer
+                          disabled:opacity-60
+                          ${isSelected ? "bg-gray-50" : "bg-white hover:bg-gray-50"}
+                        `}
+                      >
+                        <span
+                          className={`
+                            flex-shrink-0
+                            w-4 h-4
+                            rounded-full
+                            border-2
+                            flex items-center justify-center
+                            transition-colors
+                            ${
+                              isSelected
+                                ? selectedAction.type === "approve"
+                                  ? "border-green-600"
+                                  : selectedAction.type === "reback"
+                                    ? "border-yellow-600"
+                                    : "border-red-600"
+                                : "border-gray-300"
+                            }
+                          `}
+                        >
+                          {isSelected && (
+                            <span
+                              className={`
+                                w-2 h-2 rounded-full
+                                ${
+                                  selectedAction.type === "approve"
+                                    ? "bg-green-600"
+                                    : selectedAction.type === "reback"
+                                      ? "bg-yellow-600"
+                                      : "bg-red-600"
+                                }
+                              `}
+                            />
+                          )}
+                        </span>
+                        <span
+                          className={`
+                            ${isSelected ? "font-medium text-gray-900" : "text-gray-600"}
+                            ${s === "Other" ? "italic" : ""}
+                          `}
+                        >
+                          {s}
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+              );
+            })()}
 
-                mt-2
-                w-full
-
-                h-[120px]
-
-                p-3
-
-                resize-none
-              `}
-            />
+            {/* TEXTAREA — only when "Other" or no action selected */}
+            {(!selectedAction || selectedSuggestion === "other") && (
+              <textarea
+                {...register("comments")}
+                disabled={isSubmitting}
+                placeholder="Enter your comment"
+                className={`
+                  ${getInputClass(errors.comments, isSubmitting)}
+                  mt-3
+                  w-full
+                  h-[90px]
+                  p-3
+                  resize-none
+                `}
+              />
+            )}
 
             {errors.comments && (
-              <p
-                className="
-                  text-xs
-                  text-red-500
-                  mt-1
-                "
-              >
+              <p className="text-xs text-red-500 mt-1">
                 {errors.comments?.message}
               </p>
             )}
