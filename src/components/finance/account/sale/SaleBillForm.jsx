@@ -122,6 +122,7 @@ export default function SaleBillForm({
   const [isLoading, setIsLoading] = useState(false);
   const [initialData, setInitialData] = useState(null);
   const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [erpBillNo, setErpBillNo] = useState("");
 
   const [saleOrderOpts, setSaleOrderOpts] = useState([]);
   const [certifiedBillOpts, setCertifiedBillOpts] = useState([]);
@@ -318,6 +319,7 @@ export default function SaleBillForm({
         };
         reset(formatted);
         setInitialData(formatted);
+        if (d.saleBillNo) setErpBillNo(d.saleBillNo);
         if (d.saleBillUuid && onUuid) onUuid(d.saleBillUuid);
         if (formatted.ogSaleOrderNo)
           fetchCertifiedBills(formatted.ogSaleOrderNo);
@@ -537,7 +539,7 @@ export default function SaleBillForm({
               labelWidth="sm:w-[150px] sm:min-w-[150px]"
             >
               <input
-                value="[Auto]"
+                value={erpBillNo || "[Auto]"}
                 disabled
                 readOnly
                 className="w-full h-[30px] text-[13px] rounded-sm border border-[#7fa37f] bg-[#edf8ed] text-gray-500 px-2 outline-none"
