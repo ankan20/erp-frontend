@@ -58,9 +58,7 @@ async function downloadDocx(data, qrCanvasRef) {
   const tblBorders = { top: tblBorder, bottom: tblBorder, left: tblBorder, right: tblBorder, insideH: tblBorder, insideV: tblBorder };
   const noB        = { style: BorderStyle.NIL, size: 0, color: "auto" };
   const headShading   = { type: ShadingType.CLEAR, color: "D3D3D3", fill: "D3D3D3" };
-  const blueShading   = { type: ShadingType.CLEAR, color: "B6DDE8", fill: "B6DDE8" };
   const orangeShading = { type: ShadingType.CLEAR, color: "F2B07E", fill: "F2B07E" };
-  const gstShading    = { type: ShadingType.CLEAR, color: "F5E4D7", fill: "F5E4D7" };
 
   const PAGE_W = 10466;
 
@@ -178,41 +176,16 @@ async function downloadDocx(data, qrCanvasRef) {
         numCell(it.balanceAmount,  cW[5]),
         numCell(it.currentAmount,  cW[6], true),
       ]})),
-      // Basic total row
-      new TableRow({ children: [
-        tCell("", cW[0], false, blueShading),
-        tCell("", cW[1], false, blueShading),
-        tCell("", cW[2], false, blueShading),
-        tCell("", cW[3], false, blueShading),
-        tCell("", cW[4], false, blueShading),
-        tCell("Basic Total", cW[5], true, blueShading, "right"),
-        numCell(data.basicAmount, cW[6], true, blueShading),
-      ]}),
-      // GST header separator (if any selected)
-      ...(selectedGst.length > 0 ? [
-        new TableRow({ children: [
-          new TableCell({ children: [new Paragraph({ children: [run("GST", { bold: true, size: 18 })] })], columnSpan: 7, width: { size: PAGE_W, type: WidthType.DXA }, shading: gstShading, borders: tblBorders, margins: { top: 40, bottom: 40, left: 80, right: 80 } }),
-        ]}),
-        ...selectedGst.map((l) => new TableRow({ children: [
-          tCell("",                            cW[0], false, undefined, "center"),
-          tCell(l.ccCode,                      cW[1]),
-          tCell(`${l.ccName} (${l.percent}%)`, cW[2]),
-          numCell(l.bookedAmount,   cW[3]),
-          numCell(l.receivedAmount, cW[4]),
-          numCell(l.balanceAmount,  cW[5]),
-          numCell(l.currentAmount,  cW[6], true),
-        ]})),
-        // GST total
-        new TableRow({ children: [
-          tCell("", cW[0], false, blueShading),
-          tCell("", cW[1], false, blueShading),
-          tCell("", cW[2], false, blueShading),
-          tCell("", cW[3], false, blueShading),
-          tCell("", cW[4], false, blueShading),
-          tCell("GST Total", cW[5], true, blueShading, "right"),
-          numCell(data.gstAmount, cW[6], true, blueShading),
-        ]}),
-      ] : []),
+      // GST rows inline, SL continues from BASIC count
+      ...selectedGst.map((l, idx) => new TableRow({ children: [
+        tCell(items.length + idx + 1,        cW[0], false, undefined, "center"),
+        tCell(l.ccCode,                      cW[1]),
+        tCell(`${l.ccName} (${l.percent}%)`, cW[2]),
+        numCell(l.bookedAmount,   cW[3]),
+        numCell(l.receivedAmount, cW[4]),
+        numCell(l.balanceAmount,  cW[5]),
+        numCell(l.currentAmount,  cW[6], true),
+      ]})),
       // Summary extension: discount, round off
       ...(discount > 0 ? [mkSummaryRow("Discount", `- ${fmt.number(discount)}`)] : []),
       ...(roundOff !== 0 ? [mkSummaryRow("Round Off", (roundOff > 0 ? "+" : "") + fmt.number(roundOff))] : []),
@@ -372,34 +345,33 @@ export default function SaleReceiptPrintPage() {
             </div>
           </div>
 
-          {/* ── BASIC TABLE ─────────────────────────────────────────────── */}
-          <div className="px-6 pb-2">
+          {/* ── MAIN TABLE (BASIC + GST + totals — all in one) ──────────── */}
+          <div className="px-6 pb-3">
             <div className="overflow-x-auto">
               <table className="w-full border-collapse" style={{ tableLayout: "fixed" }}>
                 <colgroup>
-                  <col style={{ width: "5%"  }} /> {/* SL */}
-                  <col style={{ width: "10%" }} /> {/* CC Code */}
-                  <col style={{ width: "29%" }} /> {/* CC Name */}
-                  <col style={{ width: "14%" }} /> {/* Booked */}
-                  <col style={{ width: "14%" }} /> {/* Received */}
-                  <col style={{ width: "14%" }} /> {/* Balance */}
-                  <col style={{ width: "14%" }} /> {/* Current */}
+                  <col style={{ width: "5%"  }} />
+                  <col style={{ width: "10%" }} />
+                  <col style={{ width: "29%" }} />
+                  <col style={{ width: "14%" }} />
+                  <col style={{ width: "14%" }} />
+                  <col style={{ width: "14%" }} />
+                  <col style={{ width: "14%" }} />
                 </colgroup>
                 <thead>
                   <tr className={COLOR.tableHeadBg}>
                     {["SL", "CC Code", "CC Name", "Booked (₹)", "Received (₹)", "Balance (₹)", "Current (₹)"].map((h) => (
-                      <th key={h} className={`${B} px-2 py-1.5 text-center ${SIZE.tableHead} ${WEIGHT.bold} text-gray-900`}>
-                        {h}
-                      </th>
+                      <th key={h} className={`${B} px-2 py-1.5 text-center ${SIZE.tableHead} ${WEIGHT.bold} text-gray-900`}>{h}</th>
                     ))}
                   </tr>
                 </thead>
                 <tbody>
+                  {/* BASIC rows */}
                   {items.map((it, idx) => (
                     <tr key={idx} className={idx % 2 === 0 ? COLOR.tableRowOdd : COLOR.tableRowEven}>
                       <td className={`${B} px-2 py-1.5 ${SIZE.tableCell} text-center`}>{idx + 1}</td>
                       <td className={`${B} px-2 py-1.5 ${SIZE.tableCell}`} style={{ whiteSpace: "nowrap" }}>{it.ccCode}</td>
-                      <td className={`${B} px-2 py-1.5 ${SIZE.tableCell} ${WEIGHT.medium}`}>{it.ccName}</td>
+                      <td className={`${B} px-2 py-1.5 ${SIZE.tableCell} ${WEIGHT.medium}`} style={{ wordBreak: "break-word" }}>{it.ccName}</td>
                       <td className={`${B} px-2 py-1.5 ${SIZE.tableCell} text-right`} style={{ whiteSpace: "nowrap" }}><FmtNum value={it.bookedAmount} /></td>
                       <td className={`${B} px-2 py-1.5 ${SIZE.tableCell} text-right`} style={{ whiteSpace: "nowrap" }}><FmtNum value={it.receivedAmount} /></td>
                       <td className={`${B} px-2 py-1.5 ${SIZE.tableCell} text-right`} style={{ whiteSpace: "nowrap" }}><FmtNum value={it.balanceAmount} /></td>
@@ -407,114 +379,64 @@ export default function SaleReceiptPrintPage() {
                     </tr>
                   ))}
 
-                  {/* Basic Total */}
-                  <tr className="bg-[#b6dde8]">
-                    <td colSpan={5} className={`${B} px-2 py-1.5`} />
-                    <td className={`${B} px-2 py-1.5 ${SIZE.tableCell} ${WEIGHT.bold} text-right`} style={{ whiteSpace: "nowrap" }}>Basic Total</td>
-                    <td className={`${B} px-2 py-1.5 ${SIZE.tableCell} ${WEIGHT.bold} text-right`} style={{ whiteSpace: "nowrap" }}><FmtNum value={data.basicAmount} /></td>
+                  {/* GST rows — SL continues from BASIC count */}
+                  {selectedGst.map((l, idx) => (
+                    <tr key={l.gstType} className={(items.length + idx) % 2 === 0 ? COLOR.tableRowOdd : COLOR.tableRowEven}>
+                      <td className={`${B} px-2 py-1.5 ${SIZE.tableCell} text-center`}>{items.length + idx + 1}</td>
+                      <td className={`${B} px-2 py-1.5 ${SIZE.tableCell}`} style={{ whiteSpace: "nowrap" }}>{l.ccCode}</td>
+                      <td className={`${B} px-2 py-1.5 ${SIZE.tableCell} ${WEIGHT.medium}`} style={{ wordBreak: "break-word" }}>
+                        {l.ccName}
+                        <span className="ml-1 text-gray-400 font-normal">({l.percent}%)</span>
+                      </td>
+                      <td className={`${B} px-2 py-1.5 ${SIZE.tableCell} text-right`} style={{ whiteSpace: "nowrap" }}><FmtNum value={l.bookedAmount} /></td>
+                      <td className={`${B} px-2 py-1.5 ${SIZE.tableCell} text-right`} style={{ whiteSpace: "nowrap" }}><FmtNum value={l.receivedAmount} /></td>
+                      <td className={`${B} px-2 py-1.5 ${SIZE.tableCell} text-right`} style={{ whiteSpace: "nowrap" }}><FmtNum value={l.balanceAmount} /></td>
+                      <td className={`${B} px-2 py-1.5 ${SIZE.tableCell} text-right ${WEIGHT.semibold}`} style={{ whiteSpace: "nowrap" }}><FmtNum value={l.currentAmount} /></td>
+                    </tr>
+                  ))}
+
+                  {/* Discount — label starts at Received col (colSpan 4 empty + 2 label + 1 value) */}
+                  {discount > 0 && (
+                    <tr>
+                      <td colSpan={4} style={{ borderLeft: "1px solid #b0b0b0", borderTop: "none", borderBottom: "none", borderRight: "none", padding: 0 }} />
+                      <td colSpan={2} style={{ borderLeft: "1px solid #b0b0b0", borderTop: "none", borderBottom: "none", borderRight: "none", padding: "2px 6px" }} className={`${SIZE.tableCell} text-left text-gray-700`}>Discount</td>
+                      <td style={{ borderLeft: "1px solid #b0b0b0", borderRight: "1px solid #b0b0b0", borderTop: "none", borderBottom: "none", padding: "2px 6px", whiteSpace: "nowrap" }} className={`${SIZE.tableCell} text-right`}>- <FmtNum value={discount} /></td>
+                    </tr>
+                  )}
+
+                  {/* Round Off */}
+                  {roundOff !== 0 && (
+                    <tr>
+                      <td colSpan={4} style={{ borderLeft: "1px solid #b0b0b0", borderTop: "none", borderBottom: "none", borderRight: "none", padding: 0 }} />
+                      <td colSpan={2} style={{ borderLeft: "1px solid #b0b0b0", borderTop: "none", borderBottom: "none", borderRight: "none", padding: "2px 6px" }} className={`${SIZE.tableCell} text-left text-gray-700`}>Round Off</td>
+                      <td style={{ borderLeft: "1px solid #b0b0b0", borderRight: "1px solid #b0b0b0", borderTop: "none", borderBottom: "none", padding: "2px 6px", whiteSpace: "nowrap" }} className={`${SIZE.tableCell} text-right ${roundOff > 0 ? "text-green-700" : "text-red-600"}`}>
+                        {roundOff > 0 ? "+" : "-"}<FmtNum value={Math.abs(roundOff)} />
+                      </td>
+                    </tr>
+                  )}
+
+                  {/* Total Invoice Amount */}
+                  <tr>
+                    <td colSpan={4} style={{ borderLeft: "1px solid #b0b0b0", borderBottom: "1px solid #b0b0b0", borderRight: "none", borderTop: "none", padding: 0 }} />
+                    <td colSpan={2} style={{ border: "1px solid #b0b0b0", padding: "4px 6px", fontWeight: 700, backgroundColor: "#d9d9d9" }} className={SIZE.tableCell}>
+                      Total Invoice Amount (Rs.)
+                    </td>
+                    <td style={{ border: "1px solid #b0b0b0", padding: "4px 6px", fontWeight: 700, backgroundColor: "#d9d9d9", whiteSpace: "nowrap" }} className={`${SIZE.tableCell} text-right`}>
+                      <FmtNum value={totalInvoice} />
+                    </td>
+                  </tr>
+
+                  {/* Amount in Words */}
+                  <tr>
+                    <td colSpan={7} style={{ borderLeft: "1px solid #b0b0b0", borderRight: "1px solid #b0b0b0", borderBottom: "1px solid #b0b0b0", borderTop: "none", padding: "4px 8px" }}
+                      className={SIZE.labelText}>
+                      <span style={{ fontWeight: 700 }}>Amount in Words: </span>
+                      {totalInvoice > 0 ? amountToWordsIN(totalInvoice) : "-"}
+                    </td>
                   </tr>
                 </tbody>
               </table>
             </div>
-          </div>
-
-          {/* ── GST TABLE (selected lines only) ─────────────────────────── */}
-          {selectedGst.length > 0 && (
-            <div className="px-6 pb-2">
-              <div className="overflow-x-auto">
-                <table className="w-full border-collapse" style={{ tableLayout: "fixed" }}>
-                  <colgroup>
-                    <col style={{ width: "5%"  }} />
-                    <col style={{ width: "10%" }} />
-                    <col style={{ width: "29%" }} />
-                    <col style={{ width: "14%" }} />
-                    <col style={{ width: "14%" }} />
-                    <col style={{ width: "14%" }} />
-                    <col style={{ width: "14%" }} />
-                  </colgroup>
-                  <thead>
-                    <tr style={{ backgroundColor: "#F5E4D7" }}>
-                      <th colSpan={7} className={`${B} px-3 py-1 ${SIZE.tableHead} ${WEIGHT.bold} text-left text-gray-800`}>
-                        GST
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {selectedGst.map((l, idx) => (
-                      <tr key={l.gstType} className={idx % 2 === 0 ? COLOR.tableRowOdd : COLOR.tableRowEven}>
-                        <td className={`${B} px-2 py-1.5 ${SIZE.tableCell} text-center`}>{idx + 1}</td>
-                        <td className={`${B} px-2 py-1.5 ${SIZE.tableCell}`} style={{ whiteSpace: "nowrap" }}>{l.ccCode}</td>
-                        <td className={`${B} px-2 py-1.5 ${SIZE.tableCell} ${WEIGHT.medium}`}>
-                          {l.ccName}
-                          <span className="ml-1 text-gray-400 font-normal">({l.percent}%)</span>
-                        </td>
-                        <td className={`${B} px-2 py-1.5 ${SIZE.tableCell} text-right`} style={{ whiteSpace: "nowrap" }}><FmtNum value={l.bookedAmount} /></td>
-                        <td className={`${B} px-2 py-1.5 ${SIZE.tableCell} text-right`} style={{ whiteSpace: "nowrap" }}><FmtNum value={l.receivedAmount} /></td>
-                        <td className={`${B} px-2 py-1.5 ${SIZE.tableCell} text-right`} style={{ whiteSpace: "nowrap" }}><FmtNum value={l.balanceAmount} /></td>
-                        <td className={`${B} px-2 py-1.5 ${SIZE.tableCell} text-right ${WEIGHT.semibold}`} style={{ whiteSpace: "nowrap" }}><FmtNum value={l.currentAmount} /></td>
-                      </tr>
-                    ))}
-
-                    {/* GST Total */}
-                    <tr className="bg-[#b6dde8]">
-                      <td colSpan={5} className={`${B} px-2 py-1.5`} />
-                      <td className={`${B} px-2 py-1.5 ${SIZE.tableCell} ${WEIGHT.bold} text-right`} style={{ whiteSpace: "nowrap" }}>GST Total</td>
-                      <td className={`${B} px-2 py-1.5 ${SIZE.tableCell} ${WEIGHT.bold} text-right`} style={{ whiteSpace: "nowrap" }}><FmtNum value={data.gstAmount} /></td>
-                    </tr>
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          )}
-
-          {/* ── SUMMARY EXTENSION ───────────────────────────────────────── */}
-          <div className="px-6 pb-3">
-            <table className="w-full border-collapse" style={{ tableLayout: "fixed" }}>
-              <colgroup>
-                <col style={{ width: "56%" }} /> {/* empty left */}
-                <col style={{ width: "30%" }} /> {/* label */}
-                <col style={{ width: "14%" }} /> {/* value */}
-              </colgroup>
-              <tbody>
-                {discount > 0 && (
-                  <tr>
-                    <td style={{ borderLeft: "1px solid #b0b0b0", borderRight: "none", borderTop: "none", borderBottom: "none", padding: 0 }} />
-                    <td style={{ borderLeft: "1px solid #b0b0b0", padding: "2px 6px" }} className={`${SIZE.tableCell} text-left text-gray-700`}>Discount</td>
-                    <td style={{ borderLeft: "1px solid #b0b0b0", borderRight: "1px solid #b0b0b0", padding: "2px 6px", whiteSpace: "nowrap" }} className={`${SIZE.tableCell} text-right`}>- <FmtNum value={discount} /></td>
-                  </tr>
-                )}
-                {roundOff !== 0 && (
-                  <tr>
-                    <td style={{ borderLeft: "1px solid #b0b0b0", borderRight: "none", borderTop: "none", borderBottom: "none", padding: 0 }} />
-                    <td style={{ borderLeft: "1px solid #b0b0b0", padding: "2px 6px" }} className={`${SIZE.tableCell} text-left text-gray-700`}>Round Off</td>
-                    <td style={{ borderLeft: "1px solid #b0b0b0", borderRight: "1px solid #b0b0b0", padding: "2px 6px", whiteSpace: "nowrap" }} className={`${SIZE.tableCell} text-right ${roundOff > 0 ? "text-green-700" : "text-red-600"}`}>
-                      {roundOff > 0 ? "+" : "-"}<FmtNum value={Math.abs(roundOff)} />
-                    </td>
-                  </tr>
-                )}
-
-                {/* Total Invoice Amount */}
-                <tr>
-                  <td style={{ borderLeft: "1px solid #b0b0b0", borderBottom: "1px solid #b0b0b0", borderRight: "none", borderTop: "none", padding: 0 }} />
-                  <td style={{ border: "1px solid #b0b0b0", padding: "4px 6px", fontWeight: 700, backgroundColor: "#d9d9d9" }} className={SIZE.tableCell}>
-                    Total Invoice Amount (Rs.)
-                  </td>
-                  <td style={{ border: "1px solid #b0b0b0", padding: "4px 6px", fontWeight: 700, backgroundColor: "#d9d9d9", whiteSpace: "nowrap" }} className={`${SIZE.tableCell} text-right`}>
-                    <FmtNum value={totalInvoice} />
-                  </td>
-                </tr>
-
-                {/* Amount in words */}
-                <tr>
-                  <td colSpan={3}
-                    style={{ borderLeft: "1px solid #b0b0b0", borderRight: "1px solid #b0b0b0", borderBottom: "1px solid #b0b0b0", borderTop: "none", padding: "4px 8px" }}
-                    className={SIZE.labelText}>
-                    <span style={{ fontWeight: 700 }}>Amount in Words: </span>
-                    {totalInvoice > 0 ? amountToWordsIN(totalInvoice) : "-"}
-                  </td>
-                </tr>
-              </tbody>
-            </table>
           </div>
 
           {/* ── PAYMENT REMARKS ─────────────────────────────────────────── */}
