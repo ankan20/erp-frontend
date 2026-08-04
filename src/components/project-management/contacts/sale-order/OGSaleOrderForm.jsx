@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useFieldArray, Controller } from "react-hook-form";
 import { useFormWithToast as useForm } from "@/hooks/useFormWithToast";
 import { z } from "zod";
@@ -12,14 +12,13 @@ import { useRouter } from "next/navigation";
 import SaveButton         from "@/components/common/SaveButton";
 import SaveDraftButton    from "@/components/common/SaveDraftButton";
 import EditButton         from "@/components/common/EditButton";
-import SearchableSelect   from "@/components/common/SearchableSelect";
 import FileUploadInput    from "@/components/project-management/common/FileUploadInput";
 import PMSection          from "@/components/project-management/common/PMSection";
 import PMFormRow          from "@/components/project-management/common/PMFormRow";
 import PMInput            from "@/components/project-management/common/PMInput";
 import PMDateInput        from "@/components/project-management/common/PMDateInput";
-import PMTextarea          from "@/components/project-management/common/PMTextarea";
-import ExpandableTextCell  from "@/components/project-management/common/ExpandableTextCell";
+import PMTextarea         from "@/components/project-management/common/PMTextarea";
+import ExpandableTextCell from "@/components/project-management/common/ExpandableTextCell";
 
 import { apiRequest }      from "@/lib/apiClient";
 import { API_ENDPOINTS }   from "@/config/api.config";
@@ -27,12 +26,11 @@ import { getLocalStorage } from "@/lib/localStorage";
 import { getInputClass }   from "@/lib/formStyles";
 
 // ── SCHEMA ────────────────────────────────────────────────────────────────────
-const itemSchema = z.object({
-  itemDisplayCode: z.string().optional(),
-  itemCode:        z.string().optional(),
-  itemName:        z.string().optional(),
-  itemDescription: z.string().optional(),
-  unit:            z.string().optional(),
+const rowSchema = z.object({
+  itemCode:        z.string().optional().default(""),
+  itemName:        z.string().optional().default(""),
+  itemDescription: z.string().optional().default(""),
+  unit:            z.string().optional().default(""),
   orderQty:        z.coerce.number().min(0).optional(),
   rate:            z.coerce.number().min(0).optional(),
   gstPercent:      z.coerce.number().min(0).optional(),
@@ -41,16 +39,14 @@ const itemSchema = z.object({
 const schema = z.object({
   ogSaleOrderNo:   z.string().optional(),
   ogSaleOrderDate: z.string().min(1, "Order Date is required"),
-  prefix:          z.string().optional(),
-  suffix:          z.string().optional(),
   orderNo:         z.string().optional(),
   orderValidity:   z.string().optional(),
   orderTitle:      z.string().min(1, "Order Title is required"),
-  items:           z.array(itemSchema).min(1),
+  items:           z.array(rowSchema).min(1),
+  boqItems:        z.array(rowSchema),
 });
 
-const DEFAULT_ITEM = {
-  itemDisplayCode: "",
+const DEFAULT_ROW = {
   itemCode:        "",
   itemName:        "",
   itemDescription: "",
@@ -63,12 +59,11 @@ const DEFAULT_ITEM = {
 const defaultValues = {
   ogSaleOrderNo:   "",
   ogSaleOrderDate: "",
-  prefix:          "",
-  suffix:          "",
   orderNo:         "",
   orderValidity:   "",
   orderTitle:      "",
-  items:           [{ ...DEFAULT_ITEM }],
+  items:           [{ ...DEFAULT_ROW }],
+  boqItems:        [],
 };
 
 // ── HELPERS ───────────────────────────────────────────────────────────────────
@@ -79,71 +74,104 @@ const fmt = (val) => {
   return n.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 };
 
+const rowSubtotal = (item) =>
+  Number(item?.orderQty || 0) * Number(item?.rate || 0);
+
+// ── TABLE HEADER ──────────────────────────────────────────────────────────────
+function TableHeader({ showRequired, disabled }) {
+  return (
+    <thead className="sticky top-0 z-20">
+      <tr className="bg-[#3b6ea5] text-white">
+        <th className="border border-[#2a5080] w-[44px] text-center text-[13px] py-1.5">SL No</th>
+        <th className="border border-[#2a5080] w-[100px] text-left px-2 text-[13px] py-1.5">Item Code</th>
+        <th className="border border-[#2a5080] text-left px-2 text-[13px] py-1.5">Item Name &amp; Description</th>
+        <th className="border border-[#2a5080] w-[110px] text-center text-[13px] py-1.5">Unit</th>
+        <th className="border border-[#2a5080] w-[110px] text-right px-2 text-[13px] py-1.5">
+          Order Qty{showRequired && <span className="text-red-300 ml-0.5">*</span>}
+        </th>
+        <th className="border border-[#2a5080] w-[110px] text-right px-2 text-[13px] py-1.5">
+          Rate{showRequired && <span className="text-red-300 ml-0.5">*</span>}
+        </th>
+        <th className="border border-[#2a5080] w-[65px] text-right px-2 text-[13px] py-1.5">GST %</th>
+        <th className="border border-[#2a5080] w-[110px] text-right px-2 text-[13px] py-1.5">Amount</th>
+        {!disabled && (
+          <th className="border border-[#2a5080] w-[40px] text-center text-[13px] py-1.5">Del</th>
+        )}
+      </tr>
+    </thead>
+  );
+}
 
 // ── COMPONENT ─────────────────────────────────────────────────────────────────
 export default function OGSaleOrderForm({ mode = "create", saleOrderId, onAfterSubmit, onUuid }) {
-  const isViewMode = mode === "view" || mode === "approver";
-  const router     = useRouter();
-
+  const isViewMode  = mode === "view" || mode === "approver";
+  const router      = useRouter();
   const projectCode = getLocalStorage("projectInfo")?.projectCode || "";
 
-  // ── STATE
-  const [isEditing,    setIsEditing]    = useState(mode === "create");
-  const [isSubmitted,  setIsSubmitted]  = useState(false);
-  const [allowSubmit,  setAllowSubmit]  = useState(mode === "edit");
-  const [isLoading,    setIsLoading]    = useState(false);
-  const [initialData,  setInitialData]  = useState(null);
-  const [sidebarOpen,  setSidebarOpen]  = useState(true);
-  const [itemsOptions, setItemsOptions] = useState([]);
+  const [isEditing,   setIsEditing]   = useState(mode === "create");
+  const [isSubmitted, setIsSubmitted] = useState(false);
+  const [allowSubmit, setAllowSubmit] = useState(mode === "edit");
+  const [isLoading,   setIsLoading]   = useState(false);
+  const [initialData, setInitialData] = useState(null);
+  const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [unitOptions, setUnitOptions] = useState([]);
 
-  // File state for 3 attachments
-  const [files,         setFiles]         = useState({ att1: null, att2: null, att3: null });
-  const [existingUrls,  setExistingUrls]  = useState({ att1: "", att2: "", att3: "" });
-  const [initialUrls,   setInitialUrls]   = useState({ att1: "", att2: "", att3: "" });
-  const [fileResetKey,  setFileResetKey]  = useState(0);
+  const [files,        setFiles]        = useState({ att1: null, att2: null, att3: null });
+  const [existingUrls, setExistingUrls] = useState({ att1: "", att2: "", att3: "" });
+  const [initialUrls,  setInitialUrls]  = useState({ att1: "", att2: "", att3: "" });
+  const [fileResetKey, setFileResetKey] = useState(0);
 
   const {
     register, control, handleSubmit, reset, getValues, setValue, watch,
     formState: { errors, isSubmitting },
   } = useForm({ resolver: zodResolver(schema), defaultValues });
 
-  const { fields, append, remove } = useFieldArray({ control, name: "items" });
+  const { fields: itemFields, append: appendItem, remove: removeItem } =
+    useFieldArray({ control, name: "items" });
+  const { fields: boqFields, append: appendBoq, remove: removeBoq } =
+    useFieldArray({ control, name: "boqItems" });
+
+  const itemsScrollRef = useRef(null);
+  const boqScrollRef   = useRef(null);
+
+  const addItemRow = () => {
+    appendItem({ ...DEFAULT_ROW });
+    setTimeout(() => {
+      if (itemsScrollRef.current)
+        itemsScrollRef.current.scrollTop = itemsScrollRef.current.scrollHeight;
+    }, 0);
+  };
+
+  const addBoqRow = () => {
+    appendBoq({ ...DEFAULT_ROW });
+    setTimeout(() => {
+      if (boqScrollRef.current)
+        boqScrollRef.current.scrollTop = boqScrollRef.current.scrollHeight;
+    }, 0);
+  };
 
   const disabled = isViewMode || !isEditing || isSubmitting || isSubmitted;
 
-  // ── COMPUTED TOTALS
-  const watchedItems = watch("items") || [];
+  // ── TOTALS ────────────────────────────────────────────────────────────────────
+  const watchedItems    = watch("items")    || [];
+  const watchedBoqItems = watch("boqItems") || [];
 
-  const basicAmount = watchedItems.reduce((sum, item) => {
-    return sum + Number(item?.orderQty || 0) * Number(item?.rate || 0);
-  }, 0);
+  const itemsBasic = watchedItems.reduce((s, it) => s + rowSubtotal(it), 0);
+  const boqBasic   = watchedBoqItems.reduce((s, it) => s + rowSubtotal(it), 0);
+  const basicAmount = itemsBasic + boqBasic;
 
-  const gstAmount = watchedItems.reduce((sum, item) => {
-    const amt = Number(item?.orderQty || 0) * Number(item?.rate || 0);
-    return sum + amt * Number(item?.gstPercent || 0) / 100;
+  const gstAmount = [...watchedItems, ...watchedBoqItems].reduce((s, it) => {
+    return s + rowSubtotal(it) * Number(it?.gstPercent || 0) / 100;
   }, 0);
 
   const totalAmount = basicAmount + gstAmount;
 
-  // ── FETCH ITEMS MASTER ────────────────────────────────────────────────────────
+  // ── FETCH UNIT LIST ───────────────────────────────────────────────────────────
   useEffect(() => {
-    apiRequest({ url: API_ENDPOINTS.RESOURCE.PROCUREMENT.INDENT.GET_ITEMS_BY_CATEGORY, method: "GET" })
-      .then((res) => setItemsOptions(Array.isArray(res.data) ? res.data : []))
-      .catch(() => setItemsOptions([]));
+    apiRequest({ url: API_ENDPOINTS.MASTER.GET_ALL_UNIT, method: "GET" })
+      .then((res) => setUnitOptions(Array.isArray(res.data) ? res.data : []))
+      .catch(() => setUnitOptions([]));
   }, []);
-
-  // ── ITEM SELECTION HANDLER ────────────────────────────────────────────────────
-  const handleItemSelect = useCallback(
-    (index, _value, item) => {
-      setValue(`items.${index}.itemCode`,        item?.itemCode        || "", { shouldDirty: true });
-      setValue(`items.${index}.itemDisplayCode`, item?.itemDisplayCode || item?.itemCode || "", { shouldDirty: true });
-      setValue(`items.${index}.itemName`,        item?.itemName        || "", { shouldDirty: true });
-      setValue(`items.${index}.itemDescription`, item?.itemDescription || item?.description || "", { shouldDirty: true });
-      setValue(`items.${index}.unit`,            item?.unit            || "", { shouldDirty: true });
-      setValue(`items.${index}.gstPercent`,      item?.gst             ?? item?.gstPercent ?? "", { shouldDirty: true });
-    },
-    [setValue],
-  );
 
   // ── FETCH DETAIL ─────────────────────────────────────────────────────────────
   useEffect(() => {
@@ -158,35 +186,31 @@ export default function OGSaleOrderForm({ mode = "create", saleOrderId, onAfterS
         });
         const d = res.data;
 
+        const mapRow = (it) => ({
+          itemCode:        it.itemCode        || "",
+          itemName:        it.itemName        || "",
+          itemDescription: it.itemDescription || "",
+          unit:            it.unit            || "",
+          orderQty:        it.orderQty        || "",
+          rate:            it.rate            || "",
+          gstPercent:      it.gstPercent      || "",
+        });
+
         const formatted = {
           ogSaleOrderNo:   d.ogSaleOrderNo   || "",
           ogSaleOrderDate: d.ogSaleOrderDate || "",
-          prefix:          d.prefix          || "",
-          suffix:          d.suffix          || "",
           orderNo:         d.orderNo         || "",
           orderValidity:   d.orderValidity   || "",
           orderTitle:      d.orderTitle      || "",
-          items: (d.items || []).map((it) => ({
-            itemDisplayCode: it.itemDisplayCode || it.itemCode || "",
-            itemCode:        it.itemCode        || "",
-            itemName:        it.itemName        || "",
-            itemDescription: it.itemDescription || "",
-            unit:            it.unit            || "",
-            orderQty:        it.orderQty        || "",
-            rate:            it.rate            || "",
-            gstPercent:      it.gstPercent      || "",
-          })),
+          items:    (d.items    || []).map(mapRow),
+          boqItems: (d.boqItems || []).map(mapRow),
         };
-        if (!formatted.items.length) formatted.items = [{ ...DEFAULT_ITEM }];
+        if (!formatted.items.length) formatted.items = [{ ...DEFAULT_ROW }];
 
         reset(formatted);
         setInitialData(formatted);
 
-        const urls = {
-          att1: d.attachment1 || "",
-          att2: d.attachment2 || "",
-          att3: d.attachment3 || "",
-        };
+        const urls = { att1: d.attachment1 || "", att2: d.attachment2 || "", att3: d.attachment3 || "" };
         setExistingUrls(urls);
         setInitialUrls(urls);
 
@@ -198,7 +222,7 @@ export default function OGSaleOrderForm({ mode = "create", saleOrderId, onAfterS
           const st = d.workflowStatus || "";
           if      (st === "Approved") toast.info("Sale Order already Approved");
           else if (st === "Rejected") toast.info("Sale Order already Rejected");
-          else                         toast.info("Sale Order already Submitted");
+          else                        toast.info("Sale Order already Submitted");
         } else {
           setIsEditing(false);
           setAllowSubmit(true);
@@ -235,26 +259,28 @@ export default function OGSaleOrderForm({ mode = "create", saleOrderId, onAfterS
 
     if (mode === "create") fd.append("projectCode", projectCode);
     fd.append("ogSaleOrderDate", v.ogSaleOrderDate || "");
-    fd.append("prefix",         v.prefix          || "");
-    fd.append("suffix",         v.suffix          || "");
-    fd.append("orderNo",        v.orderNo         || "");
-    fd.append("orderValidity",  v.orderValidity   || "");
-    fd.append("orderTitle",     v.orderTitle      || "");
+    fd.append("orderNo",         v.orderNo         || "");
+    fd.append("orderValidity",   v.orderValidity   || "");
+    fd.append("orderTitle",      v.orderTitle      || "");
 
-    fd.append(
-      "items",
+    const serializeRows = (rows) =>
       JSON.stringify(
-        v.items.map((it, i) => ({
-          slNo:            i + 1,
-          itemCode:        it.itemCode        || "",
-          itemDescription: it.itemDescription || "",
-          unit:            it.unit            || "",
-          orderQty:        Number(it.orderQty    || 0),
-          rate:            Number(it.rate        || 0),
-          gstPercent:      Number(it.gstPercent  || 0),
-        })),
-      ),
-    );
+        (rows || [])
+          .filter((it) => (it.itemCode || "").trim() || (it.itemName || "").trim())
+          .map((it, i) => ({
+            slNo:            i + 1,
+            itemCode:        it.itemCode        || "",
+            itemName:        it.itemName        || "",
+            itemDescription: it.itemDescription || "",
+            unit:            it.unit            || "",
+            orderQty:        Number(it.orderQty   || 0),
+            rate:            Number(it.rate       || 0),
+            gstPercent:      Number(it.gstPercent || 0),
+          })),
+      );
+
+    fd.append("items",    serializeRows(v.items));
+    fd.append("boqItems", serializeRows(v.boqItems));
 
     if (files.att1) fd.append("attachment_1", files.att1);
     if (files.att2) fd.append("attachment_2", files.att2);
@@ -277,7 +303,7 @@ export default function OGSaleOrderForm({ mode = "create", saleOrderId, onAfterS
         data:   buildPayload(),
       });
 
-      if (res?.data?.ogSaleOrderNo) setValue("ogSaleOrderNo", res.data.ogSaleOrderNo);
+      if (res?.data?.ogSaleOrderNo)   setValue("ogSaleOrderNo", res.data.ogSaleOrderNo);
       if (res?.data?.ogSaleOrderUuid) onUuid?.(res.data.ogSaleOrderUuid);
 
       const urls = {
@@ -327,7 +353,6 @@ export default function OGSaleOrderForm({ mode = "create", saleOrderId, onAfterS
     }
   };
 
-  // ── LOADING ───────────────────────────────────────────────────────────────────
   if (isLoading) {
     return (
       <div className="flex justify-center items-center h-[300px]">
@@ -339,7 +364,14 @@ export default function OGSaleOrderForm({ mode = "create", saleOrderId, onAfterS
   // ── RENDER ────────────────────────────────────────────────────────────────────
   return (
     <div className="p-3">
-      {/* PANEL TOGGLE — desktop only */}
+      {/* Unit suggestion datalist — shared by both tables */}
+      <datalist id="unit-datalist">
+        {unitOptions.map((u) => (
+          <option key={u.unitId} value={u.unitName} />
+        ))}
+      </datalist>
+
+      {/* PANEL TOGGLE */}
       <button
         type="button"
         onClick={() => setSidebarOpen((o) => !o)}
@@ -349,238 +381,181 @@ export default function OGSaleOrderForm({ mode = "create", saleOrderId, onAfterS
         {sidebarOpen ? <PanelLeftClose size={18} /> : <PanelLeftOpen size={18} />}
       </button>
 
-      {/* Stack on mobile, side-by-side on desktop */}
       <div className="flex flex-col gap-3 lg:flex-row lg:items-start">
 
-        {/* ── LEFT PANEL — always visible on mobile, toggle-controlled on desktop */}
+        {/* ── LEFT PANEL ─────────────────────────────────────────────────────── */}
         <div className={`w-full lg:w-[385px] lg:shrink-0 space-y-2 ${!sidebarOpen ? "lg:hidden" : ""}`}>
 
-            {/* ORDER DETAILS SECTION */}
-            <PMSection title="Order Details:">
+          <PMSection title="Order Details:">
+            <PMFormRow label="Sale Order Number" labelWidth="sm:w-[130px] sm:min-w-[130px]">
+              <PMInput
+                {...register("ogSaleOrderNo")}
+                disabled
+                placeholder="[Auto]"
+                expandable={false}
+                className="max-w-[160px]"
+              />
+            </PMFormRow>
 
-              {/* Order No: [prefix] [auto-no] [suffix] */}
-              <PMFormRow label="Order No" labelWidth="sm:w-[130px] sm:min-w-[130px]">
-                <div className="flex items-center gap-1 flex-1 min-w-0">
-                  <PMInput
-                    {...register("prefix")}
-                    disabled={disabled}
-                    placeholder="Prefix"
-                    expandable={false}
-                    className="w-[72px]"
-                  />
-                  {/* Middle: auto-generated number, always disabled */}
-                  <PMInput
-                    {...register("ogSaleOrderNo")}
-                    disabled
-                    placeholder="[Auto]"
-                    expandable={false}
-                    className="w-[88px]"
-                  />
-                  <PMInput
-                    {...register("suffix")}
-                    disabled={disabled}
-                    placeholder="Suffix"
-                    expandable={false}
-                    className="w-[72px]"
-                  />
-                </div>
-              </PMFormRow>
+            <PMFormRow label="Order Date" required={!disabled} labelWidth="sm:w-[130px] sm:min-w-[130px]">
+              <PMDateInput
+                {...register("ogSaleOrderDate")}
+                disabled={disabled}
+                hasError={errors.ogSaleOrderDate}
+                className="max-w-[200px]"
+              />
+            </PMFormRow>
 
-              <PMFormRow label="Order Date" required={!disabled} labelWidth="sm:w-[130px] sm:min-w-[130px]">
-                <PMDateInput
-                  {...register("ogSaleOrderDate")}
-                  disabled={disabled}
-                  hasError={errors.ogSaleOrderDate}
-                  className="max-w-[200px]"
-                />
-              </PMFormRow>
+            <PMFormRow label="Basic Amount" labelWidth="sm:w-[130px] sm:min-w-[130px]">
+              <PMInput
+                value={fmt(basicAmount)}
+                readOnly
+                disabled
+                expandable={false}
+                placeholder="0.00"
+                className="max-w-[180px] text-right"
+              />
+            </PMFormRow>
 
-              <PMFormRow label="Basic Amount" labelWidth="sm:w-[130px] sm:min-w-[130px]">
-                <PMInput
-                  value={fmt(basicAmount)}
-                  readOnly
+            <PMFormRow label="GST Amount" labelWidth="sm:w-[130px] sm:min-w-[130px]">
+              <div className="max-w-[180px]">
+                <input
+                  type="text"
+                  value={fmt(gstAmount)}
                   disabled
-                  expandable={false}
-                  placeholder="Number"
-                  className="max-w-[180px] text-right"
-                />
-              </PMFormRow>
-
-              <PMFormRow label="GST Amount" labelWidth="sm:w-[130px] sm:min-w-[130px]">
-                <div className="max-w-[180px]">
-                  <input
-                    type="text"
-                    value={fmt(gstAmount)}
-                    disabled readOnly
-                    className="w-full h-[30px] text-[13px] rounded-sm border border-[#5f8fbe] bg-[#d6e8f9] text-right px-2 font-semibold text-[#1c3a5e] outline-none"
-                  />
-                </div>
-              </PMFormRow>
-
-              <PMFormRow label="Total Amount" labelWidth="sm:w-[130px] sm:min-w-[130px]">
-                <div className="max-w-[180px]">
-                  <input
-                    type="text"
-                    value={fmt(totalAmount)}
-                    disabled
-                    readOnly
-                    className="w-full h-[30px] text-[13px] rounded-sm border border-[#5f8fbe] bg-[#d6e8f9] text-right px-2 font-semibold text-[#1c3a5e] outline-none"
-                  />
-                </div>
-              </PMFormRow>
-
-            </PMSection>
-
-            {/* ADDITIONAL DETAILS SECTION */}
-            <PMSection title="Additional Details:">
-
-              <PMFormRow label="Ref. Order No" labelWidth="sm:w-[130px] sm:min-w-[130px]">
-                <PMInput
-                  {...register("orderNo")}
-                  disabled={disabled}
-                  expandable={false}
-                  placeholder="Reference No"
-                />
-              </PMFormRow>
-
-              <PMFormRow label="Order Validity" labelWidth="sm:w-[130px] sm:min-w-[130px]">
-                <PMDateInput
-                  {...register("orderValidity")}
-                  disabled={disabled}
-                  className="max-w-[200px]"
-                />
-              </PMFormRow>
-
-              {/* Order Title — label on its own line, textarea full-width below */}
-              <div>
-                <span className="text-[13px] text-[#444444]">
-                  Order Title{!disabled && <span className="text-red-500 ml-0.5">*</span>}
-                </span>
-                <Controller
-                  name="orderTitle"
-                  control={control}
-                  render={({ field, fieldState }) => (
-                    <PMTextarea
-                      value={field.value || ""}
-                      onChange={field.onChange}
-                      onBlur={field.onBlur}
-                      hasError={fieldState.error}
-                      disabled={disabled}
-                      title="Order Title"
-                      placeholder="Text"
-                      rows={2}
-                      maxRows={5}
-                    />
-                  )}
+                  readOnly
+                  className="w-full h-[30px] text-[13px] rounded-sm border border-[#5f8fbe] bg-[#d6e8f9] text-right px-2 font-semibold text-[#1c3a5e] outline-none"
                 />
               </div>
+            </PMFormRow>
 
-              {/* ATTACHMENTS */}
-              <div className="pt-2 space-y-1.5">
-                {[
-                  { key: "att1", label: "Attachment 1" },
-                  { key: "att2", label: "Attachment 2" },
-                  { key: "att3", label: "Attachment 3" },
-                ].map(({ key, label }) => (
-                  <FileUploadInput
-                    key={key}
-                    label={label}
-                    showLabel
+            <PMFormRow label="Total Amount" labelWidth="sm:w-[130px] sm:min-w-[130px]">
+              <div className="max-w-[180px]">
+                <input
+                  type="text"
+                  value={fmt(totalAmount)}
+                  disabled
+                  readOnly
+                  className="w-full h-[30px] text-[13px] rounded-sm border border-[#5f8fbe] bg-[#d6e8f9] text-right px-2 font-semibold text-[#1c3a5e] outline-none"
+                />
+              </div>
+            </PMFormRow>
+          </PMSection>
+
+          <PMSection title="Additional Details:">
+            <PMFormRow label="Ref. Order Number" labelWidth="sm:w-[130px] sm:min-w-[130px]">
+              <PMInput
+                {...register("orderNo")}
+                disabled={disabled}
+                expandable={false}
+                placeholder="Client PO / Work Order No."
+              />
+            </PMFormRow>
+
+            <PMFormRow label="Order Validity" labelWidth="sm:w-[130px] sm:min-w-[130px]">
+              <PMDateInput
+                {...register("orderValidity")}
+                disabled={disabled}
+                className="max-w-[200px]"
+              />
+            </PMFormRow>
+
+            <div>
+              <span className="text-[13px] text-[#444444]">
+                Order Title{!disabled && <span className="text-red-500 ml-0.5">*</span>}
+              </span>
+              <Controller
+                name="orderTitle"
+                control={control}
+                render={({ field, fieldState }) => (
+                  <PMTextarea
+                    value={field.value || ""}
+                    onChange={field.onChange}
+                    onBlur={field.onBlur}
+                    hasError={fieldState.error}
                     disabled={disabled}
-                    existingFileUrl={existingUrls[key]}
-                    onFileChange={(file) => setFiles((prev) => ({ ...prev, [key]: file }))}
-                    onClearExisting={() => setExistingUrls((prev) => ({ ...prev, [key]: "" }))}
-                    resetKey={fileResetKey}
+                    title="Order Title"
+                    placeholder="Text"
+                    rows={2}
+                    maxRows={5}
                   />
-                ))}
-              </div>
-
-            </PMSection>
-
-          </div>
-
-        {/* ── RIGHT PANEL: BOQ TABLE ──────────────────────────────────────── */}
-        <div className="w-full lg:flex-1 min-w-0">
-          <div className="border border-[#b5b5b5]">
-
-            {/* TABLE TITLE */}
-            <div className="bg-[#d6e4f5] px-3 py-1.5 border-b border-[#b5b5b5] font-bold text-[15px] text-[#1c3a5e]">
-              Bill of Quantity [BOQ]
+                )}
+              />
             </div>
 
-            {/* TABLE — scrolls horizontally on all screens, max-height only on desktop */}
-            <div className="overflow-x-auto overflow-y-auto lg:max-h-[calc(100vh-260px)]">
-              <table className="w-full border-collapse text-sm" style={{ minWidth: 940 }}>
+            <div className="pt-2 space-y-1.5">
+              {[
+                { key: "att1", label: "Attachment 1" },
+                { key: "att2", label: "Attachment 2" },
+                { key: "att3", label: "Attachment 3" },
+              ].map(({ key, label }) => (
+                <FileUploadInput
+                  key={key}
+                  label={label}
+                  showLabel
+                  disabled={disabled}
+                  existingFileUrl={existingUrls[key]}
+                  onFileChange={(file) => setFiles((prev) => ({ ...prev, [key]: file }))}
+                  onClearExisting={() => setExistingUrls((prev) => ({ ...prev, [key]: "" }))}
+                  resetKey={fileResetKey}
+                />
+              ))}
+            </div>
+          </PMSection>
+        </div>
 
-                {/* HEADER */}
-                <thead className="sticky top-0 z-20">
-                  <tr className="bg-[#3b6ea5] text-white">
-                    <th className="border border-[#2a5080] w-[44px] text-center text-[13px] py-1.5">SL no</th>
-                    <th className="border border-[#2a5080] w-[110px] text-left px-2 text-[13px] py-1.5">Item Code</th>
-                    <th className="border border-[#2a5080] text-left px-2 text-[13px] py-1.5">Item Name &amp; Description</th>
-                    <th className="border border-[#2a5080] w-[70px] text-center text-[13px] py-1.5">Unit</th>
-                    <th className="border border-[#2a5080] w-[90px] text-right px-2 text-[13px] py-1.5">Order Qty</th>
-                    <th className="border border-[#2a5080] w-[100px] text-right px-2 text-[13px] py-1.5">Rate</th>
-                    <th className="border border-[#2a5080] w-[65px] text-right px-2 text-[13px] py-1.5">GST %</th>
-                    <th className="border border-[#2a5080] w-[110px] text-right px-2 text-[13px] py-1.5">Amount</th>
-                    {!disabled && (
-                      <th className="border border-[#2a5080] w-[40px] text-center text-[13px] py-1.5">Del</th>
-                    )}
-                  </tr>
-                </thead>
+        {/* ── RIGHT PANEL: Items + BOQ Items ──────────────────────────────────── */}
+        <div className="w-full lg:flex-1 min-w-0 space-y-4">
 
-                {/* BODY */}
+          {/* ── ITEMS TABLE ─────────────────────────────────────────────────── */}
+          <div className="border border-[#b5b5b5]">
+            <div className="bg-[#d6e4f5] px-3 py-1.5 border-b border-[#b5b5b5] font-bold text-[15px] text-[#1c3a5e]">
+              Items
+            </div>
+            <div ref={itemsScrollRef} className="overflow-x-auto overflow-y-auto lg:max-h-[calc(50vh-130px)]">
+              <table className="w-full border-collapse text-sm" style={{ minWidth: 1000 }}>
+                <TableHeader showRequired disabled={disabled} />
                 <tbody>
-                  {fields.map((field, index) => {
-                    const qty    = Number(watch(`items.${index}.orderQty`) || 0);
-                    const rate   = Number(watch(`items.${index}.rate`)     || 0);
+                  {itemFields.map((field, index) => {
+                    const qty    = Number(watchedItems[index]?.orderQty || 0);
+                    const rate   = Number(watchedItems[index]?.rate     || 0);
                     const amount = qty * rate;
-
                     return (
                       <tr key={field.id} className={index % 2 === 0 ? "bg-white" : "bg-[#f5f8fc]"}>
-
-                        {/* SL */}
                         <td className="border border-[#ccc] text-center bg-[#edf4fb] text-[13px] font-medium align-middle">
                           {index + 1}
                         </td>
-
-                        {/* ITEM CODE — auto-populated from item selection, always disabled */}
                         <td className="border border-[#ccc] p-0 align-middle">
                           <input
-                            {...register(`items.${index}.itemDisplayCode`)}
-                            disabled
-                            placeholder="Code"
-                            className={`
-                              ${getInputClass(false, true)}
-                              border-0 rounded-none w-full h-[30px] text-[13px] px-1
-                            `}
-                          />
-                          <input {...register(`items.${index}.itemCode`)} type="hidden" />
-                          <input {...register(`items.${index}.itemName`)} type="hidden" />
-                        </td>
-
-                        {/* ITEM NAME & DESCRIPTION */}
-                        <td className="border border-[#ccc] p-0">
-                          {/* Top: SearchableSelect for item name */}
-                          <SearchableSelect
-                            options={itemsOptions}
-                            value={watch(`items.${index}.itemCode`) || ""}
+                            {...register(`items.${index}.itemCode`)}
                             disabled={disabled}
-                            onChange={(value, item) => handleItemSelect(index, value, item)}
-                            placeholder="Select Item"
-                            labelKey="itemName"
-                            valueKey="itemCode"
-                            searchKeys={["itemName", "itemCode"]}
-                            className="rounded-none"
+                            placeholder="Code"
+                            className={`${getInputClass(false, disabled)} border-0 rounded-none w-full h-[52px] text-[13px] px-1.5`}
                           />
-                          {/* Bottom: Description — expandable cell */}
+                        </td>
+                        <td className="border border-[#ccc] p-0">
+                          <Controller
+                            name={`items.${index}.itemName`}
+                            control={control}
+                            render={({ field: f }) => (
+                              <ExpandableTextCell
+                                value={f.value || ""}
+                                onChange={f.onChange}
+                                disabled={disabled}
+                                label="Item Name"
+                                placeholder="Item Name…"
+                                textSize="text-[13px]"
+                              />
+                            )}
+                          />
+                          <div className="border-t border-[#e0e0e0]" />
                           <Controller
                             name={`items.${index}.itemDescription`}
                             control={control}
-                            render={({ field }) => (
+                            render={({ field: f }) => (
                               <ExpandableTextCell
-                                value={field.value || ""}
-                                onChange={field.onChange}
+                                value={f.value || ""}
+                                onChange={f.onChange}
                                 disabled={disabled}
                                 label="Item Description"
                                 placeholder="Description…"
@@ -588,21 +563,16 @@ export default function OGSaleOrderForm({ mode = "create", saleOrderId, onAfterS
                             )}
                           />
                         </td>
-
-                        {/* UNIT — auto-filled from item, disabled */}
                         <td className="border border-[#ccc] p-0 align-middle">
                           <input
                             {...register(`items.${index}.unit`)}
-                            disabled
+                            list="unit-datalist"
+                            disabled={disabled}
                             placeholder="Unit"
-                            className={`
-                              ${getInputClass(false, true)}
-                              border-0 rounded-none w-full h-[30px] text-[13px] text-center
-                            `}
+                            title={watchedItems[index]?.unit || ""}
+                            className={`${getInputClass(false, disabled)} border-0 rounded-none w-full h-[52px] text-[13px] text-center px-1 truncate`}
                           />
                         </td>
-
-                        {/* ORDER QTY */}
                         <td className="border border-[#ccc] p-0 align-middle">
                           <input
                             type="number"
@@ -613,14 +583,9 @@ export default function OGSaleOrderForm({ mode = "create", saleOrderId, onAfterS
                             })}
                             disabled={disabled}
                             placeholder="0"
-                            className={`
-                              ${getInputClass(errors?.items?.[index]?.orderQty, disabled)}
-                              border-0 rounded-none w-full h-[52px] text-[13px] text-right pr-2
-                            `}
+                            className={`${getInputClass(errors?.items?.[index]?.orderQty, disabled)} border-0 rounded-none w-full h-[52px] text-[13px] text-right pr-2`}
                           />
                         </td>
-
-                        {/* RATE */}
                         <td className="border border-[#ccc] p-0 align-middle">
                           <input
                             type="number"
@@ -631,14 +596,9 @@ export default function OGSaleOrderForm({ mode = "create", saleOrderId, onAfterS
                             })}
                             disabled={disabled}
                             placeholder="0"
-                            className={`
-                              ${getInputClass(errors?.items?.[index]?.rate, disabled)}
-                              border-0 rounded-none w-full h-[52px] text-[13px] text-right pr-2
-                            `}
+                            className={`${getInputClass(errors?.items?.[index]?.rate, disabled)} border-0 rounded-none w-full h-[52px] text-[13px] text-right pr-2`}
                           />
                         </td>
-
-                        {/* GST % */}
                         <td className="border border-[#ccc] p-0 align-middle">
                           <input
                             type="number"
@@ -650,38 +610,28 @@ export default function OGSaleOrderForm({ mode = "create", saleOrderId, onAfterS
                             })}
                             disabled={disabled}
                             placeholder="0"
-                            className={`
-                              ${getInputClass(false, disabled)}
-                              border-0 rounded-none w-full h-[52px] text-[13px] text-right pr-2
-                            `}
+                            className={`${getInputClass(false, disabled)} border-0 rounded-none w-full h-[52px] text-[13px] text-right pr-2`}
                           />
                         </td>
-
-                        {/* AMOUNT (computed) */}
                         <td className="border border-[#ccc] bg-[#edf8ed] px-2 text-[13px] font-medium text-right align-middle">
                           {fmt(amount)}
                         </td>
-
-                        {/* DELETE */}
                         {!disabled && (
                           <td className="border border-[#ccc] text-center align-middle">
                             <button
                               type="button"
-                              disabled={fields.length === 1}
-                              onClick={() => remove(index)}
+                              disabled={itemFields.length === 1}
+                              onClick={() => removeItem(index)}
                               className="inline-flex items-center justify-center disabled:opacity-30"
                             >
                               <Trash2 className="w-4 h-4 text-red-500" />
                             </button>
                           </td>
                         )}
-
                       </tr>
                     );
                   })}
                 </tbody>
-
-                {/* FOOTER */}
                 <tfoot className="sticky bottom-0 z-10 bg-[#b7d5f0]">
                   <tr className="font-bold">
                     <td className="border border-[#9ec5e0]" />
@@ -691,29 +641,186 @@ export default function OGSaleOrderForm({ mode = "create", saleOrderId, onAfterS
                     <td className="border border-[#9ec5e0]" />
                     <td className="border border-[#9ec5e0] px-2 text-right text-[13px]">TOTAL=</td>
                     <td className="border border-[#9ec5e0]" />
-                    <td className="border border-[#9ec5e0] px-2 text-right text-[13px]">
-                      {fmt(basicAmount)}
-                    </td>
+                    <td className="border border-[#9ec5e0] px-2 text-right text-[13px]">{fmt(itemsBasic)}</td>
                     {!disabled && <td className="border border-[#9ec5e0]" />}
                   </tr>
                 </tfoot>
-
               </table>
             </div>
+            {!disabled && (
+              <div className="mt-2 flex justify-end px-2 pb-2">
+                <button
+                  type="button"
+                  onClick={addItemRow}
+                  className="px-4 py-1 bg-[#9fc5e8] border border-[#6d9dc5] rounded-sm text-sm font-medium hover:brightness-95 cursor-pointer"
+                >
+                  + Add Row
+                </button>
+              </div>
+            )}
           </div>
 
-          {/* ADD ROW */}
-          {!disabled && (
-            <div className="mt-3 flex justify-end">
-              <button
-                type="button"
-                onClick={() => append({ ...DEFAULT_ITEM })}
-                className="px-4 py-1 bg-[#9fc5e8] border border-[#6d9dc5] rounded-sm text-sm font-medium hover:brightness-95 cursor-pointer"
-              >
-                + Add Row
-              </button>
+          {/* ── BOQ ITEMS TABLE ──────────────────────────────────────────────── */}
+          <div className="border border-[#b5b5b5]">
+            <div className="bg-[#d6e4f5] px-3 py-1.5 border-b border-[#b5b5b5] font-bold text-[15px] text-[#1c3a5e]">
+              BOQ Items
             </div>
-          )}
+            <div ref={boqScrollRef} className="overflow-x-auto overflow-y-auto lg:max-h-[calc(50vh-130px)]">
+              <table className="w-full border-collapse text-sm" style={{ minWidth: 1000 }}>
+                <TableHeader showRequired={false} disabled={disabled} />
+                <tbody>
+                  {boqFields.length === 0 && (
+                    <tr>
+                      <td
+                        colSpan={!disabled ? 9 : 8}
+                        className="text-center text-[13px] text-[#aaa] py-4"
+                      >
+                        No BOQ rows — click &ldquo;+ Add Row&rdquo; to add
+                      </td>
+                    </tr>
+                  )}
+                  {boqFields.map((field, index) => {
+                    const qty    = Number(watchedBoqItems[index]?.orderQty || 0);
+                    const rate   = Number(watchedBoqItems[index]?.rate     || 0);
+                    const amount = qty * rate;
+                    return (
+                      <tr key={field.id} className={index % 2 === 0 ? "bg-white" : "bg-[#f5f8fc]"}>
+                        <td className="border border-[#ccc] text-center bg-[#edf4fb] text-[13px] font-medium align-middle">
+                          {index + 1}
+                        </td>
+                        <td className="border border-[#ccc] p-0 align-middle">
+                          <input
+                            {...register(`boqItems.${index}.itemCode`)}
+                            disabled={disabled}
+                            placeholder="Code"
+                            className={`${getInputClass(false, disabled)} border-0 rounded-none w-full h-[52px] text-[13px] px-1.5`}
+                          />
+                        </td>
+                        <td className="border border-[#ccc] p-0">
+                          <Controller
+                            name={`boqItems.${index}.itemName`}
+                            control={control}
+                            render={({ field: f }) => (
+                              <ExpandableTextCell
+                                value={f.value || ""}
+                                onChange={f.onChange}
+                                disabled={disabled}
+                                label="Item Name"
+                                placeholder="Item Name…"
+                                textSize="text-[13px]"
+                              />
+                            )}
+                          />
+                          <div className="border-t border-[#e0e0e0]" />
+                          <Controller
+                            name={`boqItems.${index}.itemDescription`}
+                            control={control}
+                            render={({ field: f }) => (
+                              <ExpandableTextCell
+                                value={f.value || ""}
+                                onChange={f.onChange}
+                                disabled={disabled}
+                                label="Item Description"
+                                placeholder="Description…"
+                              />
+                            )}
+                          />
+                        </td>
+                        <td className="border border-[#ccc] p-0 align-middle">
+                          <input
+                            {...register(`boqItems.${index}.unit`)}
+                            list="unit-datalist"
+                            disabled={disabled}
+                            placeholder="Unit"
+                            title={watchedBoqItems[index]?.unit || ""}
+                            className={`${getInputClass(false, disabled)} border-0 rounded-none w-full h-[52px] text-[13px] text-center px-1 truncate`}
+                          />
+                        </td>
+                        <td className="border border-[#ccc] p-0 align-middle">
+                          <input
+                            type="number"
+                            min={0}
+                            step="any"
+                            {...register(`boqItems.${index}.orderQty`, {
+                              onChange: (e) => { if (Number(e.target.value) < 0) e.target.value = 0; },
+                            })}
+                            disabled={disabled}
+                            placeholder="0"
+                            className={`${getInputClass(false, disabled)} border-0 rounded-none w-full h-[52px] text-[13px] text-right pr-2`}
+                          />
+                        </td>
+                        <td className="border border-[#ccc] p-0 align-middle">
+                          <input
+                            type="number"
+                            min={0}
+                            step="any"
+                            {...register(`boqItems.${index}.rate`, {
+                              onChange: (e) => { if (Number(e.target.value) < 0) e.target.value = 0; },
+                            })}
+                            disabled={disabled}
+                            placeholder="0"
+                            className={`${getInputClass(false, disabled)} border-0 rounded-none w-full h-[52px] text-[13px] text-right pr-2`}
+                          />
+                        </td>
+                        <td className="border border-[#ccc] p-0 align-middle">
+                          <input
+                            type="number"
+                            min={0}
+                            max={100}
+                            step="any"
+                            {...register(`boqItems.${index}.gstPercent`, {
+                              onChange: (e) => { if (Number(e.target.value) < 0) e.target.value = 0; },
+                            })}
+                            disabled={disabled}
+                            placeholder="0"
+                            className={`${getInputClass(false, disabled)} border-0 rounded-none w-full h-[52px] text-[13px] text-right pr-2`}
+                          />
+                        </td>
+                        <td className="border border-[#ccc] bg-[#edf8ed] px-2 text-[13px] font-medium text-right align-middle">
+                          {fmt(amount)}
+                        </td>
+                        {!disabled && (
+                          <td className="border border-[#ccc] text-center align-middle">
+                            <button
+                              type="button"
+                              onClick={() => removeBoq(index)}
+                              className="inline-flex items-center justify-center"
+                            >
+                              <Trash2 className="w-4 h-4 text-red-500" />
+                            </button>
+                          </td>
+                        )}
+                      </tr>
+                    );
+                  })}
+                </tbody>
+                <tfoot className="sticky bottom-0 z-10 bg-[#b7d5f0]">
+                  <tr className="font-bold">
+                    <td className="border border-[#9ec5e0]" />
+                    <td className="border border-[#9ec5e0]" />
+                    <td className="border border-[#9ec5e0]" />
+                    <td className="border border-[#9ec5e0]" />
+                    <td className="border border-[#9ec5e0]" />
+                    <td className="border border-[#9ec5e0] px-2 text-right text-[13px]">TOTAL=</td>
+                    <td className="border border-[#9ec5e0]" />
+                    <td className="border border-[#9ec5e0] px-2 text-right text-[13px]">{fmt(boqBasic)}</td>
+                    {!disabled && <td className="border border-[#9ec5e0]" />}
+                  </tr>
+                </tfoot>
+              </table>
+            </div>
+            {!disabled && (
+              <div className="mt-2 flex justify-end px-2 pb-2">
+                <button
+                  type="button"
+                  onClick={addBoqRow}
+                  className="px-4 py-1 bg-[#9fc5e8] border border-[#6d9dc5] rounded-sm text-sm font-medium hover:brightness-95 cursor-pointer"
+                >
+                  + Add Row
+                </button>
+              </div>
+            )}
+          </div>
 
           {/* ACTION BUTTONS */}
           {!isViewMode && (

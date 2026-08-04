@@ -35,9 +35,7 @@ function SigRow({ label, name, dateStr }) {
 }
 
 /* ─── Download helpers ──────────────────────────────────────── */
-function printAsPDF() {
-  window.print();
-}
+function printAsPDF() { window.print(); }
 
 async function downloadDocx(data, qrCanvasRef) {
   const {
@@ -63,12 +61,14 @@ async function downloadDocx(data, qrCanvasRef) {
   const run = (text, opts = {}) =>
     new TextRun({ text: String(text ?? "-"), font: "Calibri", size: 20, ...opts });
 
-  const nilB       = { style: BorderStyle.NIL, size: 0, color: "auto" };
-  const nilBorders = { top: nilB, bottom: nilB, left: nilB, right: nilB, insideH: nilB, insideV: nilB };
-  const tblBorder  = { style: BorderStyle.SINGLE, size: 4, color: "B0B0B0" };
-  const tblBorders = { top: tblBorder, bottom: tblBorder, left: tblBorder, right: tblBorder, insideH: tblBorder, insideV: tblBorder };
+  const nilB        = { style: BorderStyle.NIL, size: 0, color: "auto" };
+  const nilBorders  = { top: nilB, bottom: nilB, left: nilB, right: nilB, insideH: nilB, insideV: nilB };
+  const tblBorder   = { style: BorderStyle.SINGLE, size: 4, color: "B0B0B0" };
+  const tblBorders  = { top: tblBorder, bottom: tblBorder, left: tblBorder, right: tblBorder, insideH: tblBorder, insideV: tblBorder };
   const headShading = { type: ShadingType.CLEAR, color: "D9D9D9", fill: "D9D9D9" };
   const blueShading = { type: ShadingType.CLEAR, color: "B6DDE8", fill: "B6DDE8" };
+  const grayShading = { type: ShadingType.CLEAR, color: "D9D9D9", fill: "D9D9D9" };
+  const secShading  = { type: ShadingType.CLEAR, color: "EEF4FB", fill: "EEF4FB" };
 
   const PAGE_W = 10466;
   const mkCell = (children, w) =>
@@ -134,8 +134,7 @@ async function downloadDocx(data, qrCanvasRef) {
   const infoCell = (paras, w) =>
     new TableCell({ children: paras, width: { size: w, type: WidthType.DXA }, borders: nilBorders, margins: { top: 40, bottom: 40, left: 60, right: 60 } });
 
-  const orderNoDisplay = [data.prefix, data.ogSaleOrderNo, data.suffix].filter(Boolean).join(" | ");
-  const leftInfo  = [["Order No", orderNoDisplay], ["Order Date", fmt.date(data.ogSaleOrderDate)], ["Ref. Order No", data.orderNo]];
+  const leftInfo  = [["Sale Order No", data.ogSaleOrderNo], ["Order Date", fmt.date(data.ogSaleOrderDate)], ["Ref. Order No", data.orderNo]];
   const rightInfo = [["Order Title", data.orderTitle], ["Order Validity", fmt.date(data.orderValidity)], ["Project Code", data.projectCode]];
 
   const infoTable = new Table({
@@ -156,18 +155,137 @@ async function downloadDocx(data, qrCanvasRef) {
     }),
   });
 
-  const cW = [0.05, 0.11, 0.10, 0.30, 0.08, 0.10, 0.12, 0.14].map((p) => Math.round(PAGE_W * p));
+  // 8 columns: SL No | Item Code | Item Name & Desc | Unit | Qty | Rate | GST% | Amount
+  const cW = [0.05, 0.09, 0.34, 0.08, 0.09, 0.12, 0.07, 0.16].map((p) => Math.round(PAGE_W * p));
   cW[7] = PAGE_W - cW.slice(0, 7).reduce((a, b) => a + b, 0);
 
-  const itemCell = (text, w, isHeader = false, shading) =>
+  const tCell = (text, w, bold = false, shading, align = AlignmentType.LEFT) =>
     new TableCell({
-      children: [new Paragraph({ children: [run(String(text ?? ""), { bold: isHeader, size: isHeader ? 20 : 18 })] })],
+      children: [new Paragraph({ alignment: align, children: [run(String(text ?? ""), { bold, size: bold ? 20 : 18 })] })],
       width: { size: w, type: WidthType.DXA },
       shading: shading || undefined,
+      borders: tblBorders,
       margins: { top: 50, bottom: 50, left: 70, right: 70 },
     });
 
-  const items = (data.items || []).filter(Boolean);
+  const tCellMulti = (paras, w, shading) =>
+    new TableCell({
+      children: paras,
+      width: { size: w, type: WidthType.DXA },
+      shading: shading || undefined,
+      borders: tblBorders,
+      margins: { top: 50, bottom: 50, left: 70, right: 70 },
+    });
+
+  const hdrs = ["Sl\nNo", "Item\nCode", "Item Name & Description", "Unit", "Order\nQty", "Rate", "GST\n%", "Amount"];
+  const items    = (data.items    || []).filter(Boolean);
+  const boqItems = (data.boqItems || []).filter(Boolean);
+  const hasBoth  = items.length > 0 && boqItems.length > 0;
+
+  const sectionHeaderRow = (label) =>
+    new TableRow({
+      children: [
+        new TableCell({
+          children: [new Paragraph({ children: [run(label, { bold: true, size: 19 })] })],
+          columnSpan: 8,
+          shading: secShading,
+          borders: tblBorders,
+          margins: { top: 40, bottom: 40, left: 80, right: 80 },
+        }),
+      ],
+    });
+
+  const makeItemRows = (rowList, startIdx = 0) =>
+    rowList.map((item, idx) =>
+      new TableRow({
+        children: [
+          tCell(startIdx + idx + 1, cW[0], false, undefined, AlignmentType.CENTER),
+          tCell(item.itemCode || "", cW[1]),
+          tCellMulti([
+            new Paragraph({ children: [run(item.itemName || "", { bold: true, size: 19 })] }),
+            ...(item.itemDescription ? [new Paragraph({ children: [run(item.itemDescription, { size: 16, color: "6B7280" })] })] : []),
+          ], cW[2]),
+          tCell(item.unit || "", cW[3], false, undefined, AlignmentType.CENTER),
+          tCell(item.orderQty ?? "", cW[4], false, undefined, AlignmentType.RIGHT),
+          tCell(fmt.number(item.rate), cW[5], false, undefined, AlignmentType.RIGHT),
+          tCell(item.gstPercent != null ? `${item.gstPercent}%` : "-", cW[6], false, undefined, AlignmentType.CENTER),
+          tCell(fmt.number(item.amount), cW[7], false, undefined, AlignmentType.RIGHT),
+        ],
+      })
+    );
+
+  const nilSide = { style: BorderStyle.NIL, size: 0, color: "auto" };
+  const solidB  = { style: BorderStyle.SINGLE, size: 4, color: "B0B0B0" };
+
+  const amtLabelCell = (label, bold = false, shading) =>
+    new TableCell({
+      children: [new Paragraph({ alignment: AlignmentType.LEFT, children: [run(label, { bold, size: bold ? 20 : 18 })] })],
+      columnSpan: 1,
+      shading: shading || undefined,
+      borders: { top: nilSide, bottom: nilSide, left: solidB, right: solidB, insideH: nilSide, insideV: nilSide },
+      margins: { top: 40, bottom: 40, left: 70, right: 70 },
+    });
+
+  const amtValueCell = (val, bold = false, shading) =>
+    new TableCell({
+      children: [new Paragraph({ alignment: AlignmentType.RIGHT, children: [run(fmt.number(val), { bold, size: bold ? 20 : 18 })] })],
+      shading: shading || undefined,
+      borders: { top: nilSide, bottom: nilSide, left: solidB, right: solidB, insideH: nilSide, insideV: nilSide },
+      margins: { top: 40, bottom: 40, left: 70, right: 70 },
+    });
+
+  const amtEmptyCell = (first = false, last = false) =>
+    new TableCell({
+      children: [new Paragraph({ text: "" })],
+      borders: {
+        top: nilSide, bottom: nilSide,
+        left: first ? solidB : nilSide,
+        right: nilSide,
+        insideH: nilSide, insideV: nilSide,
+      },
+      margins: { top: 0, bottom: 0, left: 0, right: 0 },
+    });
+
+  const mkAmtRow = (label, val, bold = false, shading) =>
+    new TableRow({
+      children: [
+        amtEmptyCell(true), amtEmptyCell(), amtEmptyCell(), amtEmptyCell(), amtEmptyCell(),
+        new TableCell({
+          children: [new Paragraph({ alignment: AlignmentType.LEFT, children: [run(label, { bold, size: bold ? 20 : 18 })] })],
+          columnSpan: 2,
+          shading: shading || undefined,
+          borders: { top: nilSide, bottom: nilSide, left: solidB, right: solidB, insideH: nilSide, insideV: nilSide },
+          margins: { top: 40, bottom: 40, left: 70, right: 70 },
+        }),
+        amtValueCell(val, bold, shading),
+      ],
+    });
+
+  const mkAmtTotalRow = (label, val) =>
+    new TableRow({
+      children: [
+        new TableCell({
+          children: [new Paragraph({ text: "" })],
+          columnSpan: 5,
+          borders: { top: nilSide, bottom: solidB, left: solidB, right: nilSide, insideH: nilSide, insideV: nilSide },
+          margins: { top: 0, bottom: 0, left: 0, right: 0 },
+        }),
+        new TableCell({
+          children: [new Paragraph({ alignment: AlignmentType.LEFT, children: [run(label, { bold: true, size: 20 })] })],
+          columnSpan: 2,
+          shading: grayShading,
+          borders: tblBorders,
+          margins: { top: 50, bottom: 50, left: 70, right: 70 },
+        }),
+        new TableCell({
+          children: [new Paragraph({ alignment: AlignmentType.RIGHT, children: [run(fmt.number(val), { bold: true, size: 20 })] })],
+          shading: grayShading,
+          borders: tblBorders,
+          margins: { top: 50, bottom: 50, left: 70, right: 70 },
+        }),
+      ],
+    });
+
   const itemsTable = new Table({
     columnWidths: cW,
     width: { size: PAGE_W, type: WidthType.DXA },
@@ -175,25 +293,25 @@ async function downloadDocx(data, qrCanvasRef) {
     rows: [
       new TableRow({
         tableHeader: true,
-        children: ["Sl No", "Item Code", "Disp. Code", "Item Name", "Unit", "Qty", "Rate", "Amount"].map((h, i) =>
-          itemCell(h, cW[i], true, headShading)
-        ),
+        children: hdrs.map((h, i) => tCell(h, cW[i], true, headShading, AlignmentType.CENTER)),
       }),
-      ...items.map((item, idx) =>
-        new TableRow({
-          children: [
-            itemCell(idx + 1,                       cW[0]),
-            itemCell(item.itemCode,                  cW[1]),
-            itemCell(item.itemDisplayCode || "",      cW[2]),
-            itemCell(item.itemName,                  cW[3]),
-            itemCell(item.unit,                      cW[4]),
-            itemCell(item.orderQty,                  cW[5]),
-            itemCell(fmt.number(item.rate),          cW[6]),
-            itemCell(fmt.number(item.amount),        cW[7]),
-          ],
-        })
-      ),
-      new TableRow({ children: cW.map((w) => itemCell("", w, false, blueShading)) }),
+      ...(hasBoth ? [sectionHeaderRow("Items")] : []),
+      ...makeItemRows(items, 0),
+      ...(hasBoth ? [sectionHeaderRow("BOQ Items"), ...makeItemRows(boqItems, 0)] : []),
+      // Blue total row
+      new TableRow({
+        children: [
+          tCell("", cW[0], false, blueShading), tCell("", cW[1], false, blueShading),
+          tCell("", cW[2], false, blueShading), tCell("", cW[3], false, blueShading),
+          tCell("", cW[4], false, blueShading), tCell("TOTAL=", cW[5], true, blueShading, AlignmentType.RIGHT),
+          tCell("", cW[6], false, blueShading),
+          tCell(fmt.number(data.basicAmount), cW[7], true, blueShading, AlignmentType.RIGHT),
+        ],
+      }),
+      // Amount summary rows
+      mkAmtRow("Basic Amount", data.basicAmount),
+      mkAmtRow("GST Amount",   data.gstAmount),
+      mkAmtTotalRow("Total Amount", data.totalAmount),
     ],
   });
 
@@ -206,22 +324,11 @@ async function downloadDocx(data, qrCanvasRef) {
         infoTable,
         new Paragraph({ text: "", spacing: { after: 120 } }),
         itemsTable,
-        new Paragraph({ text: "", spacing: { after: 120 } }),
-        ...([
-          ["Basic Amount", fmt.number(data.basicAmount)],
-          ["GST Amount",   fmt.number(data.gstAmount)],
-          ["Total Amount", fmt.number(data.totalAmount)],
-        ].map(([lbl, val]) =>
-          new Paragraph({
-            children: [run(lbl, { bold: true, color: "374151" }), run(` : ${val}`)],
-            spacing: { after: 40 },
-          })
-        )),
         new Paragraph({ text: "", spacing: { after: 200 } }),
-        ...[
-          ["Created By",  data.createdBy,   fmt.dateTime(data.createdAt)],
-          ["Submitted By",data.submittedBy, fmt.dateTime(data.submittedAt)],
-          ["Approved By", data.approvedBy,  fmt.dateTime(data.finalApprovedAt)],
+        ...([
+          ["Created By",   data.createdBy,   fmt.dateTime(data.createdAt)],
+          ["Submitted By", data.submittedBy,  fmt.dateTime(data.submittedAt)],
+          ["Approved By",  data.approvedBy,   fmt.dateTime(data.finalApprovedAt)],
         ].map(([lbl, name, date]) =>
           new Paragraph({
             children: [
@@ -232,7 +339,7 @@ async function downloadDocx(data, qrCanvasRef) {
             ],
             spacing: { after: 60 },
           })
-        ),
+        )),
       ],
     }],
   });
@@ -275,8 +382,12 @@ export default function OGSaleOrderPrintPage() {
 
   if (error || !data) return <PrintErrorPage status={error?.status} message={error?.message} />;
 
-  const items          = (data.items || []).filter(Boolean);
-  const orderNoDisplay = [data.prefix, data.ogSaleOrderNo, data.suffix].filter(Boolean).join(" | ");
+  const items    = (data.items    || []).filter(Boolean);
+  const boqItems = (data.boqItems || []).filter(Boolean);
+  const hasBoth  = items.length > 0 && boqItems.length > 0;
+
+  const COL_SPAN = 8;
+  const borderSide = "1px solid #b0b0b0";
 
   return (
     <>
@@ -323,10 +434,10 @@ export default function OGSaleOrderPrintPage() {
           {/* ── INFO SECTION ───────────────────────────────── */}
           <div className="grid grid-cols-2 px-6 py-3" style={{ gridTemplateColumns: "55% 45%" }}>
             <div>
-              <InfoRow label="Order No"      value={orderNoDisplay} />
-              <InfoRow label="Order Date"    value={fmt.date(data.ogSaleOrderDate)} />
-              <InfoRow label="Ref. Order No" value={data.orderNo} />
-              <InfoRow label="Project Code"  value={data.projectCode} />
+              <InfoRow label="Sale Order No"  value={data.ogSaleOrderNo} />
+              <InfoRow label="Order Date"     value={fmt.date(data.ogSaleOrderDate)} />
+              <InfoRow label="Ref. Order No"  value={data.orderNo} />
+              <InfoRow label="Project Code"   value={data.projectCode} />
             </div>
             <div className="pl-6">
               <InfoRow label="Order Title"    value={data.orderTitle} />
@@ -335,25 +446,37 @@ export default function OGSaleOrderPrintPage() {
             </div>
           </div>
 
-          {/* ── ITEMS TABLE ────────────────────────────────── */}
-          <div className="px-6 py-3">
+          {/* ── COMBINED ITEMS TABLE ───────────────────────── */}
+          <div className="px-6 pb-0">
             <div className="overflow-x-auto">
-              <table className="w-full border-collapse" style={{ tableLayout: "fixed", minWidth: 700 }}>
+              <table className="w-full border-collapse" style={{ tableLayout: "fixed", minWidth: 680 }}>
+                <colgroup>
+                  <col style={{ width: "5%" }} />
+                  <col style={{ width: "9%" }} />
+                  <col style={{ width: "34%" }} />
+                  <col style={{ width: "8%" }} />
+                  <col style={{ width: "9%" }} />
+                  <col style={{ width: "12%" }} />
+                  <col style={{ width: "7%" }} />
+                  <col style={{ width: "16%" }} />
+                </colgroup>
+
+                {/* HEADER */}
                 <thead>
                   <tr className={COLOR.tableHeadBg}>
                     {[
-                      { label: "SL\nNo",          cls: "w-[5%]" },
-                      { label: "Item\nCode",       cls: "w-[9%]" },
-                      { label: "Disp.\nCode",      cls: "w-[10%]" },
-                      { label: "Item Name & Description", cls: "w-[32%]" },
-                      { label: "Unit",             cls: "w-[7%]" },
-                      { label: "Order\nQty",       cls: "w-[9%]" },
-                      { label: "Rate",             cls: "w-[12%]" },
-                      { label: "Amount",           cls: "w-[16%]" },
-                    ].map(({ label, cls }) => (
+                      { label: "SL\nNo",                   align: "center" },
+                      { label: "Item\nCode",               align: "center" },
+                      { label: "Item Name & Description",  align: "center" },
+                      { label: "Unit",                     align: "center" },
+                      { label: "Order\nQty",               align: "center" },
+                      { label: "Rate",                     align: "center" },
+                      { label: "GST\n%",                   align: "center" },
+                      { label: "Amount",                   align: "center" },
+                    ].map(({ label, align }) => (
                       <th
                         key={label}
-                        className={`border ${COLOR.tableBorder} px-2 py-1.5 text-center ${SIZE.tableHead} ${WEIGHT.bold} text-gray-900 ${cls}`}
+                        className={`border ${COLOR.tableBorder} px-1 py-1.5 ${SIZE.tableHead} ${WEIGHT.bold} text-gray-900 text-${align}`}
                         style={{ whiteSpace: "pre-line" }}
                       >
                         {label}
@@ -361,61 +484,130 @@ export default function OGSaleOrderPrintPage() {
                     ))}
                   </tr>
                 </thead>
+
                 <tbody>
+                  {/* ── Items section ── */}
+                  {hasBoth && (
+                    <tr>
+                      <td
+                        colSpan={COL_SPAN}
+                        className={`border ${COLOR.tableBorder} px-3 py-1 ${SIZE.tableCell} ${WEIGHT.semibold} text-[#1c3a5e] bg-[#eef4fb]`}
+                      >
+                        Items
+                      </td>
+                    </tr>
+                  )}
                   {items.map((item, idx) => (
-                    <tr key={idx} className={COLOR.tableRowOdd} style={{ breakInside: "avoid" }}>
-                      <td className={`border ${COLOR.tableBorder} px-2 py-1.5 ${SIZE.tableCell} text-center`}>{idx + 1}</td>
-                      <td className={`border ${COLOR.tableBorder} px-2 py-1.5 ${SIZE.tableCell}`}>{item.itemCode}</td>
-                      <td className={`border ${COLOR.tableBorder} px-2 py-1.5 ${SIZE.tableCell}`}>{item.itemDisplayCode || ""}</td>
-                      <td className={`border ${COLOR.tableBorder} px-2 py-1.5`}>
-                        <p className={ITEM_NAME}>{item.itemName}</p>
-                        {item.itemDescription && item.itemDescription !== "-" && (
-                          <p className={ITEM_SUB}>{item.itemDescription}</p>
-                        )}
+                    <tr key={`item-${idx}`} className={COLOR.tableRowOdd} style={{ breakInside: "avoid" }}>
+                      <td className={`border ${COLOR.tableBorder} px-1 py-1.5 ${SIZE.tableCell} text-center`}>{idx + 1}</td>
+                      <td className={`border ${COLOR.tableBorder} px-1 py-1.5 ${SIZE.tableCell}`}>{item.itemCode || "-"}</td>
+                      <td className={`border ${COLOR.tableBorder} px-1 py-1.5`}>
+                        <p className={ITEM_NAME}>{item.itemName || "-"}</p>
+                        {item.itemDescription && <p className={ITEM_SUB}>{item.itemDescription}</p>}
                       </td>
-                      <td className={`border ${COLOR.tableBorder} px-2 py-1.5 ${SIZE.tableCell} text-center`}>{item.unit}</td>
-                      <td className={`border ${COLOR.tableBorder} px-2 py-1.5 ${SIZE.tableCell} text-right`}>{item.orderQty}</td>
-                      <td className={`border ${COLOR.tableBorder} px-2 py-1.5 ${SIZE.tableCell} text-right`}>
-                        <FmtNum value={item.rate} />
+                      <td className={`border ${COLOR.tableBorder} px-1 py-1.5 ${SIZE.tableCell} text-center`}>{item.unit || "-"}</td>
+                      <td className={`border ${COLOR.tableBorder} px-1 py-1.5 ${SIZE.tableCell} text-right`}>{item.orderQty ?? "-"}</td>
+                      <td className={`border ${COLOR.tableBorder} px-1 py-1.5 ${SIZE.tableCell} text-right`}><FmtNum value={item.rate} /></td>
+                      <td className={`border ${COLOR.tableBorder} px-1 py-1.5 ${SIZE.tableCell} text-center`}>
+                        {item.gstPercent != null ? `${item.gstPercent}%` : "-"}
                       </td>
-                      <td className={`border ${COLOR.tableBorder} px-2 py-1.5 ${SIZE.tableCell} text-right`}>
-                        <FmtNum value={item.amount} />
+                      <td className={`border ${COLOR.tableBorder} px-1 py-1.5 ${SIZE.tableCell} text-right`}><FmtNum value={item.amount} /></td>
+                    </tr>
+                  ))}
+
+                  {/* ── BOQ Items section ── */}
+                  {boqItems.length > 0 && (
+                    <>
+                      {hasBoth && (
+                        <tr>
+                          <td
+                            colSpan={COL_SPAN}
+                            className={`border ${COLOR.tableBorder} px-3 py-1 ${SIZE.tableCell} ${WEIGHT.semibold} text-[#1c3a5e] bg-[#eef4fb]`}
+                          >
+                            BOQ Items
+                          </td>
+                        </tr>
+                      )}
+                      {boqItems.map((item, idx) => (
+                        <tr key={`boq-${idx}`} className={COLOR.tableRowOdd} style={{ breakInside: "avoid" }}>
+                          <td className={`border ${COLOR.tableBorder} px-1 py-1.5 ${SIZE.tableCell} text-center`}>{idx + 1}</td>
+                          <td className={`border ${COLOR.tableBorder} px-1 py-1.5 ${SIZE.tableCell}`}>{item.itemCode || "-"}</td>
+                          <td className={`border ${COLOR.tableBorder} px-1 py-1.5`}>
+                            <p className={ITEM_NAME}>{item.itemName || "-"}</p>
+                            {item.itemDescription && <p className={ITEM_SUB}>{item.itemDescription}</p>}
+                          </td>
+                          <td className={`border ${COLOR.tableBorder} px-1 py-1.5 ${SIZE.tableCell} text-center`}>{item.unit || "-"}</td>
+                          <td className={`border ${COLOR.tableBorder} px-1 py-1.5 ${SIZE.tableCell} text-right`}>{item.orderQty ?? "-"}</td>
+                          <td className={`border ${COLOR.tableBorder} px-1 py-1.5 ${SIZE.tableCell} text-right`}><FmtNum value={item.rate} /></td>
+                          <td className={`border ${COLOR.tableBorder} px-1 py-1.5 ${SIZE.tableCell} text-center`}>
+                            {item.gstPercent != null ? `${item.gstPercent}%` : "-"}
+                          </td>
+                          <td className={`border ${COLOR.tableBorder} px-1 py-1.5 ${SIZE.tableCell} text-right`}><FmtNum value={item.amount} /></td>
+                        </tr>
+                      ))}
+                    </>
+                  )}
+
+                  {/* ── Blue TOTAL row ── */}
+                  <tr className={COLOR.signatureBg}>
+                    <td colSpan={7} className={`border ${COLOR.tableBorder} px-2 py-1.5 ${SIZE.tableCell} ${WEIGHT.bold} text-right`}>
+                      TOTAL=
+                    </td>
+                    <td className={`border ${COLOR.tableBorder} px-2 py-1.5 ${SIZE.tableCell} ${WEIGHT.bold} text-right`}>
+                      <FmtNum value={data.basicAmount} />
+                    </td>
+                  </tr>
+
+                  {/* ── Amount summary rows (service-order style) ── */}
+                  {[
+                    ["Basic Amount", data.basicAmount],
+                    ["GST Amount",   data.gstAmount],
+                  ].map(([label, val]) => (
+                    <tr key={label}>
+                      <td colSpan={5} style={{ borderLeft: borderSide, borderTop: "none", borderBottom: "none", borderRight: "none", padding: 0 }} />
+                      <td
+                        colSpan={2}
+                        style={{ borderLeft: borderSide, borderTop: "none", borderBottom: "none", borderRight: borderSide, padding: "3px 6px" }}
+                        className={`${SIZE.tableCell} text-left text-gray-700`}
+                      >
+                        {label}
+                      </td>
+                      <td
+                        style={{ borderLeft: borderSide, borderRight: borderSide, borderTop: "none", borderBottom: "none", padding: "3px 4px" }}
+                        className={`${SIZE.tableCell} text-right`}
+                      >
+                        <FmtNum value={val} />
                       </td>
                     </tr>
                   ))}
-                  <tr className={COLOR.signatureBg}>
-                    {Array(8).fill(null).map((_, j) => (
-                      <td key={j} className={`border ${COLOR.tableBorder} px-2 py-2`} />
-                    ))}
+
+                  {/* ── Total Amount highlighted ── */}
+                  <tr>
+                    <td
+                      colSpan={5}
+                      style={{ borderLeft: borderSide, borderBottom: borderSide, borderTop: "none", borderRight: "none", padding: 0 }}
+                    />
+                    <td
+                      colSpan={2}
+                      style={{ border: borderSide, padding: "4px 6px", fontWeight: 700, backgroundColor: "#d9d9d9" }}
+                      className={`${SIZE.tableCell} text-left`}
+                    >
+                      Total Amount
+                    </td>
+                    <td
+                      style={{ border: borderSide, padding: "4px 4px", fontWeight: 700, backgroundColor: "#d9d9d9" }}
+                      className={`${SIZE.tableCell} text-right`}
+                    >
+                      <FmtNum value={data.totalAmount} />
+                    </td>
                   </tr>
                 </tbody>
               </table>
             </div>
           </div>
 
-          {/* ── TOTALS ─────────────────────────────────────── */}
-          <div className="px-6 pb-3 flex justify-end">
-            <div className="min-w-[260px]">
-              {[
-                ["Basic Amount", data.basicAmount],
-                ["GST Amount",   data.gstAmount],
-                ["Total Amount", data.totalAmount],
-              ].map(([label, val], i) => (
-                <div
-                  key={label}
-                  className={`flex justify-between gap-8 py-1 px-3 ${i === 2 ? "font-semibold bg-[#d6e4f5] rounded" : ""}`}
-                >
-                  <span className={`${SIZE.labelText} text-gray-700`}>{label}</span>
-                  <span className={`${SIZE.valueText} text-gray-900 tabular-nums`}>
-                    <FmtNum value={val} />
-                  </span>
-                </div>
-              ))}
-            </div>
-          </div>
-
           {/* ── SIGNATURES ─────────────────────────────────── */}
-          <div className="px-6 pb-6 pt-2">
+          <div className="px-6 pb-6 pt-4">
             <SigRow label="Created By"   name={data.createdBy}   dateStr={fmt.dateTime(data.createdAt)} />
             <SigRow label="Submitted By" name={data.submittedBy} dateStr={fmt.dateTime(data.submittedAt)} />
             <SigRow label="Approved By"  name={data.approvedBy}  dateStr={fmt.dateTime(data.finalApprovedAt)} />
