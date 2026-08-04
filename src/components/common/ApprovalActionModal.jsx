@@ -201,11 +201,14 @@ export default function ApprovalActionModal({
 
               const isReject = action.type === "reject";
 
+              const notForMe = !pendingInfo?.isPendingForMe;
+
               return (
                 <button
                   key={action.type}
                   type="button"
-                  disabled={isSubmitting}
+                  disabled={isSubmitting || notForMe}
+                  title={notForMe ? "Action not available — approval not pending for you" : undefined}
                   onClick={() => handleActionClick(action)}
                   className={`
                       h-[40px]
@@ -218,8 +221,8 @@ export default function ApprovalActionModal({
                       flex
                       items-center
                       gap-2
-                      disabled:opacity-60
-                      cursor-pointer
+                      disabled:cursor-not-allowed
+                      ${notForMe ? "opacity-40" : "cursor-pointer"}
                       ${
                         isSelected
                           ? isApprove
@@ -233,25 +236,19 @@ export default function ApprovalActionModal({
                 >
                   {isApprove && (
                     <CheckCircle2
-                      className="
-                          w-4 h-4
-                        "
+                      className={`w-4 h-4 ${notForMe ? "text-gray-400" : isSelected ? "text-green-700" : "text-gray-500"}`}
                     />
                   )}
 
                   {isReback && (
                     <RotateCcw
-                      className="
-                          w-4 h-4
-                        "
+                      className={`w-4 h-4 ${notForMe ? "text-gray-400" : isSelected ? "text-yellow-700" : "text-gray-500"}`}
                     />
                   )}
 
                   {isReject && (
                     <XCircle
-                      className="
-                          w-4 h-4
-                        "
+                      className={`w-4 h-4 ${notForMe ? "text-gray-400" : isSelected ? "text-red-700" : "text-gray-500"}`}
                     />
                   )}
 
@@ -263,7 +260,7 @@ export default function ApprovalActionModal({
 
           {/* COMMENTS */}
 
-          <div className="mt-6">
+          {pendingInfo?.isPendingForMe && <div className="mt-6">
             <label className="text-sm font-medium">Comments</label>
 
             {/* SUGGESTION LIST */}
@@ -363,7 +360,7 @@ export default function ApprovalActionModal({
                 {errors.comments?.message}
               </p>
             )}
-          </div>
+          </div>}
 
           {/* CONFIRM BOX */}
 
@@ -515,7 +512,7 @@ export default function ApprovalActionModal({
 
             <button
               type="button"
-              disabled={isSubmitting || !selectedAction}
+              disabled={isSubmitting || !selectedAction || !pendingInfo?.isPendingForMe}
               onClick={() => {
                 if (!confirmOpen) {
                   setConfirmOpen(true);
