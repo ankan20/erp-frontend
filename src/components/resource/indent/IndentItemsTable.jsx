@@ -77,7 +77,7 @@ export default function IndentItemsTable({
       return value.toExponential(2);
     }
 
-    return value;
+    return parseFloat(value.toFixed(3));
   };
 
 

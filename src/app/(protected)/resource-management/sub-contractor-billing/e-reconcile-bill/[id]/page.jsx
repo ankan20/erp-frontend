@@ -25,7 +25,7 @@ export default function Page() {
   const isNew = id === "new";
   const isGRN = billingType === "grn";
 
-  const pageCode = isGRN ? "billing_by_grn" : "billing_by_srn";
+  const pageCode = isGRN ? "bill_receive_register" : "bill_receive_register";
   const pageType = isNew ? "ADD" : "EDIT";
 
   const [openApproval, setOpenApproval] = useState(false);
