@@ -12,12 +12,11 @@ import { Checkbox } from "@/components/ui/checkbox";
 import ExpandableTextField from "@/components/common/ExpandableTextField";
 import { apiRequest } from "@/lib/apiClient";
 import { API_ENDPOINTS } from "@/config/api.config";
-import { getInputClass } from "@/lib/formStyles";
 
 export default function GRNItemSelectionModal({ open, onClose, form, brrId, initialData = null, onFetched }) {
   const [loading, setLoading] = useState(false);
   const [search, setSearch]   = useState("");
-  const [tempRows, setTempRows] = useState([]);
+  const [groups, setGroups]   = useState([]);
 
   const existingItems = form.watch("items") || [];
 
@@ -28,7 +27,6 @@ export default function GRNItemSelectionModal({ open, onClose, form, brrId, init
     const fetchItems = async () => {
       try {
         setLoading(true);
-        // Use cached data if available, else fetch and notify parent to cache
         let grns;
         if (initialData?.grns) {
           grns = initialData.grns;
@@ -40,28 +38,35 @@ export default function GRNItemSelectionModal({ open, onClose, form, brrId, init
           grns = res.data?.grns || [];
           onFetched?.(res.data);
         }
-        const rows = [];
-        for (const grn of grns) {
-          for (const item of grn.items || []) {
-            const existing = existingItems.find(
-              (ex) => String(ex.grnItemId) === String(item.grnItemId)
-            );
-            const effectiveAvailableQty = existing
-              ? Number(item.availableQty ?? 0) + Number(existing.billingQty ?? 0)
-              : Number(item.availableQty ?? 0);
-            rows.push({
-              ...item,
-              grnId:               grn.grnId,
-              grnNo:               grn.grnNo,
-              grnDate:             grn.grnDate,
-              effectiveAvailableQty,
-              selected:            !!existing,
-              billingQty:          existing ? existing.billingQty : "",
-            });
-          }
-        }
-        setTempRows(rows);
-      } catch(err) {
+
+        setGroups(
+          grns.map((grn) => ({
+            grnId:   grn.grnId,
+            grnNo:   grn.grnNo,
+            grnDate: grn.grnDate,
+            items:   (grn.items || [])
+              .map((item) => {
+                const existing = existingItems.find(
+                  (ex) => String(ex.grnItemId) === String(item.grnItemId)
+                );
+                const effectiveAvailableQty = existing
+                  ? Number(item.availableQty ?? 0) + Number(existing.billingQty ?? 0)
+                  : Number(item.availableQty ?? 0);
+                return {
+                  ...item,
+                  grnId:  grn.grnId,
+                  grnNo:  grn.grnNo,
+                  grnDate: grn.grnDate,
+                  effectiveAvailableQty,
+                  selected:   !!existing,
+                  billingQty: existing ? existing.billingQty : "",
+                };
+              })
+              .filter((item) => item.effectiveAvailableQty > 0),
+          }))
+          .filter((grn) => grn.items.length > 0)
+        );
+      } catch (err) {
         toast.error(err.message || "Failed to load GRN items");
       } finally {
         setLoading(false);
@@ -70,30 +75,68 @@ export default function GRNItemSelectionModal({ open, onClose, form, brrId, init
     fetchItems();
   }, [open, brrId]);
 
-  const filteredRows = useMemo(() => {
-    if (!search) return tempRows;
-    return tempRows.filter((row) =>
-      Object.values(row).some((v) => String(v).toLowerCase().includes(search.toLowerCase()))
-    );
-  }, [search, tempRows]);
+  const updateItem = (grnId, grnItemId, patch) =>
+    setGroups((prev) => prev.map((g) =>
+      g.grnId !== grnId ? g : {
+        ...g,
+        items: g.items.map((item) =>
+          String(item.grnItemId) === String(grnItemId) ? { ...item, ...patch } : item
+        ),
+      }
+    ));
 
-  const allSelected = filteredRows.length > 0 && filteredRows.every((r) => r.selected);
+  const handleSelectItem = (grnId, grnItemId, checked) =>
+    updateItem(grnId, grnItemId, {
+      selected:   checked,
+      billingQty: checked
+        ? groups.find((g) => g.grnId === grnId)?.items.find((i) => String(i.grnItemId) === String(grnItemId))?.effectiveAvailableQty ?? ""
+        : "",
+    });
+
+  const handleSelectGroup = (grnId, checked) =>
+    setGroups((prev) => prev.map((g) =>
+      g.grnId !== grnId ? g : {
+        ...g,
+        items: g.items.map((item) => ({
+          ...item,
+          selected:   checked,
+          billingQty: checked ? item.effectiveAvailableQty : "",
+        })),
+      }
+    ));
 
   const handleSelectAll = (checked) =>
-    setTempRows((prev) => prev.map((r) => ({ ...r, selected: checked })));
+    setGroups((prev) => prev.map((g) => ({
+      ...g,
+      items: g.items.map((item) => ({
+        ...item,
+        selected:   checked,
+        billingQty: checked ? item.effectiveAvailableQty : "",
+      })),
+    })));
 
-  const handleSelect = (grnItemId, checked) =>
-    setTempRows((prev) =>
-      prev.map((r) => String(r.grnItemId) === String(grnItemId) ? { ...r, selected: checked } : r)
-    );
+  const filteredGroups = useMemo(() => {
+    if (!search) return groups;
+    const q = search.toLowerCase();
+    return groups
+      .map((g) => ({
+        ...g,
+        items: g.items.filter((item) =>
+          [item.itemCode, item.itemName, item.grnl, item.itemUnit, item.useLocation, item.storeLocation, item.note, g.grnNo]
+            .some((v) => String(v ?? "").toLowerCase().includes(q))
+        ),
+      }))
+      .filter((g) => g.items.length > 0 || String(g.grnNo).toLowerCase().includes(q));
+  }, [search, groups]);
 
-  const handleBillingQtyChange = (grnItemId, value) =>
-    setTempRows((prev) =>
-      prev.map((r) => String(r.grnItemId) === String(grnItemId) ? { ...r, billingQty: value } : r)
-    );
+  const allFlatItems  = filteredGroups.flatMap((g) => g.items);
+  const totalSelected = groups.flatMap((g) => g.items).filter((i) => i.selected).length;
+  const allSelected   = allFlatItems.length > 0 && allFlatItems.every((i) => i.selected);
+  const someSelected  = allFlatItems.some((i) => i.selected);
 
   const handleSubmit = () => {
-    const selected = tempRows.filter((r) => r.selected);
+    const allItems = groups.flatMap((g) => g.items);
+    const selected = allItems.filter((r) => r.selected);
     for (const row of selected) {
       const qty = Number(row.billingQty);
       if (!qty || qty <= 0) { toast.error(`${row.itemName}: billing qty must be > 0`); return; }
@@ -131,105 +174,151 @@ export default function GRNItemSelectionModal({ open, onClose, form, brrId, init
 
   return (
     <Dialog open={open} onOpenChange={(v) => { if (!v) onClose?.(); }}>
-      <DialogContent className="min-w-[95vw] max-w-[95vw] lg:min-w-[1200px] lg:max-w-[1200px] p-0 gap-0">
-        <DialogHeader className="px-6 py-4 border-b bg-slate-50">
-          <DialogTitle className="text-lg font-semibold">Select GRN Items</DialogTitle>
+      <DialogContent className="w-[95vw] max-w-[95vw] lg:max-w-[1100px] p-0 gap-0 max-h-[95vh] flex flex-col">
+        <DialogHeader className="px-6 py-3 border-b bg-slate-50">
+          <DialogTitle className="text-[15px] font-semibold">Select GRN Items</DialogTitle>
         </DialogHeader>
-        <div className="p-4 border-b">
-          <div className="relative w-full max-w-[350px]">
+
+        {/* Search + global select */}
+        <div className="px-4 py-3 border-b bg-white flex items-center gap-4">
+          <div className="relative w-full max-w-[320px]">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-            <Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search items..." className="pl-9" />
+            <Input
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Search by item, GRN No, location…"
+              className="pl-9 h-8 text-sm"
+            />
+          </div>
+          <div className="flex items-center gap-2 ml-auto">
+            <Checkbox
+              checked={allSelected ? true : someSelected ? "indeterminate" : false}
+              onCheckedChange={(c) => handleSelectAll(!!c)}
+            />
+            <span className="text-sm text-gray-600">Select All</span>
+            {totalSelected > 0 && (
+              <span className="ml-2 px-2 py-0.5 bg-blue-100 text-blue-700 rounded-full text-[11px] font-medium">
+                {totalSelected} selected
+              </span>
+            )}
           </div>
         </div>
-        <div className="overflow-auto max-h-[60vh]">
-          <table className="w-full border-collapse">
-            <thead className="sticky top-0 z-10 bg-gray-100">
-              <tr>
-                <th className="border p-2 min-w-[50px]">
-                  <div className="flex justify-center">
-                    <Checkbox checked={allSelected} onCheckedChange={handleSelectAll} />
-                  </div>
-                </th>
-                <th className="border p-2 min-w-[120px] text-sm">GRN No</th>
-                <th className="border p-2 min-w-[100px] text-sm">GRN Date</th>
-                <th className="border p-2 min-w-[80px] text-sm">GRNL</th>
-                <th className="border p-2 min-w-[120px] text-sm">Item Code</th>
-                <th className="border p-2 min-w-[200px] text-sm">Item Name</th>
-                <th className="border p-2 min-w-[160px] text-sm">Note</th>
-                <th className="border p-2 min-w-[70px] text-sm">Unit</th>
-                <th className="border p-2 min-w-[100px] text-sm">Received Qty</th>
-                <th className="border p-2 min-w-[100px] text-sm">Already Billed</th>
-                <th className="border p-2 min-w-[100px] text-sm">Available Qty</th>
-                <th className="border p-2 min-w-[120px] text-sm">Billing Qty</th>
-                <th className="border p-2 min-w-[80px] text-sm">Rate</th>
-                <th className="border p-2 min-w-[80px] text-sm">GST %</th>
-                <th className="border p-2 min-w-[160px] text-sm">Use Location</th>
-                <th className="border p-2 min-w-[160px] text-sm">Store Location</th>
-              </tr>
-            </thead>
-            <tbody>
-              {loading && (
+
+        <div className="overflow-auto flex-1 min-h-0">
+          {loading && (
+            <div className="h-[200px] flex items-center justify-center">
+              <Loader2 className="w-6 h-6 animate-spin text-gray-400" />
+            </div>
+          )}
+          {!loading && !filteredGroups.length && (
+            <div className="h-[140px] flex items-center justify-center text-gray-400 text-sm">
+              No items found
+            </div>
+          )}
+
+          {!loading && filteredGroups.length > 0 && (
+            <table className="w-full border-collapse text-[12px]">
+              <thead className="sticky top-0 z-10 bg-[#d9d9d9]">
                 <tr>
-                  <td colSpan={16} className="h-[200px] text-center">
-                    <div className="flex items-center justify-center"><Loader2 className="w-6 h-6 animate-spin" /></div>
-                  </td>
+                  <th className="border border-[#bbb] p-2 w-[44px]" />
+                  <th className="border border-[#bbb] p-2 min-w-[80px]  text-left font-semibold">GRNL</th>
+                  <th className="border border-[#bbb] p-2 min-w-[110px] text-left font-semibold">Item Code</th>
+                  <th className="border border-[#bbb] p-2 min-w-[190px] text-left font-semibold">Item Name</th>
+                  <th className="border border-[#bbb] p-2 min-w-[150px] text-left font-semibold">Note</th>
+                  <th className="border border-[#bbb] p-2 min-w-[65px]  text-center font-semibold">Unit</th>
+                  <th className="border border-[#bbb] p-2 min-w-[85px]  text-center font-semibold">Rcvd Qty</th>
+                  <th className="border border-[#bbb] p-2 min-w-[75px]  text-center font-semibold">Rate</th>
+                  <th className="border border-[#bbb] p-2 min-w-[90px]  text-center font-semibold">Amount</th>
+                  <th className="border border-[#bbb] p-2 min-w-[65px]  text-center font-semibold">GST %</th>
+                  <th className="border border-[#bbb] p-2 min-w-[140px] text-left font-semibold">Use Location</th>
+                  <th className="border border-[#bbb] p-2 min-w-[140px] text-left font-semibold">Store Location</th>
                 </tr>
-              )}
-              {!loading && !filteredRows.length && (
-                <tr><td colSpan={16} className="h-[140px] text-center text-gray-500">No Items Found</td></tr>
-              )}
-              {!loading && filteredRows.map((row) => {
-                const qty = Number(row.billingQty);
-                const qtyError = row.selected && (qty <= 0 || qty > row.effectiveAvailableQty);
-                return (
-                  <tr key={row.grnItemId}>
-                    <td className="border p-2">
-                      <div className="flex justify-center">
-                        <Checkbox checked={row.selected} onCheckedChange={(c) => handleSelect(row.grnItemId, c)} />
-                      </div>
-                    </td>
-                    <td className="border p-2 text-sm">{row.grnNo}</td>
-                    <td className="border p-2 text-sm">{row.grnDate}</td>
-                    <td className="border p-2 text-sm">{row.grnl}</td>
-                    <td className="border p-2 text-sm">{row.itemCode}</td>
-                    <td className="border p-2">
-                      <ExpandableTextField value={row.itemName} disabled title="Item Name" minHeight="min-h-[38px]" modalHeight="min-h-[180px]" />
-                    </td>
-                    <td className="border p-2">
-                      <ExpandableTextField value={row.note || ""} disabled title="Note" minHeight="min-h-[38px]" modalHeight="min-h-[180px]" />
-                    </td>
-                    <td className="border p-2 text-sm">{row.itemUnit}</td>
-                    <td className="border p-2 text-sm text-center">{row.receivedQty}</td>
-                    <td className="border p-2 text-sm text-center">{row.alreadyBilled}</td>
-                    <td className="border p-2 text-sm text-center">{row.effectiveAvailableQty}</td>
-                    <td className="border p-2">
-                      <Input
-                        type="number" step="0.001" value={row.billingQty ?? ""}
-                        disabled={!row.selected}
-                        onChange={(e) => handleBillingQtyChange(row.grnItemId, e.target.value)}
-                        title={qtyError ? `Max allowed: ${row.effectiveAvailableQty}` : undefined}
-                        className={getInputClass(qtyError, !row.selected)}
-                      />
-                    </td>
-                    <td className="border p-2 text-sm text-center">{row.rate}</td>
-                    <td className="border p-2 text-sm text-center">{row.gstPercent}</td>
-                    <td className="border p-2">
-                      <ExpandableTextField value={row.useLocation || ""} disabled title="Use Location" minHeight="min-h-[38px]" modalHeight="min-h-[180px]" />
-                    </td>
-                    <td className="border p-2">
-                      <ExpandableTextField value={row.storeLocation || ""} disabled title="Store Location" minHeight="min-h-[38px]" modalHeight="min-h-[180px]" />
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {filteredGroups.map((grn) => {
+                  const groupAllSelected  = grn.items.every((i) => i.selected);
+                  const groupSomeSelected = grn.items.some((i) => i.selected);
+                  const groupChecked = groupAllSelected ? true : groupSomeSelected ? "indeterminate" : false;
+                  return (
+                    <>
+                      {/* ── GRN parent header row ── */}
+                      <tr key={`grn-hdr-${grn.grnId}`} className="bg-sky-100">
+                        <td className="border border-[#bbb] p-2">
+                          <div className="flex justify-center">
+                            <div className="bg-white rounded p-[2px] shadow-sm">
+                              <Checkbox
+                                checked={groupChecked}
+                                onCheckedChange={(c) => handleSelectGroup(grn.grnId, !!c)}
+                              />
+                            </div>
+                          </div>
+                        </td>
+                        <td colSpan={11} className="border border-[#bbb] px-3 py-[6px]">
+                          <div className="flex items-center gap-6 flex-wrap">
+                            <span className="font-bold text-[13px] text-gray-800">
+                              GRN No:&nbsp;
+                              <span className="text-blue-700">{grn.grnNo}</span>
+                            </span>
+                            <span className="text-[12px] text-gray-600">
+                              GRN Date:&nbsp;<span className="font-medium">{grn.grnDate}</span>
+                            </span>
+                            <span className="ml-auto text-[11px] text-gray-500">
+                              {grn.items.filter((i) => i.selected).length} / {grn.items.length} selected
+                            </span>
+                          </div>
+                        </td>
+                      </tr>
+
+                      {/* ── Child item rows ── */}
+                      {grn.items.map((item) => (
+                        <tr
+                          key={`item-${item.grnItemId}`}
+                          className={item.selected ? "bg-blue-50" : "bg-white hover:bg-gray-50"}
+                        >
+                          <td className="border border-[#ddd] p-2 border-l-[3px] border-l-sky-300">
+                            <div className="flex justify-center pl-2">
+                              <Checkbox
+                                checked={item.selected}
+                                onCheckedChange={(c) => handleSelectItem(grn.grnId, item.grnItemId, !!c)}
+                              />
+                            </div>
+                          </td>
+                          <td className="border border-[#ddd] p-2 pl-7">{item.grnl}</td>
+                          <td className="border border-[#ddd] p-2">{item.itemCode}</td>
+                          <td className="border border-[#ddd] p-1">
+                            <ExpandableTextField value={item.itemName || ""} disabled title="Item Name" minHeight="min-h-[30px]" modalHeight="min-h-[180px]" />
+                          </td>
+                          <td className="border border-[#ddd] p-1">
+                            <ExpandableTextField value={item.note || ""} disabled title="Note" minHeight="min-h-[30px]" modalHeight="min-h-[180px]" />
+                          </td>
+                          <td className="border border-[#ddd] p-2 text-center">{item.itemUnit}</td>
+                          <td className="border border-[#ddd] p-2 text-center font-medium">{item.receivedQty}</td>
+                          <td className="border border-[#ddd] p-2 text-center">{item.rate}</td>
+                          <td className="border border-[#ddd] p-2 text-center font-medium">
+                            {(Number(item.rate ?? 0) * Number(item.receivedQty ?? 0)).toFixed(2)}
+                          </td>
+                          <td className="border border-[#ddd] p-2 text-center">{item.gstPercent}</td>
+                          <td className="border border-[#ddd] p-1">
+                            <ExpandableTextField value={item.useLocation || ""} disabled title="Use Location" minHeight="min-h-[30px]" modalHeight="min-h-[180px]" />
+                          </td>
+                          <td className="border border-[#ddd] p-1">
+                            <ExpandableTextField value={item.storeLocation || ""} disabled title="Store Location" minHeight="min-h-[30px]" modalHeight="min-h-[180px]" />
+                          </td>
+                        </tr>
+                      ))}
+                    </>
+                  );
+                })}
+              </tbody>
+            </table>
+          )}
         </div>
-        <div className="flex justify-end gap-3 border-t px-6 py-4">
+
+        <div className="flex justify-end gap-3 border-t px-6 py-3 bg-slate-50">
           <Button type="button" variant="outline" onClick={onClose}>Cancel</Button>
-          <Button type="button" onClick={handleSubmit}>
+          <Button type="button" onClick={handleSubmit} disabled={totalSelected === 0}>
             <Check className="w-4 h-4 mr-1" />
-            Add Selected Items
+            Add {totalSelected > 0 ? `${totalSelected} ` : ""}Selected
           </Button>
         </div>
       </DialogContent>

@@ -1,7 +1,6 @@
 "use client";
 
 import { Pencil } from "lucide-react";
-import { Input } from "@/components/ui/input";
 import ExpandableTextField from "@/components/common/ExpandableTextField";
 import { getInputClass } from "@/lib/formStyles";
 import GRNItemSelectionModal from "../modals/GRNItemSelectionModal";
@@ -53,12 +52,6 @@ export default function BRRBillingDetailsTab({
   const items = form.watch("items") || [];
   const isGRN = billingType === "grn";
 
-  const onItemChange = (index, field, value) => {
-    const updated = [...items];
-    updated[index] = { ...updated[index], [field]: value };
-    form.setValue("items", updated, { shouldDirty: true });
-  };
-
   if (!items.length) {
     return (
       <>
@@ -81,7 +74,7 @@ export default function BRRBillingDetailsTab({
         </div>
         <div className="overflow-x-auto overflow-y-auto max-h-[680px] w-full">
           {isGRN ? (
-            <table className="border-collapse text-[12px] min-w-[1700px] w-full">
+            <table className="border-collapse text-[12px] min-w-[1300px] w-full">
               <thead>
                 <tr>
                   <TH w="50px"  center>Sl.</TH>
@@ -93,9 +86,6 @@ export default function BRRBillingDetailsTab({
                   <TH w="130px">Note</TH>
                   <TH w="55px"  center>Unit</TH>
                   <TH w="85px"  center>Rcvd Qty</TH>
-                  <TH w="85px"  center>Billed</TH>
-                  <TH w="85px"  center>Avail Qty</TH>
-                  <TH w="110px" center>Billing Qty</TH>
                   <TH w="75px"  center>Rate</TH>
                   <TH w="85px"  center>Amount</TH>
                   <TH w="60px"  center>GST %</TH>
@@ -107,10 +97,6 @@ export default function BRRBillingDetailsTab({
               </thead>
               <tbody>
                 {items.map((item, index) => {
-                  const effectiveAvailableQty = Number(item.effectiveAvailableQty ?? item.availableQty ?? 0);
-                  const currQty = item.billingQty;
-                  const currNum = currQty === "" || currQty == null ? 0 : Number(currQty);
-                  const qtyError = currNum > effectiveAvailableQty && currNum > 0;
                   const { amount, gstAmount } = calcAmounts(item);
                   return (
                     <tr key={item.grnItemId ?? index}>
@@ -127,17 +113,6 @@ export default function BRRBillingDetailsTab({
                       </TD>
                       <TD center><ReadCell value={item.itemUnit} /></TD>
                       <TD center><ReadCell value={item.receivedQty} /></TD>
-                      <TD center><ReadCell value={item.alreadyBilled} /></TD>
-                      <TD center><ReadCell value={item.availableQty} /></TD>
-                      <TD>
-                        <Input
-                          type="number" value={currQty ?? ""} min="0" step="any"
-                          disabled={disabled}
-                          onChange={(e) => onItemChange(index, "billingQty", e.target.value)}
-                          title={qtyError ? `Max allowed: ${effectiveAvailableQty}` : undefined}
-                          className={`${getInputClass(qtyError, disabled)} h-[28px]`}
-                        />
-                      </TD>
                       <TD center><ReadCell value={item.rate} /></TD>
                       <TD center><ReadCell value={amount} /></TD>
                       <TD center><ReadCell value={item.gstPercent} /></TD>
@@ -161,7 +136,7 @@ export default function BRRBillingDetailsTab({
               </tbody>
             </table>
           ) : (
-            <table className="border-collapse text-[12px] min-w-[1550px] w-full">
+            <table className="border-collapse text-[12px] min-w-[1200px] w-full">
               <thead>
                 <tr>
                   <TH w="50px"  center>Sl.</TH>
@@ -172,9 +147,6 @@ export default function BRRBillingDetailsTab({
                   <TH w="180px">Item Name</TH>
                   <TH w="55px"  center>Unit</TH>
                   <TH w="85px"  center>Rcvd Qty</TH>
-                  <TH w="85px"  center>Billed</TH>
-                  <TH w="85px"  center>Avail Qty</TH>
-                  <TH w="110px" center>Billing Qty</TH>
                   <TH w="75px"  center>Rate</TH>
                   <TH w="85px"  center>Amount</TH>
                   <TH w="60px"  center>GST %</TH>
@@ -186,10 +158,6 @@ export default function BRRBillingDetailsTab({
               </thead>
               <tbody>
                 {items.map((item, index) => {
-                  const effectiveAvailableQty = Number(item.effectiveAvailableQty ?? item.availableQty ?? 0);
-                  const currQty = item.billingQty;
-                  const currNum = currQty === "" || currQty == null ? 0 : Number(currQty);
-                  const qtyError = currNum > effectiveAvailableQty && currNum > 0;
                   const { amount, gstAmount } = calcAmounts(item);
                   return (
                     <tr key={item.srnItemId ?? index}>
@@ -203,17 +171,6 @@ export default function BRRBillingDetailsTab({
                       </TD>
                       <TD center><ReadCell value={item.itemUnit} /></TD>
                       <TD center><ReadCell value={item.receivedQty} /></TD>
-                      <TD center><ReadCell value={item.alreadyBilled} /></TD>
-                      <TD center><ReadCell value={item.availableQty} /></TD>
-                      <TD>
-                        <Input
-                          type="number" value={currQty ?? ""} min="0" step="any"
-                          disabled={disabled}
-                          onChange={(e) => onItemChange(index, "billingQty", e.target.value)}
-                          title={qtyError ? `Max allowed: ${effectiveAvailableQty}` : undefined}
-                          className={`${getInputClass(qtyError, disabled)} h-[28px]`}
-                        />
-                      </TD>
                       <TD center><ReadCell value={item.rate} /></TD>
                       <TD center><ReadCell value={amount} /></TD>
                       <TD center><ReadCell value={item.gstPercent} /></TD>
