@@ -9,6 +9,7 @@ import SearchableSelect from "@/components/common/SearchableSelect";
 import ExpandableTextField from "@/components/common/ExpandableTextField";
 import { apiRequest } from "@/lib/apiClient";
 import { API_ENDPOINTS } from "@/config/api.config";
+import { formatQty } from "@/helper/numberFormatter";
 
 export default function IndentItemsTable({
   fields,
@@ -66,18 +67,6 @@ export default function IndentItemsTable({
     setValue(`items.${rowIndex}.itemName`, item?.itemName || "");
 
     setValue(`items.${rowIndex}.unit`, item?.unit || "");
-  };
-
-  const formatNumber = (num) => {
-    if (!num) return 0;
-
-    const value = Number(num);
-
-    if (value > 999999999) {
-      return value.toExponential(2);
-    }
-
-    return parseFloat(value.toFixed(3));
   };
 
 
@@ -308,11 +297,11 @@ export default function IndentItemsTable({
                   <td className="border border-[#b5b5b5]"></td>
 
                   <td className="border border-[#b5b5b5] text-center px-2">
-                    {formatNumber(totalQty)}
+                    {formatQty(totalQty)}
                   </td>
 
                   <td className="border border-[#b5b5b5] text-center px-2">
-                    {formatNumber(totalAmmenmendQty)}
+                    {formatQty(totalAmmenmendQty)}
                   </td>
 
                   <td className="border border-[#b5b5b5]"></td>
