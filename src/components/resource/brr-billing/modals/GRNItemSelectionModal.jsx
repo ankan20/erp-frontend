@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { Check, Loader2, Search } from "lucide-react";
 import { toast } from "sonner";
 import {
@@ -240,7 +240,7 @@ export default function GRNItemSelectionModal({ open, onClose, form, brrId, init
                   const groupSomeSelected = grn.items.some((i) => i.selected);
                   const groupChecked = groupAllSelected ? true : groupSomeSelected ? "indeterminate" : false;
                   return (
-                    <>
+                    <React.Fragment key={`grn-group-${grn.grnId}`}>
                       {/* ── GRN parent header row ── */}
                       <tr key={`grn-hdr-${grn.grnId}`} className="bg-sky-100">
                         <td className="border border-[#bbb] p-2">
@@ -306,7 +306,7 @@ export default function GRNItemSelectionModal({ open, onClose, form, brrId, init
                           </td>
                         </tr>
                       ))}
-                    </>
+                    </React.Fragment>
                   );
                 })}
               </tbody>

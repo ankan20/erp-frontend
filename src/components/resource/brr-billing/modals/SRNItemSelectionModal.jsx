@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { Check, Loader2, Search } from "lucide-react";
 import { toast } from "sonner";
 import {
@@ -232,7 +232,7 @@ export default function SRNItemSelectionModal({ open, onClose, form, brrId, init
                   const groupSomeSelected = srn.items.some((i) => i.selected);
                   const groupChecked = groupAllSelected ? true : groupSomeSelected ? "indeterminate" : false;
                   return (
-                    <>
+                    <React.Fragment key={`srn-group-${srn.srnId}`}>
                       {/* ── SRN parent header row ── */}
                       <tr key={`srn-hdr-${srn.srnId}`} className="bg-sky-100">
                         <td className="border border-[#bbb] p-2">
@@ -295,7 +295,7 @@ export default function SRNItemSelectionModal({ open, onClose, form, brrId, init
                           </td>
                         </tr>
                       ))}
-                    </>
+                    </React.Fragment>
                   );
                 })}
               </tbody>
