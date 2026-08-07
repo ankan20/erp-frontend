@@ -347,7 +347,7 @@ export default function SRNItemSelectionModal({ open, onClose, form, brrId, init
 
         <div className="flex items-center justify-between gap-4 border-t px-6 py-3 bg-slate-50">
           {!loading && groups.length > 0 ? (
-            <div className="flex items-center gap-5 text-[12px] text-gray-600">
+            <div className="flex items-center gap-5 text-[12px] text-gray-600 sm:pl-4 md:pl-8 lg:pl-12">
               <span>Basic :&nbsp;<span className="font-semibold text-gray-900">{fmt(summary.selected.amount)}</span></span>
               <span className="text-gray-300">|</span>
               <span>GST :&nbsp;<span className="font-semibold text-gray-900">{fmt(summary.selected.gstAmt)}</span></span>
