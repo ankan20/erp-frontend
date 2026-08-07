@@ -13,6 +13,18 @@ import ExpandableTextField from "@/components/common/ExpandableTextField";
 import { apiRequest } from "@/lib/apiClient";
 import { API_ENDPOINTS } from "@/config/api.config";
 
+const inr = (n) =>
+  n > 0
+    ? Number(n).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+    : "";
+
+function itemAmounts(item) {
+  const amount   = Number(item.rate ?? 0) * Number(item.receivedQty ?? 0);
+  const gstAmt   = amount * Number(item.gstPercent ?? 0) / 100;
+  const totalAmt = amount + gstAmt;
+  return { amount, gstAmt, totalAmt };
+}
+
 export default function SRNItemSelectionModal({ open, onClose, form, brrId, initialData = null, onFetched }) {
   const [loading, setLoading] = useState(false);
   const [search, setSearch]   = useState("");
@@ -128,6 +140,25 @@ export default function SRNItemSelectionModal({ open, onClose, form, brrId, init
   const allSelected   = allFlatItems.length > 0 && allFlatItems.every((i) => i.selected);
   const someSelected  = allFlatItems.some((i) => i.selected);
 
+  // Summary totals (computed from all groups, not filtered)
+  const summary = useMemo(() => {
+    const allItems = groups.flatMap((g) => g.items);
+    const selectedItems = allItems.filter((i) => i.selected);
+    const sum = (items) => items.reduce(
+      (acc, item) => {
+        const { amount, gstAmt, totalAmt } = itemAmounts(item);
+        acc.amount   += amount;
+        acc.gstAmt   += gstAmt;
+        acc.totalAmt += totalAmt;
+        return acc;
+      },
+      { amount: 0, gstAmt: 0, totalAmt: 0 },
+    );
+    return { all: sum(allItems), selected: sum(selectedItems) };
+  }, [groups]);
+
+  const fmt = (n) => inr(n);
+
   const handleSubmit = () => {
     const allItems = groups.flatMap((g) => g.items);
     const selected = allItems.filter((r) => r.selected);
@@ -167,7 +198,7 @@ export default function SRNItemSelectionModal({ open, onClose, form, brrId, init
 
   return (
     <Dialog open={open} onOpenChange={(v) => { if (!v) onClose?.(); }}>
-      <DialogContent className="w-[95vw] max-w-[95vw] lg:max-w-[1100px] p-0 gap-0 max-h-[95vh] flex flex-col">
+      <DialogContent className="w-[95vw] max-w-[95vw] lg:max-w-[1200px] p-0 gap-0 max-h-[95vh] flex flex-col">
         <DialogHeader className="px-6 py-3 border-b bg-slate-50">
           <DialogTitle className="text-[15px] font-semibold">Select SRN Items</DialogTitle>
         </DialogHeader>
@@ -222,6 +253,8 @@ export default function SRNItemSelectionModal({ open, onClose, form, brrId, init
                   <th className="border border-[#bbb] p-2 min-w-[75px]  text-center font-semibold">Rate</th>
                   <th className="border border-[#bbb] p-2 min-w-[90px]  text-center font-semibold">Amount</th>
                   <th className="border border-[#bbb] p-2 min-w-[65px]  text-center font-semibold">GST %</th>
+                  <th className="border border-[#bbb] p-2 min-w-[90px]  text-center font-semibold">GST Amt</th>
+                  <th className="border border-[#bbb] p-2 min-w-[95px]  text-center font-semibold">Total Amt</th>
                   <th className="border border-[#bbb] p-2 min-w-[140px] text-left font-semibold">Use Location</th>
                   <th className="border border-[#bbb] p-2 min-w-[140px] text-left font-semibold">Store Location</th>
                 </tr>
@@ -245,7 +278,7 @@ export default function SRNItemSelectionModal({ open, onClose, form, brrId, init
                             </div>
                           </div>
                         </td>
-                        <td colSpan={10} className="border border-[#bbb] px-3 py-[6px]">
+                        <td colSpan={12} className="border border-[#bbb] px-3 py-[6px]">
                           <div className="flex items-center gap-6 flex-wrap">
                             <span className="font-bold text-[13px] text-gray-800">
                               SRN No:&nbsp;
@@ -262,39 +295,48 @@ export default function SRNItemSelectionModal({ open, onClose, form, brrId, init
                       </tr>
 
                       {/* ── Child item rows ── */}
-                      {srn.items.map((item) => (
-                        <tr
-                          key={`item-${item.srnItemId}`}
-                          className={item.selected ? "bg-blue-50" : "bg-white hover:bg-gray-50"}
-                        >
-                          <td className="border border-[#ddd] p-2 border-l-[3px] border-l-sky-300">
-                            <div className="flex justify-center pl-2">
-                              <Checkbox
-                                checked={item.selected}
-                                onCheckedChange={(c) => handleSelectItem(srn.srnId, item.srnItemId, !!c)}
-                              />
-                            </div>
-                          </td>
-                          <td className="border border-[#ddd] p-2 pl-7">{item.srnl}</td>
-                          <td className="border border-[#ddd] p-2">{item.itemCode}</td>
-                          <td className="border border-[#ddd] p-1">
-                            <ExpandableTextField value={item.itemName || ""} disabled title="Item Name" minHeight="min-h-[30px]" modalHeight="min-h-[180px]" />
-                          </td>
-                          <td className="border border-[#ddd] p-2 text-center">{item.itemUnit}</td>
-                          <td className="border border-[#ddd] p-2 text-center font-medium">{item.receivedQty}</td>
-                          <td className="border border-[#ddd] p-2 text-center">{item.rate}</td>
-                          <td className="border border-[#ddd] p-2 text-center font-medium">
-                            {(Number(item.rate ?? 0) * Number(item.receivedQty ?? 0)).toFixed(2)}
-                          </td>
-                          <td className="border border-[#ddd] p-2 text-center">{item.gstPercent}</td>
-                          <td className="border border-[#ddd] p-1">
-                            <ExpandableTextField value={item.useLocation || ""} disabled title="Use Location" minHeight="min-h-[30px]" modalHeight="min-h-[180px]" />
-                          </td>
-                          <td className="border border-[#ddd] p-1">
-                            <ExpandableTextField value={item.storeLocation || ""} disabled title="Store Location" minHeight="min-h-[30px]" modalHeight="min-h-[180px]" />
-                          </td>
-                        </tr>
-                      ))}
+                      {srn.items.map((item) => {
+                        const { amount, gstAmt, totalAmt } = itemAmounts(item);
+                        return (
+                          <tr
+                            key={`item-${item.srnItemId}`}
+                            className={item.selected ? "bg-blue-50" : "bg-white hover:bg-gray-50"}
+                          >
+                            <td className="border border-[#ddd] p-2 border-l-[3px] border-l-sky-300">
+                              <div className="flex justify-center pl-2">
+                                <Checkbox
+                                  checked={item.selected}
+                                  onCheckedChange={(c) => handleSelectItem(srn.srnId, item.srnItemId, !!c)}
+                                />
+                              </div>
+                            </td>
+                            <td className="border border-[#ddd] p-2 pl-7">{item.srnl}</td>
+                            <td className="border border-[#ddd] p-2">{item.itemCode}</td>
+                            <td className="border border-[#ddd] p-1">
+                              <ExpandableTextField value={item.itemName || ""} disabled title="Item Name" minHeight="min-h-[30px]" modalHeight="min-h-[180px]" />
+                            </td>
+                            <td className="border border-[#ddd] p-2 text-center">{item.itemUnit}</td>
+                            <td className="border border-[#ddd] p-2 text-center font-medium">{item.receivedQty}</td>
+                            <td className="border border-[#ddd] p-2 text-center">{item.rate}</td>
+                            <td className="border border-[#ddd] p-2 text-center font-medium">
+                              {inr(amount)}
+                            </td>
+                            <td className="border border-[#ddd] p-2 text-center">{item.gstPercent}</td>
+                            <td className="border border-[#ddd] p-2 text-center font-medium">
+                              {inr(gstAmt)}
+                            </td>
+                            <td className="border border-[#ddd] p-2 text-center font-medium">
+                              {inr(totalAmt)}
+                            </td>
+                            <td className="border border-[#ddd] p-1">
+                              <ExpandableTextField value={item.useLocation || ""} disabled title="Use Location" minHeight="min-h-[30px]" modalHeight="min-h-[180px]" />
+                            </td>
+                            <td className="border border-[#ddd] p-1">
+                              <ExpandableTextField value={item.storeLocation || ""} disabled title="Store Location" minHeight="min-h-[30px]" modalHeight="min-h-[180px]" />
+                            </td>
+                          </tr>
+                        );
+                      })}
                     </React.Fragment>
                   );
                 })}
@@ -303,12 +345,23 @@ export default function SRNItemSelectionModal({ open, onClose, form, brrId, init
           )}
         </div>
 
-        <div className="flex justify-end gap-3 border-t px-6 py-3 bg-slate-50">
-          <Button type="button" variant="outline" onClick={onClose}>Cancel</Button>
-          <Button type="button" onClick={handleSubmit} disabled={totalSelected === 0}>
-            <Check className="w-4 h-4 mr-1" />
-            Add {totalSelected > 0 ? `${totalSelected} ` : ""}Selected
-          </Button>
+        <div className="flex items-center justify-between gap-4 border-t px-6 py-3 bg-slate-50">
+          {!loading && groups.length > 0 ? (
+            <div className="flex items-center gap-5 text-[12px] text-gray-600">
+              <span>Basic :&nbsp;<span className="font-semibold text-gray-900">{fmt(summary.selected.amount)}</span></span>
+              <span className="text-gray-300">|</span>
+              <span>GST :&nbsp;<span className="font-semibold text-gray-900">{fmt(summary.selected.gstAmt)}</span></span>
+              <span className="text-gray-300">|</span>
+              <span>Total :&nbsp;<span className="font-semibold text-blue-700">{fmt(summary.selected.totalAmt)}</span></span>
+            </div>
+          ) : <div />}
+          <div className="flex gap-3">
+            <Button type="button" variant="outline" onClick={onClose}>Cancel</Button>
+            <Button type="button" onClick={handleSubmit} disabled={totalSelected === 0}>
+              <Check className="w-4 h-4 mr-1" />
+              Add {totalSelected > 0 ? `${totalSelected} ` : ""}Selected
+            </Button>
+          </div>
         </div>
       </DialogContent>
     </Dialog>

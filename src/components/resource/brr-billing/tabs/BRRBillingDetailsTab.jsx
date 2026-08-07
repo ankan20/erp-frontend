@@ -27,17 +27,35 @@ const ReadCell = ({ value }) => (
   </div>
 );
 
+const inr = (n) =>
+  n > 0
+    ? Number(n).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+    : "";
+
 function calcAmounts(item) {
-  const qty    = Number(item.billingQty ?? 0);
-  const rate   = Number(item.rate ?? 0);
-  const gstPct = Number(item.gstPercent ?? 0);
-  const amount    = qty * rate;
-  const gstAmount = amount * gstPct / 100;
+  const qty      = Number(item.billingQty ?? 0);
+  const rate     = Number(item.rate ?? 0);
+  const gstPct   = Number(item.gstPercent ?? 0);
+  const amount   = qty * rate;
+  const gstAmt   = amount * gstPct / 100;
+  const totalAmt = amount + gstAmt;
   return {
-    amount:    amount > 0 ? amount.toFixed(2) : "",
-    gstAmount: gstAmount > 0 ? gstAmount.toFixed(2) : "",
+    amount:    inr(amount),
+    gstAmount: inr(gstAmt),
+    totalAmt:  inr(totalAmt),
   };
 }
+
+const FTD = ({ children, align = "left", colSpan }) => (
+  <td
+    colSpan={colSpan}
+    className={`border border-[#b7bcc5] px-2 py-[3px] text-[12px] font-semibold bg-[#dcefd4] whitespace-nowrap ${
+      align === "right" ? "text-right" : align === "center" ? "text-center" : "text-left"
+    }`}
+  >
+    {children ?? ""}
+  </td>
+);
 
 export default function BRRBillingDetailsTab({
   form,
@@ -51,6 +69,23 @@ export default function BRRBillingDetailsTab({
 }) {
   const items = form.watch("items") || [];
   const isGRN = billingType === "grn";
+
+  const totals = items.reduce(
+    (acc, item) => {
+      const qty    = Number(item.billingQty ?? 0);
+      const rate   = Number(item.rate ?? 0);
+      const gstPct = Number(item.gstPercent ?? 0);
+      const amt    = qty * rate;
+      const gst    = amt * gstPct / 100;
+      acc.amount += amt;
+      acc.gst    += gst;
+      acc.total  += amt + gst;
+      return acc;
+    },
+    { amount: 0, gst: 0, total: 0 },
+  );
+
+  const fmt = (n) => inr(n);
 
   if (!items.length) {
     return (
@@ -74,7 +109,7 @@ export default function BRRBillingDetailsTab({
         </div>
         <div className="overflow-x-auto overflow-y-auto max-h-[680px] w-full">
           {isGRN ? (
-            <table className="border-collapse text-[12px] min-w-[1300px] w-full">
+            <table className="border-collapse text-[12px] min-w-[1400px] w-full">
               <thead>
                 <tr>
                   <TH w="50px"  center>Sl.</TH>
@@ -87,9 +122,10 @@ export default function BRRBillingDetailsTab({
                   <TH w="55px"  center>Unit</TH>
                   <TH w="85px"  center>Rcvd Qty</TH>
                   <TH w="75px"  center>Rate</TH>
-                  <TH w="85px"  center>Amount</TH>
+                  <TH w="90px"  center>Amount</TH>
                   <TH w="60px"  center>GST %</TH>
                   <TH w="85px"  center>GST Amt</TH>
+                  <TH w="90px"  center>Total Amt</TH>
                   <TH w="150px">Use Location</TH>
                   <TH w="150px">Store Location</TH>
                   {!disabled && <TH w="45px" center>Edit</TH>}
@@ -97,7 +133,7 @@ export default function BRRBillingDetailsTab({
               </thead>
               <tbody>
                 {items.map((item, index) => {
-                  const { amount, gstAmount } = calcAmounts(item);
+                  const { amount, gstAmount, totalAmt } = calcAmounts(item);
                   return (
                     <tr key={item.grnItemId ?? index}>
                       <TD center>{index + 1}</TD>
@@ -117,6 +153,7 @@ export default function BRRBillingDetailsTab({
                       <TD center><ReadCell value={amount} /></TD>
                       <TD center><ReadCell value={item.gstPercent} /></TD>
                       <TD center><ReadCell value={gstAmount} /></TD>
+                      <TD center><ReadCell value={totalAmt} /></TD>
                       <TD>
                         <ExpandableTextField value={item.useLocation || ""} onChange={() => {}} disabled title="Use Location" minHeight="min-h-[28px]" modalHeight="min-h-[180px]" />
                       </TD>
@@ -134,9 +171,19 @@ export default function BRRBillingDetailsTab({
                   );
                 })}
               </tbody>
+              <tfoot>
+                <tr>
+                  <FTD colSpan={10} align="right">Total</FTD>
+                  <FTD>{fmt(totals.amount)}</FTD>
+                  <FTD />
+                  <FTD>{fmt(totals.gst)}</FTD>
+                  <FTD>{fmt(totals.total)}</FTD>
+                  <FTD colSpan={disabled ? 2 : 3} />
+                </tr>
+              </tfoot>
             </table>
           ) : (
-            <table className="border-collapse text-[12px] min-w-[1200px] w-full">
+            <table className="border-collapse text-[12px] min-w-[1300px] w-full">
               <thead>
                 <tr>
                   <TH w="50px"  center>Sl.</TH>
@@ -148,9 +195,10 @@ export default function BRRBillingDetailsTab({
                   <TH w="55px"  center>Unit</TH>
                   <TH w="85px"  center>Rcvd Qty</TH>
                   <TH w="75px"  center>Rate</TH>
-                  <TH w="85px"  center>Amount</TH>
+                  <TH w="90px"  center>Amount</TH>
                   <TH w="60px"  center>GST %</TH>
                   <TH w="85px"  center>GST Amt</TH>
+                  <TH w="90px"  center>Total Amt</TH>
                   <TH w="150px">Use Location</TH>
                   <TH w="150px">Store Location</TH>
                   {!disabled && <TH w="45px" center>Edit</TH>}
@@ -158,7 +206,7 @@ export default function BRRBillingDetailsTab({
               </thead>
               <tbody>
                 {items.map((item, index) => {
-                  const { amount, gstAmount } = calcAmounts(item);
+                  const { amount, gstAmount, totalAmt } = calcAmounts(item);
                   return (
                     <tr key={item.srnItemId ?? index}>
                       <TD center>{index + 1}</TD>
@@ -175,6 +223,7 @@ export default function BRRBillingDetailsTab({
                       <TD center><ReadCell value={amount} /></TD>
                       <TD center><ReadCell value={item.gstPercent} /></TD>
                       <TD center><ReadCell value={gstAmount} /></TD>
+                      <TD center><ReadCell value={totalAmt} /></TD>
                       <TD>
                         <ExpandableTextField value={item.useLocation || ""} onChange={() => {}} disabled title="Use Location" minHeight="min-h-[28px]" modalHeight="min-h-[180px]" />
                       </TD>
@@ -192,6 +241,16 @@ export default function BRRBillingDetailsTab({
                   );
                 })}
               </tbody>
+              <tfoot>
+                <tr>
+                  <FTD colSpan={9} align="right">Total</FTD>
+                  <FTD>{fmt(totals.amount)}</FTD>
+                  <FTD />
+                  <FTD>{fmt(totals.gst)}</FTD>
+                  <FTD>{fmt(totals.total)}</FTD>
+                  <FTD colSpan={disabled ? 2 : 3} />
+                </tr>
+              </tfoot>
             </table>
           )}
         </div>
