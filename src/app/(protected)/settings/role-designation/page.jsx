@@ -634,7 +634,7 @@ export default function ProjectRolePage() {
           </div>
 
           {/* RESULTS — fade + slide in when data arrives */}
-          <div className={`space-y-2 transition-all duration-500 ease-out ${projectData ? "opacity-100 translate-y-0" : "opacity-0 translate-y-2 pointer-events-none"}`}>
+          <div className={`space-y-2 transition-opacity duration-500 ease-out ${projectData ? "opacity-100" : "opacity-0 pointer-events-none"}`}>
 
             {/* AUTO FIELDS */}
             <div className="flex flex-wrap items-center gap-2">
