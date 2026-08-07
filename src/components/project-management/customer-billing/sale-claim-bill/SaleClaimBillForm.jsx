@@ -81,7 +81,7 @@ const fmt = (val) => {
 };
 
 // ── COMPONENT ─────────────────────────────────────────────────────────────────
-export default function SaleClaimBillForm({ mode = "create", billId, onAfterSubmit }) {
+export default function SaleClaimBillForm({ mode = "create", billId, onAfterSubmit, onUuid }) {
   const isViewMode  = mode === "view" || mode === "approver";
   const router      = useRouter();
   const projectCode = getLocalStorage("projectInfo")?.projectCode || "";
@@ -221,6 +221,7 @@ export default function SaleClaimBillForm({ mode = "create", billId, onAfterSubm
         setInitialData(formatted);
         setExistingUrl(d.attachment || "");
         setInitialUrl(d.attachment  || "");
+        onUuid?.(d.billingUuid || "");
         const editable = ["draft", "reback"].includes((d.workflowStatus || "").toLowerCase());
         if (mode === "edit" && !editable) {
           setIsSubmitted(true);

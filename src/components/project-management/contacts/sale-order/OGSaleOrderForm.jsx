@@ -27,6 +27,7 @@ import { getInputClass }   from "@/lib/formStyles";
 
 // ── SCHEMA ────────────────────────────────────────────────────────────────────
 const rowSchema = z.object({
+  type:            z.enum(["boq", "non-boq"]).default("non-boq"),
   itemCode:        z.string().optional().default(""),
   itemName:        z.string().optional().default(""),
   itemDescription: z.string().optional().default(""),
@@ -42,11 +43,11 @@ const schema = z.object({
   orderNo:         z.string().optional(),
   orderValidity:   z.string().optional(),
   orderTitle:      z.string().min(1, "Order Title is required"),
-  items:           z.array(rowSchema).min(1),
-  boqItems:        z.array(rowSchema),
+  rows:            z.array(rowSchema).min(1),
 });
 
 const DEFAULT_ROW = {
+  type:            "non-boq",
   itemCode:        "",
   itemName:        "",
   itemDescription: "",
@@ -62,8 +63,7 @@ const defaultValues = {
   orderNo:         "",
   orderValidity:   "",
   orderTitle:      "",
-  items:           [{ ...DEFAULT_ROW }],
-  boqItems:        [],
+  rows:            [{ ...DEFAULT_ROW }],
 };
 
 // ── HELPERS ───────────────────────────────────────────────────────────────────
@@ -77,30 +77,16 @@ const fmt = (val) => {
 const rowSubtotal = (item) =>
   Number(item?.orderQty || 0) * Number(item?.rate || 0);
 
-// ── TABLE HEADER ──────────────────────────────────────────────────────────────
-function TableHeader({ showRequired, disabled }) {
-  return (
-    <thead className="sticky top-0 z-20">
-      <tr className="bg-[#3b6ea5] text-white">
-        <th className="border border-[#2a5080] w-[44px] text-center text-[13px] py-1.5">SL No</th>
-        <th className="border border-[#2a5080] w-[100px] text-left px-2 text-[13px] py-1.5">Item Code</th>
-        <th className="border border-[#2a5080] text-left px-2 text-[13px] py-1.5">Item Name &amp; Description</th>
-        <th className="border border-[#2a5080] w-[110px] text-center text-[13px] py-1.5">Unit</th>
-        <th className="border border-[#2a5080] w-[110px] text-right px-2 text-[13px] py-1.5">
-          Order Qty{showRequired && <span className="text-red-300 ml-0.5">*</span>}
-        </th>
-        <th className="border border-[#2a5080] w-[110px] text-right px-2 text-[13px] py-1.5">
-          Rate{showRequired && <span className="text-red-300 ml-0.5">*</span>}
-        </th>
-        <th className="border border-[#2a5080] w-[65px] text-right px-2 text-[13px] py-1.5">GST %</th>
-        <th className="border border-[#2a5080] w-[110px] text-right px-2 text-[13px] py-1.5">Amount</th>
-        {!disabled && (
-          <th className="border border-[#2a5080] w-[40px] text-center text-[13px] py-1.5">Del</th>
-        )}
-      </tr>
-    </thead>
-  );
-}
+const mapRow = (it, type) => ({
+  type,
+  itemCode:        it.itemCode        || "",
+  itemName:        it.itemName        || "",
+  itemDescription: it.itemDescription || "",
+  unit:            it.unit            || "",
+  orderQty:        it.orderQty        || "",
+  rate:            it.rate            || "",
+  gstPercent:      it.gstPercent      || "",
+});
 
 // ── COMPONENT ─────────────────────────────────────────────────────────────────
 export default function OGSaleOrderForm({ mode = "create", saleOrderId, onAfterSubmit, onUuid }) {
@@ -126,41 +112,27 @@ export default function OGSaleOrderForm({ mode = "create", saleOrderId, onAfterS
     formState: { errors, isSubmitting },
   } = useForm({ resolver: zodResolver(schema), defaultValues });
 
-  const { fields: itemFields, append: appendItem, remove: removeItem } =
-    useFieldArray({ control, name: "items" });
-  const { fields: boqFields, append: appendBoq, remove: removeBoq } =
-    useFieldArray({ control, name: "boqItems" });
+  const { fields, append, remove } = useFieldArray({ control, name: "rows" });
 
-  const itemsScrollRef = useRef(null);
-  const boqScrollRef   = useRef(null);
+  const scrollRef = useRef(null);
 
-  const addItemRow = () => {
-    appendItem({ ...DEFAULT_ROW });
+  const addRow = () => {
+    append({ ...DEFAULT_ROW });
     setTimeout(() => {
-      if (itemsScrollRef.current)
-        itemsScrollRef.current.scrollTop = itemsScrollRef.current.scrollHeight;
-    }, 0);
-  };
-
-  const addBoqRow = () => {
-    appendBoq({ ...DEFAULT_ROW });
-    setTimeout(() => {
-      if (boqScrollRef.current)
-        boqScrollRef.current.scrollTop = boqScrollRef.current.scrollHeight;
+      if (scrollRef.current)
+        scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
     }, 0);
   };
 
   const disabled = isViewMode || !isEditing || isSubmitting || isSubmitted;
 
   // ── TOTALS ────────────────────────────────────────────────────────────────────
-  const watchedItems    = watch("items")    || [];
-  const watchedBoqItems = watch("boqItems") || [];
+  const watchedRows = watch("rows") || [];
 
-  const itemsBasic = watchedItems.reduce((s, it) => s + rowSubtotal(it), 0);
-  const boqBasic   = watchedBoqItems.reduce((s, it) => s + rowSubtotal(it), 0);
-  const basicAmount = itemsBasic + boqBasic;
+  const boqBasic  = watchedRows.filter((r) => r.type === "boq").reduce((s, it) => s + rowSubtotal(it), 0);
+  const basicAmount = boqBasic;
 
-  const gstAmount = [...watchedItems, ...watchedBoqItems].reduce((s, it) => {
+  const gstAmount = watchedRows.filter((r) => r.type === "boq").reduce((s, it) => {
     return s + rowSubtotal(it) * Number(it?.gstPercent || 0) / 100;
   }, 0);
 
@@ -186,15 +158,10 @@ export default function OGSaleOrderForm({ mode = "create", saleOrderId, onAfterS
         });
         const d = res.data;
 
-        const mapRow = (it) => ({
-          itemCode:        it.itemCode        || "",
-          itemName:        it.itemName        || "",
-          itemDescription: it.itemDescription || "",
-          unit:            it.unit            || "",
-          orderQty:        it.orderQty        || "",
-          rate:            it.rate            || "",
-          gstPercent:      it.gstPercent      || "",
-        });
+        const allRows = [
+          ...(d.items    || []).map((it) => mapRow(it, "non-boq")),
+          ...(d.boqItems || []).map((it) => mapRow(it, "boq")),
+        ];
 
         const formatted = {
           ogSaleOrderNo:   d.ogSaleOrderNo   || "",
@@ -202,10 +169,8 @@ export default function OGSaleOrderForm({ mode = "create", saleOrderId, onAfterS
           orderNo:         d.orderNo         || "",
           orderValidity:   d.orderValidity   || "",
           orderTitle:      d.orderTitle      || "",
-          items:    (d.items    || []).map(mapRow),
-          boqItems: (d.boqItems || []).map(mapRow),
+          rows: allRows.length ? allRows : [{ ...DEFAULT_ROW }],
         };
-        if (!formatted.items.length) formatted.items = [{ ...DEFAULT_ROW }];
 
         reset(formatted);
         setInitialData(formatted);
@@ -279,8 +244,12 @@ export default function OGSaleOrderForm({ mode = "create", saleOrderId, onAfterS
           })),
       );
 
-    fd.append("items",    serializeRows(v.items));
-    fd.append("boqItems", serializeRows(v.boqItems));
+    const allRows   = v.rows || [];
+    const itemRows  = allRows.filter((r) => r.type === "non-boq");
+    const boqRows   = allRows.filter((r) => r.type === "boq");
+
+    fd.append("items",    serializeRows(itemRows));
+    fd.append("boqItems", serializeRows(boqRows));
 
     if (files.att1) fd.append("attachment_1", files.att1);
     if (files.att2) fd.append("attachment_2", files.att2);
@@ -364,7 +333,6 @@ export default function OGSaleOrderForm({ mode = "create", saleOrderId, onAfterS
   // ── RENDER ────────────────────────────────────────────────────────────────────
   return (
     <div className="p-3">
-      {/* Unit suggestion datalist — shared by both tables */}
       <datalist id="unit-datalist">
         {unitOptions.map((u) => (
           <option key={u.unitId} value={u.unitName} />
@@ -504,38 +472,75 @@ export default function OGSaleOrderForm({ mode = "create", saleOrderId, onAfterS
           </PMSection>
         </div>
 
-        {/* ── RIGHT PANEL: Items + BOQ Items ──────────────────────────────────── */}
+        {/* ── RIGHT PANEL: Unified Items Table ────────────────────────────────── */}
         <div className="w-full lg:flex-1 min-w-0 space-y-4">
 
-          {/* ── ITEMS TABLE ─────────────────────────────────────────────────── */}
           <div className="border border-[#b5b5b5]">
             <div className="bg-[#d6e4f5] px-3 py-1.5 border-b border-[#b5b5b5] font-bold text-[15px] text-[#1c3a5e]">
               Items
             </div>
-            <div ref={itemsScrollRef} className="overflow-x-auto overflow-y-auto lg:max-h-[calc(50vh-130px)]">
-              <table className="w-full border-collapse text-sm" style={{ minWidth: 1000 }}>
-                <TableHeader showRequired disabled={disabled} />
+            <div ref={scrollRef} className="overflow-x-auto overflow-y-auto lg:max-h-[calc(100vh-300px)]">
+              <table className="w-full border-collapse text-sm" style={{ minWidth: 1080 }}>
+                <thead className="sticky top-0 z-20">
+                  <tr className="bg-[#3b6ea5] text-white">
+                    <th className="border border-[#2a5080] w-[44px] text-center text-[13px] py-1.5">SL No</th>
+                    <th className="border border-[#2a5080] w-[100px] text-center text-[13px] py-1.5">Type</th>
+                    <th className="border border-[#2a5080] w-[100px] text-left px-2 text-[13px] py-1.5">Item Code</th>
+                    <th className="border border-[#2a5080] text-left px-2 text-[13px] py-1.5">Item Name &amp; Description</th>
+                    <th className="border border-[#2a5080] w-[110px] text-center text-[13px] py-1.5">Unit</th>
+                    <th className="border border-[#2a5080] w-[110px] text-right px-2 text-[13px] py-1.5">
+                      Order Qty{!disabled && <span className="text-red-300 ml-0.5">*</span>}
+                    </th>
+                    <th className="border border-[#2a5080] w-[110px] text-right px-2 text-[13px] py-1.5">
+                      Rate{!disabled && <span className="text-red-300 ml-0.5">*</span>}
+                    </th>
+                    <th className="border border-[#2a5080] w-[65px] text-right px-2 text-[13px] py-1.5">GST %</th>
+                    <th className="border border-[#2a5080] w-[110px] text-right px-2 text-[13px] py-1.5">Amount</th>
+                    {!disabled && (
+                      <th className="border border-[#2a5080] w-[40px] text-center text-[13px] py-1.5">Del</th>
+                    )}
+                  </tr>
+                </thead>
                 <tbody>
-                  {itemFields.map((field, index) => {
-                    const qty    = Number(watchedItems[index]?.orderQty || 0);
-                    const rate   = Number(watchedItems[index]?.rate     || 0);
+                  {fields.map((field, index) => {
+                    const row    = watchedRows[index] || {};
+                    const isBoq  = row.type === "boq";
+                    const qty    = Number(row.orderQty || 0);
+                    const rate   = Number(row.rate     || 0);
                     const amount = qty * rate;
                     return (
                       <tr key={field.id} className={index % 2 === 0 ? "bg-white" : "bg-[#f5f8fc]"}>
+                        {/* SL */}
                         <td className="border border-[#ccc] text-center bg-[#edf4fb] text-[13px] font-medium align-middle">
                           {index + 1}
                         </td>
+
+                        {/* TYPE */}
+                        <td className="border border-[#ccc] p-0 align-middle">
+                          <select
+                            {...register(`rows.${index}.type`)}
+                            disabled={disabled}
+                            className={`${getInputClass(false, disabled)} border-0 rounded-none w-full h-[52px] text-[13px] text-center px-1 cursor-pointer`}
+                          >
+                            <option value="non-boq">Non-BOQ</option>
+                            <option value="boq">BOQ</option>
+                          </select>
+                        </td>
+
+                        {/* ITEM CODE */}
                         <td className="border border-[#ccc] p-0 align-middle">
                           <input
-                            {...register(`items.${index}.itemCode`)}
+                            {...register(`rows.${index}.itemCode`)}
                             disabled={disabled}
                             placeholder="Code"
                             className={`${getInputClass(false, disabled)} border-0 rounded-none w-full h-[52px] text-[13px] px-1.5`}
                           />
                         </td>
+
+                        {/* ITEM NAME + DESCRIPTION */}
                         <td className="border border-[#ccc] p-0">
                           <Controller
-                            name={`items.${index}.itemName`}
+                            name={`rows.${index}.itemName`}
                             control={control}
                             render={({ field: f }) => (
                               <ExpandableTextCell
@@ -550,7 +555,7 @@ export default function OGSaleOrderForm({ mode = "create", saleOrderId, onAfterS
                           />
                           <div className="border-t border-[#e0e0e0]" />
                           <Controller
-                            name={`items.${index}.itemDescription`}
+                            name={`rows.${index}.itemDescription`}
                             control={control}
                             render={({ field: f }) => (
                               <ExpandableTextCell
@@ -563,49 +568,57 @@ export default function OGSaleOrderForm({ mode = "create", saleOrderId, onAfterS
                             )}
                           />
                         </td>
+
+                        {/* UNIT */}
                         <td className="border border-[#ccc] p-0 align-middle">
                           <input
-                            {...register(`items.${index}.unit`)}
+                            {...register(`rows.${index}.unit`)}
                             list="unit-datalist"
                             disabled={disabled}
                             placeholder="Unit"
-                            title={watchedItems[index]?.unit || ""}
+                            title={row.unit || ""}
                             className={`${getInputClass(false, disabled)} border-0 rounded-none w-full h-[52px] text-[13px] text-center px-1 truncate`}
                           />
                         </td>
+
+                        {/* ORDER QTY */}
                         <td className="border border-[#ccc] p-0 align-middle">
                           <input
                             type="number"
                             min={0}
                             step="any"
-                            {...register(`items.${index}.orderQty`, {
+                            {...register(`rows.${index}.orderQty`, {
                               onChange: (e) => { if (Number(e.target.value) < 0) e.target.value = 0; },
                             })}
                             disabled={disabled}
                             placeholder="0"
-                            className={`${getInputClass(errors?.items?.[index]?.orderQty, disabled)} border-0 rounded-none w-full h-[52px] text-[13px] text-right pr-2`}
+                            className={`${getInputClass(errors?.rows?.[index]?.orderQty, disabled)} border-0 rounded-none w-full h-[52px] text-[13px] text-right pr-2`}
                           />
                         </td>
+
+                        {/* RATE */}
                         <td className="border border-[#ccc] p-0 align-middle">
                           <input
                             type="number"
                             min={0}
                             step="any"
-                            {...register(`items.${index}.rate`, {
+                            {...register(`rows.${index}.rate`, {
                               onChange: (e) => { if (Number(e.target.value) < 0) e.target.value = 0; },
                             })}
                             disabled={disabled}
                             placeholder="0"
-                            className={`${getInputClass(errors?.items?.[index]?.rate, disabled)} border-0 rounded-none w-full h-[52px] text-[13px] text-right pr-2`}
+                            className={`${getInputClass(errors?.rows?.[index]?.rate, disabled)} border-0 rounded-none w-full h-[52px] text-[13px] text-right pr-2`}
                           />
                         </td>
+
+                        {/* GST % */}
                         <td className="border border-[#ccc] p-0 align-middle">
                           <input
                             type="number"
                             min={0}
                             max={100}
                             step="any"
-                            {...register(`items.${index}.gstPercent`, {
+                            {...register(`rows.${index}.gstPercent`, {
                               onChange: (e) => { if (Number(e.target.value) < 0) e.target.value = 0; },
                             })}
                             disabled={disabled}
@@ -613,15 +626,19 @@ export default function OGSaleOrderForm({ mode = "create", saleOrderId, onAfterS
                             className={`${getInputClass(false, disabled)} border-0 rounded-none w-full h-[52px] text-[13px] text-right pr-2`}
                           />
                         </td>
+
+                        {/* AMOUNT — blank for Non-BOQ */}
                         <td className="border border-[#ccc] bg-[#edf8ed] px-2 text-[13px] font-medium text-right align-middle">
-                          {fmt(amount)}
+                          {isBoq ? fmt(amount) : ""}
                         </td>
+
+                        {/* DELETE */}
                         {!disabled && (
                           <td className="border border-[#ccc] text-center align-middle">
                             <button
                               type="button"
-                              disabled={itemFields.length === 1}
-                              onClick={() => removeItem(index)}
+                              disabled={fields.length === 1}
+                              onClick={() => remove(index)}
                               className="inline-flex items-center justify-center disabled:opacity-30"
                             >
                               <Trash2 className="w-4 h-4 text-red-500" />
@@ -639,167 +656,6 @@ export default function OGSaleOrderForm({ mode = "create", saleOrderId, onAfterS
                     <td className="border border-[#9ec5e0]" />
                     <td className="border border-[#9ec5e0]" />
                     <td className="border border-[#9ec5e0]" />
-                    <td className="border border-[#9ec5e0] px-2 text-right text-[13px]">TOTAL=</td>
-                    <td className="border border-[#9ec5e0]" />
-                    <td className="border border-[#9ec5e0] px-2 text-right text-[13px]">{fmt(itemsBasic)}</td>
-                    {!disabled && <td className="border border-[#9ec5e0]" />}
-                  </tr>
-                </tfoot>
-              </table>
-            </div>
-            {!disabled && (
-              <div className="mt-2 flex justify-end px-2 pb-2">
-                <button
-                  type="button"
-                  onClick={addItemRow}
-                  className="px-4 py-1 bg-[#9fc5e8] border border-[#6d9dc5] rounded-sm text-sm font-medium hover:brightness-95 cursor-pointer"
-                >
-                  + Add Row
-                </button>
-              </div>
-            )}
-          </div>
-
-          {/* ── BOQ ITEMS TABLE ──────────────────────────────────────────────── */}
-          <div className="border border-[#b5b5b5]">
-            <div className="bg-[#d6e4f5] px-3 py-1.5 border-b border-[#b5b5b5] font-bold text-[15px] text-[#1c3a5e]">
-              BOQ Items
-            </div>
-            <div ref={boqScrollRef} className="overflow-x-auto overflow-y-auto lg:max-h-[calc(50vh-130px)]">
-              <table className="w-full border-collapse text-sm" style={{ minWidth: 1000 }}>
-                <TableHeader showRequired={false} disabled={disabled} />
-                <tbody>
-                  {boqFields.length === 0 && (
-                    <tr>
-                      <td
-                        colSpan={!disabled ? 9 : 8}
-                        className="text-center text-[13px] text-[#aaa] py-4"
-                      >
-                        No BOQ rows — click &ldquo;+ Add Row&rdquo; to add
-                      </td>
-                    </tr>
-                  )}
-                  {boqFields.map((field, index) => {
-                    const qty    = Number(watchedBoqItems[index]?.orderQty || 0);
-                    const rate   = Number(watchedBoqItems[index]?.rate     || 0);
-                    const amount = qty * rate;
-                    return (
-                      <tr key={field.id} className={index % 2 === 0 ? "bg-white" : "bg-[#f5f8fc]"}>
-                        <td className="border border-[#ccc] text-center bg-[#edf4fb] text-[13px] font-medium align-middle">
-                          {index + 1}
-                        </td>
-                        <td className="border border-[#ccc] p-0 align-middle">
-                          <input
-                            {...register(`boqItems.${index}.itemCode`)}
-                            disabled={disabled}
-                            placeholder="Code"
-                            className={`${getInputClass(false, disabled)} border-0 rounded-none w-full h-[52px] text-[13px] px-1.5`}
-                          />
-                        </td>
-                        <td className="border border-[#ccc] p-0">
-                          <Controller
-                            name={`boqItems.${index}.itemName`}
-                            control={control}
-                            render={({ field: f }) => (
-                              <ExpandableTextCell
-                                value={f.value || ""}
-                                onChange={f.onChange}
-                                disabled={disabled}
-                                label="Item Name"
-                                placeholder="Item Name…"
-                                textSize="text-[13px]"
-                              />
-                            )}
-                          />
-                          <div className="border-t border-[#e0e0e0]" />
-                          <Controller
-                            name={`boqItems.${index}.itemDescription`}
-                            control={control}
-                            render={({ field: f }) => (
-                              <ExpandableTextCell
-                                value={f.value || ""}
-                                onChange={f.onChange}
-                                disabled={disabled}
-                                label="Item Description"
-                                placeholder="Description…"
-                              />
-                            )}
-                          />
-                        </td>
-                        <td className="border border-[#ccc] p-0 align-middle">
-                          <input
-                            {...register(`boqItems.${index}.unit`)}
-                            list="unit-datalist"
-                            disabled={disabled}
-                            placeholder="Unit"
-                            title={watchedBoqItems[index]?.unit || ""}
-                            className={`${getInputClass(false, disabled)} border-0 rounded-none w-full h-[52px] text-[13px] text-center px-1 truncate`}
-                          />
-                        </td>
-                        <td className="border border-[#ccc] p-0 align-middle">
-                          <input
-                            type="number"
-                            min={0}
-                            step="any"
-                            {...register(`boqItems.${index}.orderQty`, {
-                              onChange: (e) => { if (Number(e.target.value) < 0) e.target.value = 0; },
-                            })}
-                            disabled={disabled}
-                            placeholder="0"
-                            className={`${getInputClass(false, disabled)} border-0 rounded-none w-full h-[52px] text-[13px] text-right pr-2`}
-                          />
-                        </td>
-                        <td className="border border-[#ccc] p-0 align-middle">
-                          <input
-                            type="number"
-                            min={0}
-                            step="any"
-                            {...register(`boqItems.${index}.rate`, {
-                              onChange: (e) => { if (Number(e.target.value) < 0) e.target.value = 0; },
-                            })}
-                            disabled={disabled}
-                            placeholder="0"
-                            className={`${getInputClass(false, disabled)} border-0 rounded-none w-full h-[52px] text-[13px] text-right pr-2`}
-                          />
-                        </td>
-                        <td className="border border-[#ccc] p-0 align-middle">
-                          <input
-                            type="number"
-                            min={0}
-                            max={100}
-                            step="any"
-                            {...register(`boqItems.${index}.gstPercent`, {
-                              onChange: (e) => { if (Number(e.target.value) < 0) e.target.value = 0; },
-                            })}
-                            disabled={disabled}
-                            placeholder="0"
-                            className={`${getInputClass(false, disabled)} border-0 rounded-none w-full h-[52px] text-[13px] text-right pr-2`}
-                          />
-                        </td>
-                        <td className="border border-[#ccc] bg-[#edf8ed] px-2 text-[13px] font-medium text-right align-middle">
-                          {fmt(amount)}
-                        </td>
-                        {!disabled && (
-                          <td className="border border-[#ccc] text-center align-middle">
-                            <button
-                              type="button"
-                              onClick={() => removeBoq(index)}
-                              className="inline-flex items-center justify-center"
-                            >
-                              <Trash2 className="w-4 h-4 text-red-500" />
-                            </button>
-                          </td>
-                        )}
-                      </tr>
-                    );
-                  })}
-                </tbody>
-                <tfoot className="sticky bottom-0 z-10 bg-[#b7d5f0]">
-                  <tr className="font-bold">
-                    <td className="border border-[#9ec5e0]" />
-                    <td className="border border-[#9ec5e0]" />
-                    <td className="border border-[#9ec5e0]" />
-                    <td className="border border-[#9ec5e0]" />
                     <td className="border border-[#9ec5e0]" />
                     <td className="border border-[#9ec5e0] px-2 text-right text-[13px]">TOTAL=</td>
                     <td className="border border-[#9ec5e0]" />
@@ -813,7 +669,7 @@ export default function OGSaleOrderForm({ mode = "create", saleOrderId, onAfterS
               <div className="mt-2 flex justify-end px-2 pb-2">
                 <button
                   type="button"
-                  onClick={addBoqRow}
+                  onClick={addRow}
                   className="px-4 py-1 bg-[#9fc5e8] border border-[#6d9dc5] rounded-sm text-sm font-medium hover:brightness-95 cursor-pointer"
                 >
                   + Add Row

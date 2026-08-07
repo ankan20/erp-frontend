@@ -155,9 +155,9 @@ async function downloadDocx(data, qrCanvasRef) {
     }),
   });
 
-  // 8 columns: SL No | Item Code | Item Name & Desc | Unit | Qty | Rate | GST% | Amount
-  const cW = [0.05, 0.09, 0.34, 0.08, 0.09, 0.12, 0.07, 0.16].map((p) => Math.round(PAGE_W * p));
-  cW[7] = PAGE_W - cW.slice(0, 7).reduce((a, b) => a + b, 0);
+  // 9 columns: SL No | Type | Item Code | Item Name & Desc | Unit | Qty | Rate | GST% | Amount
+  const cW = [0.05, 0.08, 0.08, 0.30, 0.07, 0.09, 0.11, 0.06, 0.16].map((p) => Math.round(PAGE_W * p));
+  cW[8] = PAGE_W - cW.slice(0, 8).reduce((a, b) => a + b, 0);
 
   const tCell = (text, w, bold = false, shading, align = AlignmentType.LEFT) =>
     new TableCell({
@@ -177,39 +177,32 @@ async function downloadDocx(data, qrCanvasRef) {
       margins: { top: 50, bottom: 50, left: 70, right: 70 },
     });
 
-  const hdrs = ["Sl\nNo", "Item\nCode", "Item Name & Description", "Unit", "Order\nQty", "Rate", "GST\n%", "Amount"];
+  const hdrs = ["Sl\nNo", "Type", "Item\nCode", "Item Name & Description", "Unit", "Order\nQty", "Rate", "GST\n%", "Amount"];
   const items    = (data.items    || []).filter(Boolean);
   const boqItems = (data.boqItems || []).filter(Boolean);
-  const hasBoth  = items.length > 0 && boqItems.length > 0;
 
-  const sectionHeaderRow = (label) =>
-    new TableRow({
-      children: [
-        new TableCell({
-          children: [new Paragraph({ children: [run(label, { bold: true, size: 19 })] })],
-          columnSpan: 8,
-          shading: secShading,
-          borders: tblBorders,
-          margins: { top: 40, bottom: 40, left: 80, right: 80 },
-        }),
-      ],
-    });
+  // Merged list: non-boq first, then boq
+  const allRows = [
+    ...items.map((it)    => ({ ...it, rowType: "Non-BOQ", isBoq: false })),
+    ...boqItems.map((it) => ({ ...it, rowType: "BOQ",     isBoq: true  })),
+  ];
 
-  const makeItemRows = (rowList, startIdx = 0) =>
+  const makeItemRows = (rowList) =>
     rowList.map((item, idx) =>
       new TableRow({
         children: [
-          tCell(startIdx + idx + 1, cW[0], false, undefined, AlignmentType.CENTER),
-          tCell(item.itemCode || "", cW[1]),
+          tCell(idx + 1,        cW[0], false, undefined, AlignmentType.CENTER),
+          tCell(item.rowType,   cW[1], false, undefined, AlignmentType.CENTER),
+          tCell(item.itemCode || "", cW[2]),
           tCellMulti([
             new Paragraph({ children: [run(item.itemName || "", { bold: true, size: 19 })] }),
             ...(item.itemDescription ? [new Paragraph({ children: [run(item.itemDescription, { size: 16, color: "6B7280" })] })] : []),
-          ], cW[2]),
-          tCell(item.unit || "", cW[3], false, undefined, AlignmentType.CENTER),
-          tCell(item.orderQty ?? "", cW[4], false, undefined, AlignmentType.RIGHT),
-          tCell(fmt.number(item.rate), cW[5], false, undefined, AlignmentType.RIGHT),
-          tCell(item.gstPercent != null ? `${item.gstPercent}%` : "-", cW[6], false, undefined, AlignmentType.CENTER),
-          tCell(fmt.number(item.amount), cW[7], false, undefined, AlignmentType.RIGHT),
+          ], cW[3]),
+          tCell(item.unit || "", cW[4], false, undefined, AlignmentType.CENTER),
+          tCell(item.orderQty ?? "", cW[5], false, undefined, AlignmentType.RIGHT),
+          tCell(fmt.number(item.rate), cW[6], false, undefined, AlignmentType.RIGHT),
+          tCell(item.gstPercent != null ? `${item.gstPercent}%` : "-", cW[7], false, undefined, AlignmentType.CENTER),
+          tCell(item.isBoq ? fmt.number(item.amount) : "-", cW[8], false, undefined, AlignmentType.RIGHT),
         ],
       })
     );
@@ -249,7 +242,7 @@ async function downloadDocx(data, qrCanvasRef) {
   const mkAmtRow = (label, val, bold = false, shading) =>
     new TableRow({
       children: [
-        amtEmptyCell(true), amtEmptyCell(), amtEmptyCell(), amtEmptyCell(), amtEmptyCell(),
+        amtEmptyCell(true), amtEmptyCell(), amtEmptyCell(), amtEmptyCell(), amtEmptyCell(), amtEmptyCell(),
         new TableCell({
           children: [new Paragraph({ alignment: AlignmentType.LEFT, children: [run(label, { bold, size: bold ? 20 : 18 })] })],
           columnSpan: 2,
@@ -266,7 +259,7 @@ async function downloadDocx(data, qrCanvasRef) {
       children: [
         new TableCell({
           children: [new Paragraph({ text: "" })],
-          columnSpan: 5,
+          columnSpan: 6,
           borders: { top: nilSide, bottom: solidB, left: solidB, right: nilSide, insideH: nilSide, insideV: nilSide },
           margins: { top: 0, bottom: 0, left: 0, right: 0 },
         }),
@@ -295,17 +288,16 @@ async function downloadDocx(data, qrCanvasRef) {
         tableHeader: true,
         children: hdrs.map((h, i) => tCell(h, cW[i], true, headShading, AlignmentType.CENTER)),
       }),
-      ...(hasBoth ? [sectionHeaderRow("Items")] : []),
-      ...makeItemRows(items, 0),
-      ...(hasBoth ? [sectionHeaderRow("BOQ Items"), ...makeItemRows(boqItems, 0)] : []),
-      // Blue total row
+      ...makeItemRows(allRows),
+      // Blue total row (9 cols)
       new TableRow({
         children: [
           tCell("", cW[0], false, blueShading), tCell("", cW[1], false, blueShading),
           tCell("", cW[2], false, blueShading), tCell("", cW[3], false, blueShading),
-          tCell("", cW[4], false, blueShading), tCell("TOTAL=", cW[5], true, blueShading, AlignmentType.RIGHT),
-          tCell("", cW[6], false, blueShading),
-          tCell(fmt.number(data.basicAmount), cW[7], true, blueShading, AlignmentType.RIGHT),
+          tCell("", cW[4], false, blueShading), tCell("", cW[5], false, blueShading),
+          tCell("TOTAL=", cW[6], true, blueShading, AlignmentType.RIGHT),
+          tCell("", cW[7], false, blueShading),
+          tCell(fmt.number(data.basicAmount), cW[8], true, blueShading, AlignmentType.RIGHT),
         ],
       }),
       // Amount summary rows
@@ -382,11 +374,14 @@ export default function OGSaleOrderPrintPage() {
 
   if (error || !data) return <PrintErrorPage status={error?.status} message={error?.message} />;
 
-  const items    = (data.items    || []).filter(Boolean);
-  const boqItems = (data.boqItems || []).filter(Boolean);
-  const hasBoth  = items.length > 0 && boqItems.length > 0;
+  const printItems    = (data.items    || []).filter(Boolean);
+  const printBoqItems = (data.boqItems || []).filter(Boolean);
+  const printAllRows  = [
+    ...printItems.map((it)    => ({ ...it, rowType: "Non-BOQ", isBoq: false })),
+    ...printBoqItems.map((it) => ({ ...it, rowType: "BOQ",     isBoq: true  })),
+  ];
 
-  const COL_SPAN = 8;
+  const COL_SPAN   = 9;
   const borderSide = "1px solid #b0b0b0";
 
   return (
@@ -399,7 +394,7 @@ export default function OGSaleOrderPrintPage() {
 
       <div className="bg-gray-100 py-6 px-3 print:p-0 print:bg-white">
         <div
-          className="bg-white max-w-[900px] mx-auto shadow-md print:shadow-none print:max-w-none"
+          className="bg-white max-w-[960px] mx-auto shadow-md print:shadow-none print:max-w-none"
           style={{ fontFamily: "var(--font-print), sans-serif" }}
         >
 
@@ -449,34 +444,24 @@ export default function OGSaleOrderPrintPage() {
           {/* ── COMBINED ITEMS TABLE ───────────────────────── */}
           <div className="px-6 pb-0">
             <div className="overflow-x-auto">
-              <table className="w-full border-collapse" style={{ tableLayout: "fixed", minWidth: 680 }}>
-                <colgroup>
-                  <col style={{ width: "5%" }} />
-                  <col style={{ width: "9%" }} />
-                  <col style={{ width: "34%" }} />
-                  <col style={{ width: "8%" }} />
-                  <col style={{ width: "9%" }} />
-                  <col style={{ width: "12%" }} />
-                  <col style={{ width: "7%" }} />
-                  <col style={{ width: "16%" }} />
-                </colgroup>
-
+              <table className="w-full border-collapse" style={{ tableLayout: "auto" }}>
                 {/* HEADER */}
                 <thead>
                   <tr className={COLOR.tableHeadBg}>
                     {[
-                      { label: "SL\nNo",                   align: "center" },
-                      { label: "Item\nCode",               align: "center" },
-                      { label: "Item Name & Description",  align: "center" },
-                      { label: "Unit",                     align: "center" },
-                      { label: "Order\nQty",               align: "center" },
-                      { label: "Rate",                     align: "center" },
-                      { label: "GST\n%",                   align: "center" },
-                      { label: "Amount",                   align: "center" },
-                    ].map(({ label, align }) => (
+                      { label: "SL\nNo",                  align: "center", cls: "w-[5%]"  },
+                      { label: "Type",                     align: "center", cls: "w-[8%]"  },
+                      { label: "Item\nCode",               align: "center", cls: "w-[9%]"  },
+                      { label: "Item Name & Description",  align: "center", cls: "w-[28%]" },
+                      { label: "Unit",                     align: "center", cls: "w-[7%]"  },
+                      { label: "Order\nQty",               align: "center", cls: "w-[8%]"  },
+                      { label: "Rate",                     align: "center", cls: "w-[11%]" },
+                      { label: "GST\n%",                   align: "center", cls: "w-[7%]"  },
+                      { label: "Amount",                   align: "center", cls: "w-[17%]" },
+                    ].map(({ label, align, cls }) => (
                       <th
                         key={label}
-                        className={`border ${COLOR.tableBorder} px-1 py-1.5 ${SIZE.tableHead} ${WEIGHT.bold} text-gray-900 text-${align}`}
+                        className={`border ${COLOR.tableBorder} px-1 py-1.5 ${SIZE.tableHead} ${WEIGHT.bold} text-gray-900 text-${align} ${cls}`}
                         style={{ whiteSpace: "pre-line" }}
                       >
                         {label}
@@ -486,71 +471,32 @@ export default function OGSaleOrderPrintPage() {
                 </thead>
 
                 <tbody>
-                  {/* ── Items section ── */}
-                  {hasBoth && (
-                    <tr>
-                      <td
-                        colSpan={COL_SPAN}
-                        className={`border ${COLOR.tableBorder} px-3 py-1 ${SIZE.tableCell} ${WEIGHT.semibold} text-[#1c3a5e] bg-[#eef4fb]`}
-                      >
-                        Items
+                  {printAllRows.map((item, idx) => (
+                    <tr key={idx} className={COLOR.tableRowOdd} style={{ breakInside: "avoid" }}>
+                      <td className={`border ${COLOR.tableBorder} px-1 py-1.5 ${SIZE.tableCell} text-center`} style={{ whiteSpace: "nowrap" }}>{idx + 1}</td>
+                      <td className={`border ${COLOR.tableBorder} px-1 py-1.5 ${SIZE.tableCell} text-center`} style={{ whiteSpace: "nowrap" }}>
+                        {item.rowType}
                       </td>
-                    </tr>
-                  )}
-                  {items.map((item, idx) => (
-                    <tr key={`item-${idx}`} className={COLOR.tableRowOdd} style={{ breakInside: "avoid" }}>
-                      <td className={`border ${COLOR.tableBorder} px-1 py-1.5 ${SIZE.tableCell} text-center`}>{idx + 1}</td>
-                      <td className={`border ${COLOR.tableBorder} px-1 py-1.5 ${SIZE.tableCell}`}>{item.itemCode || "-"}</td>
+                      <td className={`border ${COLOR.tableBorder} px-1 py-1.5 ${SIZE.tableCell}`} style={{ whiteSpace: "nowrap" }}>{item.itemCode || "-"}</td>
                       <td className={`border ${COLOR.tableBorder} px-1 py-1.5`}>
                         <p className={ITEM_NAME}>{item.itemName || "-"}</p>
                         {item.itemDescription && <p className={ITEM_SUB}>{item.itemDescription}</p>}
                       </td>
-                      <td className={`border ${COLOR.tableBorder} px-1 py-1.5 ${SIZE.tableCell} text-center`}>{item.unit || "-"}</td>
-                      <td className={`border ${COLOR.tableBorder} px-1 py-1.5 ${SIZE.tableCell} text-right`}>{item.orderQty ?? "-"}</td>
-                      <td className={`border ${COLOR.tableBorder} px-1 py-1.5 ${SIZE.tableCell} text-right`}><FmtNum value={item.rate} /></td>
-                      <td className={`border ${COLOR.tableBorder} px-1 py-1.5 ${SIZE.tableCell} text-center`}>
+                      <td className={`border ${COLOR.tableBorder} px-1 py-1.5 ${SIZE.tableCell} text-center`} style={{ whiteSpace: "nowrap" }}>{item.unit || "-"}</td>
+                      <td className={`border ${COLOR.tableBorder} px-1 py-1.5 ${SIZE.tableCell} text-right`} style={{ whiteSpace: "nowrap" }}>{item.orderQty ?? "-"}</td>
+                      <td className={`border ${COLOR.tableBorder} px-1 py-1.5 ${SIZE.tableCell} text-right`} style={{ whiteSpace: "nowrap" }}><FmtNum value={item.rate} /></td>
+                      <td className={`border ${COLOR.tableBorder} px-1 py-1.5 ${SIZE.tableCell} text-center`} style={{ whiteSpace: "nowrap" }}>
                         {item.gstPercent != null ? `${item.gstPercent}%` : "-"}
                       </td>
-                      <td className={`border ${COLOR.tableBorder} px-1 py-1.5 ${SIZE.tableCell} text-right`}><FmtNum value={item.amount} /></td>
+                      <td className={`border ${COLOR.tableBorder} px-1 py-1.5 ${SIZE.tableCell} text-right`} style={{ whiteSpace: "nowrap" }}>
+                        {item.isBoq ? <FmtNum value={item.amount} /> : "-"}
+                      </td>
                     </tr>
                   ))}
 
-                  {/* ── BOQ Items section ── */}
-                  {boqItems.length > 0 && (
-                    <>
-                      {hasBoth && (
-                        <tr>
-                          <td
-                            colSpan={COL_SPAN}
-                            className={`border ${COLOR.tableBorder} px-3 py-1 ${SIZE.tableCell} ${WEIGHT.semibold} text-[#1c3a5e] bg-[#eef4fb]`}
-                          >
-                            BOQ Items
-                          </td>
-                        </tr>
-                      )}
-                      {boqItems.map((item, idx) => (
-                        <tr key={`boq-${idx}`} className={COLOR.tableRowOdd} style={{ breakInside: "avoid" }}>
-                          <td className={`border ${COLOR.tableBorder} px-1 py-1.5 ${SIZE.tableCell} text-center`}>{idx + 1}</td>
-                          <td className={`border ${COLOR.tableBorder} px-1 py-1.5 ${SIZE.tableCell}`}>{item.itemCode || "-"}</td>
-                          <td className={`border ${COLOR.tableBorder} px-1 py-1.5`}>
-                            <p className={ITEM_NAME}>{item.itemName || "-"}</p>
-                            {item.itemDescription && <p className={ITEM_SUB}>{item.itemDescription}</p>}
-                          </td>
-                          <td className={`border ${COLOR.tableBorder} px-1 py-1.5 ${SIZE.tableCell} text-center`}>{item.unit || "-"}</td>
-                          <td className={`border ${COLOR.tableBorder} px-1 py-1.5 ${SIZE.tableCell} text-right`}>{item.orderQty ?? "-"}</td>
-                          <td className={`border ${COLOR.tableBorder} px-1 py-1.5 ${SIZE.tableCell} text-right`}><FmtNum value={item.rate} /></td>
-                          <td className={`border ${COLOR.tableBorder} px-1 py-1.5 ${SIZE.tableCell} text-center`}>
-                            {item.gstPercent != null ? `${item.gstPercent}%` : "-"}
-                          </td>
-                          <td className={`border ${COLOR.tableBorder} px-1 py-1.5 ${SIZE.tableCell} text-right`}><FmtNum value={item.amount} /></td>
-                        </tr>
-                      ))}
-                    </>
-                  )}
-
                   {/* ── Blue TOTAL row ── */}
                   <tr className={COLOR.signatureBg}>
-                    <td colSpan={7} className={`border ${COLOR.tableBorder} px-2 py-1.5 ${SIZE.tableCell} ${WEIGHT.bold} text-right`}>
+                    <td colSpan={8} className={`border ${COLOR.tableBorder} px-2 py-1.5 ${SIZE.tableCell} ${WEIGHT.bold} text-right`}>
                       TOTAL=
                     </td>
                     <td className={`border ${COLOR.tableBorder} px-2 py-1.5 ${SIZE.tableCell} ${WEIGHT.bold} text-right`}>
@@ -558,13 +504,13 @@ export default function OGSaleOrderPrintPage() {
                     </td>
                   </tr>
 
-                  {/* ── Amount summary rows (service-order style) ── */}
+                  {/* ── Amount summary rows ── */}
                   {[
                     ["Basic Amount", data.basicAmount],
                     ["GST Amount",   data.gstAmount],
                   ].map(([label, val]) => (
                     <tr key={label}>
-                      <td colSpan={5} style={{ borderLeft: borderSide, borderTop: "none", borderBottom: "none", borderRight: "none", padding: 0 }} />
+                      <td colSpan={6} style={{ borderLeft: borderSide, borderTop: "none", borderBottom: "none", borderRight: "none", padding: 0 }} />
                       <td
                         colSpan={2}
                         style={{ borderLeft: borderSide, borderTop: "none", borderBottom: "none", borderRight: borderSide, padding: "3px 6px" }}
@@ -584,7 +530,7 @@ export default function OGSaleOrderPrintPage() {
                   {/* ── Total Amount highlighted ── */}
                   <tr>
                     <td
-                      colSpan={5}
+                      colSpan={6}
                       style={{ borderLeft: borderSide, borderBottom: borderSide, borderTop: "none", borderRight: "none", padding: 0 }}
                     />
                     <td
