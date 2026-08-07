@@ -17,6 +17,7 @@ export default function SearchableSelect({
   emptyText = "No Data Found",
   dropdownPosition = "down",
   labelSeparator = " : ",
+  clearLabel = null, // when provided, renders a clear/empty option at the top
 }) {
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState("");
@@ -81,9 +82,13 @@ export default function SearchableSelect({
         onClick={(e) => {
           const rect = e.currentTarget.getBoundingClientRect();
 
-          const DROPDOWN_HEIGHT = 260;
-          const spaceBelow = window.innerHeight - rect.bottom;
-          const goUp = dropdownPosition === "up" || spaceBelow < DROPDOWN_HEIGHT + 8;
+          const spaceBelow = window.innerHeight - rect.bottom - 4;
+          const spaceAbove = rect.top - 4;
+          // Only flip up when there's genuinely no room below (<100px) AND
+          // more space is available above than below.
+          const goUp =
+            dropdownPosition === "up" ||
+            (spaceBelow < 100 && spaceAbove > spaceBelow);
 
           const dropdownWidth = Math.max(rect.width, 200);
           const clampedLeft = Math.min(
@@ -91,13 +96,28 @@ export default function SearchableSelect({
             window.innerWidth - dropdownWidth - 8
           );
 
-          setDropdownStyle({
+          const baseStyle = {
             position: "fixed",
-            top: goUp ? rect.top - DROPDOWN_HEIGHT - 4 : rect.bottom + 4,
             left: Math.max(0, clampedLeft),
             width: dropdownWidth,
             zIndex: 999999,
-          });
+          };
+
+          if (goUp) {
+            // Pin bottom of dropdown to top of button; cap height to available space
+            setDropdownStyle({
+              ...baseStyle,
+              bottom: window.innerHeight - rect.top + 4,
+              maxHeight: Math.min(spaceAbove, 280),
+            });
+          } else {
+            // Open below; cap height to available space so it never clips off-screen
+            setDropdownStyle({
+              ...baseStyle,
+              top: rect.bottom + 4,
+              maxHeight: Math.min(spaceBelow, 280),
+            });
+          }
 
           setOpen((prev) => !prev);
         }}
@@ -152,17 +172,11 @@ export default function SearchableSelect({
         //   "
         // >
         <div
-          className="
-                border
-                border-[#8f8f8f]
-                rounded-sm
-                bg-white
-                shadow-xl
-              "
+          className="border border-[#8f8f8f] rounded-sm bg-white shadow-xl flex flex-col overflow-hidden"
           style={dropdownStyle}
         >
           {/* SEARCH */}
-          <div className="p-2 border-b border-gray-200">
+          <div className="p-2 border-b border-gray-200 shrink-0">
             <input
               type="text"
               value={search}
@@ -182,7 +196,21 @@ export default function SearchableSelect({
           </div>
 
           {/* OPTIONS */}
-          <div className="max-h-[220px] overflow-y-auto">
+          <div className="overflow-y-auto flex-1">
+            {/* Clear / empty option — only shown when clearLabel is provided and search is empty */}
+            {clearLabel && !search.trim() && (
+              <button
+                type="button"
+                onClick={() => { onChange("", null); setOpen(false); setSearch(""); }}
+                className={`
+                  w-full text-left px-3 py-2 text-[13px]
+                  hover:bg-[#d6e6f2] border-b border-gray-100
+                  ${!value || value === "" ? "bg-[#d6e6f2]" : "bg-white text-gray-400 italic"}
+                `}
+              >
+                {clearLabel}
+              </button>
+            )}
             {filteredOptions.length > 0 ? (
               filteredOptions.map((item, idx) => {
                 const isSelected = String(item[valueKey]) === String(value);

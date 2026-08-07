@@ -598,6 +598,7 @@ export default function ApproverSection({ projectCode, projectData, refetchKey =
                                     onChange={(v) => handleLevelChange(row.rowId, lk, v)}
                                     disabled={disabled}
                                     placeholder="— select —"
+                                    clearLabel="— select —"
                                     labelKey="userName"
                                     valueKey="id"
                                     searchKeys={["userName"]}
