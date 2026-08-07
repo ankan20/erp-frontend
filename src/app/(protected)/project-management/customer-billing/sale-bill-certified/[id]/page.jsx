@@ -20,6 +20,7 @@ export default function Page() {
 
   const [openApproval, setOpenApproval] = useState(false);
   const [openTimeline, setOpenTimeline] = useState(false);
+  const [uuid,         setUuid]         = useState(null);
 
   const access = getPageAccess({ pageCode: "sale_certified_bill", pageType: "EDIT" });
   const { isPendingForMe, myLevel, refresh, dismiss } = useMyApprovalStatus(
@@ -32,8 +33,9 @@ export default function Page() {
 
   const actions = getPageActions({
     router,
-    onTimeLine: () => setOpenTimeline(true),
-    onApprove:  access.canApprove ? () => setOpenApproval(true) : undefined,
+    onTimeLine:  () => setOpenTimeline(true),
+    onApprove:   access.canApprove ? () => setOpenApproval(true) : undefined,
+    onDownload:  uuid ? () => window.open(`/print/sale-certified-bill/${uuid}`, "_blank") : undefined,
     isPendingApproval: isPendingForMe,
   });
 
@@ -47,7 +49,7 @@ export default function Page() {
       }
       onDismissApproval={isPendingForMe ? dismiss : undefined}
     >
-      <SaleCertifiedBillForm mode={access.mode} billId={id} onAfterSubmit={refresh} />
+      <SaleCertifiedBillForm mode={access.mode} billId={id} onAfterSubmit={refresh} onUuid={setUuid} />
 
       <ApprovalActionModal
         open={openApproval}

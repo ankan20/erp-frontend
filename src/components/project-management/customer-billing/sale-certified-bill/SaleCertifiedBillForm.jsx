@@ -29,6 +29,7 @@ const BILL_MODE = "sale_certified_bill";
 
 // ── SCHEMA ────────────────────────────────────────────────────────────────────
 const itemSchema = z.object({
+  type:              z.string().optional().default("non-boq"),
   ogSaleOrderItemId: z.number().nullable().optional(),
   itemDisplayCode:   z.string().optional(),
   itemCode:          z.string().optional(),
@@ -52,6 +53,7 @@ const schema = z.object({
 });
 
 const DEFAULT_ITEM = {
+  type:              "non-boq",
   ogSaleOrderItemId: null,
   itemDisplayCode:   "",
   itemCode:          "",
@@ -83,7 +85,7 @@ const fmt = (val) => {
 };
 
 // ── COMPONENT ─────────────────────────────────────────────────────────────────
-export default function SaleCertifiedBillForm({ mode = "create", billId, onAfterSubmit }) {
+export default function SaleCertifiedBillForm({ mode = "create", billId, onAfterSubmit, onUuid }) {
   const isViewMode  = mode === "view" || mode === "approver";
   const router      = useRouter();
   const projectCode = getLocalStorage("projectInfo")?.projectCode || "";
@@ -197,7 +199,8 @@ export default function SaleCertifiedBillForm({ mode = "create", billId, onAfter
       if (d.preCertifiedAmount !== undefined) {
         setValue("preCertifiedAmount", d.preCertifiedAmount, { shouldDirty: true });
       }
-      const items = (d.items || []).map((it) => ({
+      const mapLookupItem = (it, type) => ({
+        type,
         ogSaleOrderItemId: it.id || it.ogSaleOrderItemId || null,
         itemDisplayCode:   it.itemDisplayCode || it.itemCode   || "",
         itemCode:          it.itemCode        || "",
@@ -208,7 +211,11 @@ export default function SaleCertifiedBillForm({ mode = "create", billId, onAfter
         certifiedQty:      it.claimQty        || "",
         rate:              it.rate            || "",
         gstPercent:        it.gstPercent      || it.gst  || "",
-      }));
+      });
+      const items = [
+        ...(d.boqItems || []).map((it) => mapLookupItem(it, "boq")),
+        ...(d.items    || []).map((it) => mapLookupItem(it, "non-boq")),
+      ];
       if (items.length) setValue("items", items, { shouldDirty: true });
     } catch {
       toast.error("Failed to load claim bill details");
@@ -228,6 +235,19 @@ export default function SaleCertifiedBillForm({ mode = "create", billId, onAfter
           method: "GET",
         });
         const d = res.data;
+        const mapDetailItem = (it, type) => ({
+          type,
+          ogSaleOrderItemId: it.ogSaleOrderItemId || null,
+          itemDisplayCode:   it.itemDisplayCode   || it.itemCode || "",
+          itemCode:          it.itemCode           || "",
+          itemName:          it.itemName           || "",
+          itemDescription:   it.itemDescription   || "",
+          unit:              it.unit               || "",
+          orderQty:          it.orderQty           || "",
+          certifiedQty:      it.claimQty           || it.certifiedQty || "",
+          rate:              it.rate               || "",
+          gstPercent:        it.gstPercent         || "",
+        });
         const formatted = {
           claimBillId:        d.claimBillId         || null,
           ogSaleOrderNo:      d.ogSaleOrderNo        || "",
@@ -235,23 +255,16 @@ export default function SaleCertifiedBillForm({ mode = "create", billId, onAfter
           title:              d.title                 || "",
           jobLocation:        d.jobLocation           || "",
           preCertifiedAmount: d.preCertifiedAmount    || "",
-          items: (d.items || []).map((it) => ({
-            ogSaleOrderItemId: it.ogSaleOrderItemId || null,
-            itemDisplayCode:   it.itemDisplayCode   || it.itemCode || "",
-            itemCode:          it.itemCode           || "",
-            itemName:          it.itemName           || "",
-            itemDescription:   it.itemDescription   || "",
-            unit:              it.unit               || "",
-            orderQty:          it.orderQty           || "",
-            certifiedQty:      it.claimQty           || "",
-            rate:              it.rate               || "",
-            gstPercent:        it.gstPercent         || "",
-          })),
+          items: [
+            ...(d.boqItems || []).map((it) => mapDetailItem(it, "boq")),
+            ...(d.items    || []).map((it) => mapDetailItem(it, "non-boq")),
+          ],
         };
         if (!formatted.items.length) formatted.items = [{ ...DEFAULT_ITEM }];
         reset(formatted);
         setInitialData(formatted);
         if (d.ogSaleOrderNo) fetchClaimBills(d.ogSaleOrderNo);
+        onUuid?.(d.billingUuid || "");
         setExistingUrl(d.attachment || "");
         setInitialUrl(d.attachment  || "");
         const editable = ["draft", "reback"].includes((d.workflowStatus || "").toLowerCase());
@@ -299,18 +312,20 @@ export default function SaleCertifiedBillForm({ mode = "create", billId, onAfter
     fd.append("billingDate", v.billingDate  || "");
     fd.append("title",       v.title        || "");
     fd.append("jobLocation", v.jobLocation  || "");
-    fd.append(
-      "items",
+    const serializeItems = (list) =>
       JSON.stringify(
-        v.items.map((it, i) => ({
+        list.map((it, i) => ({
           slNo:              i + 1,
           ogSaleOrderItemId: it.ogSaleOrderItemId || null,
           claimQty:          Number(it.certifiedQty || 0),
           rate:              Number(it.rate          || 0),
           gstPercent:        Number(it.gstPercent    || 0),
         })),
-      ),
-    );
+      );
+    const nonBoqItems = (v.items || []).filter((it) => it.type !== "boq");
+    const boqItems    = (v.items || []).filter((it) => it.type === "boq");
+    fd.append("items",    serializeItems(nonBoqItems));
+    fd.append("boqItems", serializeItems(boqItems));
     if (file) fd.append("attachment", file);
     return fd;
   };
@@ -540,11 +555,12 @@ export default function SaleCertifiedBillForm({ mode = "create", billId, onAfter
             </div>
 
             <div className="overflow-x-auto overflow-y-auto lg:max-h-[calc(100vh-260px)]">
-              <table className="w-full border-collapse text-sm" style={{ minWidth: 960 }}>
+              <table className="w-full border-collapse text-sm" style={{ minWidth: 1060 }}>
 
                 <thead className="sticky top-0 z-20">
                   <tr className="bg-[#3b6ea5] text-white">
                     <th className="border border-[#2a5080] w-[44px] text-center text-[13px] py-1.5">SL no</th>
+                    <th className="border border-[#2a5080] w-[90px] text-center text-[13px] py-1.5">Type</th>
                     <th className="border border-[#2a5080] w-[110px] text-left px-2 text-[13px] py-1.5">Item Code</th>
                     <th className="border border-[#2a5080] text-left px-2 text-[13px] py-1.5">Item Name &amp; Description</th>
                     <th className="border border-[#2a5080] w-[60px] text-center text-[13px] py-1.5">Unit</th>
@@ -560,7 +576,7 @@ export default function SaleCertifiedBillForm({ mode = "create", billId, onAfter
                   {fields.length === 0 && (
                     <tr>
                       <td
-                        colSpan={9}
+                        colSpan={10}
                         className="text-center text-[13px] text-[#888] py-8 italic border border-[#ccc]"
                       >
                         Select an order, then a claim bill above to populate items
@@ -580,6 +596,12 @@ export default function SaleCertifiedBillForm({ mode = "create", billId, onAfter
                         {/* SL */}
                         <td className="border border-[#ccc] text-center bg-[#edf4fb] text-[13px] font-medium align-middle">
                           {index + 1}
+                        </td>
+
+                        {/* TYPE — read-only */}
+                        <td className="border border-[#ccc] text-center text-[13px] align-middle text-[#555]">
+                          {watch(`items.${index}.type`) === "boq" ? "BOQ" : "Non-BOQ"}
+                          <input {...register(`items.${index}.type`)} type="hidden" />
                         </td>
 
                         {/* ITEM CODE — read-only */}
@@ -702,6 +724,7 @@ export default function SaleCertifiedBillForm({ mode = "create", billId, onAfter
 
                 <tfoot className="sticky bottom-0 z-10 bg-[#b7d5f0]">
                   <tr className="font-bold">
+                    <td className="border border-[#9ec5e0]" />
                     <td className="border border-[#9ec5e0]" />
                     <td className="border border-[#9ec5e0]" />
                     <td className="border border-[#9ec5e0]" />

@@ -84,7 +84,7 @@ async function downloadDocx(data, qrCanvasRef) {
       mkCell([new Paragraph({ text: "" })], hSpacerW),
       new TableCell({
         children: [
-          new Paragraph({ children: [run("SALE CLAIM BILL", { bold: true, size: 36 })] }),
+          new Paragraph({ children: [run("SALE CERTIFIED BILL", { bold: true, size: 36 })] }),
           ...(qrImage ? [new Paragraph({ children: [qrImage] })] : []),
           new Paragraph({ children: [run("www.dishaanhitech.com", { size: 16, color: "4B5563" })] }),
         ],
@@ -102,6 +102,7 @@ async function downloadDocx(data, qrCanvasRef) {
     ["Bill No",         data.billingNo],
     ["Bill Date",       fmt.date(data.billingDate)],
     ["Sale Order No",   data.ogSaleOrderNo],
+    ["Claim Bill No",   data.claimBillingNo],
     ["Project Code",    data.projectCode],
   ];
   const rightInfo = [
@@ -109,6 +110,7 @@ async function downloadDocx(data, qrCanvasRef) {
     ["Job Location",    data.jobLocation],
     ["Status",          data.workflowStatus],
     ["Title",           data.title],
+    ["",                ""],
   ];
 
   const infoTable = new Table({
@@ -122,12 +124,12 @@ async function downloadDocx(data, qrCanvasRef) {
         infoCell([new Paragraph({ children: [run(`: ${left[1] || "-"}`)] })], iV),
         infoCell([new Paragraph({ text: "" })], iG),
         infoCell([new Paragraph({ children: [run(right[0])] })], iR),
-        infoCell([new Paragraph({ children: [run(`: ${right[1] || "-"}`)] })], iW),
+        infoCell([new Paragraph({ children: [run(right[0] ? `: ${right[1] || "-"}` : "")] })], iW),
       ]});
     }),
   });
 
-  // Items table: SL | Type | Item Code | Item Name & Desc | Unit | Claim Qty | Rate | GST% | Amount
+  // Items table: SL | Type | Item Code | Item Name & Desc | Unit | Certified Qty | Rate | GST% | Amount
   const cW = [0.05, 0.08, 0.09, 0.29, 0.06, 0.09, 0.10, 0.06, 0.18].map((p) => Math.round(PAGE_W * p));
   cW[8] = PAGE_W - cW.slice(0, 8).reduce((a, b) => a + b, 0);
 
@@ -147,12 +149,11 @@ async function downloadDocx(data, qrCanvasRef) {
     ...rawItems.map((it)    => ({ ...it, rowType: "Non-BOQ" })),
     ...rawBoqItems.map((it) => ({ ...it, rowType: "BOQ" })),
   ];
-  const hdrs  = ["Sl\nNo", "Type", "Item\nCode", "Item Name & Description", "Unit", "Claim\nQty", "Rate", "GST\n%", "Amount"];
+  const hdrs = ["Sl\nNo", "Type", "Item\nCode", "Item Name & Description", "Unit", "Certified\nQty", "Rate", "GST\n%", "Amount"];
 
   const nilSide = { style: BorderStyle.NIL, size: 0, color: "auto" };
   const solidB  = { style: BorderStyle.SINGLE, size: 4, color: "B0B0B0" };
-
-  const noB = nilSide;
+  const noB     = nilSide;
 
   const mkAmtRow = (label, val, bold = false, shading) =>
     new TableRow({ children: [
@@ -200,18 +201,18 @@ async function downloadDocx(data, qrCanvasRef) {
     rows: [
       new TableRow({ tableHeader: true, children: hdrs.map((h, i) => tCell(h, cW[i], true, headShading, AlignmentType.CENTER)) }),
       ...allRows.map((item, idx) => new TableRow({ children: [
-        tCell(idx + 1,                cW[0], false, undefined, AlignmentType.CENTER),
-        tCell(item.rowType,           cW[1], false, undefined, AlignmentType.CENTER),
-        tCell(item.itemCode,          cW[2]),
+        tCell(idx + 1,                                          cW[0], false, undefined, AlignmentType.CENTER),
+        tCell(item.rowType,                                     cW[1], false, undefined, AlignmentType.CENTER),
+        tCell(item.itemCode,                                    cW[2]),
         tCellMulti([
           new Paragraph({ children: [run(item.itemName || "", { bold: true, size: 19 })] }),
           ...(item.itemDescription ? [new Paragraph({ children: [run(item.itemDescription, { size: 16, color: "6B7280" })] })] : []),
         ], cW[3]),
-        tCell(item.unit,              cW[4], false, undefined, AlignmentType.CENTER),
-        tCell(item.claimQty,          cW[5], false, undefined, AlignmentType.RIGHT),
-        tCell(fmt.number(item.rate),  cW[6], false, undefined, AlignmentType.RIGHT),
+        tCell(item.unit,                                        cW[4], false, undefined, AlignmentType.CENTER),
+        tCell(item.certifiedQty ?? item.claimQty,               cW[5], false, undefined, AlignmentType.RIGHT),
+        tCell(fmt.number(item.rate),                            cW[6], false, undefined, AlignmentType.RIGHT),
         tCell(item.gstPercent != null ? `${item.gstPercent}%` : "-", cW[7], false, undefined, AlignmentType.CENTER),
-        tCell(fmt.number(item.amount), cW[8], false, undefined, AlignmentType.RIGHT),
+        tCell(fmt.number(item.amount),                          cW[8], false, undefined, AlignmentType.RIGHT),
       ]}) ),
       new TableRow({ children: [
         tCell("", cW[0], false, blueShading), tCell("", cW[1], false, blueShading),
@@ -221,8 +222,8 @@ async function downloadDocx(data, qrCanvasRef) {
         tCell("", cW[7], false, blueShading),
         tCell(fmt.number(billedAmount), cW[8], true, blueShading, AlignmentType.RIGHT),
       ]}),
-      mkAmtRow("Billed Amount", fmt.number(billedAmount)),
-      mkAmtRow("GST Amount",    fmt.number(gstAmount)),
+      mkAmtRow("This Bill Amount", fmt.number(billedAmount)),
+      mkAmtRow("GST Amount",       fmt.number(gstAmount)),
       mkAmtTotalRow("Total Amount", fmt.number(totalAmount)),
     ],
   });
@@ -254,12 +255,12 @@ async function downloadDocx(data, qrCanvasRef) {
   const blob = await Packer.toBlob(doc);
   const url  = URL.createObjectURL(blob);
   const a    = document.createElement("a");
-  a.href = url; a.download = `SaleClaimBill_${data.billingNo}.docx`; a.click();
+  a.href = url; a.download = `SaleCertifiedBill_${data.billingNo}.docx`; a.click();
   URL.revokeObjectURL(url);
 }
 
 /* ─── Main Page ─────────────────────────────────────────────────────── */
-export default function SaleClaimBillPrintPage() {
+export default function SaleCertifiedBillPrintPage() {
   const { uuid }    = useParams();
   const [data,      setData]    = useState(null);
   const [error,     setError]   = useState(null);
@@ -270,7 +271,7 @@ export default function SaleClaimBillPrintPage() {
 
   useEffect(() => {
     if (!uuid) return;
-    publicRequest({ url: `${API_ENDPOINTS.PROJECT.SALE_CLAIM_BILL.GET_BY_UUID}${uuid}` })
+    publicRequest({ url: `${API_ENDPOINTS.PROJECT.SALE_CERTIFIED_BILL.GET_BY_UUID}${uuid}` })
       .then((res) => setData(res.data))
       .catch((err) => setError({ status: err.status, message: err.message }))
       .finally(() => setLoading(false));
@@ -303,7 +304,7 @@ export default function SaleClaimBillPrintPage() {
   return (
     <>
       <PrintTopBar
-        title={`Sale Claim Bill — ${data.billingNo}`}
+        title={`Sale Certified Bill — ${data.billingNo}`}
         onDownloadPDF={printAsPDF}
         onDownloadDocx={() => downloadDocx(data, qrCanvasRef)}
       />
@@ -327,7 +328,7 @@ export default function SaleClaimBillPrintPage() {
             </div>
             <div className="flex-1 flex items-center justify-center">
               <h1 className={`${SIZE.pageTitle} ${WEIGHT.bold} tracking-widest text-gray-900 uppercase`}>
-                SALE CLAIM BILL
+                SALE CERTIFIED BILL
               </h1>
             </div>
             <div className="flex flex-col items-end gap-1 shrink-0">
@@ -348,6 +349,7 @@ export default function SaleClaimBillPrintPage() {
               <InfoRow label="Bill No"        value={data.billingNo} />
               <InfoRow label="Bill Date"      value={fmt.date(data.billingDate)} />
               <InfoRow label="Sale Order No"  value={data.ogSaleOrderNo} />
+              <InfoRow label="Claim Bill No"  value={data.claimBillingNo} />
               <InfoRow label="Project Code"   value={data.projectCode} />
             </div>
             <div className="pl-6">
@@ -365,15 +367,15 @@ export default function SaleClaimBillPrintPage() {
                 <thead>
                   <tr className={COLOR.tableHeadBg}>
                     {[
-                      { label: "SL\nNo",                   align: "center", cls: "w-[5%]"  },
-                      { label: "Type",                      align: "center", cls: "w-[8%]"  },
-                      { label: "Item\nCode",                align: "center", cls: "w-[8%]"  },
-                      { label: "Item Name & Description",   align: "center", cls: "w-[29%]" },
-                      { label: "Unit",                      align: "center", cls: "w-[6%]"  },
-                      { label: "Claim\nQty",                align: "center", cls: "w-[9%]"  },
-                      { label: "Rate",                      align: "center", cls: "w-[10%]" },
-                      { label: "GST\n%",                    align: "center", cls: "w-[7%]"  },
-                      { label: "Amount",                    align: "center", cls: "w-[18%]" },
+                      { label: "SL\nNo",                  align: "center", cls: "w-[5%]"  },
+                      { label: "Type",                     align: "center", cls: "w-[8%]"  },
+                      { label: "Item\nCode",               align: "center", cls: "w-[8%]"  },
+                      { label: "Item Name & Description",  align: "center", cls: "w-[29%]" },
+                      { label: "Unit",                     align: "center", cls: "w-[6%]"  },
+                      { label: "Certified\nQty",           align: "center", cls: "w-[9%]"  },
+                      { label: "Rate",                     align: "center", cls: "w-[10%]" },
+                      { label: "GST\n%",                   align: "center", cls: "w-[7%]"  },
+                      { label: "Amount",                   align: "center", cls: "w-[18%]" },
                     ].map(({ label, align, cls }) => (
                       <th
                         key={label}
@@ -396,7 +398,9 @@ export default function SaleClaimBillPrintPage() {
                         {item.itemDescription && <p className={ITEM_SUB}>{item.itemDescription}</p>}
                       </td>
                       <td className={`border ${COLOR.tableBorder} px-1 py-1.5 ${SIZE.tableCell} text-center`}>{item.unit || "-"}</td>
-                      <td className={`border ${COLOR.tableBorder} px-1 py-1.5 ${SIZE.tableCell} text-right`}>{item.claimQty ?? "-"}</td>
+                      <td className={`border ${COLOR.tableBorder} px-1 py-1.5 ${SIZE.tableCell} text-right`}>
+                        {item.certifiedQty ?? item.claimQty ?? "-"}
+                      </td>
                       <td className={`border ${COLOR.tableBorder} px-1 py-1.5 ${SIZE.tableCell} text-right`}><FmtNum value={item.rate} /></td>
                       <td className={`border ${COLOR.tableBorder} px-1 py-1.5 ${SIZE.tableCell} text-center`}>
                         {item.gstPercent != null ? `${item.gstPercent}%` : "-"}
@@ -417,8 +421,8 @@ export default function SaleClaimBillPrintPage() {
 
                   {/* ── Amount summary rows ── */}
                   {[
-                    ["Billed Amount", billedAmount],
-                    ["GST Amount",    gstAmount],
+                    ["This Bill Amount", billedAmount],
+                    ["GST Amount",       gstAmount],
                   ].map(([label, val]) => (
                     <tr key={label}>
                       <td colSpan={6} style={{ borderLeft: borderSide, borderTop: "none", borderBottom: "none", borderRight: "none", padding: 0 }} />

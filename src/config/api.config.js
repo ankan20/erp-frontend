@@ -369,6 +369,7 @@ export const API_ENDPOINTS = {
       LIST:               "/project-mgmt/billing/list",                             // GET ?projectCode&mode=certified_bill
       CREATE:             "/project-mgmt/billing/create",                           // POST
       GET_BY_ID:          "/project-mgmt/billing/",                                 // /:id GET
+      GET_BY_UUID:        "/project-mgmt/billing/uuid/",                            // /:uuid GET no-auth
       UPDATE:             "/project-mgmt/billing/edit/",                            // /:id PUT
       SUBMIT:             "/project-mgmt/billing/submit/",                          // /:id POST
       APPROVE:            "/project-mgmt/billing/approve/",                         // /:id POST
