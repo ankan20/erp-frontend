@@ -10,69 +10,72 @@ import { formatQtyDisplay } from "@/helper/numberFormatter";
  * ─── WHAT IT DOES ────────────────────────────────────────────────────────────
  *   disabled / view mode  → shows value with always 3 decimal places
  *                           e.g.  25  →  "25.000"
- *   edit mode             → plain number input, restricts to max 3 decimal places
+ *   edit mode             → plain number input, restricts to max 3 decimal places,
+ *                           no browser spinner arrows
  *                           form state always holds the raw number
  *
- * ─── PATTERN 1: with register() — forms using useForm / useFormWithToast ────
+ * ─── FIELD TYPES TO USE THIS FOR ─────────────────────────────────────────────
+ *   ✅  Order Qty, Claim Qty, Certified Qty, Received Qty, Indent Qty
+ *       — any unit-count value
+ *   ❌  Rate / Amount / GST Amount  → use AmountInput (2 decimal, Indian format)
+ *   ❌  GST %                       → use GstInput (2 decimal + % suffix)
  *
- *   import QtyInput from "@/components/common/QtyInput";
- *   import { getInputClass } from "@/lib/formStyles";
+ * ─── CURRENT USAGE IN THIS PROJECT ──────────────────────────────────────────
  *
- *   const { register, watch, formState: { errors } } = useForm(...);
- *   const fieldDisabled = !isEditing || isSubmitting;
+ *   ServiceOrderItemSelectionModal.jsx   — Order Qty  (modal local state, direct onChange)
+ *   OrderItemSelectionModal.jsx          — Order Qty  (modal local state, direct onChange)
+ *   PWOrderItemSelectionModal.jsx        — Order Qty  (modal local state, direct onChange)
+ *   OGSaleOrderForm.jsx                  — Order Qty  (register + watch pattern)
+ *   SaleClaimBillForm.jsx                — Claim Qty  (Controller + cap at orderQty)
+ *   SaleCertifiedBillForm.jsx            — Certified Qty (Controller + cap at orderQty)
  *
- *   <QtyInput
- *     {...register("qty")}
- *     value={watch("qty")}                               ← always pass watch() value
- *     disabled={fieldDisabled}
- *     className={getInputClass(errors.qty, fieldDisabled)}
- *   />
+ * ─── HOW TO USE IN A NEW PAGE ────────────────────────────────────────────────
+ *   For any new form with an editable qty field, follow one of these:
  *
- *   ⚠️  value={watch("fieldName")} is required — register() alone does not
- *       pass value as a prop, so the formatted display won't work without it.
+ *   PATTERN 1 — register() + watch()  (plain forms, not field arrays):
  *
- * ─── PATTERN 2: with Controller — field arrays / custom wrappers ──────────
+ *     <QtyInput
+ *       {...register("qty")}
+ *       value={watch("qty")}             ← required: register() doesn't pass value
+ *       disabled={fieldDisabled}
+ *       className={getInputClass(errors.qty, fieldDisabled)}
+ *     />
  *
- *   import { Controller } from "react-hook-form";
+ *   PATTERN 2 — Controller  (field arrays / need cap logic or side-effect):
  *
- *   <Controller
- *     control={control}
- *     name={`items.${index}.qty`}
- *     render={({ field }) => (
- *       <QtyInput
- *         {...field}
- *         onChange={(e) => {
- *           field.onChange(e.target.value);  ← update form state
- *           recalc(...);                     ← any side effect after valid input
- *         }}
- *         className={getInputClass(errors?.items?.[index]?.qty, false)}
- *       />
- *     )}
- *   />
+ *     <Controller control={control} name={`items.${i}.claimQty`}
+ *       render={({ field: f }) => (
+ *         <QtyInput
+ *           {...f}
+ *           onChange={(e) => {
+ *             const v = Number(e.target.value || 0);
+ *             f.onChange(max > 0 && v > max ? String(max) : e.target.value);
+ *           }}
+ *           disabled={disabled}
+ *           className={getInputClass(errors?.items?.[i]?.claimQty, disabled)}
+ *         />
+ *       )}
+ *     />
  *
- *   Controller's field already includes value, so no separate watch() needed.
- *   If you need a side effect on change (recalc, etc.) pass a custom onChange
- *   AFTER {...field} — it will override field.onChange.
+ *   PATTERN 3 — modal local state  (not RHF, no register/Controller needed):
  *
- * ─── PATTERN 3: always-readonly table cell ────────────────────────────────
+ *     <QtyInput
+ *       value={item.orderQty}
+ *       disabled={!item.selected}
+ *       onChange={(e) => handleQtyChange(item.itemCode, e.target.value)}
+ *       className={getInputClass(qtyError, !item.selected)}
+ *     />
  *
- *   For fetched/computed cells that are never editable, skip the component
- *   entirely — render plain text in the <td>:
+ *   PATTERN 4 — always-readonly cell  (never add this component):
  *
- *   import { formatQtyDisplay } from "@/helper/numberFormatter";
+ *     import { formatQtyDisplay } from "@/helper/numberFormatter";
+ *     <td className="... text-right">{formatQtyDisplay(item.orderQty)}</td>
  *
- *   <td className="border px-2 py-[2px] text-sm bg-[#edf8ed] text-center">
- *     {formatQtyDisplay(item.qty)}
- *   </td>
- *
- *   Total rows follow the same pattern:
- *   <td ...>{formatQtyDisplay(totalQty)}</td>
- *
- * ─── WHERE NOT TO USE ────────────────────────────────────────────────────────
- *   ❌  Rate / Amount / GST Amount / GST % → use AmountInput (2 decimal)
- *       Rate is a price (₹ per unit) — it follows amount rules, not qty rules.
- *   ❌  Never pass formatQtyDisplay() output back into form state or an API payload
- *       → always keep raw numbers in state; format only at the display layer
+ * ─── IMPORTANT ───────────────────────────────────────────────────────────────
+ *   ❌  Never pass formatQtyDisplay() output back into form state or an API payload.
+ *       Always keep raw numbers in state; format only at the display layer.
+ *   ⚠️  For register() pattern, value={watch("field")} is mandatory — omitting
+ *       it breaks the formatted-display on disable/view mode.
  */
 const QtyInput = React.forwardRef(function QtyInput(
   { value, onChange, onBlur, name, disabled, className = "", placeholder, ...rest },

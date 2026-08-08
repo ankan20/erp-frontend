@@ -16,38 +16,50 @@ function formatGst(val) {
  * ─── WHAT IT DOES ────────────────────────────────────────────────────────────
  *   disabled / view mode  → shows value with % suffix, always 2 decimal
  *                           e.g.  18  →  "18.00%"
- *   edit mode             → plain number input, restricts to max 2 decimal places,
- *                           no browser spinner arrows
+ *   edit mode             → plain number input with a % overlay on the right,
+ *                           restricts to max 2 decimal places, no spinner arrows
  *                           form state always holds the raw number (no % symbol)
  *
- * ─── PATTERN 1: with register() ──────────────────────────────────────────────
+ * ─── FIELD TYPES TO USE THIS FOR ─────────────────────────────────────────────
+ *   ✅  GST % (any form with a gstPercent column)
+ *   ❌  Rate / Amount → use AmountInput (2 decimal, Indian comma format)
+ *   ❌  Qty           → use QtyInput   (3 decimal)
  *
- *   import GstInput from "@/components/common/GstInput";
+ * ─── CURRENT USAGE IN THIS PROJECT ──────────────────────────────────────────
  *
- *   <GstInput
- *     {...register("gstPercent")}
- *     value={watch("gstPercent")}          ← always pass watch() value
- *     disabled={fieldDisabled}
- *     className={getInputClass(errors.gstPercent, fieldDisabled)}
- *   />
+ *   OGSaleOrderForm.jsx         — GST % column (register + watch pattern)
+ *   SaleClaimBillForm.jsx       — GST % column (register + watch pattern)
+ *   SaleCertifiedBillForm.jsx   — GST % column (register + watch pattern)
  *
- * ─── PATTERN 2: with Controller ──────────────────────────────────────────────
+ * ─── HOW TO USE IN A NEW PAGE ────────────────────────────────────────────────
+ *   For any new form with an editable GST % field, follow one of these:
  *
- *   <Controller control={control} name={`rows.${i}.gstPercent`}
- *     render={({ field }) => (
- *       <GstInput
- *         {...field}
- *         onChange={(e) => { field.onChange(e.target.value); recalc(...); }}
- *         className={getInputClass(errors?.rows?.[i]?.gstPercent, false)}
- *       />
- *     )}
- *   />
+ *   PATTERN 1 — register() + watch()  (field arrays, most common):
  *
- * ─── WHERE NOT TO USE ────────────────────────────────────────────────────────
- *   ❌  Qty / unit-count fields → use QtyInput (3 decimal)
- *   ❌  Rate / Amount fields → use AmountInput (2 decimal, Indian format)
- *   ❌  Never pass formatGst() output back into form state or API payload
- *       → always keep raw numbers in state; format only at the display layer
+ *     <GstInput
+ *       {...register(`rows.${i}.gstPercent`)}
+ *       value={watchedRows[i]?.gstPercent ?? ""}   ← use watchedRows[i], not watch() per field
+ *       disabled={disabled}
+ *       className={getInputClass(false, disabled)}
+ *     />
+ *
+ *   PATTERN 2 — Controller  (if you need a side-effect on change):
+ *
+ *     <Controller control={control} name={`rows.${i}.gstPercent`}
+ *       render={({ field }) => (
+ *         <GstInput
+ *           {...field}
+ *           onChange={(e) => { field.onChange(e.target.value); recalc(); }}
+ *           className={getInputClass(errors?.rows?.[i]?.gstPercent, false)}
+ *         />
+ *       )}
+ *     />
+ *
+ * ─── IMPORTANT ───────────────────────────────────────────────────────────────
+ *   ❌  Never pass the "18.00%" string back into form state or an API payload.
+ *       Always keep raw numbers in state; the % is a display-only overlay.
+ *   ⚠️  For register() pattern, value={watchedRows[i]?.gstPercent} is mandatory —
+ *       omitting it breaks the % suffix display in disabled/view mode.
  */
 const GstInput = React.forwardRef(function GstInput(
   { value, onChange, onBlur, name, disabled, className = "", placeholder, ...rest },

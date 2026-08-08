@@ -5,84 +5,62 @@ import { Input } from "@/components/ui/input";
 import { formatAmount } from "@/helper/numberFormatter";
 
 /**
- * AmountInput — use this for ANY rupee/money field across the project.
+ * AmountInput — use this for ANY rupee / rate / amount field across the project.
  *
  * ─── WHAT IT DOES ────────────────────────────────────────────────────────────
  *   disabled / view mode  → shows value in Indian comma format, always 2 decimal
  *                           e.g.  2500000  →  "25,00,000.00"
- *   edit mode             → plain number input, restricts to max 2 decimal places
+ *   edit mode             → plain number input, restricts to max 2 decimal places,
+ *                           no browser spinner arrows
  *                           form state always holds the raw number (no commas)
  *
- * ─── PATTERN 1: with register() — forms using useForm / useFormWithToast ────
+ * ─── FIELD TYPES TO USE THIS FOR ─────────────────────────────────────────────
+ *   ✅  Rate (₹ per unit)
+ *   ✅  Basic Amount, GST Amount, Total Amount  — editable versions only
+ *       (computed / always-readonly cells → use formatAmount() directly in <td>)
+ *   ❌  Qty / unit-count   → use QtyInput (3 decimal)
+ *   ❌  GST %              → use GstInput (2 decimal + % suffix)
+ *   ❌  Crore-scale fields → use plain <Input> (no decimal restriction)
  *
- *   import AmountInput from "@/components/common/AmountInput";
- *   import { getInputClass } from "@/lib/formStyles";
+ * ─── CURRENT USAGE IN THIS PROJECT ──────────────────────────────────────────
  *
- *   const { register, watch, formState: { errors } } = useForm(...);
- *   const fieldDisabled = !isEditing || isSubmitting;
+ *   OGSaleOrderForm.jsx          — Rate column (register + watch pattern)
+ *   SaleCertifiedBillForm.jsx    — Rate column (register + watch pattern, editable)
  *
- *   <AmountInput
- *     {...register("rate")}
- *     value={watch("rate")}                              ← always pass watch() value
- *     disabled={fieldDisabled}
- *     className={getInputClass(errors.rate, fieldDisabled)}
- *   />
+ * ─── HOW TO USE IN A NEW PAGE ────────────────────────────────────────────────
+ *   For any new form with a Rate or editable Amount field, follow one of these:
  *
- *   ⚠️  value={watch("fieldName")} is required — register() alone does not
- *       pass value as a prop, so the formatted display won't work without it.
+ *   PATTERN 1 — register() + watch()  (plain forms, not field arrays):
  *
- * ─── PATTERN 2: with Controller — field arrays / custom wrappers ──────────
+ *     <AmountInput
+ *       {...register("rate")}
+ *       value={watch("rate")}            ← required: register() doesn't pass value
+ *       disabled={fieldDisabled}
+ *       className={getInputClass(errors.rate, fieldDisabled)}
+ *     />
  *
- *   import { Controller } from "react-hook-form";
+ *   PATTERN 2 — Controller  (field arrays / need side-effect on change):
  *
- *   <Controller
- *     control={control}
- *     name={`items.${index}.gstPercent`}
- *     render={({ field }) => (
- *       <AmountInput
- *         {...field}
- *         onChange={(e) => {
- *           field.onChange(e.target.value);  ← update form state
- *           recalc(...);                     ← any side effect after valid input
- *         }}
- *         className={getInputClass(errors?.items?.[index]?.gstPercent, false)}
- *       />
- *     )}
- *   />
+ *     <Controller control={control} name={`rows.${i}.rate`}
+ *       render={({ field }) => (
+ *         <AmountInput
+ *           {...field}
+ *           onChange={(e) => { field.onChange(e.target.value); recalc(); }}
+ *           className={getInputClass(errors?.rows?.[i]?.rate, false)}
+ *         />
+ *       )}
+ *     />
  *
- *   Controller's field already includes value, so no separate watch() needed.
- *   If you need a side effect on change (recalc, etc.) pass a custom onChange
- *   AFTER {...field} — it will override field.onChange.
+ *   PATTERN 3 — always-readonly cell  (never add this component):
  *
- * ─── PATTERN 3: always-readonly table cell ────────────────────────────────
+ *     import { formatAmount } from "@/helper/numberFormatter";
+ *     <td className="... bg-[#edf8ed] text-right">{formatAmount(item.amount)}</td>
  *
- *   For computed/fetched cells that are never editable, skip the component
- *   entirely — render plain text in the <td>:
- *
- *   import { formatAmount } from "@/helper/numberFormatter";
- *
- *   <td className="border px-2 py-[2px] text-sm bg-[#edf8ed] text-right">
- *     {formatAmount(item.amount)}
- *   </td>
- *
- *   Total rows follow the same pattern:
- *   <td ...>{formatAmount(totalAmount)}</td>
- *
- * ─── ALSO USE FOR: Rate fields ───────────────────────────────────────────────
- *   Rate (price per unit) is a money field — use AmountInput, not QtyInput:
- *
- *   <AmountInput
- *     {...field}
- *     onChange={(e) => { field.onChange(e.target.value); recalc(...); }}
- *     className={getInputClass(errors?.items?.[index]?.rate, false)}
- *   />
- *
- * ─── WHERE NOT TO USE ────────────────────────────────────────────────────────
- *   ❌  Qty / unit-count fields → use QtyInput (3 decimal)
- *   ❌  Fields stored in Crores (Cr) where the user needs full decimal freedom
- *       → use a plain <Input> with your own onInput handler
- *   ❌  Never pass formatAmount() output back into form state or an API payload
- *       → always keep raw numbers in state; format only at the display layer
+ * ─── IMPORTANT ───────────────────────────────────────────────────────────────
+ *   ❌  Never pass formatAmount() output back into form state or an API payload.
+ *       Always keep raw numbers in state; format only at the display layer.
+ *   ⚠️  For register() pattern, value={watch("field")} is mandatory — omitting
+ *       it breaks the formatted-display on disable/view mode.
  */
 const AmountInput = React.forwardRef(function AmountInput(
   { value, onChange, onBlur, name, disabled, className = "", placeholder, ...rest },
