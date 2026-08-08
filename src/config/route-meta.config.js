@@ -551,7 +551,7 @@ export const routeMetaConfig = [
     basePath: "/finance-management/account/sale/[id]",
     breadcrumbs: ["Finance Management", "Accounts", "Sale Invoice", "Details"],
   },
-  // Finance Management — Sale Receipt
+  // Finance Management — Sale Receipt (Parent)
   {
     basePath: "/finance-management/account/receipt",
     breadcrumbs: ["Finance Management", "Accounts", "Sale Receipt", "List"],
@@ -563,6 +563,15 @@ export const routeMetaConfig = [
   {
     basePath: "/finance-management/account/receipt/[id]",
     breadcrumbs: ["Finance Management", "Accounts", "Sale Receipt", "Details"],
+  },
+  // Finance Management — Sale Receipt Billing (Child, SRB)
+  {
+    basePath: "/finance-management/account/receipt-billing/new",
+    breadcrumbs: ["Finance Management", "Accounts", "Sale Receipt", "Add Billing"],
+  },
+  {
+    basePath: "/finance-management/account/receipt-billing/[id]",
+    breadcrumbs: ["Finance Management", "Accounts", "Sale Receipt", "Billing Details"],
   },
   // Finance Management — Purchases
   {

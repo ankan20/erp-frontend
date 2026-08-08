@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter }           from "next/navigation";
-import { Loader2 }             from "lucide-react";
+import { Loader2, Plus }       from "lucide-react";
 import { toast }               from "sonner";
 
 import SearchSection    from "@/components/common/SearchSection";
@@ -16,7 +16,7 @@ import { apiRequest }      from "@/lib/apiClient";
 import { API_ENDPOINTS }   from "@/config/api.config";
 import { getLocalStorage } from "@/lib/localStorage";
 import { getfmtDisplaydate } from "@/helper/getfmtDisplayDate";
-
+import { formatAmount }    from "@/helper/numberFormatter";
 
 export default function Page() {
   const router = useRouter();
@@ -33,18 +33,15 @@ export default function Page() {
     apiRequest({ url: `${API_ENDPOINTS.FINANCE.SALE_RECEIPT.LIST}?projectCode=${projectCode}`, method: "GET" })
       .then((res) => {
         const rows = (res.data || []).map((r, i) => ({
-          sl:             i + 1,
-          _id:            r.id,
-          receiptNo:      r.receiptNo      || "",
-          date:           getfmtDisplaydate(r.entryDate) || "",
-          partyName:      r.customerName   || r.vendorName || "",
-          refNo:          r.ogSaleOrderNo  || "",
-          byMode:         r.paymentMode    || "",
-          source:         r.bankAcName     || r.cashAcName || "-",
-          utrVoucherNo:   r.utrVoucherNo   || "-",
-          amount:         Number(r.totalInvoiceAmount || 0).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 }),
-          workflowStatus: r.workflowStatus || "",
-          _raw:           r,
+          sl:           i + 1,
+          _id:          r.id,
+          receiptNo:    r.receiptNo    || "—",
+          date:         r.entryDate    ? getfmtDisplaydate(r.entryDate) : "—",
+          paymentMode:  r.paymentMode  || "—",
+          utrVoucherNo: r.utrVoucherNo || "—",
+          totalAmount:  r.totalAmount  != null ? formatAmount(r.totalAmount) : "—",
+          billingCount: r.billingCount != null ? r.billingCount : 0,
+          _raw:         r,
         }));
         setData(rows);
         setFilteredData(rows);
@@ -62,8 +59,8 @@ export default function Page() {
     }
     if (from || to) {
       filtered = filtered.filter((item) => {
-        if (!item.date) return false;
-        const d = new Date(item.date);
+        if (!item._raw?.entryDate) return false;
+        const d = new Date(item._raw.entryDate);
         d.setHours(0, 0, 0, 0);
         if (from) { const f = new Date(from); f.setHours(0,0,0,0); if (d < f) return false; }
         if (to)   { const t = new Date(to);   t.setHours(0,0,0,0); if (d > t) return false; }
@@ -74,16 +71,33 @@ export default function Page() {
   };
 
   const columns = [
-    { header: "Sl. no",          accessor: "sl",             width: "60px"  },
-    { header: "Receipt Voc. No", accessor: "receiptNo",      width: "140px" },
-    { header: "Date",            accessor: "date",           width: "110px" },
-    { header: "Customer Name",   accessor: "partyName",      width: "180px" },
-    { header: "Ref. Number",     accessor: "refNo",          width: "150px" },
-    { header: "By Mode",         accessor: "byMode",         width: "90px"  },
-    { header: "Source",          accessor: "source",         width: "130px" },
-    { header: "UTR / Voc. No",   accessor: "utrVoucherNo",   width: "130px" },
-    { header: "Amount",          accessor: "amount",         width: "120px", align: "right" },
-    { header: "Status",          accessor: "workflowStatus", width: "120px" },
+    { header: "Sl. No",       accessor: "sl",           width: "55px"  },
+    { header: "Receipt No",   accessor: "receiptNo",    width: "130px" },
+    { header: "Date",         accessor: "date",         width: "100px" },
+    { header: "Payment Mode", accessor: "paymentMode",  width: "110px" },
+    { header: "UTR / Voc. No",accessor: "utrVoucherNo", width: "150px" },
+    { header: "Total Amount", accessor: "totalAmount",  width: "130px", align: "right" },
+    { header: "Billings",     accessor: "billingCount", width: "80px",  align: "center" },
+    {
+      header:  "Add Billing",
+      accessor: "_action",
+      width:   "90px",
+      align:   "center",
+      render:  (row) =>
+        access.canAdd ? (
+          <button
+            type="button"
+            title="Add child billing under this receipt"
+            onClick={(e) => {
+              e.stopPropagation();
+              router.push(`/finance-management/account/receipt-billing/new?receiptId=${row._id}`);
+            }}
+            className="inline-flex items-center justify-center w-[26px] h-[26px] rounded-sm border border-[#3b6ea5] text-[#3b6ea5] hover:bg-[#3b6ea5] hover:text-white transition"
+          >
+            <Plus size={14} />
+          </button>
+        ) : null,
+    },
   ];
 
   const actions = getPageActions({ router });

@@ -68,9 +68,10 @@ const AmountInput = React.forwardRef(function AmountInput(
 ) {
   if (disabled) {
     return (
-      <Input
+      <input
         value={formatAmount(value) || ""}
         disabled
+        readOnly
         className={className}
       />
     );

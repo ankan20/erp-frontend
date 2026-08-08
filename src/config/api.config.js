@@ -485,19 +485,28 @@ export const API_ENDPOINTS = {
       GET_BY_UUID:   "/finance/purchase-voucher/uuid/",                  // /:uuid GET no-auth
     },
     SALE_RECEIPT: {
-      CERTIFIED_BILLS: "/finance/sale-receipt/certified-bills",          // GET ?ogSaleOrderNo&projectCode
-      RECEIPT_ITEMS:   "/finance/sale-receipt/receipt-items",            // GET ?certifiedBillId&projectCode
-      CREATE:          "/finance/sale-receipt/create",                   // POST JSON
-      LIST:            "/finance/sale-receipt/list",                     // GET ?projectCode&workflowStatus&ogSaleOrderNo&search
-      GET_BY_ID:       "/finance/sale-receipt/",                         // /:id GET
-      EDIT:            "/finance/sale-receipt/edit/",                    // /:id PUT JSON
-      SUBMIT:          "/finance/sale-receipt/submit/",                  // /:id POST
-      APPROVE:         "/finance/sale-receipt/approve/",                 // /:id POST
-      REBACK:          "/finance/sale-receipt/reback/",                  // /:id POST
-      REJECT:          "/finance/sale-receipt/reject/",                  // /:id POST
-      HISTORY:         "/finance/sale-receipt/history/",                 // /:id GET
-      MY_APPROVAL_STATUS: "/finance/sale-receipt/my-approval-status/",   // /:id GET
-      GET_BY_UUID:     "/finance/sale-receipt/uuid/",                    // /:uuid GET no-auth
+      OG_SALE_ORDERS: "/finance/sale-receipt/og-sale-orders",            // GET ?projectCode — Approved OG Sale Orders
+      CREATE:         "/finance/sale-receipt/create",                    // POST JSON
+      LIST:           "/finance/sale-receipt/list",                      // GET ?projectCode&search
+      GET_BY_ID:      "/finance/sale-receipt/",                          // /:id GET (returns parent + billings summary)
+      EDIT:           "/finance/sale-receipt/edit/",                     // /:id PUT JSON
+      DELETE:         "/finance/sale-receipt/delete/",                   // /:id DELETE (blocked if any child not Rejected)
+    },
+    SALE_RECEIPT_BILLING: {
+      CERTIFIED_BILLS:    "/finance/sale-receipt-billing/certified-bills",     // GET ?ogSaleOrderNo&projectCode
+      RECEIPT_ITEMS:      "/finance/sale-receipt-billing/receipt-items",       // GET ?certifiedBillId&projectCode
+      INVOICE_LOOKUP:     "/finance/sale-receipt-billing/invoice-lookup",      // GET ?invoiceNo&projectCode
+      CREATE:             "/finance/sale-receipt-billing/create",              // POST JSON (needs receiptId)
+      LIST:               "/finance/sale-receipt-billing/list",                // GET ?receiptId&projectCode&workflowStatus
+      GET_BY_ID:          "/finance/sale-receipt-billing/",                    // /:id GET
+      EDIT:               "/finance/sale-receipt-billing/edit/",               // /:id PUT JSON (Draft/Reback only)
+      SUBMIT:             "/finance/sale-receipt-billing/submit/",             // /:id POST
+      APPROVE:            "/finance/sale-receipt-billing/approve/",            // /:id POST { comments }
+      REBACK:             "/finance/sale-receipt-billing/reback/",             // /:id POST { comments }
+      REJECT:             "/finance/sale-receipt-billing/reject/",             // /:id POST { comments }
+      HISTORY:            "/finance/sale-receipt-billing/history/",            // /:id GET
+      MY_APPROVAL_STATUS: "/finance/sale-receipt-billing/my-approval-status/", // /:id GET
+      GET_BY_UUID:        "/finance/sale-receipt-billing/uuid/",               // /:uuid GET no-auth
     },
     CONTRA_ENTRY: {
       CREATE:             "/finance/contra-entry/create",                // POST JSON
