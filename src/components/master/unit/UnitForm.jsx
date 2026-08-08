@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/input";
 import SaveButton from "@/components/common/SaveButton";
 import EditButton from "@/components/common/EditButton";
 import SearchableSelect from "@/components/common/SearchableSelect";
+import QtyInput from "@/components/common/QtyInput";
 
 import { apiRequest } from "@/lib/apiClient";
 import { API_ENDPOINTS } from "@/config/api.config";
@@ -257,13 +258,11 @@ export default function UnitForm({ mode = "create",disabled=false, unitId, initi
         {/* FACTOR */}
         <div className="flex gap-2">
           <div className={label}>Parent Unit Multiply Factor</div>
-
-          <Input
+          <QtyInput
             {...register("parentUnitMultiplyFactor")}
-            disabled={
-              fieldDisabled || selectedUnitType !== "Child"
-            }
-            className={`flex-1 ${getInputClass(errors.shortName,fieldDisabled || selectedUnitType !== "Child")}`}
+            value={watch("parentUnitMultiplyFactor")}
+            disabled={fieldDisabled || selectedUnitType !== "Child"}
+            className={`flex-1 ${getInputClass(errors.parentUnitMultiplyFactor, fieldDisabled || selectedUnitType !== "Child")}`}
           />
         </div>
 

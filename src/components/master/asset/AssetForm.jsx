@@ -12,6 +12,7 @@ import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import SearchableSelect from "@/components/common/SearchableSelect";
 import { getInputClass } from "@/lib/formStyles";
+import AmountInput from "@/components/common/AmountInput";
 
 const assetSchema = z.object({
   itemCategoryId: z.string().min(1),
@@ -318,8 +319,9 @@ export default function AssetForm({
 
           <div className="flex gap-2">
             <div className={label}>GST %</div>
-            <Input
+            <AmountInput
               {...register("gstPercentage")}
+              value={watch("gstPercentage")}
               disabled={fieldDisabled}
               className={`flex-1 ${getInputClass(errors.gstPercentage, fieldDisabled)}`}
             />

@@ -12,6 +12,7 @@ import { API_ENDPOINTS } from "@/config/api.config";
 import { toast } from "sonner";
 import SearchableSelect from "@/components/common/SearchableSelect";
 import { getInputClass } from "@/lib/formStyles";
+import AmountInput from "@/components/common/AmountInput";
 
 const schema = z.object({
   itemCategoryId: z.string().min(1, "Required"),
@@ -368,9 +369,9 @@ export default function ItemForm({
           <div className="flex flex-col">
             <div className="flex gap-2">
               <div className={label}>GST %</div>
-
-              <Input
+              <AmountInput
                 {...register("gstPercentage")}
+                value={watch("gstPercentage")}
                 disabled={fieldDisabled}
                 className={`flex-1 ${getInputClass(errors.gstPercentage, fieldDisabled)}`}
               />

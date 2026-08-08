@@ -9,7 +9,8 @@ import SearchableSelect from "@/components/common/SearchableSelect";
 import ExpandableTextField from "@/components/common/ExpandableTextField";
 import { apiRequest } from "@/lib/apiClient";
 import { API_ENDPOINTS } from "@/config/api.config";
-import { formatQty } from "@/helper/numberFormatter";
+import { formatQtyDisplay } from "@/helper/numberFormatter";
+import QtyInput from "@/components/common/QtyInput";
 
 export default function IndentItemsTable({
   fields,
@@ -205,23 +206,12 @@ export default function IndentItemsTable({
 
                       {/* QTY */}
                       <td className="border border-[#b5b5b5] p-0">
-                        <Input
-                          type="number"
-                          min={0}
-                          {...register(`items.${index}.qty`, {
-                            min: 0,
-                            onChange: (e) => {
-                              if (Number(e.target.value) < 0) {
-                                e.target.value = 0;
-                              }
-                            },
-                          })}
+                        <QtyInput
+                          {...register(`items.${index}.qty`)}
+                          value={watch(`items.${index}.qty`)}
                           disabled={!isEditing || isSubmitting}
                           className={`
-                            ${getInputClass(
-                              errors?.items?.[index]?.qty,
-                              !isEditing || isSubmitting,
-                            )}
+                            ${getInputClass(errors?.items?.[index]?.qty, !isEditing || isSubmitting)}
                             border-0
                             rounded-none
                             h-[36px]
@@ -297,11 +287,11 @@ export default function IndentItemsTable({
                   <td className="border border-[#b5b5b5]"></td>
 
                   <td className="border border-[#b5b5b5] text-center px-2">
-                    {formatQty(totalQty)}
+                    {formatQtyDisplay(totalQty)}
                   </td>
 
                   <td className="border border-[#b5b5b5] text-center px-2">
-                    {formatQty(totalAmmenmendQty)}
+                    {formatQtyDisplay(totalAmmenmendQty)}
                   </td>
 
                   <td className="border border-[#b5b5b5]"></td>
