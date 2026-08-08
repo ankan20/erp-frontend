@@ -2,9 +2,11 @@
 
 import { Controller, useFieldArray } from "react-hook-form";
 import { Trash2 } from "lucide-react";
-import { Input } from "@/components/ui/input";
 import ExpandableTextField from "@/components/common/ExpandableTextField";
 import { getInputClass } from "@/lib/formStyles";
+import AmountInput from "@/components/common/AmountInput";
+import QtyInput from "@/components/common/QtyInput";
+import { formatAmount, formatQtyDisplay } from "@/helper/numberFormatter";
 import ServiceOrderItemSelectionModal from "../modals/ServiceOrderItemSelectionModal";
 
 export default function ServiceOrderItemsTab({ form, disabled, openItemModal, setOpenItemModal }) {
@@ -61,8 +63,8 @@ export default function ServiceOrderItemsTab({ form, disabled, openItemModal, se
                 {fields.map((field, index) => (
                   <tr key={field.id}>
                     <td className="border px-2 py-[2px] text-sm text-center">{index + 1}</td>
-                    <td className="border px-2 py-[2px]">
-                      <Input value={items[index]?.itemCode || ""} disabled className={getInputClass(null, true)} />
+                    <td className="border px-2 py-[2px] text-sm bg-[#edf8ed]">
+                      {items[index]?.itemCode || ""}
                     </td>
                     <td className="border px-2 py-[2px] align-top overflow-hidden">
                       <ExpandableTextField value={items[index]?.itemName || ""} disabled title="Item Name" placeholder="Item Name" minHeight="min-h-[34px]" modalHeight="min-h-[180px]" />
@@ -77,28 +79,44 @@ export default function ServiceOrderItemsTab({ form, disabled, openItemModal, se
                     <td className="border px-2 py-[2px] align-top overflow-hidden">
                       <ExpandableTextField value={items[index]?.itemUnit || ""} onChange={() => {}} disabled title="Unit" placeholder="" minHeight="min-h-[34px]" modalHeight="min-h-[120px]" />
                     </td>
-                    <td className="border px-2 py-[2px]">
-                      <Input value={items[index]?.qty || ""} disabled className={getInputClass(null, true)} />
+                    <td className="border px-2 py-[2px] text-sm bg-[#edf8ed] text-center">
+                      {formatQtyDisplay(items[index]?.qty) || ""}
                     </td>
-                    <td className="border px-2 py-[2px]">
-                      <Controller control={control} name={`items.${index}.rate`} render={({ field }) => (
-                        <Input {...field} type="number" step="0.001" disabled={disabled} className={getInputClass(errors?.items?.[index]?.rate, disabled)}
-                          onChange={(e) => { field.onChange(e.target.value); recalculate(index, "rate", e.target.value); }}
-                        />
-                      )} />
+                    {disabled ? (
+                      <td className="border px-2 py-[2px] text-sm bg-[#edf8ed] text-right">
+                        {formatAmount(items[index]?.rate) || ""}
+                      </td>
+                    ) : (
+                      <td className="border px-2 py-[2px]">
+                        <Controller control={control} name={`items.${index}.rate`} render={({ field }) => (
+                          <AmountInput
+                            {...field}
+                            onChange={(e) => { field.onChange(e.target.value); recalculate(index, "rate", e.target.value); }}
+                            className={getInputClass(errors?.items?.[index]?.rate, false)}
+                          />
+                        )} />
+                      </td>
+                    )}
+                    <td className="border px-2 py-[2px] text-sm bg-[#edf8ed] text-right">
+                      {formatAmount(items[index]?.amount) || "0.00"}
                     </td>
-                    <td className="border px-2 py-[2px]">
-                      <Input value={items[index]?.amount ?? 0} disabled className={getInputClass(null, true)} />
-                    </td>
-                    <td className="border px-2 py-[2px]">
-                      <Controller control={control} name={`items.${index}.gstPercent`} render={({ field }) => (
-                        <Input {...field} type="number" step="0.001" disabled={disabled} className={getInputClass(errors?.items?.[index]?.gstPercent, disabled)}
-                          onChange={(e) => { field.onChange(e.target.value); recalculate(index, "gstPercent", e.target.value); }}
-                        />
-                      )} />
-                    </td>
-                    <td className="border px-2 py-[2px]">
-                      <Input value={items[index]?.gstAmount ?? 0} disabled className={getInputClass(null, true)} />
+                    {disabled ? (
+                      <td className="border px-2 py-[2px] text-sm bg-[#edf8ed] text-right">
+                        {formatAmount(items[index]?.gstPercent) || ""}
+                      </td>
+                    ) : (
+                      <td className="border px-2 py-[2px]">
+                        <Controller control={control} name={`items.${index}.gstPercent`} render={({ field }) => (
+                          <AmountInput
+                            {...field}
+                            onChange={(e) => { field.onChange(e.target.value); recalculate(index, "gstPercent", e.target.value); }}
+                            className={getInputClass(errors?.items?.[index]?.gstPercent, false)}
+                          />
+                        )} />
+                      </td>
+                    )}
+                    <td className="border px-2 py-[2px] text-sm bg-[#edf8ed] text-right">
+                      {formatAmount(items[index]?.gstAmount) || "0.00"}
                     </td>
                     <td className="border p-0 align-top">
                       <div className="w-[90px] overflow-hidden">
@@ -118,9 +136,9 @@ export default function ServiceOrderItemsTab({ form, disabled, openItemModal, se
                 ))}
                 <tr className="bg-[#D3D3D3] font-semibold">
                   <td colSpan={7} className="border px-2 py-1 text-center text-sm">TOTAL</td>
-                  <td className="border px-2 py-1 text-sm text-center">{totalAmount.toFixed(3)}</td>
+                  <td className="border px-2 py-1 text-sm text-right">{formatAmount(totalAmount)}</td>
                   <td className="border px-2 py-1" />
-                  <td className="border px-2 py-1 text-sm text-center">{totalGstAmount.toFixed(3)}</td>
+                  <td className="border px-2 py-1 text-sm text-right">{formatAmount(totalGstAmount)}</td>
                   <td className="border px-2 py-1" colSpan={disabled ? 1 : 2} />
                 </tr>
               </tbody>

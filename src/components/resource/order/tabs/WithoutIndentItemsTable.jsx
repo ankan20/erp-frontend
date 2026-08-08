@@ -8,6 +8,9 @@ import { Input } from "@/components/ui/input";
 import SearchableSelect from "@/components/common/SearchableSelect";
 import ExpandableTextField from "@/components/common/ExpandableTextField";
 import { getInputClass } from "@/lib/formStyles";
+import AmountInput from "@/components/common/AmountInput";
+import QtyInput from "@/components/common/QtyInput";
+import { formatAmount, formatQtyDisplay } from "@/helper/numberFormatter";
 import { apiRequest } from "@/lib/apiClient";
 import { API_ENDPOINTS } from "@/config/api.config";
 
@@ -108,8 +111,8 @@ export default function WithoutIndentItemsTable({ form, disabled, itemOptions = 
                       <td className="border px-2 py-[2px] text-center text-sm">{index + 1}</td>
 
                       {/* ITEM CODE */}
-                      <td className="border px-2 py-[2px]">
-                        <Input value={items[index]?.itemCode || ""} disabled className={getInputClass(null, true)} />
+                      <td className="border px-2 py-[2px] text-sm bg-[#edf8ed]">
+                        {items[index]?.itemCode || ""}
                       </td>
 
                       {/* ITEM NAME — searchable select */}
@@ -141,76 +144,85 @@ export default function WithoutIndentItemsTable({ form, disabled, itemOptions = 
                       </td>
 
                       {/* QTY */}
-                      <td className="border px-2 py-[2px]">
-                        <Controller
-                          control={control}
-                          name={`items.${index}.qty`}
-                          render={({ field: f }) => (
-                            <Input
-                              {...f}
-                              type="number"
-                              min={0}
-                              disabled={disabled}
-                              className={`${getInputClass(errors?.items?.[index]?.qty, disabled)} text-center`}
-                              onChange={(e) => {
-                                f.onChange(e.target.value);
-                                recalc(index, e.target.value, items[index]?.rate, items[index]?.gstPercent);
-                              }}
-                            />
-                          )}
-                        />
-                      </td>
+                      {disabled ? (
+                        <td className="border px-2 py-[2px] text-sm bg-[#edf8ed] text-center">
+                          {formatQtyDisplay(items[index]?.qty) || ""}
+                        </td>
+                      ) : (
+                        <td className="border px-2 py-[2px]">
+                          <Controller
+                            control={control}
+                            name={`items.${index}.qty`}
+                            render={({ field: f }) => (
+                              <QtyInput
+                                {...f}
+                                onChange={(e) => {
+                                  f.onChange(e.target.value);
+                                  recalc(index, e.target.value, items[index]?.rate, items[index]?.gstPercent);
+                                }}
+                                className={getInputClass(errors?.items?.[index]?.qty, false)}
+                              />
+                            )}
+                          />
+                        </td>
+                      )}
 
                       {/* RATE */}
-                      <td className="border px-2 py-[2px]">
-                        <Controller
-                          control={control}
-                          name={`items.${index}.rate`}
-                          render={({ field: f }) => (
-                            <Input
-                              {...f}
-                              type="number"
-                              step="0.001"
-                              disabled={disabled}
-                              className={getInputClass(errors?.items?.[index]?.rate, disabled)}
-                              onChange={(e) => {
-                                f.onChange(e.target.value);
-                                recalc(index, items[index]?.qty, e.target.value, items[index]?.gstPercent);
-                              }}
-                            />
-                          )}
-                        />
-                      </td>
+                      {disabled ? (
+                        <td className="border px-2 py-[2px] text-sm bg-[#edf8ed] text-right">
+                          {formatAmount(items[index]?.rate) || ""}
+                        </td>
+                      ) : (
+                        <td className="border px-2 py-[2px]">
+                          <Controller
+                            control={control}
+                            name={`items.${index}.rate`}
+                            render={({ field: f }) => (
+                              <AmountInput
+                                {...f}
+                                onChange={(e) => {
+                                  f.onChange(e.target.value);
+                                  recalc(index, items[index]?.qty, e.target.value, items[index]?.gstPercent);
+                                }}
+                                className={getInputClass(errors?.items?.[index]?.rate, false)}
+                              />
+                            )}
+                          />
+                        </td>
+                      )}
 
                       {/* AMOUNT */}
-                      <td className="border px-2 py-[2px]">
-                        <Input value={items[index]?.amount ?? 0} disabled className={getInputClass(null, true)} />
+                      <td className="border px-2 py-[2px] text-sm bg-[#edf8ed] text-right">
+                        {formatAmount(items[index]?.amount) || "0.00"}
                       </td>
 
                       {/* GST % */}
-                      <td className="border px-2 py-[2px]">
-                        <Controller
-                          control={control}
-                          name={`items.${index}.gstPercent`}
-                          render={({ field: f }) => (
-                            <Input
-                              {...f}
-                              type="number"
-                              step="0.001"
-                              disabled={disabled}
-                              className={`${getInputClass(errors?.items?.[index]?.gstPercent, disabled)} text-center`}
-                              onChange={(e) => {
-                                f.onChange(e.target.value);
-                                recalc(index, items[index]?.qty, items[index]?.rate, e.target.value);
-                              }}
-                            />
-                          )}
-                        />
-                      </td>
+                      {disabled ? (
+                        <td className="border px-2 py-[2px] text-sm bg-[#edf8ed] text-right">
+                          {formatAmount(items[index]?.gstPercent) || ""}
+                        </td>
+                      ) : (
+                        <td className="border px-2 py-[2px]">
+                          <Controller
+                            control={control}
+                            name={`items.${index}.gstPercent`}
+                            render={({ field: f }) => (
+                              <AmountInput
+                                {...f}
+                                onChange={(e) => {
+                                  f.onChange(e.target.value);
+                                  recalc(index, items[index]?.qty, items[index]?.rate, e.target.value);
+                                }}
+                                className={getInputClass(errors?.items?.[index]?.gstPercent, false)}
+                              />
+                            )}
+                          />
+                        </td>
+                      )}
 
                       {/* GST AMOUNT */}
-                      <td className="border px-2 py-[2px]">
-                        <Input value={items[index]?.gstAmount ?? 0} disabled className={getInputClass(null, true)} />
+                      <td className="border px-2 py-[2px] text-sm bg-[#edf8ed] text-right">
+                        {formatAmount(items[index]?.gstAmount) || "0.00"}
                       </td>
 
                       {/* NOTE */}
@@ -265,9 +277,9 @@ export default function WithoutIndentItemsTable({ form, disabled, itemOptions = 
                 {/* TOTAL ROW */}
                 <tr className="bg-[#D3D3D3] font-semibold">
                   <td colSpan={6} className="border px-2 py-1 text-center text-sm">TOTAL</td>
-                  <td className="border px-2 py-1 text-sm text-center">{totalAmount.toFixed(3)}</td>
+                  <td className="border px-2 py-1 text-sm text-right">{formatAmount(totalAmount)}</td>
                   <td className="border px-2 py-1" />
-                  <td className="border px-2 py-1 text-sm text-center">{totalGstAmount.toFixed(3)}</td>
+                  <td className="border px-2 py-1 text-sm text-right">{formatAmount(totalGstAmount)}</td>
                   <td className="border px-2 py-1" colSpan={disabled ? 2 : 3} />
                 </tr>
               </tbody>

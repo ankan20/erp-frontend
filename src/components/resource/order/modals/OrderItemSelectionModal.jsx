@@ -18,6 +18,7 @@ import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 
 import { Input } from "@/components/ui/input";
+import QtyInput from "@/components/common/QtyInput";
 
 import { apiRequest } from "@/lib/apiClient";
 
@@ -534,23 +535,13 @@ export default function OrderItemSelectionModal({
                       {/* ORDER QTY */}
 
                       <td className="border p-2">
-                        <Input
-                          type="number"
-                          step="0.001"
+                        <QtyInput
                           value={item.orderQty}
                           disabled={!item.selected}
                           onChange={(e) =>
-                            handleQtyChange(
-                              item.indentItemId,
-
-                              e.target.value,
-                            )
+                            handleQtyChange(item.indentItemId, e.target.value)
                           }
-                          className={getInputClass(
-                            qtyError,
-
-                            !item.selected,
-                          )}
+                          className={getInputClass(qtyError, !item.selected)}
                         />
                       </td>
 

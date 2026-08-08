@@ -9,6 +9,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
+import QtyInput from "@/components/common/QtyInput";
 import { apiRequest } from "@/lib/apiClient";
 import { API_ENDPOINTS } from "@/config/api.config";
 import { getLocalStorage } from "@/lib/localStorage";
@@ -247,9 +248,7 @@ export default function ServiceOrderItemSelectionModal({ open, onClose, form }) 
                     {item.balanceQty !== null ? item.balanceQty : "Unlimited"}
                   </td>
                   <td className="border p-2">
-                    <Input
-                      type="number"
-                      step="0.001"
+                    <QtyInput
                       value={item.orderQty}
                       disabled={!item.selected}
                       onChange={(e) => handleQtyChange(item.itemCode, e.target.value)}

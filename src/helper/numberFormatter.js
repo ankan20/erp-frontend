@@ -34,11 +34,12 @@
  *     }}
  *
  * @param {number|string} num  - Raw numeric value
- * @returns {string}  e.g. "1,00,000.00". Returns "" for 0 / falsy.
+ * @returns {string}  e.g. "1,00,000.00". Returns "" for empty/null/undefined.
  */
 export function formatAmount(num) {
+  if (num === "" || num === null || num === undefined) return "";
   const value = Number(num);
-  if (!num || isNaN(value) || value === 0) return "";
+  if (isNaN(value)) return "";
   return value.toLocaleString("en-IN", {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
@@ -79,10 +80,11 @@ export function formatAmount(num) {
  *     }}
  *
  * @param {number|string} num  - Raw numeric value
- * @returns {string}  e.g. "100.500". Returns "" for 0 / falsy.
+ * @returns {string}  e.g. "100.500". Returns "" for empty/null/undefined.
  */
 export function formatQtyDisplay(num) {
+  if (num === "" || num === null || num === undefined) return "";
   const value = Number(num);
-  if (!num || isNaN(value) || value === 0) return "";
+  if (isNaN(value)) return "";
   return value.toFixed(3);
 }

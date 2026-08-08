@@ -12,6 +12,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
+import QtyInput from "@/components/common/QtyInput";
 import { apiRequest } from "@/lib/apiClient";
 import { API_ENDPOINTS } from "@/config/api.config";
 import { getLocalStorage } from "@/lib/localStorage";
@@ -330,9 +331,7 @@ export default function PWOrderItemSelectionModal({ open, onClose, form }) {
 
                       {/* ORDER QTY — only editable field in modal */}
                       <td className="border p-2">
-                        <Input
-                          type="number"
-                          step="0.001"
+                        <QtyInput
                           value={item.orderQty}
                           disabled={!item.selected}
                           onChange={(e) =>
