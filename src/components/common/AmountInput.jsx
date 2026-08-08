@@ -42,14 +42,12 @@ const AmountInput = React.forwardRef(function AmountInput(
       ref={ref}
       name={name}
       value={value ?? ""}
-      onChange={onChange}
+      onChange={(e) => {
+        if (/^\d*(\.\d{0,2})?$/.test(e.target.value)) onChange(e);
+      }}
       onBlur={onBlur}
       inputMode="decimal"
       placeholder={placeholder}
-      onInput={(e) => {
-        if (!/^\d*(\.\d{0,2})?$/.test(e.target.value))
-          e.target.value = e.target.value.slice(0, -1);
-      }}
       className={className}
       {...rest}
     />
