@@ -1,13 +1,13 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Controller, useFieldArray }        from "react-hook-form";
 import { useFormWithToast as useForm }      from "@/hooks/useFormWithToast";
 import { z }           from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { toast }       from "sonner";
 import { useRouter }   from "next/navigation";
-import { Loader2, PanelLeftClose, PanelLeftOpen, Search } from "lucide-react";
+import { Loader2, PanelLeftClose, PanelLeftOpen } from "lucide-react";
 
 import SaveButton      from "@/components/common/SaveButton";
 import SaveDraftButton from "@/components/common/SaveDraftButton";
@@ -60,11 +60,12 @@ const DEFAULT_GST_LINES = [
 const schema = z.object({
   ogSaleOrderNo:    z.string().default(""),
   saleOrderDate:    z.string().default(""),
-  certifiedBillId:  z.coerce.number().min(1, "Certified Bill is required"),
+  certifiedBillId:  z.coerce.number().nullable().optional(),  // set from invoice lookup, not user-selected
+  certifiedBillNo:  z.string().default(""),                   // display only, not in payload
   billAbstractNo:   z.string().default(""),
   billAbstractDate: z.string().default(""),
   invoiceNo:        z.string().optional().default(""),
-  invoiceDate:      z.string().optional().default(""),
+  invoiceDate:      z.string().optional().default(""),        // read-only, auto-filled from invoice lookup
   billToAddress:    z.string().optional().default(""),
   shipToAddress:    z.string().optional().default(""),
   discount:         z.coerce.number().min(0).default(0),
@@ -74,7 +75,7 @@ const schema = z.object({
 });
 
 const DEFAULT_VALUES = {
-  ogSaleOrderNo: "", saleOrderDate: "", certifiedBillId: null,
+  ogSaleOrderNo: "", saleOrderDate: "", certifiedBillId: null, certifiedBillNo: "",
   billAbstractNo: "", billAbstractDate: "",
   invoiceNo: "", invoiceDate: "", billToAddress: "", shipToAddress: "",
   discount: 0, roundOff: 0,
@@ -101,12 +102,12 @@ export default function SaleReceiptBillingForm({
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [srbNo,       setSrbNo]       = useState("");
 
-  const [invoiceLookupVal, setInvoiceLookupVal] = useState("");
-  const [lookupLoading,    setLookupLoading]    = useState(false);
-  const [saleOrderOpts,    setSaleOrderOpts]    = useState([]);
-  const [certBillOpts,     setCertBillOpts]     = useState([]);
-  const [billsLoading,     setBillsLoading]     = useState(false);
-  const [itemsLoading,     setItemsLoading]     = useState(false);
+  const [saleOrderOpts,        setSaleOrderOpts]        = useState([]);
+  const [allInvoiceOpts,       setAllInvoiceOpts]       = useState([]);  // full approved list
+  const [invoiceOpts,          setInvoiceOpts]          = useState([]);  // filtered by selected order
+  const [invoicesLoading,      setInvoicesLoading]      = useState(false);
+  const [invoiceLookupLoading, setInvoiceLookupLoading] = useState(false);
+  const skipClearOnOrderChange = useRef(false);          // prevents clearing when lookup sets ogSaleOrderNo
 
   const {
     register, control, handleSubmit, reset, setValue, watch, getValues,
@@ -118,11 +119,10 @@ export default function SaleReceiptBillingForm({
 
   const disabled = isViewMode || !isEditing || isSubmitting || isSubmitted;
 
-  const watchedItems = watch("items")    || [];
-  const watchedGst   = watch("gstLines") || DEFAULT_GST_LINES;
-  const ogSaleOrderNo   = watch("ogSaleOrderNo");
-  const certifiedBillId = watch("certifiedBillId");
-  const discount        = Number(watch("discount") || 0);
+  const watchedItems  = watch("items")    || [];
+  const watchedGst    = watch("gstLines") || DEFAULT_GST_LINES;
+  const ogSaleOrderNo = watch("ogSaleOrderNo");
+  const discount      = Number(watch("discount") || 0);
 
   const basicTotal   = watchedItems.reduce((s, it) => s + Number(it?.currentAmount || 0), 0);
   const gstTotal     = watchedGst.filter((l) => l.isSelected).reduce((s, l) => s + Number(l.currentAmount || 0), 0);
@@ -165,6 +165,7 @@ export default function SaleReceiptBillingForm({
   }, [replaceItems, replaceGst]);
 
   // ── Load Sale Orders on mount ──────────────────────────────────────────────
+  // TODO: replace with a dedicated sale-receipt sale order API when available
   useEffect(() => {
     if (!projectCode) return;
     apiRequest({
@@ -172,76 +173,91 @@ export default function SaleReceiptBillingForm({
       method: "GET",
     })
       .then((res) => {
-        const opts = (res.data || []).map((o) => ({
-          ...o,
-          displayLabel: o.orderTitle ? `${o.ogSaleOrderNo} — ${o.orderTitle}` : o.ogSaleOrderNo,
-        }));
-        setSaleOrderOpts(opts);
+        setSaleOrderOpts(
+          (res.data || []).map((o) => ({
+            ...o,
+            displayLabel: o.orderTitle ? `${o.ogSaleOrderNo} — ${o.orderTitle}` : o.ogSaleOrderNo,
+          })),
+        );
       })
       .catch(() => {});
   }, [projectCode]);
 
-  // ── Fetch Certified Bills when Sale Order changes ─────────────────────────
-  const fetchCertBills = useCallback(async (orderNo) => {
-    if (!orderNo || !projectCode) { setCertBillOpts([]); return; }
-    setBillsLoading(true);
-    try {
-      const res = await apiRequest({
-        url: `${API_ENDPOINTS.FINANCE.SALE_RECEIPT_BILLING.CERTIFIED_BILLS}?ogSaleOrderNo=${encodeURIComponent(orderNo)}&projectCode=${projectCode}`,
-        method: "GET",
-      });
-      setCertBillOpts(res.data || []);
-    } catch { toast.error("Failed to load Certified Bills"); }
-    finally { setBillsLoading(false); }
+  // ── Load ALL approved invoices once at mount ───────────────────────────────
+  // Full list enables direct invoice selection without picking a sale order first.
+  // TODO: add extra server-side filters here if the API supports them in future (e.g. &notAlreadyReceipted=true)
+  useEffect(() => {
+    if (!projectCode) return;
+    setInvoicesLoading(true);
+    apiRequest({
+      url: `${API_ENDPOINTS.FINANCE.SALE_BILL.LIST}?projectCode=${projectCode}&workflowStatus=Approved`,
+      method: "GET",
+    })
+      .then((res) => {
+        const list = res.data || [];
+        setAllInvoiceOpts(list);
+        setInvoiceOpts(list);   // show all by default (no sale order selected yet)
+      })
+      .catch(() => toast.error("Failed to load invoices"))
+      .finally(() => setInvoicesLoading(false));
   }, [projectCode]);
 
-  useEffect(() => { fetchCertBills(ogSaleOrderNo); }, [ogSaleOrderNo, fetchCertBills]);
+  // ── Filter invoice list client-side when sale order changes ───────────────
+  useEffect(() => {
+    if (!ogSaleOrderNo) {
+      setInvoiceOpts(allInvoiceOpts);   // no filter — show all
+    } else {
+      setInvoiceOpts(allInvoiceOpts.filter((inv) => inv.saleOrderNo === ogSaleOrderNo));
+    }
+  }, [ogSaleOrderNo, allInvoiceOpts]);
 
-  // ── Fetch Receipt Items when Certified Bill selected (create only) ─────────
-  const fetchReceiptItems = useCallback(async (billId) => {
-    if (!billId || !projectCode || mode !== "create") return;
-    setItemsLoading(true);
+  // ── Clear invoice-dependent fields when user manually changes sale order ───
+  // Skipped when lookup sets ogSaleOrderNo (lookup handles its own field fills)
+  useEffect(() => {
+    if (skipClearOnOrderChange.current) { skipClearOnOrderChange.current = false; return; }
+    if (!ogSaleOrderNo) return;
+    setValue("invoiceNo",        "");
+    setValue("invoiceDate",      "");
+    setValue("certifiedBillId",  null);
+    setValue("certifiedBillNo",  "");
+    setValue("billAbstractNo",   "");
+    setValue("billAbstractDate", "");
+    setValue("billToAddress",    "");
+    setValue("shipToAddress",    "");
+    replaceItems([{ slNo: 1, ccCode: "", ccName: "", bookedAmount: 0, receivedAmount: 0, balanceAmount: 0, currentAmount: 0 }]);
+    replaceGst(DEFAULT_GST_LINES);
+  }, [ogSaleOrderNo]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // ── Invoice selected → invoice-lookup fills everything (order, cert bill, items, GST) ─
+  // No separate receipt-items or certified-bills API calls needed — invoice-lookup returns all of it.
+  const handleInvoiceSelect = useCallback(async (saleBillNo) => {
+    if (!saleBillNo || !projectCode) return;
+    setInvoiceLookupLoading(true);
     try {
       const res = await apiRequest({
-        url: `${API_ENDPOINTS.FINANCE.SALE_RECEIPT_BILLING.RECEIPT_ITEMS}?certifiedBillId=${billId}&projectCode=${projectCode}`,
+        url: `${API_ENDPOINTS.FINANCE.SALE_RECEIPT_BILLING.INVOICE_LOOKUP}?invoiceNo=${encodeURIComponent(saleBillNo)}&projectCode=${projectCode}`,
         method: "GET",
       });
       const d = res.data || {};
-      applyReceiptItems({ ...d, items: (d.items || []).map((it) => ({ ...it, currentAmount: 0 })) });
-    } catch { toast.error("Failed to load receipt items"); }
-    finally { setItemsLoading(false); }
-  }, [projectCode, mode, applyReceiptItems]);
-
-  useEffect(() => { fetchReceiptItems(certifiedBillId); }, [certifiedBillId, fetchReceiptItems]);
-
-  // ── Invoice Lookup ─────────────────────────────────────────────────────────
-  const handleInvoiceLookup = async () => {
-    const inv = invoiceLookupVal.trim();
-    if (!inv) { toast.error("Enter an invoice number first"); return; }
-    setLookupLoading(true);
-    try {
-      const res = await apiRequest({
-        url: `${API_ENDPOINTS.FINANCE.SALE_RECEIPT_BILLING.INVOICE_LOOKUP}?invoiceNo=${encodeURIComponent(inv)}&projectCode=${projectCode}`,
-        method: "GET",
-      });
-      const d = res.data || {};
+      // Auto-select sale order from lookup — skip the clear-on-change effect
+      skipClearOnOrderChange.current = true;
       setValue("ogSaleOrderNo",    d.ogSaleOrderNo    || "");
       setValue("saleOrderDate",    d.saleOrderDate    || "");
+      setValue("invoiceNo",        d.invoiceNo        || saleBillNo);
+      setValue("invoiceDate",      d.invoiceDate      || "");
       setValue("certifiedBillId",  d.certifiedBillId  || null);
+      setValue("certifiedBillNo",  d.certifiedBillNo  || "");
       setValue("billAbstractNo",   d.billAbstractNo   || d.certifiedBillNo || "");
       setValue("billAbstractDate", d.billAbstractDate || "");
-      setValue("invoiceNo",        d.invoiceNo        || inv);
-      setValue("invoiceDate",      d.invoiceDate      || "");
       setValue("billToAddress",    d.billToAddress    || "");
       setValue("shipToAddress",    d.shipToAddress    || "");
       applyReceiptItems({ ...d, items: (d.items || []).map((it) => ({ ...it, currentAmount: 0 })) });
-      toast.success("Auto-filled from invoice");
     } catch (err) {
-      toast.error(err?.message || "Invoice not found");
+      toast.error(err?.message || "Failed to load invoice details");
     } finally {
-      setLookupLoading(false);
+      setInvoiceLookupLoading(false);
     }
-  };
+  }, [projectCode, setValue, applyReceiptItems]);
 
   // ── Fetch Detail (edit/view) ───────────────────────────────────────────────
   useEffect(() => {
@@ -253,6 +269,7 @@ export default function SaleReceiptBillingForm({
           ogSaleOrderNo:    d.ogSaleOrderNo    || "",
           saleOrderDate:    d.saleOrderDate    || "",
           certifiedBillId:  d.certifiedBillId  || null,
+          certifiedBillNo:  d.certifiedBillNo  || "",
           billAbstractNo:   d.billAbstractNo   || d.certifiedBillNo || "",
           billAbstractDate: d.billAbstractDate || "",
           invoiceNo:        d.invoiceNo        || "",
@@ -414,47 +431,12 @@ export default function SaleReceiptBillingForm({
         {/* ── LEFT PANEL ───────────────────────────────────────────────────── */}
         <div className={`w-full lg:w-[380px] lg:shrink-0 space-y-2 ${!sidebarOpen ? "lg:hidden" : ""}`}>
 
-          {/* Invoice lookup (create mode only) */}
-          {mode === "create" && !disabled && (
-            <PMSection title="Invoice Lookup (Optional):">
-              <PMFormRow label="Invoice No" labelWidth="sm:w-[150px] sm:min-w-[150px]">
-                <div className="flex gap-1.5 flex-1">
-                  <PMInput
-                    value={invoiceLookupVal}
-                    onChange={(e) => setInvoiceLookupVal(e.target.value)}
-                    placeholder="Enter sale bill invoice no."
-                  />
-                  <button
-                    type="button"
-                    onClick={handleInvoiceLookup}
-                    disabled={lookupLoading}
-                    className="shrink-0 h-[30px] px-2.5 text-[12px] bg-[#3b6ea5] text-white rounded-sm hover:bg-[#2e5a8e] disabled:opacity-50 flex items-center gap-1"
-                  >
-                    {lookupLoading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Search className="w-3.5 h-3.5" />}
-                    Fetch
-                  </button>
-                </div>
-              </PMFormRow>
-              <p className="text-[11px] text-gray-400 -mt-1 pl-1">Auto-fills form from an approved sale bill</p>
-            </PMSection>
-          )}
-
-          <PMSection title="Billing Details:">
+          <PMSection title="Sale Order:">
             {mode !== "create" && (
               <PMFormRow label="SRB No" labelWidth="sm:w-[150px] sm:min-w-[150px]">
                 <PMInput value={srbNo || "[Auto]"} disabled readOnly />
               </PMFormRow>
             )}
-            <PMFormRow label="Invoice No" labelWidth="sm:w-[150px] sm:min-w-[150px]">
-              <PMInput {...register("invoiceNo")} disabled={disabled} placeholder="Invoice reference"
-                hasError={errors.invoiceNo} />
-            </PMFormRow>
-            <PMFormRow label="Invoice Date" labelWidth="sm:w-[150px] sm:min-w-[150px]">
-              <PMDateInput {...register("invoiceDate")} disabled={disabled} className="max-w-[200px]" />
-            </PMFormRow>
-          </PMSection>
-
-          <PMSection title="Sale Order:">
             <PMFormRow label="Sale Order No" required={!disabled} labelWidth="sm:w-[150px] sm:min-w-[150px]">
               <Controller name="ogSaleOrderNo" control={control} render={({ field }) => (
                 <SearchableSelect
@@ -463,12 +445,7 @@ export default function SaleReceiptBillingForm({
                   disabled={disabled}
                   onChange={(v, opt) => {
                     field.onChange(opt?.ogSaleOrderNo || v || "");
-                    setValue("saleOrderDate",    opt?.ogSaleOrderDate || "");
-                    setValue("certifiedBillId",  null);
-                    setValue("billAbstractNo",   "");
-                    setValue("billAbstractDate", "");
-                    replaceItems([{ slNo: 1, ccCode: "", ccName: "", bookedAmount: 0, receivedAmount: 0, balanceAmount: 0, currentAmount: 0 }]);
-                    replaceGst(DEFAULT_GST_LINES);
+                    setValue("saleOrderDate", opt?.ogSaleOrderDate || "");
                   }}
                   placeholder="Select Sale Order"
                   labelKey="displayLabel"
@@ -477,37 +454,49 @@ export default function SaleReceiptBillingForm({
                 />
               )} />
             </PMFormRow>
-
             <PMFormRow label="Sale Order Date" labelWidth="sm:w-[150px] sm:min-w-[150px]">
               <PMInput value={watch("saleOrderDate") || ""} disabled readOnly />
             </PMFormRow>
+          </PMSection>
 
-            <PMFormRow label="Certified Bill" required={!disabled} labelWidth="sm:w-[150px] sm:min-w-[150px]">
-              <Controller name="certifiedBillId" control={control} render={({ field }) => (
-                <SearchableSelect
-                  options={certBillOpts}
-                  value={field.value ? String(field.value) : ""}
-                  disabled={disabled || !watch("ogSaleOrderNo")}
-                  onChange={(v, opt) => {
-                    field.onChange(v ? Number(v) : null);
-                    setValue("billAbstractNo",   opt?.billingNo   || "");
-                    setValue("billAbstractDate", opt?.billingDate || "");
-                  }}
-                  placeholder={billsLoading ? "Loading…" : "Select Certified Bill"}
-                  labelKey="billingNo"
-                  valueKey="id"
-                  searchKeys={["billingNo"]}
-                />
-              )} />
-              {errors.certifiedBillId && (
-                <p className="text-red-500 text-[11px] mt-0.5">{errors.certifiedBillId.message}</p>
+          <PMSection title="Invoice / Bill:">
+            <PMFormRow label="Invoice No" required={!disabled} labelWidth="sm:w-[150px] sm:min-w-[150px]">
+              {disabled ? (
+                <PMInput value={watch("invoiceNo") || ""} disabled readOnly />
+              ) : (
+                <Controller name="invoiceNo" control={control} render={({ field }) => (
+                  <SearchableSelect
+                    options={invoiceOpts}
+                    value={field.value || ""}
+                    disabled={false}
+                    onChange={(v) => {
+                      field.onChange(v || "");
+                      if (v) handleInvoiceSelect(v);
+                    }}
+                    placeholder={invoicesLoading ? "Loading…" : "Select Invoice"}
+                    labelKey="saleBillNo"
+                    valueKey="saleBillNo"
+                    searchKeys={["saleBillNo", "certifiedBillNo", "saleOrderNo"]}
+                  />
+                )} />
+              )}
+              {invoiceLookupLoading && (
+                <p className="text-[11px] text-[#3b6ea5] mt-0.5 flex items-center gap-1">
+                  <Loader2 className="w-3 h-3 animate-spin" /> Loading invoice details…
+                </p>
               )}
             </PMFormRow>
-
+            <PMFormRow label="Invoice Date" labelWidth="sm:w-[150px] sm:min-w-[150px]">
+              <PMInput value={watch("invoiceDate") || ""} disabled readOnly
+                placeholder="Auto-filled from invoice" />
+            </PMFormRow>
+            <PMFormRow label="Certified Bill" labelWidth="sm:w-[150px] sm:min-w-[150px]">
+              <PMInput value={watch("certifiedBillNo") || ""} disabled readOnly
+                placeholder="Auto-filled from invoice" />
+            </PMFormRow>
             <PMFormRow label="Bill Abstract No" labelWidth="sm:w-[150px] sm:min-w-[150px]">
               <PMInput value={watch("billAbstractNo") || ""} disabled readOnly />
             </PMFormRow>
-
             <PMFormRow label="Bill Abstract Date" labelWidth="sm:w-[150px] sm:min-w-[150px]">
               <PMInput value={watch("billAbstractDate") || ""} disabled readOnly />
             </PMFormRow>
@@ -551,7 +540,7 @@ export default function SaleReceiptBillingForm({
                   </tr>
                 </thead>
                 <tbody>
-                  {itemsLoading ? (
+                  {invoiceLookupLoading ? (
                     <tr>
                       <td colSpan={7} className="border border-gray-200 py-5 text-center text-gray-400">
                         <Loader2 className="animate-spin w-4 h-4 inline mr-1.5" />Loading items…
@@ -560,7 +549,7 @@ export default function SaleReceiptBillingForm({
                   ) : itemFields.length === 0 || (itemFields.length === 1 && !watchedItems[0]?.ccCode) ? (
                     <tr>
                       <td colSpan={7} className="border border-gray-200 py-6 text-center text-[#bbb] italic">
-                        Select a Certified Bill to load items
+                        Select a Sale Order, then pick an Invoice to load items
                       </td>
                     </tr>
                   ) : (
