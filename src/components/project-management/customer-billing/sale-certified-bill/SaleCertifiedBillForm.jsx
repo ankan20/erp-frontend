@@ -19,6 +19,10 @@ import PMFormRow        from "@/components/project-management/common/PMFormRow";
 import PMDateInput      from "@/components/project-management/common/PMDateInput";
 import PMTextarea          from "@/components/project-management/common/PMTextarea";
 import ExpandableTextCell  from "@/components/project-management/common/ExpandableTextCell";
+import QtyInput            from "@/components/common/QtyInput";
+import AmountInput         from "@/components/common/AmountInput";
+import GstInput            from "@/components/common/GstInput";
+import { formatAmount, formatQtyDisplay } from "@/helper/numberFormatter";
 
 import { apiRequest }      from "@/lib/apiClient";
 import { API_ENDPOINTS }   from "@/config/api.config";
@@ -74,14 +78,6 @@ const defaultValues = {
   jobLocation:        "",
   preCertifiedAmount: "",
   items:              [],
-};
-
-// ── HELPERS ───────────────────────────────────────────────────────────────────
-const fmt = (val) => {
-  const n = Number(val);
-  if (!val && val !== 0) return "";
-  if (isNaN(n)) return "";
-  return n.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 };
 
 // ── COMPONENT ─────────────────────────────────────────────────────────────────
@@ -500,7 +496,7 @@ export default function SaleCertifiedBillForm({ mode = "create", billId, onAfter
               <div className="max-w-[180px]">
                 <input
                   type="text"
-                  value={fmt(watch("preCertifiedAmount") || 0)}
+                  value={formatAmount(watch("preCertifiedAmount") || 0)}
                   disabled readOnly
                   className="w-full h-[30px] text-[13px] rounded-sm border border-[#b5b5b5] bg-[#f5f5f5] text-right px-2 text-[#555] outline-none"
                 />
@@ -509,7 +505,7 @@ export default function SaleCertifiedBillForm({ mode = "create", billId, onAfter
 
             <PMFormRow label="This Bill Amount" labelWidth="sm:w-[140px] sm:min-w-[140px]">
               <div className="max-w-[180px]">
-                <input type="text" value={fmt(thisBillAmount)} disabled readOnly
+                <input type="text" value={formatAmount(thisBillAmount)} disabled readOnly
                   className="w-full h-[30px] text-[13px] rounded-sm border border-[#5f8fbe] bg-[#d6e8f9] text-right px-2 font-semibold text-[#1c3a5e] outline-none"
                 />
               </div>
@@ -517,7 +513,7 @@ export default function SaleCertifiedBillForm({ mode = "create", billId, onAfter
 
             <PMFormRow label="GST Amount" labelWidth="sm:w-[140px] sm:min-w-[140px]">
               <div className="max-w-[180px]">
-                <input type="text" value={fmt(gstAmount)} disabled readOnly
+                <input type="text" value={formatAmount(gstAmount)} disabled readOnly
                   className="w-full h-[30px] text-[13px] rounded-sm border border-[#5f8fbe] bg-[#d6e8f9] text-right px-2 font-semibold text-[#1c3a5e] outline-none"
                 />
               </div>
@@ -525,7 +521,7 @@ export default function SaleCertifiedBillForm({ mode = "create", billId, onAfter
 
             <PMFormRow label="Total Bill Amount" labelWidth="sm:w-[140px] sm:min-w-[140px]">
               <div className="max-w-[180px]">
-                <input type="text" value={fmt(totalBillAmount)} disabled readOnly
+                <input type="text" value={formatAmount(totalBillAmount)} disabled readOnly
                   className="w-full h-[30px] text-[13px] rounded-sm border border-[#5f8fbe] bg-[#d6e8f9] text-right px-2 font-semibold text-[#1c3a5e] outline-none"
                 />
               </div>
@@ -555,7 +551,7 @@ export default function SaleCertifiedBillForm({ mode = "create", billId, onAfter
             </div>
 
             <div className="overflow-x-auto overflow-y-auto lg:max-h-[calc(100vh-260px)]">
-              <table className="w-full border-collapse text-sm" style={{ minWidth: 1060 }}>
+              <table className="w-full border-collapse text-sm" style={{ minWidth: 1260 }}>
 
                 <thead className="sticky top-0 z-20">
                   <tr className="bg-[#3b6ea5] text-white">
@@ -567,7 +563,9 @@ export default function SaleCertifiedBillForm({ mode = "create", billId, onAfter
                     <th className="border border-[#2a5080] w-[85px] text-right px-2 text-[13px] py-1.5">Order Qty</th>
                     <th className="border border-[#2a5080] w-[90px] text-right px-2 text-[13px] py-1.5">Certified Qty</th>
                     <th className="border border-[#2a5080] w-[90px] text-right px-2 text-[13px] py-1.5">Rate</th>
-                    <th className="border border-[#2a5080] w-[65px] text-right px-2 text-[13px] py-1.5">GST %</th>
+                    <th className="border border-[#2a5080] w-[100px] text-right px-2 text-[13px] py-1.5">Basic Amt</th>
+                    <th className="border border-[#2a5080] w-[90px] text-right px-2 text-[13px] py-1.5">GST %</th>
+                    <th className="border border-[#2a5080] w-[100px] text-right px-2 text-[13px] py-1.5">GST Amt</th>
                     <th className="border border-[#2a5080] w-[105px] text-right px-2 text-[13px] py-1.5">Amount</th>
                   </tr>
                 </thead>
@@ -576,7 +574,7 @@ export default function SaleCertifiedBillForm({ mode = "create", billId, onAfter
                   {fields.length === 0 && (
                     <tr>
                       <td
-                        colSpan={10}
+                        colSpan={12}
                         className="text-center text-[13px] text-[#888] py-8 italic border border-[#ccc]"
                       >
                         Select an order, then a claim bill above to populate items
@@ -584,10 +582,13 @@ export default function SaleCertifiedBillForm({ mode = "create", billId, onAfter
                     </tr>
                   )}
                   {fields.map((field, index) => {
-                    const orderQty     = Number(watch(`items.${index}.orderQty`)     || 0);
-                    const certifiedQty = Number(watch(`items.${index}.certifiedQty`) || 0);
-                    const rate         = Number(watch(`items.${index}.rate`)          || 0);
+                    const item         = watchedItems[index] || {};
+                    const orderQty     = Number(item.orderQty     || 0);
+                    const certifiedQty = Number(item.certifiedQty || 0);
+                    const rate         = Number(item.rate         || 0);
+                    const gstPct       = Number(item.gstPercent   || 0);
                     const amount       = certifiedQty * rate;
+                    const gstAmt       = amount * gstPct / 100;
                     const overQty      = !disabled && certifiedQty > orderQty && orderQty > 0;
 
                     return (
@@ -657,64 +658,70 @@ export default function SaleCertifiedBillForm({ mode = "create", billId, onAfter
 
                         {/* ORDER QTY — read-only reference */}
                         <td className="border border-[#ccc] bg-[#f0f4f8] px-2 text-[13px] text-right align-middle text-[#555]">
-                          {orderQty > 0 ? fmt(orderQty) : "—"}
+                          {orderQty > 0 ? formatQtyDisplay(orderQty) : "—"}
                           <input {...register(`items.${index}.orderQty`)} type="hidden" />
                         </td>
 
                         {/* CERTIFIED QTY — editable, capped at orderQty */}
                         <td className="border border-[#ccc] p-0 align-middle">
-                          <input
-                            type="number" min={0} step="any"
-                            {...register(`items.${index}.certifiedQty`, {
-                              onChange: (e) => {
-                                const v   = Number(e.target.value);
-                                const max = Number(watch(`items.${index}.orderQty`) || Infinity);
-                                if (v < 0)            e.target.value = 0;
-                                if (v > max && max > 0) e.target.value = max;
-                              },
-                            })}
-                            disabled={disabled} placeholder="0"
-                            title={overQty ? `Cannot exceed order qty (${orderQty})` : undefined}
-                            className={`
-                              ${overQty
-                                ? "border-red-400 bg-red-50 text-red-700"
-                                : getInputClass(errors?.items?.[index]?.certifiedQty, disabled)
-                              }
-                              border-0 rounded-none w-full h-[30px] text-[13px] text-right pr-2
-                            `}
+                          <Controller
+                            control={control}
+                            name={`items.${index}.certifiedQty`}
+                            render={({ field: f }) => (
+                              <QtyInput
+                                {...f}
+                                onChange={(e) => {
+                                  const v = Number(e.target.value || 0);
+                                  const max = orderQty;
+                                  f.onChange(max > 0 && v > max ? String(max) : e.target.value);
+                                }}
+                                disabled={disabled}
+                                placeholder="0"
+                                title={overQty ? `Cannot exceed order qty (${orderQty})` : undefined}
+                                className={`${overQty ? "border-red-400 bg-red-50 text-red-700" : getInputClass(errors?.items?.[index]?.certifiedQty, disabled)} border-0 rounded-none w-full h-[30px] text-[13px] text-right pr-2`}
+                              />
+                            )}
                           />
                           {overQty && (
-                            <p className="text-[10px] text-red-500 px-1">Max: {fmt(orderQty)}</p>
+                            <p className="text-[10px] text-red-500 px-1">Max: {formatQtyDisplay(orderQty)}</p>
                           )}
                         </td>
 
                         {/* RATE — editable */}
                         <td className="border border-[#ccc] p-0 align-middle">
-                          <input
-                            type="number" min={0} step="any"
-                            {...register(`items.${index}.rate`, {
-                              onChange: (e) => { if (Number(e.target.value) < 0) e.target.value = 0; },
-                            })}
-                            disabled={disabled} placeholder="0"
+                          <AmountInput
+                            {...register(`items.${index}.rate`)}
+                            value={item.rate ?? ""}
+                            disabled={disabled}
+                            placeholder="0"
                             className={`${getInputClass(false, disabled)} border-0 rounded-none w-full h-[30px] text-[13px] text-right pr-2`}
                           />
+                        </td>
+
+                        {/* BASIC AMOUNT */}
+                        <td className="border border-[#ccc] bg-[#edf8ed] px-2 text-[13px] font-medium text-right align-middle">
+                          {formatAmount(amount)}
                         </td>
 
                         {/* GST % */}
                         <td className="border border-[#ccc] p-0 align-middle">
-                          <input
-                            type="number" min={0} max={100} step="any"
-                            {...register(`items.${index}.gstPercent`, {
-                              onChange: (e) => { if (Number(e.target.value) < 0) e.target.value = 0; },
-                            })}
-                            disabled={disabled} placeholder="0"
+                          <GstInput
+                            {...register(`items.${index}.gstPercent`)}
+                            value={item.gstPercent ?? ""}
+                            disabled={disabled}
+                            placeholder="0"
                             className={`${getInputClass(false, disabled)} border-0 rounded-none w-full h-[30px] text-[13px] text-right pr-2`}
                           />
                         </td>
 
+                        {/* GST AMOUNT */}
+                        <td className="border border-[#ccc] bg-[#edf8ed] px-2 text-[13px] font-medium text-right align-middle">
+                          {formatAmount(gstAmt)}
+                        </td>
+
                         {/* AMOUNT */}
                         <td className="border border-[#ccc] bg-[#edf8ed] px-2 text-[13px] font-medium text-right align-middle">
-                          {fmt(amount)}
+                          {formatAmount(amount)}
                         </td>
 
                       </tr>
@@ -732,8 +739,10 @@ export default function SaleCertifiedBillForm({ mode = "create", billId, onAfter
                     <td className="border border-[#9ec5e0]" />
                     <td className="border border-[#9ec5e0]" />
                     <td className="border border-[#9ec5e0] px-2 text-right text-[13px]">TOTAL=</td>
+                    <td className="border border-[#9ec5e0] px-2 text-right text-[13px]">{formatAmount(thisBillAmount)}</td>
                     <td className="border border-[#9ec5e0]" />
-                    <td className="border border-[#9ec5e0] px-2 text-right text-[13px]">{fmt(thisBillAmount)}</td>
+                    <td className="border border-[#9ec5e0] px-2 text-right text-[13px]">{formatAmount(gstAmount)}</td>
+                    <td className="border border-[#9ec5e0] px-2 text-right text-[13px]">{formatAmount(thisBillAmount)}</td>
                   </tr>
                 </tfoot>
 

@@ -19,6 +19,10 @@ import PMFormRow        from "@/components/project-management/common/PMFormRow";
 import PMDateInput      from "@/components/project-management/common/PMDateInput";
 import PMTextarea          from "@/components/project-management/common/PMTextarea";
 import ExpandableTextCell  from "@/components/project-management/common/ExpandableTextCell";
+import QtyInput            from "@/components/common/QtyInput";
+import AmountInput         from "@/components/common/AmountInput";
+import GstInput            from "@/components/common/GstInput";
+import { formatAmount, formatQtyDisplay } from "@/helper/numberFormatter";
 
 import { apiRequest }      from "@/lib/apiClient";
 import { API_ENDPOINTS }   from "@/config/api.config";
@@ -72,14 +76,6 @@ const defaultValues = {
   jobLocation:        "",
   preCertifiedAmount: "",
   items:              [],
-};
-
-// ── HELPERS ───────────────────────────────────────────────────────────────────
-const fmt = (val) => {
-  const n = Number(val);
-  if (!val && val !== 0) return "";
-  if (isNaN(n)) return "";
-  return n.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 };
 
 // ── COMPONENT ─────────────────────────────────────────────────────────────────
@@ -443,7 +439,7 @@ export default function SaleClaimBillForm({ mode = "create", billId, onAfterSubm
               <div className="max-w-[180px]">
                 <input
                   type="text"
-                  value={fmt(watch("preCertifiedAmount") || 0)}
+                  value={formatAmount(watch("preCertifiedAmount") || 0)}
                   disabled readOnly
                   className="w-full h-[30px] text-[13px] rounded-sm border border-[#b5b5b5] bg-[#f5f5f5] text-right px-2 text-[#555] outline-none"
                 />
@@ -452,7 +448,7 @@ export default function SaleClaimBillForm({ mode = "create", billId, onAfterSubm
 
             <PMFormRow label="This Bill Claim" labelWidth="sm:w-[140px] sm:min-w-[140px]">
               <div className="max-w-[180px]">
-                <input type="text" value={fmt(thisBillClaim)} disabled readOnly
+                <input type="text" value={formatAmount(thisBillClaim)} disabled readOnly
                   className="w-full h-[30px] text-[13px] rounded-sm border border-[#5f8fbe] bg-[#d6e8f9] text-right px-2 font-semibold text-[#1c3a5e] outline-none"
                 />
               </div>
@@ -460,7 +456,7 @@ export default function SaleClaimBillForm({ mode = "create", billId, onAfterSubm
 
             <PMFormRow label="GST Amount" labelWidth="sm:w-[140px] sm:min-w-[140px]">
               <div className="max-w-[180px]">
-                <input type="text" value={fmt(gstAmount)} disabled readOnly
+                <input type="text" value={formatAmount(gstAmount)} disabled readOnly
                   className="w-full h-[30px] text-[13px] rounded-sm border border-[#5f8fbe] bg-[#d6e8f9] text-right px-2 font-semibold text-[#1c3a5e] outline-none"
                 />
               </div>
@@ -468,7 +464,7 @@ export default function SaleClaimBillForm({ mode = "create", billId, onAfterSubm
 
             <PMFormRow label="Total Claim" labelWidth="sm:w-[140px] sm:min-w-[140px]">
               <div className="max-w-[180px]">
-                <input type="text" value={fmt(totalClaim)} disabled readOnly
+                <input type="text" value={formatAmount(totalClaim)} disabled readOnly
                   className="w-full h-[30px] text-[13px] rounded-sm border border-[#5f8fbe] bg-[#d6e8f9] text-right px-2 font-semibold text-[#1c3a5e] outline-none"
                 />
               </div>
@@ -498,7 +494,7 @@ export default function SaleClaimBillForm({ mode = "create", billId, onAfterSubm
             </div>
 
             <div className="overflow-x-auto overflow-y-auto lg:max-h-[calc(100vh-260px)]">
-              <table className="w-full border-collapse text-sm" style={{ minWidth: 1060 }}>
+              <table className="w-full border-collapse text-sm" style={{ minWidth: 1260 }}>
 
                 <thead className="sticky top-0 z-20">
                   <tr className="bg-[#3b6ea5] text-white">
@@ -510,7 +506,9 @@ export default function SaleClaimBillForm({ mode = "create", billId, onAfterSubm
                     <th className="border border-[#2a5080] w-[85px] text-right px-2 text-[13px] py-1.5">Order Qty</th>
                     <th className="border border-[#2a5080] w-[85px] text-right px-2 text-[13px] py-1.5">Claim Qty</th>
                     <th className="border border-[#2a5080] w-[90px] text-right px-2 text-[13px] py-1.5">Rate</th>
-                    <th className="border border-[#2a5080] w-[65px] text-right px-2 text-[13px] py-1.5">GST %</th>
+                    <th className="border border-[#2a5080] w-[100px] text-right px-2 text-[13px] py-1.5">Basic Amt</th>
+                    <th className="border border-[#2a5080] w-[90px] text-right px-2 text-[13px] py-1.5">GST %</th>
+                    <th className="border border-[#2a5080] w-[100px] text-right px-2 text-[13px] py-1.5">GST Amt</th>
                     <th className="border border-[#2a5080] w-[105px] text-right px-2 text-[13px] py-1.5">Amount</th>
                   </tr>
                 </thead>
@@ -519,7 +517,7 @@ export default function SaleClaimBillForm({ mode = "create", billId, onAfterSubm
                   {fields.length === 0 && (
                     <tr>
                       <td
-                        colSpan={10}
+                        colSpan={12}
                         className="text-center text-[13px] text-[#888] py-8 italic border border-[#ccc]"
                       >
                         Select an order above to populate items
@@ -527,10 +525,13 @@ export default function SaleClaimBillForm({ mode = "create", billId, onAfterSubm
                     </tr>
                   )}
                   {fields.map((field, index) => {
-                    const orderQty = Number(watch(`items.${index}.orderQty`) || 0);
-                    const claimQty = Number(watch(`items.${index}.claimQty`) || 0);
-                    const rate     = Number(watch(`items.${index}.rate`)     || 0);
+                    const item     = watchedItems[index] || {};
+                    const orderQty = Number(item.orderQty   || 0);
+                    const claimQty = Number(item.claimQty   || 0);
+                    const rate     = Number(item.rate       || 0);
+                    const gstPct   = Number(item.gstPercent || 0);
                     const amount   = claimQty * rate;
+                    const gstAmt   = amount * gstPct / 100;
                     const overQty  = !disabled && claimQty > orderQty && orderQty > 0;
 
                     return (
@@ -600,56 +601,62 @@ export default function SaleClaimBillForm({ mode = "create", billId, onAfterSubm
 
                         {/* ORDER QTY — read-only reference */}
                         <td className="border border-[#ccc] bg-[#f0f4f8] px-2 text-[13px] text-right align-middle text-[#555]">
-                          {orderQty > 0 ? fmt(orderQty) : "—"}
+                          {orderQty > 0 ? formatQtyDisplay(orderQty) : "—"}
                           <input {...register(`items.${index}.orderQty`)} type="hidden" />
                         </td>
 
                         {/* CLAIM QTY — editable, capped at orderQty */}
                         <td className="border border-[#ccc] p-0 align-middle">
-                          <input
-                            type="number" min={0} step="any"
-                            {...register(`items.${index}.claimQty`, {
-                              onChange: (e) => {
-                                const v   = Number(e.target.value);
-                                const max = Number(watch(`items.${index}.orderQty`) || Infinity);
-                                if (v < 0)            e.target.value = 0;
-                                if (v > max && max > 0) e.target.value = max;
-                              },
-                            })}
-                            disabled={disabled} placeholder="0"
-                            title={overQty ? `Cannot exceed order qty (${orderQty})` : undefined}
-                            className={`
-                              ${overQty
-                                ? "border-red-400 bg-red-50 text-red-700"
-                                : getInputClass(errors?.items?.[index]?.claimQty, disabled)
-                              }
-                              border-0 rounded-none w-full h-[30px] text-[13px] text-right pr-2
-                            `}
+                          <Controller
+                            control={control}
+                            name={`items.${index}.claimQty`}
+                            render={({ field: f }) => (
+                              <QtyInput
+                                {...f}
+                                onChange={(e) => {
+                                  const v = Number(e.target.value || 0);
+                                  const max = orderQty;
+                                  f.onChange(max > 0 && v > max ? String(max) : e.target.value);
+                                }}
+                                disabled={disabled}
+                                placeholder="0"
+                                title={overQty ? `Cannot exceed order qty (${orderQty})` : undefined}
+                                className={`${overQty ? "border-red-400 bg-red-50 text-red-700" : getInputClass(errors?.items?.[index]?.claimQty, disabled)} border-0 rounded-none w-full h-[30px] text-[13px] text-right pr-2`}
+                              />
+                            )}
                           />
-                          
                         </td>
 
                         {/* RATE — read-only (from order) */}
                         <td className="border border-[#ccc] bg-[#f0f4f8] px-2 text-[13px] text-right align-middle text-[#555]">
-                          {fmt(watch(`items.${index}.rate`) || 0)}
+                          {formatAmount(rate)}
                           <input {...register(`items.${index}.rate`)} type="hidden" />
+                        </td>
+
+                        {/* BASIC AMOUNT */}
+                        <td className="border border-[#ccc] bg-[#edf8ed] px-2 text-[13px] font-medium text-right align-middle">
+                          {formatAmount(amount)}
                         </td>
 
                         {/* GST % */}
                         <td className="border border-[#ccc] p-0 align-middle">
-                          <input
-                            type="number" min={0} max={100} step="any"
-                            {...register(`items.${index}.gstPercent`, {
-                              onChange: (e) => { if (Number(e.target.value) < 0) e.target.value = 0; },
-                            })}
-                            disabled={disabled} placeholder="0"
+                          <GstInput
+                            {...register(`items.${index}.gstPercent`)}
+                            value={item.gstPercent ?? ""}
+                            disabled={disabled}
+                            placeholder="0"
                             className={`${getInputClass(false, disabled)} border-0 rounded-none w-full h-[30px] text-[13px] text-right pr-2`}
                           />
                         </td>
 
+                        {/* GST AMOUNT */}
+                        <td className="border border-[#ccc] bg-[#edf8ed] px-2 text-[13px] font-medium text-right align-middle">
+                          {formatAmount(gstAmt)}
+                        </td>
+
                         {/* AMOUNT */}
                         <td className="border border-[#ccc] bg-[#edf8ed] px-2 text-[13px] font-medium text-right align-middle">
-                          {fmt(amount)}
+                          {formatAmount(amount)}
                         </td>
 
                       </tr>
@@ -667,8 +674,10 @@ export default function SaleClaimBillForm({ mode = "create", billId, onAfterSubm
                     <td className="border border-[#9ec5e0]" />
                     <td className="border border-[#9ec5e0]" />
                     <td className="border border-[#9ec5e0] px-2 text-right text-[13px]">TOTAL=</td>
+                    <td className="border border-[#9ec5e0] px-2 text-right text-[13px]">{formatAmount(thisBillClaim)}</td>
                     <td className="border border-[#9ec5e0]" />
-                    <td className="border border-[#9ec5e0] px-2 text-right text-[13px]">{fmt(thisBillClaim)}</td>
+                    <td className="border border-[#9ec5e0] px-2 text-right text-[13px]">{formatAmount(gstAmount)}</td>
+                    <td className="border border-[#9ec5e0] px-2 text-right text-[13px]">{formatAmount(thisBillClaim)}</td>
                   </tr>
                 </tfoot>
 

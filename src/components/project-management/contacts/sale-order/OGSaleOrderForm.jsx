@@ -19,6 +19,10 @@ import PMInput            from "@/components/project-management/common/PMInput";
 import PMDateInput        from "@/components/project-management/common/PMDateInput";
 import PMTextarea         from "@/components/project-management/common/PMTextarea";
 import ExpandableTextCell from "@/components/project-management/common/ExpandableTextCell";
+import QtyInput           from "@/components/common/QtyInput";
+import AmountInput        from "@/components/common/AmountInput";
+import GstInput           from "@/components/common/GstInput";
+import { formatAmount }   from "@/helper/numberFormatter";
 
 import { apiRequest }      from "@/lib/apiClient";
 import { API_ENDPOINTS }   from "@/config/api.config";
@@ -47,7 +51,7 @@ const schema = z.object({
 });
 
 const DEFAULT_ROW = {
-  type:            "non-boq",
+  type:            "boq",
   itemCode:        "",
   itemName:        "",
   itemDescription: "",
@@ -67,13 +71,6 @@ const defaultValues = {
 };
 
 // ── HELPERS ───────────────────────────────────────────────────────────────────
-const fmt = (val) => {
-  const n = Number(val);
-  if (!val && val !== 0) return "";
-  if (isNaN(n)) return "";
-  return n.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-};
-
 const rowSubtotal = (item) =>
   Number(item?.orderQty || 0) * Number(item?.rate || 0);
 
@@ -354,6 +351,7 @@ export default function OGSaleOrderForm({ mode = "create", saleOrderId, onAfterS
         {/* ── LEFT PANEL ─────────────────────────────────────────────────────── */}
         <div className={`w-full lg:w-[385px] lg:shrink-0 space-y-2 ${!sidebarOpen ? "lg:hidden" : ""}`}>
 
+          {/* SECTION 1 — Order Details */}
           <PMSection title="Order Details:">
             <PMFormRow label="Sale Order Number" labelWidth="sm:w-[130px] sm:min-w-[130px]">
               <PMInput
@@ -365,58 +363,21 @@ export default function OGSaleOrderForm({ mode = "create", saleOrderId, onAfterS
               />
             </PMFormRow>
 
-            <PMFormRow label="Order Date" required={!disabled} labelWidth="sm:w-[130px] sm:min-w-[130px]">
-              <PMDateInput
-                {...register("ogSaleOrderDate")}
-                disabled={disabled}
-                hasError={errors.ogSaleOrderDate}
-                className="max-w-[200px]"
-              />
-            </PMFormRow>
-
-            <PMFormRow label="Basic Amount" labelWidth="sm:w-[130px] sm:min-w-[130px]">
-              <PMInput
-                value={fmt(basicAmount)}
-                readOnly
-                disabled
-                expandable={false}
-                placeholder="0.00"
-                className="max-w-[180px] text-right"
-              />
-            </PMFormRow>
-
-            <PMFormRow label="GST Amount" labelWidth="sm:w-[130px] sm:min-w-[130px]">
-              <div className="max-w-[180px]">
-                <input
-                  type="text"
-                  value={fmt(gstAmount)}
-                  disabled
-                  readOnly
-                  className="w-full h-[30px] text-[13px] rounded-sm border border-[#5f8fbe] bg-[#d6e8f9] text-right px-2 font-semibold text-[#1c3a5e] outline-none"
-                />
-              </div>
-            </PMFormRow>
-
-            <PMFormRow label="Total Amount" labelWidth="sm:w-[130px] sm:min-w-[130px]">
-              <div className="max-w-[180px]">
-                <input
-                  type="text"
-                  value={fmt(totalAmount)}
-                  disabled
-                  readOnly
-                  className="w-full h-[30px] text-[13px] rounded-sm border border-[#5f8fbe] bg-[#d6e8f9] text-right px-2 font-semibold text-[#1c3a5e] outline-none"
-                />
-              </div>
-            </PMFormRow>
-          </PMSection>
-
-          <PMSection title="Additional Details:">
             <PMFormRow label="Ref. Order Number" labelWidth="sm:w-[130px] sm:min-w-[130px]">
               <PMInput
                 {...register("orderNo")}
                 disabled={disabled}
                 expandable={false}
                 placeholder="Client PO / Work Order No."
+              />
+            </PMFormRow>
+
+            <PMFormRow label="Order Date" required={!disabled} labelWidth="sm:w-[130px] sm:min-w-[130px]">
+              <PMDateInput
+                {...register("ogSaleOrderDate")}
+                disabled={disabled}
+                hasError={errors.ogSaleOrderDate}
+                className="max-w-[200px]"
               />
             </PMFormRow>
 
@@ -450,8 +411,49 @@ export default function OGSaleOrderForm({ mode = "create", saleOrderId, onAfterS
                 )}
               />
             </div>
+          </PMSection>
 
-            <div className="pt-2 space-y-1.5">
+          {/* SECTION 2 — Amount Summary */}
+          <PMSection title="Amount Summary:">
+            <PMFormRow label="Basic Amount" labelWidth="sm:w-[130px] sm:min-w-[130px]">
+              <PMInput
+                value={formatAmount(basicAmount)}
+                readOnly
+                disabled
+                expandable={false}
+                placeholder="0.00"
+                className="max-w-[180px] text-right"
+              />
+            </PMFormRow>
+
+            <PMFormRow label="GST Amount" labelWidth="sm:w-[130px] sm:min-w-[130px]">
+              <div className="max-w-[180px]">
+                <input
+                  type="text"
+                  value={formatAmount(gstAmount)}
+                  disabled
+                  readOnly
+                  className="w-full h-[30px] text-[13px] rounded-sm border border-[#5f8fbe] bg-[#d6e8f9] text-right px-2 font-semibold text-[#1c3a5e] outline-none"
+                />
+              </div>
+            </PMFormRow>
+
+            <PMFormRow label="Total Amount" labelWidth="sm:w-[130px] sm:min-w-[130px]">
+              <div className="max-w-[180px]">
+                <input
+                  type="text"
+                  value={formatAmount(totalAmount)}
+                  disabled
+                  readOnly
+                  className="w-full h-[30px] text-[13px] rounded-sm border border-[#5f8fbe] bg-[#d6e8f9] text-right px-2 font-semibold text-[#1c3a5e] outline-none"
+                />
+              </div>
+            </PMFormRow>
+          </PMSection>
+
+          {/* SECTION 3 — Attachments */}
+          <PMSection title="Attachments:">
+            <div className="space-y-1.5">
               {[
                 { key: "att1", label: "Attachment 1" },
                 { key: "att2", label: "Attachment 2" },
@@ -480,7 +482,7 @@ export default function OGSaleOrderForm({ mode = "create", saleOrderId, onAfterS
               Items
             </div>
             <div ref={scrollRef} className="overflow-x-auto overflow-y-auto lg:max-h-[calc(100vh-300px)]">
-              <table className="w-full border-collapse text-sm" style={{ minWidth: 1080 }}>
+              <table className="w-full border-collapse text-sm" style={{ minWidth: 1325 }}>
                 <thead className="sticky top-0 z-20">
                   <tr className="bg-[#3b6ea5] text-white">
                     <th className="border border-[#2a5080] w-[44px] text-center text-[13px] py-1.5">SL No</th>
@@ -494,7 +496,9 @@ export default function OGSaleOrderForm({ mode = "create", saleOrderId, onAfterS
                     <th className="border border-[#2a5080] w-[110px] text-right px-2 text-[13px] py-1.5">
                       Rate{!disabled && <span className="text-red-300 ml-0.5">*</span>}
                     </th>
-                    <th className="border border-[#2a5080] w-[65px] text-right px-2 text-[13px] py-1.5">GST %</th>
+                    <th className="border border-[#2a5080] w-[100px] text-right px-2 text-[13px] py-1.5">Basic Amt</th>
+                    <th className="border border-[#2a5080] w-[90px] text-right px-2 text-[13px] py-1.5">GST %</th>
+                    <th className="border border-[#2a5080] w-[100px] text-right px-2 text-[13px] py-1.5">GST Amt</th>
                     <th className="border border-[#2a5080] w-[110px] text-right px-2 text-[13px] py-1.5">Amount</th>
                     {!disabled && (
                       <th className="border border-[#2a5080] w-[40px] text-center text-[13px] py-1.5">Del</th>
@@ -508,6 +512,7 @@ export default function OGSaleOrderForm({ mode = "create", saleOrderId, onAfterS
                     const qty    = Number(row.orderQty || 0);
                     const rate   = Number(row.rate     || 0);
                     const amount = qty * rate;
+                    const gstAmt = isBoq ? (amount * Number(row.gstPercent || 0) / 100) : 0;
                     return (
                       <tr key={field.id} className={index % 2 === 0 ? "bg-white" : "bg-[#f5f8fc]"}>
                         {/* SL */}
@@ -583,13 +588,9 @@ export default function OGSaleOrderForm({ mode = "create", saleOrderId, onAfterS
 
                         {/* ORDER QTY */}
                         <td className="border border-[#ccc] p-0 align-middle">
-                          <input
-                            type="number"
-                            min={0}
-                            step="any"
-                            {...register(`rows.${index}.orderQty`, {
-                              onChange: (e) => { if (Number(e.target.value) < 0) e.target.value = 0; },
-                            })}
+                          <QtyInput
+                            {...register(`rows.${index}.orderQty`)}
+                            value={watchedRows[index]?.orderQty ?? ""}
                             disabled={disabled}
                             placeholder="0"
                             className={`${getInputClass(errors?.rows?.[index]?.orderQty, disabled)} border-0 rounded-none w-full h-[52px] text-[13px] text-right pr-2`}
@@ -598,38 +599,39 @@ export default function OGSaleOrderForm({ mode = "create", saleOrderId, onAfterS
 
                         {/* RATE */}
                         <td className="border border-[#ccc] p-0 align-middle">
-                          <input
-                            type="number"
-                            min={0}
-                            step="any"
-                            {...register(`rows.${index}.rate`, {
-                              onChange: (e) => { if (Number(e.target.value) < 0) e.target.value = 0; },
-                            })}
+                          <AmountInput
+                            {...register(`rows.${index}.rate`)}
+                            value={watchedRows[index]?.rate ?? ""}
                             disabled={disabled}
                             placeholder="0"
                             className={`${getInputClass(errors?.rows?.[index]?.rate, disabled)} border-0 rounded-none w-full h-[52px] text-[13px] text-right pr-2`}
                           />
                         </td>
 
+                        {/* BASIC AMOUNT — blank for Non-BOQ */}
+                        <td className="border border-[#ccc] bg-[#edf8ed] px-2 text-[13px] font-medium text-right align-middle">
+                          {isBoq ? formatAmount(amount) : ""}
+                        </td>
+
                         {/* GST % */}
                         <td className="border border-[#ccc] p-0 align-middle">
-                          <input
-                            type="number"
-                            min={0}
-                            max={100}
-                            step="any"
-                            {...register(`rows.${index}.gstPercent`, {
-                              onChange: (e) => { if (Number(e.target.value) < 0) e.target.value = 0; },
-                            })}
+                          <GstInput
+                            {...register(`rows.${index}.gstPercent`)}
+                            value={watchedRows[index]?.gstPercent ?? ""}
                             disabled={disabled}
                             placeholder="0"
                             className={`${getInputClass(false, disabled)} border-0 rounded-none w-full h-[52px] text-[13px] text-right pr-2`}
                           />
                         </td>
 
+                        {/* GST AMOUNT — blank for Non-BOQ */}
+                        <td className="border border-[#ccc] bg-[#edf8ed] px-2 text-[13px] font-medium text-right align-middle">
+                          {isBoq ? formatAmount(gstAmt) : ""}
+                        </td>
+
                         {/* AMOUNT — blank for Non-BOQ */}
                         <td className="border border-[#ccc] bg-[#edf8ed] px-2 text-[13px] font-medium text-right align-middle">
-                          {isBoq ? fmt(amount) : ""}
+                          {isBoq ? formatAmount(amount) : ""}
                         </td>
 
                         {/* DELETE */}
@@ -658,8 +660,10 @@ export default function OGSaleOrderForm({ mode = "create", saleOrderId, onAfterS
                     <td className="border border-[#9ec5e0]" />
                     <td className="border border-[#9ec5e0]" />
                     <td className="border border-[#9ec5e0] px-2 text-right text-[13px]">TOTAL=</td>
+                    <td className="border border-[#9ec5e0] px-2 text-right text-[13px]">{formatAmount(boqBasic)}</td>
                     <td className="border border-[#9ec5e0]" />
-                    <td className="border border-[#9ec5e0] px-2 text-right text-[13px]">{fmt(boqBasic)}</td>
+                    <td className="border border-[#9ec5e0] px-2 text-right text-[13px]">{formatAmount(gstAmount)}</td>
+                    <td className="border border-[#9ec5e0] px-2 text-right text-[13px]">{formatAmount(boqBasic)}</td>
                     {!disabled && <td className="border border-[#9ec5e0]" />}
                   </tr>
                 </tfoot>
