@@ -63,7 +63,7 @@ export default function Page() {
       <HistoryTimelineSheet
         open={openTimeline}
         onClose={() => setOpenTimeline(false)}
-        title="Purchase Bill History"
+        title="Purchase Bill Approve History"
         api={API_ENDPOINTS.FINANCE.PURCHASE_BILL.HISTORY}
         entityId={id}
       />

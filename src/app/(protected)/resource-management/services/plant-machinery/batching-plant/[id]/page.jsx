@@ -67,7 +67,7 @@ export default function Page() {
       <HistoryTimelineSheet
         open={openTimeline}
         onClose={() => setOpenTimeline(false)}
-        title="Batching Plant Docket History"
+        title="Batching Plant Docket Approve History"
         api={BP.HISTORY}
         entityId={id}
       />

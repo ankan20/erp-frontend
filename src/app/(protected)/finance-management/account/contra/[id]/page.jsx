@@ -72,7 +72,7 @@ export default function Page() {
       <HistoryTimelineSheet
         open={openTimeline}
         onClose={() => setOpenTimeline(false)}
-        title="Contra Entry History"
+        title="Contra Entry Approve History"
         api={API_ENDPOINTS.FINANCE.CONTRA_ENTRY.HISTORY}
         entityId={id}
       />

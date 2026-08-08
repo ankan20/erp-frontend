@@ -80,7 +80,7 @@ export default function Page() {
             <HistoryTimelineSheet
               open={openTimeline}
               onClose={() => setOpenTimeline(false)}
-              title="Concrete Register History"
+              title="Concrete Register Approve History"
               api={API_ENDPOINTS.PROJECT.REGISTER.CONCRETE.HISTORY}
               entityId={id}
             />

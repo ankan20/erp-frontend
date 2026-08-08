@@ -65,7 +65,7 @@ export default function Page() {
       <HistoryTimelineSheet
         open={openTimeline}
         onClose={() => setOpenTimeline(false)}
-        title="Drawing Register History"
+        title="Drawing Register Approve History"
         api={API_ENDPOINTS.PROJECT.REGISTER.DRAWING_REGISTER.HISTORY}
         entityId={id}
       />

@@ -91,7 +91,7 @@ export default function Page() {
       <HistoryTimelineSheet
         open={openTimeline}
         onClose={() => setOpenTimeline(false)}
-        title="Indent History"
+        title="Indent Approve History"
         api={API_ENDPOINTS.RESOURCE.PROCUREMENT.INDENT.HISTORY}
         entityId={indentId}
       />

@@ -112,7 +112,7 @@ export default function Page() {
       <HistoryTimelineSheet
         open={openTimeline}
         onClose={() => setOpenTimeline(false)}
-        title="BRR History"
+        title="BRR Approve History"
         api={API_ENDPOINTS.RESOURCE.BILL_RECEIVE_REGISTER.HISTORY}
         entityId={brrId}
       />

@@ -69,7 +69,7 @@ export default function Page() {
       <HistoryTimelineSheet
         open={openTimeline}
         onClose={() => setOpenTimeline(false)}
-        title="BBS Register History"
+        title="BBS Register Approve History"
         api={API_ENDPOINTS.PROJECT.REGISTER.BBS_REGISTER.HISTORY}
         entityId={id}
       />

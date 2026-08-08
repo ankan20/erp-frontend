@@ -69,7 +69,7 @@ export default function Page() {
       <HistoryTimelineSheet
         open={openTimeline}
         onClose={() => setOpenTimeline(false)}
-        title="Hindrance Register History"
+        title="Hindrance Register Approve History"
         api={API_ENDPOINTS.PROJECT.REGISTER.HINDRANCE_REGISTER.HISTORY}
         entityId={id}
       />

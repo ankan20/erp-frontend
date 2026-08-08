@@ -100,7 +100,7 @@ export default function Page() {
           <HistoryTimelineSheet
             open={openTimeline}
             onClose={() => setOpenTimeline(false)}
-            title={`${billingLabel} History`}
+            title={`${billingLabel} Approve History`}
             api={ENDPOINT.HISTORY}
             entityId={id}
           />

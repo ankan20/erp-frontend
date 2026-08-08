@@ -70,7 +70,7 @@ export default function Page() {
       <HistoryTimelineSheet
         open={openTimeline}
         onClose={() => setOpenTimeline(false)}
-        title="Service Order History"
+        title="Service Order Approve History"
         api={PW.HISTORY}
         entityId={serviceOrderId}
       />

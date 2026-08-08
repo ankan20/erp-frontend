@@ -67,7 +67,7 @@ export default function Page() {
       <HistoryTimelineSheet
         open={openTimeline}
         onClose={() => setOpenTimeline(false)}
-        title="Log Entry History"
+        title="Log Entry Approve History"
         api={LE.HISTORY}
         entityId={entryId}
       />

@@ -63,7 +63,7 @@ export default function Page() {
       <HistoryTimelineSheet
         open={openTimeline}
         onClose={() => setOpenTimeline(false)}
-        title="GRN History"
+        title="GRN Approve History"
         api={API_ENDPOINTS.RESOURCE.MATERIAL_MANAGEMENT.GRN.HISTORY}
         entityId={id}
       />

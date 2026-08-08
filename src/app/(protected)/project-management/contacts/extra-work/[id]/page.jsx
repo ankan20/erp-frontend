@@ -69,7 +69,7 @@ export default function Page() {
       <HistoryTimelineSheet
         open={openTimeline}
         onClose={() => setOpenTimeline(false)}
-        title="Extra Work History"
+        title="Extra Work Approve History"
         api={`${API_ENDPOINTS.PROJECT.EXTRA_WORK.HISTORY}`}
         entityId={id}
       />

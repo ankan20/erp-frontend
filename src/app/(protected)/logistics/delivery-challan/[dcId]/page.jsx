@@ -65,7 +65,7 @@ export default function Page() {
       <HistoryTimelineSheet
         open={openTimeline}
         onClose={() => setOpenTimeline(false)}
-        title="Delivery Challan History"
+        title="Delivery Challan Approve History"
         api={API_ENDPOINTS.RESOURCE.MATERIAL_MANAGEMENT.LOGISTICS.DC.HISTORY}
         entityId={dcId}
       />

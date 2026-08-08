@@ -67,7 +67,7 @@ export default function Page() {
       <HistoryTimelineSheet
         open={openTimeline}
         onClose={() => setOpenTimeline(false)}
-        title="Log Book History"
+        title="Log Book Approve History"
         api={LB.HISTORY}
         entityId={logBookId}
       />

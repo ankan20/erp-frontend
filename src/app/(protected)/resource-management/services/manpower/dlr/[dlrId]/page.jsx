@@ -75,7 +75,7 @@ export default function Page() {
       <HistoryTimelineSheet
         open={openTimeline}
         onClose={() => setOpenTimeline(false)}
-        title="DLR History"
+        title="DLR Approve History"
         api={API_ENDPOINTS.RESOURCE.MANPOWER.DLR.HISTORY}
         entityId={dlrId}
       />

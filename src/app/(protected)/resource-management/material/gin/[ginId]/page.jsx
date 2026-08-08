@@ -67,7 +67,7 @@ export default function Page() {
       <HistoryTimelineSheet
         open={openTimeline}
         onClose={() => setOpenTimeline(false)}
-        title="GIN History"
+        title="GIN Approve History"
         api={API_ENDPOINTS.RESOURCE.MATERIAL_MANAGEMENT.GIN.HISTORY}
         entityId={ginId}
       />
