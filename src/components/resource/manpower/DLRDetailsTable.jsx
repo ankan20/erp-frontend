@@ -32,6 +32,7 @@ function updateRow(items, idx, patch) {
 
 export const emptyRow = () => ({
   manId:          "",
+  manCode:        "",
   fullName:       "",
   category:       "",
   startTime:      "",
@@ -389,9 +390,9 @@ export default function DLRDetailsTable({
         </div>
 
         {/* Table */}
-        <div className="overflow-x-auto border border-gray-300">
+        <div className="overflow-auto max-h-[490px] border border-gray-300">
           <table className="min-w-full text-[12px] border-collapse">
-            <thead>
+            <thead className="sticky top-0 z-10">
               <tr className="bg-[#d9d9d9] font-bold text-gray-800">
                 {!disabled && <th className={`${cellCls} w-[30px]`} />}
                 <th className={`${cellCls} w-[40px] text-center`}>Sl No</th>
@@ -426,18 +427,18 @@ export default function DLRDetailsTable({
                     {/* Sl No */}
                     <td className={`${cellCls} text-center text-gray-500`}>{idx + 1}</td>
 
-                    {/* Man ID — always read-only text; manual text input only when no labour list */}
+                    {/* Man Code */}
                     <td className={cellCls}>
                       {!disabled && labourList.length === 0 ? (
                         <input
                           type="text"
-                          value={row.manId || ""}
-                          onChange={(e) => handleChange(idx, "manId", e.target.value)}
+                          value={row.manCode || ""}
+                          onChange={(e) => handleChange(idx, "manCode", e.target.value)}
                           className={inputCls}
-                          placeholder="Enter ID"
+                          placeholder="Enter Code"
                         />
                       ) : (
-                        <span className="px-1 font-mono text-[11px]">{row.manId || "—"}</span>
+                        <span className="px-1 font-mono text-[11px]">{row.manCode || "—"}</span>
                       )}
                     </td>
 
@@ -545,7 +546,7 @@ export default function DLRDetailsTable({
             </tbody>
 
             {/* Totals */}
-            <tfoot>
+            <tfoot className="sticky bottom-0 z-10">
               <tr className="bg-gray-200 font-semibold text-[12px]">
                 {!disabled && <td className={cellCls} />}
                 <td className={cellCls} />

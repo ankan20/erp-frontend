@@ -205,6 +205,7 @@ export default function DLRForm({
         const mappedItems = (d.items || []).map((it) => ({
           id:             it.id,
           manId:          it.manId          || "",
+          manCode:        it.manCode        || "",
           fullName:       it.fullName        || "",
           category:       it.category        || "",
           startTime:      it.startTime       || "",
