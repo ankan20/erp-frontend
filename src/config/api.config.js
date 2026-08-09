@@ -521,6 +521,19 @@ export const API_ENDPOINTS = {
       MY_APPROVAL_STATUS: "/finance/debit-note/my-approval-status/",    // /:id GET
       GET_BY_UUID:        "/finance/debit-note/uuid/",                  // /:uuid GET no-auth
     },
+    CREDIT_NOTE: {
+      CREATE:             "/finance/credit-note/create",                 // POST JSON
+      LIST:               "/finance/credit-note/list",                   // GET ?projectCode&workflowStatus&search
+      GET_BY_ID:          "/finance/credit-note/",                       // /:id GET
+      EDIT:               "/finance/credit-note/edit/",                  // /:id PUT JSON (Draft/Reback only)
+      SUBMIT:             "/finance/credit-note/submit/",                // /:id POST
+      APPROVE:            "/finance/credit-note/approve/",               // /:id POST { comments }
+      REBACK:             "/finance/credit-note/reback/",                // /:id POST { comments }
+      REJECT:             "/finance/credit-note/reject/",                // /:id POST { comments }
+      HISTORY:            "/finance/credit-note/history/",               // /:id GET
+      MY_APPROVAL_STATUS: "/finance/credit-note/my-approval-status/",    // /:id GET
+      GET_BY_UUID:        "/finance/credit-note/uuid/",                  // /:uuid GET no-auth
+    },
     CONTRA_ENTRY: {
       CREATE:             "/finance/contra-entry/create",                // POST JSON
       LIST:               "/finance/contra-entry/list",                  // GET ?projectCode&search&fromDate&toDate&workflowStatus
