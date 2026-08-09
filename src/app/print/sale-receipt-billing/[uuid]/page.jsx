@@ -40,7 +40,7 @@ function SigRow({ label, name, dateStr }) {
 function printAsPDF() { window.print(); }
 
 /* ── DOCX export ───────────────────────────────────────────────────────────── */
-async function downloadDocx(data, qrCanvasRef) {
+async function downloadDocx(data, uuid, qrCanvasRef) {
   const {
     Document, Packer, Paragraph, Table, TableRow, TableCell,
     TextRun, ImageRun, WidthType, ShadingType, BorderStyle,
@@ -76,7 +76,7 @@ async function downloadDocx(data, qrCanvasRef) {
       new TableCell({ children: [new Paragraph({ text: "" })], width: { size: hSpacerW, type: WidthType.DXA }, borders: nilBorders }),
       new TableCell({
         children: [
-          new Paragraph({ children: [run("SALE RECEIPT", { bold: true, size: 36 })] }),
+          new Paragraph({ children: [run("SALE RECEIPT BILLING", { bold: true, size: 36 })] }),
           ...(qrImage ? [new Paragraph({ children: [qrImage] })] : []),
           new Paragraph({ children: [run("www.dishaanhitech.com", { size: 16, color: "4B5563" })] }),
         ],
@@ -90,17 +90,13 @@ async function downloadDocx(data, qrCanvasRef) {
   const iW = PAGE_W - iL - iV - iG - iR;
   const infoCell = (paras, w) => new TableCell({ children: paras, width: { size: w, type: WidthType.DXA }, borders: nilBorders, margins: { top: 40, bottom: 40, left: 60, right: 60 } });
 
-  const accountLabel = data.paymentMode === "Cash" ? "Cash A/c" : "Bank A/c";
-  const accountValue = data.paymentMode === "Cash" ? (data.cashAcName || "-") : (data.bankAcName || "-");
-
   const leftInfo  = [
-    ["Receipt No",    data.receiptNo],
-    ["Entry Date",    fmt.date(data.entryDate)],
-    ["Invoice No",    data.invoiceNo || "-"],
-    ["Invoice Date",  fmt.date(data.invoiceDate)],
-    ["Payment Mode",  data.paymentMode || "-"],
-    ["UTR / Voc. No", data.utrVoucherNo || "-"],
-    ...(data.billToAddress ? [["Bill To", data.billToAddress]] : []),
+    ["SRB No",       data.srbNo || "-"],
+    ["Entry Date",   fmt.date(data.entryDate)],
+    ["Invoice No",   data.invoiceNo || "-"],
+    ["Invoice Date", fmt.date(data.invoiceDate)],
+    ...(data.projectCode   ? [["Project Code", data.projectCode]]          : []),
+    ...(data.billToAddress ? [["Bill To",       data.billToAddress]]        : []),
   ];
   const rightInfo = [
     ["Sale Order No",    data.ogSaleOrderNo || "-"],
@@ -108,7 +104,6 @@ async function downloadDocx(data, qrCanvasRef) {
     ["Certified Bill",   data.certifiedBillNo || "-"],
     ["Bill Abstract No", data.billAbstractNo || "-"],
     ["Abstract Date",    fmt.date(data.billAbstractDate)],
-    [accountLabel,       accountValue],
     ...(data.shipToAddress ? [["Ship To", data.shipToAddress]] : []),
   ];
 
@@ -148,7 +143,6 @@ async function downloadDocx(data, qrCanvasRef) {
   const discount    = Number(data.discount  || 0);
   const roundOff    = Number(data.roundOff  || 0);
 
-  // Helper for summary extension (left 3 cols empty, label+value on right 4)
   const mkSummaryRow = (label, val, highlight = false, shading) => {
     const sh = shading || (highlight ? orangeShading : undefined);
     const emptySpan = cW[0] + cW[1] + cW[2] + cW[3];
@@ -164,9 +158,7 @@ async function downloadDocx(data, qrCanvasRef) {
   const mainTable = new Table({
     columnWidths: cW, width: { size: PAGE_W, type: WidthType.DXA }, borders: tblBorders,
     rows: [
-      // Header
       new TableRow({ tableHeader: true, children: ["SL", "CC Code", "CC Name", "Booked (₹)", "Received (₹)", "Balance (₹)", "Current (₹)"].map((h, i) => tCell(h, cW[i], true, headShading, "center")) }),
-      // Item rows
       ...items.map((it, idx) => new TableRow({ children: [
         tCell(idx + 1,                cW[0], false, undefined, "center"),
         tCell(it.ccCode,              cW[1]),
@@ -176,7 +168,6 @@ async function downloadDocx(data, qrCanvasRef) {
         numCell(it.balanceAmount,  cW[5]),
         numCell(it.currentAmount,  cW[6], true),
       ]})),
-      // GST rows inline, SL continues from BASIC count
       ...selectedGst.map((l, idx) => new TableRow({ children: [
         tCell(items.length + idx + 1,        cW[0], false, undefined, "center"),
         tCell(l.ccCode,                      cW[1]),
@@ -186,16 +177,13 @@ async function downloadDocx(data, qrCanvasRef) {
         numCell(l.balanceAmount,  cW[5]),
         numCell(l.currentAmount,  cW[6], true),
       ]})),
-      // Summary extension: discount, round off
       ...(discount > 0 ? [mkSummaryRow("Discount", `- ${fmt.number(discount)}`)] : []),
       ...(roundOff !== 0 ? [mkSummaryRow("Round Off", (roundOff > 0 ? "+" : "") + fmt.number(roundOff))] : []),
-      // Total Invoice Amount
       new TableRow({ children: [
         new TableCell({ children: [new Paragraph({ text: "" })], columnSpan: 4, width: { size: cW[0]+cW[1]+cW[2]+cW[3], type: WidthType.DXA }, borders: { left: tblBorder, right: noB, top: noB, bottom: tblBorder } }),
         new TableCell({ children: [new Paragraph({ alignment: "left",  children: [run("Total Invoice Amount (Rs.)", { bold: true, size: 20 })] })], columnSpan: 2, width: { size: cW[4]+cW[5], type: WidthType.DXA }, shading: orangeShading, borders: { left: tblBorder, right: noB, top: noB, bottom: tblBorder }, margins: { top: 50, bottom: 50, left: 60, right: 0 } }),
         new TableCell({ children: [new Paragraph({ alignment: "right", children: [run(fmt.number(data.totalInvoiceAmount), { bold: true, size: 20 })] })], width: { size: cW[6], type: WidthType.DXA }, shading: orangeShading, borders: { left: noB, right: tblBorder, top: noB, bottom: tblBorder }, margins: { top: 50, bottom: 50, left: 0, right: 60 } }),
       ]}),
-      // Amount in words
       new TableRow({ children: [
         new TableCell({
           children: [new Paragraph({ children: [run("Amount in Words: ", { bold: true }), run(amountToWordsIN(Number(data.totalInvoiceAmount || 0)), { italic: true })] })],
@@ -235,13 +223,13 @@ async function downloadDocx(data, qrCanvasRef) {
   const url  = URL.createObjectURL(blob);
   const a    = document.createElement("a");
   a.href = url;
-  a.download = `SaleReceipt_${data.receiptNo || uuid}.docx`;
+  a.download = `SaleReceiptBilling_${data.srbNo || uuid}.docx`;
   a.click();
   URL.revokeObjectURL(url);
 }
 
 /* ── Main Page ─────────────────────────────────────────────────────────────── */
-export default function SaleReceiptPrintPage() {
+export default function SaleReceiptBillingPrintPage() {
   const { uuid }    = useParams();
   const [data,      setData]    = useState(null);
   const [error,     setError]   = useState(null);
@@ -252,7 +240,7 @@ export default function SaleReceiptPrintPage() {
 
   useEffect(() => {
     if (!uuid) return;
-    publicRequest({ url: `${API_ENDPOINTS.FINANCE.SALE_RECEIPT.GET_BY_UUID}${uuid}` })
+    publicRequest({ url: `${API_ENDPOINTS.FINANCE.SALE_RECEIPT_BILLING.GET_BY_UUID}${uuid}` })
       .then((res) => setData(res.data))
       .catch((err) => setError({ status: err.status, message: err.message }))
       .finally(() => setLoading(false));
@@ -271,23 +259,20 @@ export default function SaleReceiptPrintPage() {
 
   if (error || !data) return <PrintErrorPage status={error?.status} message={error?.message} />;
 
-  const items       = data.items    || [];
-  const selectedGst = (data.gstLines || []).filter((l) => l.isSelected);
+  const items        = data.items    || [];
+  const selectedGst  = (data.gstLines || []).filter((l) => l.isSelected);
   const totalInvoice = Number(data.totalInvoiceAmount || 0);
-  const discount    = Number(data.discount  || 0);
-  const roundOff    = Number(data.roundOff  || 0);
-
-  const accountLabel = data.paymentMode === "Cash" ? "Cash A/c" : "Bank A/c";
-  const accountValue = data.paymentMode === "Cash" ? data.cashAcName : data.bankAcName;
+  const discount     = Number(data.discount  || 0);
+  const roundOff     = Number(data.roundOff  || 0);
 
   const sideBorder = "border-l border-r border-[#b0b0b0]";
 
   return (
     <>
       <PrintTopBar
-        title={`Sale Receipt — ${data.receiptNo || ""}`}
+        title={`Sale Receipt Billing — ${data.srbNo || ""}`}
         onDownloadPDF={printAsPDF}
-        onDownloadDocx={() => downloadDocx(data, qrCanvasRef)}
+        onDownloadDocx={() => downloadDocx(data, uuid, qrCanvasRef)}
       />
 
       <div className="bg-gray-100 py-6 px-3 print:p-0 print:bg-white">
@@ -304,7 +289,7 @@ export default function SaleReceiptPrintPage() {
             </div>
             <div className="flex-1 flex items-center justify-center">
               <h1 className={`${SIZE.pageTitle} ${WEIGHT.bold} tracking-widest text-gray-900 uppercase`}>
-                Sale Receipt
+                Sale Receipt Billing
               </h1>
             </div>
             <div className="flex flex-col items-end gap-1 shrink-0">
@@ -322,12 +307,11 @@ export default function SaleReceiptPrintPage() {
           {/* ── INFO ────────────────────────────────────────────────────── */}
           <div className="grid px-6 pb-3" style={{ gridTemplateColumns: "50% 50%" }}>
             <div className="space-y-0.5">
-              <InfoRow label="Receipt No"    value={data.receiptNo} />
-              <InfoRow label="Entry Date"    value={fmt.date(data.entryDate)} />
-              <InfoRow label="Invoice No"    value={data.invoiceNo || "-"} />
-              <InfoRow label="Invoice Date"  value={fmt.date(data.invoiceDate)} />
-              <InfoRow label="Payment Mode"  value={data.paymentMode} />
-              <InfoRow label="UTR / Voc. No" value={data.utrVoucherNo || "-"} />
+              <InfoRow label="SRB No"       value={data.srbNo} />
+              <InfoRow label="Entry Date"   value={fmt.date(data.entryDate)} />
+              <InfoRow label="Invoice No"   value={data.invoiceNo || "-"} />
+              <InfoRow label="Invoice Date" value={fmt.date(data.invoiceDate)} />
+              {data.projectCode && <InfoRow label="Project Code" value={data.projectCode} />}
               {data.billToAddress && (
                 <p className={VAL}><span className={LBL}>Bill To</span> : <span className="whitespace-pre-wrap">{data.billToAddress}</span></p>
               )}
@@ -338,7 +322,6 @@ export default function SaleReceiptPrintPage() {
               <InfoRow label="Certified Bill"   value={data.certifiedBillNo} />
               <InfoRow label="Bill Abstract No" value={data.billAbstractNo} />
               <InfoRow label="Abstract Date"    value={fmt.date(data.billAbstractDate)} />
-              <InfoRow label={accountLabel}     value={accountValue || "-"} />
               {data.shipToAddress && (
                 <p className={VAL}><span className={LBL}>Ship To</span> : <span className="whitespace-pre-wrap">{data.shipToAddress}</span></p>
               )}
@@ -395,7 +378,7 @@ export default function SaleReceiptPrintPage() {
                     </tr>
                   ))}
 
-                  {/* Discount — label starts at Received col (colSpan 4 empty + 2 label + 1 value) */}
+                  {/* Discount */}
                   {discount > 0 && (
                     <tr>
                       <td colSpan={4} style={{ borderLeft: "1px solid #b0b0b0", borderTop: "none", borderBottom: "none", borderRight: "none", padding: 0 }} />
@@ -438,15 +421,6 @@ export default function SaleReceiptPrintPage() {
               </table>
             </div>
           </div>
-
-          {/* ── PAYMENT REMARKS ─────────────────────────────────────────── */}
-          {data.paymentRemarks && (
-            <div className="px-6 pb-3">
-              <p className={`${SIZE.labelText} ${WEIGHT.semibold} text-gray-800`}>
-                Payment Remarks : <span className={`${WEIGHT.normal} text-gray-700`}>{data.paymentRemarks}</span>
-              </p>
-            </div>
-          )}
 
           {/* ── SIGNATURES ──────────────────────────────────────────────── */}
           <div className="px-6 pb-6 pt-2 border-t border-gray-200 mt-2">

@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter }           from "next/navigation";
-import { Loader2, Plus }       from "lucide-react";
+import { ArrowRightLeft, Loader2 } from "lucide-react";
 import { toast }               from "sonner";
 
 import SearchSection    from "@/components/common/SearchSection";
@@ -94,7 +94,7 @@ export default function Page() {
             }}
             className="inline-flex items-center justify-center w-[26px] h-[26px] rounded-sm border border-[#3b6ea5] text-[#3b6ea5] hover:bg-[#3b6ea5] hover:text-white transition"
           >
-            <Plus size={14} />
+            <ArrowRightLeft size={14} />
           </button>
         ) : null,
     },
