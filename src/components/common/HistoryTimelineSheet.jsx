@@ -7,9 +7,9 @@ import {
   Loader2,
   Clock3,
   User2,
-  CheckCircle2,
   Circle,
   Layers,
+  MessageSquare,
 } from "lucide-react";
 import { toast } from "sonner";
 import { apiRequest } from "@/lib/apiClient";
@@ -89,6 +89,8 @@ function TimelineNode({ node, isLast, nextDone }) {
       : config.label
     : "Pending";
 
+  const isSubmit = node.action?.toUpperCase() === "SUBMIT";
+
   return (
     <div className="relative flex gap-3">
       {/* dot + vertical line */}
@@ -104,90 +106,106 @@ function TimelineNode({ node, isLast, nextDone }) {
       {/* card */}
       <div className={`pb-4 flex-1 min-w-0 ${isLast ? "pb-1" : ""}`}>
         <div
-          className={`rounded-xl border px-4 py-3 ${node.done ? "bg-white shadow-sm border-gray-200" : "bg-yellow-50 border-yellow-200 border-dashed"}`}
+          className={`rounded-xl border px-4 py-3 ${
+            node.done
+              ? "bg-[#f3f7ff] shadow-sm border-blue-100"
+              : "bg-yellow-50 border-yellow-200 border-dashed"
+          }`}
         >
-          {/* ── big screen: one row ── */}
-          <div className="hidden sm:flex items-center justify-between gap-3 flex-nowrap">
-            <div className="flex items-center gap-2 flex-wrap min-w-0">
-              {/* level pill — hidden for SUBMIT */}
-              {node.level != null &&
-                node.action?.toUpperCase() !== "SUBMIT" && (
-                  <span className="inline-flex items-center gap-1 text-[11px] font-medium text-gray-500 bg-gray-100 px-2 py-0.5 rounded shrink-0">
-                    <Layers className="w-3 h-3" />
-                    Level {node.level}
-                  </span>
-                )}
-              {/* status badge */}
-              <span
-                className={`text-[12px] font-semibold px-2.5 py-0.5 rounded-md whitespace-nowrap ${badgeClass}`}
-              >
+          {/* ── MOBILE: stacked ── */}
+          <div className="flex flex-col gap-1 sm:hidden">
+            <div className="flex items-center gap-2 flex-wrap">
+              {isSubmit ? (
+                <span className="text-[10px] font-medium text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded shrink-0">
+                  Creator
+                </span>
+              ) : node.level != null ? (
+                <span className="inline-flex items-center gap-1 text-[10px] font-medium text-gray-500 bg-gray-100 px-2 py-0.5 rounded shrink-0">
+                  <Layers className="w-2.5 h-2.5 shrink-0" />
+                  Level {node.level}
+                </span>
+              ) : null}
+              <span className="inline-flex items-center gap-1 text-[13px] font-semibold text-gray-800 shrink-0">
+                <User2 className="w-3.5 h-3.5 text-gray-400 shrink-0" />
+                {node.by || "—"}
+              </span>
+              <span className={`text-[11px] font-semibold px-2.5 py-0.5 rounded-md whitespace-nowrap shrink-0 ${badgeClass}`}>
                 {label}
               </span>
-              {/* by user */}
-              {node.by && (
-                <div className="flex items-center gap-1 text-[12px] text-gray-500">
-                  <User2 className="w-3.5 h-3.5 shrink-0 text-gray-400" />
-                  <span>
-                    by{" "}
-                    <span className="font-medium text-gray-700">{node.by}</span>
-                  </span>
-                </div>
+              {!node.done && (
+                <span className="text-[11px] text-yellow-500 italic shrink-0">Waiting…</span>
               )}
             </div>
-            {/* date */}
+            {node.comments && (
+              <div className="flex items-start gap-1">
+                <MessageSquare className="w-3 h-3 text-gray-400 shrink-0 mt-[2px]" />
+                <span className="text-[12px] text-gray-500 italic break-words leading-[1.55]">{node.comments}</span>
+              </div>
+            )}
             {node.at && (
-              <span className="text-[11px] text-gray-400 whitespace-nowrap shrink-0">
+              <span className="text-[11px] text-gray-400">{formatDate(node.at)}</span>
+            )}
+          </div>
+
+          {/* ── DESKTOP: grid row ── */}
+          <div className="hidden sm:flex items-start gap-2">
+            {/* col 1 — fixed width chip */}
+            <div className="w-[76px] shrink-0 self-center">
+              {isSubmit ? (
+                <span className="inline-flex items-center justify-center w-full text-[10px] font-medium text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded">
+                  Creator
+                </span>
+              ) : node.level != null ? (
+                <span className="inline-flex items-center justify-center w-full gap-1 text-[10px] font-medium text-gray-500 bg-gray-100 px-2 py-0.5 rounded">
+                  <Layers className="w-2.5 h-2.5 shrink-0" />
+                  Level {node.level}
+                </span>
+              ) : null}
+            </div>
+
+            {/* col 2 — username */}
+            <div className="flex items-center gap-1 shrink-0 min-w-[110px] self-center">
+              <User2 className="w-3.5 h-3.5 text-gray-400 shrink-0" />
+              <span className="text-[13px] font-semibold text-gray-800 whitespace-nowrap">
+                {node.by || "—"}
+              </span>
+            </div>
+
+            {/* col 3 — status badge */}
+            <span className={`text-[11px] font-semibold px-2.5 py-0.5 rounded-md whitespace-nowrap shrink-0 self-center ${badgeClass}`}>
+              {label}
+            </span>
+
+            {/* col 4 — comment: wraps within column, expands row height */}
+            {node.comments && !isSubmit ? (
+              <div className="flex items-start gap-1 flex-1 min-w-0">
+                <MessageSquare className="w-3 h-3 text-gray-400 shrink-0 mt-[2px]" />
+                <span className="text-[12px] text-gray-500 italic break-words leading-[1.55]">
+                  {node.comments}
+                </span>
+              </div>
+            ) : (
+              <span className="flex-1" />
+            )}
+
+            {/* pending hint */}
+            {!node.done && (
+              <span className="text-[11px] text-yellow-500 italic shrink-0 self-center">Waiting…</span>
+            )}
+
+            {/* col 5 — time pinned right */}
+            {node.at && (
+              <span className="text-[11px] text-gray-400 whitespace-nowrap shrink-0 self-center">
                 {formatDate(node.at)}
               </span>
             )}
           </div>
 
-          {/* ── small screen ── */}
-          <div className="flex flex-col gap-1 sm:hidden">
-            {/* row 1: level + status badge */}
-            <div className="flex items-center gap-1.5 flex-wrap">
-              {node.level != null &&
-                node.action?.toUpperCase() !== "SUBMIT" && (
-                  <span className="text-[11px] font-medium text-gray-400 bg-gray-100 px-1.5 py-0.5 rounded shrink-0">
-                    L{node.level}
-                  </span>
-                )}
-              <span
-                className={`text-[12px] font-semibold px-2.5 py-0.5 rounded-md ${badgeClass}`}
-              >
-                {label}
-              </span>
-            </div>
-            {/* row 2: by + date (both fit comfortably side by side) */}
-            <div className="flex items-center justify-between gap-2 flex-wrap">
-              {node.by && (
-                <div className="flex items-center gap-1 text-[12px] text-gray-500">
-                  <User2 className="w-3.5 h-3.5 shrink-0 text-gray-400" />
-                  <span>
-                    by{" "}
-                    <span className="font-medium text-gray-700">{node.by}</span>
-                  </span>
-                </div>
-              )}
-              {node.at && (
-                <span className="text-[11px] text-gray-400 shrink-0">
-                  {formatDate(node.at)}
-                </span>
-              )}
-            </div>
-          </div>
-
-          {/* pending hint */}
-          {!node.done && (
-            <p className="text-[11px] text-yellow-500 italic mt-1.5">
-              Waiting for approval…
-            </p>
-          )}
-
-          {/* comments */}
-          {node.comments && (
-            <div className="mt-2.5 rounded-lg bg-slate-50 border px-3 py-2">
-              <p className="text-[12px] text-gray-600 break-words leading-5">
+          {/* submit comment (creator) — desktop only below the row */}
+          {node.comments && isSubmit && (
+            <div className="hidden sm:flex mt-1.5 ml-[88px] items-start gap-1">
+              <MessageSquare className="w-3 h-3 text-gray-400 shrink-0 mt-[2px]" />
+              <p className="text-[12px] text-gray-500 italic break-words leading-[1.55]">
                 {node.comments}
               </p>
             </div>
@@ -306,7 +324,7 @@ export default function HistoryTimelineSheet({
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="w-[95vw] sm:max-w-[580px] p-0 flex flex-col overflow-hidden gap-0 max-h-[90dvh]">
+      <DialogContent className="w-[95vw] sm:max-w-[600px] lg:max-w-[680px] p-0 flex flex-col overflow-hidden gap-0 max-h-[90dvh]">
         {/* header */}
         <div className="min-h-[56px] pl-5 pr-10 py-2 flex flex-wrap items-center justify-between gap-x-3 gap-y-1 border-b bg-[#e8f2ff] shrink-0">
           <DialogTitle className="text-[18px] font-semibold">
