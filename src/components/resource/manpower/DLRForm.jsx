@@ -93,6 +93,9 @@ export default function DLRForm({
   const [sidebarOpen,   setSidebarOpen]   = useState(true);
   const [activeTab,     setActiveTab]     = useState("details");
 
+  const [summaryData,    setSummaryData]    = useState(null);
+  const [summaryLoading, setSummaryLoading] = useState(false);
+
   const [supplierList,     setSupplierList]     = useState([]);
   const [vendorOrders,     setVendorOrders]     = useState([]);
   const [labourList,       setLabourList]       = useState([]);
@@ -184,7 +187,7 @@ export default function DLRForm({
           url: `${API_ENDPOINTS.RESOURCE.MANPOWER.DLR.GET_BY_ID}/${dlrId}`,
           method: "GET",
         });
-        const d = res.data;
+        const d = Array.isArray(res?.data) ? res.data[0] : res?.data;
 
         const formData = {
           dlrNo:      d.dlrNo      || "",
@@ -243,6 +246,22 @@ export default function DLRForm({
     // Nothing to pre-populate on create from outside currently
   }, [initialData, mode]);
 
+  // ── Lazy-fetch summary once when Summary tab is first opened ──────────────
+  useEffect(() => {
+    if (activeTab !== "summary" || !dlrId || summaryData || summaryLoading) return;
+    setSummaryLoading(true);
+    apiRequest({
+      url: `${API_ENDPOINTS.RESOURCE.MANPOWER.DLR.SUMMARY}/${dlrId}`,
+      method: "GET",
+    })
+      .then((res) => {
+        const raw = Array.isArray(res?.data) ? res.data[0] : res?.data;
+        setSummaryData(raw || {});
+      })
+      .catch(() => setSummaryData({}))
+      .finally(() => setSummaryLoading(false));
+  }, [activeTab, dlrId, summaryData, summaryLoading]);
+
   // ── Build FormData ────────────────────────────────────────────────────────
   const buildFormData = () => {
     const v = getValues();
@@ -256,7 +275,7 @@ export default function DLRForm({
     if (scanFile)     fd.append("scanCopy",   scanFile);
 
     // eslint-disable-next-line no-unused-vars
-    const validItems = items.filter((r) => r.manId).map(({ _checked, ...rest }) => rest);
+    const validItems = items.filter((r) => r.manId || r.id).map(({ _checked, ...rest }) => rest);
     fd.append("items", JSON.stringify(validItems));
     return fd;
   };
@@ -276,7 +295,7 @@ export default function DLRForm({
         data: buildFormData(),
       });
 
-      const saved = res?.data;
+      const saved = Array.isArray(res?.data) ? res.data[0] : res?.data;
       if (saved?.dlrNo) setValue("dlrNo", saved.dlrNo);
       if (saved?.scanCopy) {
         setScanCopyUrl(saved.scanCopy);
@@ -289,6 +308,7 @@ export default function DLRForm({
       setInitialItems([...items]);
       setIsEditing(false);
       setWorkflowStatus("Draft");
+      setSummaryData(null); // invalidate so summary re-fetches after save
       toast.success(mode === "create" ? "DLR created" : "DLR updated", { id: toastId });
 
       if (mode === "create") {
@@ -546,8 +566,9 @@ export default function DLRForm({
             />
           ) : (
             <DLRSummaryTab
-              dlrId={dlrId || null}
               items={items}
+              serverData={summaryData}
+              loading={summaryLoading}
             />
           )}
         </div>

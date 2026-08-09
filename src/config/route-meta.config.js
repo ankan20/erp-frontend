@@ -594,6 +594,19 @@ export const routeMetaConfig = [
     basePath: "/finance-management/account/purchases/voucher/[id]",
     breadcrumbs: ["Finance Management", "Accounts", "Purchases", "Voucher Processing", "Details"],
   },
+  // Finance Management — Debit Note
+  {
+    basePath: "/finance-management/account/debit-note",
+    breadcrumbs: ["Finance Management", "Accounts", "Debit Note", "List"],
+  },
+  {
+    basePath: "/finance-management/account/debit-note/new",
+    breadcrumbs: ["Finance Management", "Accounts", "Debit Note", "New"],
+  },
+  {
+    basePath: "/finance-management/account/debit-note/[id]",
+    breadcrumbs: ["Finance Management", "Accounts", "Debit Note", "Details"],
+  },
   // Finance Management — Contra Entry
   {
     basePath: "/finance-management/account/contra",

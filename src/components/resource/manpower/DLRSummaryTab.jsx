@@ -1,15 +1,11 @@
 "use client";
 
-import { useEffect, useState, useMemo } from "react";
+import { useMemo } from "react";
 import { Loader2 } from "lucide-react";
-import { toast } from "sonner";
-import { apiRequest } from "@/lib/apiClient";
-import { API_ENDPOINTS } from "@/config/api.config";
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
 function deriveFromItems(items) {
-  // Group by category
   const categoryMap = {};
   const locationMap = {};
 
@@ -17,19 +13,17 @@ function deriveFromItems(items) {
     if (!row.manId) return;
     const totalWH = parseFloat(row.totalWorkingHr) || 0;
 
-    // Category grouping
     const cat = row.category || "Uncategorized";
     if (!categoryMap[cat]) categoryMap[cat] = 0;
     categoryMap[cat] += totalWH;
 
-    // Location grouping
     const loc = row.jobLocation || "Unknown";
     if (!locationMap[loc]) locationMap[loc] = 0;
     locationMap[loc] += totalWH;
   });
 
   const categoryRows = Object.entries(categoryMap).map(([category, totalWH], i) => ({
-    sl:            i + 1,
+    sl:             i + 1,
     category,
     totalWorkingHr: parseFloat(totalWH.toFixed(2)),
     manday:         parseFloat((totalWH / 8).toFixed(2)),
@@ -38,7 +32,7 @@ function deriveFromItems(items) {
   }));
 
   const locationRows = Object.entries(locationMap).map(([location, totalWH], i) => ({
-    sl:            i + 1,
+    sl:             i + 1,
     location,
     totalWorkingHr: parseFloat(totalWH.toFixed(2)),
     amount:         0,
@@ -49,35 +43,19 @@ function deriveFromItems(items) {
 
 // ── Table styles ──────────────────────────────────────────────────────────────
 
-const th       = "border border-gray-300 px-2 py-1 text-[12px] font-semibold text-left whitespace-nowrap";
-const COL_HDR  = "bg-[#d9d9d9]";
-const td  = "border border-gray-300 px-2 py-0.5 text-[12px]";
-const tft = "border border-gray-300 px-2 py-1 text-[12px] font-semibold bg-gray-200";
+const th      = "border border-gray-300 px-2 py-1 text-[12px] font-semibold text-left whitespace-nowrap";
+const COL_HDR = "bg-[#d9d9d9]";
+const td      = "border border-gray-300 px-2 py-0.5 text-[12px]";
+const tft     = "border border-gray-300 px-2 py-1 text-[12px] font-semibold bg-gray-200";
 
 const HEADER_BG = "bg-[#d8e0d1]";
 
 // ── Component ─────────────────────────────────────────────────────────────────
 
-export default function DLRSummaryTab({ dlrId, items = [] }) {
-  const [serverData, setServerData] = useState(null);
-  const [loading,    setLoading]    = useState(false);
-
-  useEffect(() => {
-    if (!dlrId) return;
-    setLoading(true);
-    apiRequest({
-      url: `${API_ENDPOINTS.RESOURCE.MANPOWER.DLR.SUMMARY}/${dlrId}`,
-      method: "GET",
-    })
-      .then((res) => setServerData(res?.data || null))
-      .catch(() => toast.error("Failed to load summary"))
-      .finally(() => setLoading(false));
-  }, [dlrId]);
-
-  // Derive data — prefer server when available
+export default function DLRSummaryTab({ items = [], serverData = null, loading = false }) {
   const { categoryRows, locationRows } = useMemo(() => {
     if (serverData) {
-      const catRows = (serverData.categoryRows || serverData.mandays || []).map((r, i) => ({
+      const catRows = (serverData.mandaysSummary || serverData.categoryRows || serverData.mandays || []).map((r, i) => ({
         sl:             i + 1,
         category:       r.category       || r.categoryName || "",
         totalWorkingHr: parseFloat(r.totalWorkingHr || r.totalHours || 0),
@@ -85,7 +63,7 @@ export default function DLRSummaryTab({ dlrId, items = [] }) {
         rate:           parseFloat(r.rate   || 0),
         amount:         parseFloat(r.amount || 0),
       }));
-      const locRows = (serverData.locationRows || serverData.areas || []).map((r, i) => ({
+      const locRows = (serverData.areaSummary || serverData.locationRows || serverData.areas || []).map((r, i) => ({
         sl:             i + 1,
         location:       r.location || r.jobLocation || r.area || "",
         totalWorkingHr: parseFloat(r.totalWorkingHr || r.totalHours || 0),
@@ -96,13 +74,12 @@ export default function DLRSummaryTab({ dlrId, items = [] }) {
     return deriveFromItems(items);
   }, [serverData, items]);
 
-  // Totals
-  const catTotalWH     = categoryRows.reduce((s, r) => s + r.totalWorkingHr, 0);
-  const catTotalMd     = categoryRows.reduce((s, r) => s + r.manday,         0);
-  const catTotalAmt    = categoryRows.reduce((s, r) => s + r.amount,          0);
+  const catTotalWH  = categoryRows.reduce((s, r) => s + r.totalWorkingHr, 0);
+  const catTotalMd  = categoryRows.reduce((s, r) => s + r.manday,         0);
+  const catTotalAmt = categoryRows.reduce((s, r) => s + r.amount,         0);
 
-  const locTotalWH     = locationRows.reduce((s, r) => s + r.totalWorkingHr, 0);
-  const locTotalAmt    = locationRows.reduce((s, r) => s + r.amount,          0);
+  const locTotalWH  = locationRows.reduce((s, r) => s + r.totalWorkingHr, 0);
+  const locTotalAmt = locationRows.reduce((s, r) => s + r.amount,         0);
 
   if (loading) {
     return (
@@ -133,9 +110,7 @@ export default function DLRSummaryTab({ dlrId, items = [] }) {
           <tbody>
             {categoryRows.length === 0 ? (
               <tr>
-                <td colSpan={6} className={`${td} text-center text-gray-400 py-4`}>
-                  No data
-                </td>
+                <td colSpan={6} className={`${td} text-center text-gray-400 py-4`}>No data</td>
               </tr>
             ) : (
               categoryRows.map((row, idx) => (
@@ -179,9 +154,7 @@ export default function DLRSummaryTab({ dlrId, items = [] }) {
           <tbody>
             {locationRows.length === 0 ? (
               <tr>
-                <td colSpan={4} className={`${td} text-center text-gray-400 py-4`}>
-                  No data
-                </td>
+                <td colSpan={4} className={`${td} text-center text-gray-400 py-4`}>No data</td>
               </tr>
             ) : (
               locationRows.map((row, idx) => (
