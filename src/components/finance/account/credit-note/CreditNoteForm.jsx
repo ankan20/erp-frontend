@@ -121,14 +121,12 @@ export default function CreditNoteForm({ mode = "create", noteId, onAfterSubmit,
   const watchedItems = watch("items") || [];
   const gstLines     = watch("gstLines") || DEFAULT_GST_LINES;
 
-  const basicTotal = watchedItems.reduce((s, it) => s + Number(it?.basicAmount || 0), 0);
-  const isIGST     = !!gstLines[0]?.isSelected;
-  const isCGSTSGST = !!gstLines[1]?.isSelected;
-  const igstAmt    = isIGST     ? basicTotal * (gstLines[0]?.percent || 18) / 100 : 0;
-  const cgstAmt    = isCGSTSGST ? basicTotal * (gstLines[1]?.percent || 9)  / 100 : 0;
-  const sgstAmt    = isCGSTSGST ? basicTotal * (gstLines[2]?.percent || 9)  / 100 : 0;
-  const gstTotal   = igstAmt + cgstAmt + sgstAmt;
-  const totalAmt   = basicTotal + gstTotal;
+  const basicTotal    = watchedItems.reduce((s, it) => s + Number(it?.basicAmount || 0), 0);
+  const itemsGstTotal = watchedItems.reduce((s, it) => s + Number(it?.basicAmount || 0) * Number(it?.gstPercent || 0) / 100, 0);
+  const isIGST        = !!gstLines[0]?.isSelected;
+  const isCGSTSGST    = !!gstLines[1]?.isSelected;
+  const gstTotal      = (isIGST || isCGSTSGST) ? itemsGstTotal : 0;
+  const totalAmt      = basicTotal + gstTotal;
 
   // ── Fetch detail (edit / view) ────────────────────────────────────────────
   useEffect(() => {
@@ -308,30 +306,32 @@ export default function CreditNoteForm({ mode = "create", noteId, onAfterSubmit,
               <span className={ACC.sectionTitle}>BASIC</span>
             </div>
             <div className="overflow-x-auto">
-              <table className="w-full min-w-[540px] border-collapse text-[12px]">
+              <table className="w-full min-w-[640px] border-collapse text-[12px]">
                 <thead className="sticky top-0 z-10">
                   <tr className={ACC.tableHead}>
                     <th className="border border-gray-300 px-2 py-1.5 text-center font-semibold w-[46px]">SL</th>
                     <th className="border border-gray-300 px-2 py-1.5 text-left  font-semibold w-[82px]">CC Code</th>
                     <th className="border border-gray-300 px-2 py-1.5 text-left  font-semibold">CC Name &amp; Description</th>
-                    <th className="border border-gray-300 px-2 py-1.5 text-right font-semibold w-[110px]">Basic (₹)</th>
-                    <th className="border border-gray-300 px-2 py-1.5 text-center font-semibold w-[88px]">GST %</th>
-                    <th className="border border-gray-300 px-2 py-1.5 text-right font-semibold w-[110px]">Total Amt (₹)</th>
+                    <th className="border border-gray-300 px-2 py-1.5 text-right font-semibold w-[100px]">Basic (₹)</th>
+                    <th className="border border-gray-300 px-2 py-1.5 text-center font-semibold w-[76px]">GST %</th>
+                    <th className="border border-gray-300 px-2 py-1.5 text-right font-semibold w-[100px]">GST Amt (₹)</th>
+                    <th className="border border-gray-300 px-2 py-1.5 text-right font-semibold w-[100px]">Total Amt (₹)</th>
                     {!disabled && <th className="border border-gray-300 px-2 py-1.5 w-[36px]" />}
                   </tr>
                 </thead>
                 <tbody>
                   {fields.length === 0 ? (
                     <tr>
-                      <td colSpan={disabled ? 6 : 7} className="border border-gray-200 py-6 text-center text-[#bbb] italic">
+                      <td colSpan={disabled ? 7 : 8} className="border border-gray-200 py-6 text-center text-[#bbb] italic">
                         No items yet — click &ldquo;Add Row&rdquo; to begin
                       </td>
                     </tr>
                   ) : (
                     fields.map((field, idx) => {
-                      const basic   = Number(watchedItems[idx]?.basicAmount || 0);
-                      const gstPct  = Number(watchedItems[idx]?.gstPercent  || 0);
-                      const rowTotal = basic + (basic * gstPct / 100);
+                      const basic    = Number(watchedItems[idx]?.basicAmount || 0);
+                      const gstPct   = Number(watchedItems[idx]?.gstPercent  || 0);
+                      const gstAmt   = basic * gstPct / 100;
+                      const rowTotal = basic + gstAmt;
                       return (
                         <tr key={field.id} className={idx % 2 === 0 ? "bg-white" : "bg-[#f7f9fc]"}>
                           <td className="border border-gray-200 px-2 py-[3px] text-center align-middle">{idx + 1}</td>
@@ -403,6 +403,11 @@ export default function CreditNoteForm({ mode = "create", noteId, onAfterSubmit,
                             />
                           </td>
 
+                          {/* GST Amount — computed */}
+                          <td className="border border-gray-200 px-2 py-[3px] text-right align-middle bg-[#fff8ed] text-gray-700 font-medium">
+                            {formatAmount(gstAmt)}
+                          </td>
+
                           {/* Total — computed */}
                           <td className="border border-gray-200 px-2 py-[3px] text-right align-middle bg-[#edf8ed] text-gray-700 font-medium">
                             {formatAmount(rowTotal)}
@@ -428,13 +433,14 @@ export default function CreditNoteForm({ mode = "create", noteId, onAfterSubmit,
 
                   {/* Total row */}
                   <tr className={`${ACC.tableHead} font-semibold`}>
-                    <td colSpan={disabled ? 3 : 4} className="border border-gray-300 px-2 py-1.5 text-right text-[12px]">TOTAL</td>
+                    <td colSpan={3} className="border border-gray-300 px-2 py-1.5 text-right text-[12px]">TOTAL</td>
                     <td className="border border-gray-300 px-2 py-1.5 text-right text-[12px]">{fmt(basicTotal)}</td>
+                    <td className="border border-gray-300" />
                     <td className="border border-gray-300 px-2 py-1.5 text-right text-[12px]">
-                      {fmt(watchedItems.reduce((s, it) => {
-                        const b = Number(it?.basicAmount || 0);
-                        return s + b + b * Number(it?.gstPercent || 0) / 100;
-                      }, 0))}
+                      {fmt(watchedItems.reduce((s, it) => s + Number(it?.basicAmount || 0) * Number(it?.gstPercent || 0) / 100, 0))}
+                    </td>
+                    <td className="border border-gray-300 px-2 py-1.5 text-right text-[12px]">
+                      {fmt(watchedItems.reduce((s, it) => { const b = Number(it?.basicAmount || 0); return s + b + b * Number(it?.gstPercent || 0) / 100; }, 0))}
                     </td>
                     {!disabled && <td className="border border-gray-300" />}
                   </tr>
@@ -464,6 +470,7 @@ export default function CreditNoteForm({ mode = "create", noteId, onAfterSubmit,
             control={control}
             disabled={disabled}
             basicTotal={basicTotal}
+            actualGstTotal={itemsGstTotal}
           />
 
           {/* Summary */}
