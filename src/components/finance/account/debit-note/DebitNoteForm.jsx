@@ -27,6 +27,7 @@ import { formatAmount }  from "@/helper/numberFormatter";
 import { apiRequest }    from "@/lib/apiClient";
 import { API_ENDPOINTS } from "@/config/api.config";
 import { getLocalStorage } from "@/lib/localStorage";
+import { DEBIT_NOTE_OPTIONS, DN_CODE_BY_NAME } from "./debitNoteOptions";
 
 // ─── helpers ──────────────────────────────────────────────────────────────────
 const fmt = (val) => {
@@ -336,34 +337,40 @@ export default function DebitNoteForm({ mode = "create", noteId, onAfterSubmit, 
                         <tr key={field.id} className={idx % 2 === 0 ? "bg-white" : "bg-[#f7f9fc]"}>
                           <td className="border border-gray-200 px-2 py-[3px] text-center align-middle">{idx + 1}</td>
 
-                          {/* CC Code */}
+                          {/* CC Code — auto-populated from CC Name select, not user-editable */}
                           <td className="border border-gray-200 p-0.5 align-middle">
                             <input
                               type="text"
-                              {...register(`items.${idx}.ccCode`)}
-                              disabled={disabled}
-                              placeholder="CC Code"
-                              className={cellCls(disabled)}
+                              value={watchedItems[idx]?.ccCode ?? ""}
+                              readOnly
+                              placeholder="Auto"
+                              className="w-full h-[26px] text-[12px] px-1.5 outline-none rounded-sm border-0 bg-[#f3f4f6] text-gray-500 cursor-default"
                             />
                           </td>
 
-                          {/* CC Name + Description */}
+                          {/* CC Name select + Description */}
                           <td className="border border-gray-200 p-0 min-w-[160px]">
-                            <Controller
-                              name={`items.${idx}.ccName`}
-                              control={control}
-                              render={({ field: f }) => (
-                                <ExpandableTextCell
-                                  value={f.value || ""}
-                                  onChange={disabled ? undefined : f.onChange}
-                                  disabled={disabled}
-                                  placeholder="CC Name"
-                                  label="CC Name"
-                                  textSize="text-[12px]"
-                                  className="font-medium"
-                                />
-                              )}
-                            />
+                            <select
+                              value={watchedItems[idx]?.ccName ?? ""}
+                              onChange={(e) => {
+                                const name = e.target.value;
+                                setValue(`items.${idx}.ccName`, name, { shouldDirty: true });
+                                setValue(`items.${idx}.ccCode`, DN_CODE_BY_NAME[name] ?? "", { shouldDirty: true });
+                              }}
+                              disabled={disabled}
+                              className={`w-full h-[26px] text-[12px] px-1.5 outline-none rounded-sm border-0 ${
+                                disabled
+                                  ? "bg-[#edf8ed] text-gray-500 cursor-default"
+                                  : "bg-transparent focus:bg-white focus:border focus:border-[#93b5cc] cursor-pointer"
+                              }`}
+                            >
+                              <option value="">— Select Type —</option>
+                              {DEBIT_NOTE_OPTIONS.map((opt) => (
+                                <option key={opt.ccCode} value={opt.ccName}>
+                                  {opt.ccName}
+                                </option>
+                              ))}
+                            </select>
                             <Controller
                               name={`items.${idx}.description`}
                               control={control}
