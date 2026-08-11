@@ -478,6 +478,8 @@ export default function CreditNoteForm({ mode = "create", noteId, onAfterSubmit,
             disabled={disabled}
             basicTotal={basicTotal}
             actualGstTotal={itemsGstTotal}
+            showDescription={false}
+            showPercent={false}
           />
 
           {/* Summary */}

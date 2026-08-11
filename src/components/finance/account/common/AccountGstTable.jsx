@@ -44,10 +44,12 @@ export default function AccountGstTable({
   watch,
   setValue,
   control,
-  disabled        = false,
-  basicTotal      = 0,
-  actualGstTotal  = null,   // when provided, used instead of basicTotal × percent
-  fieldName       = "gstLines",
+  disabled         = false,
+  basicTotal       = 0,
+  actualGstTotal   = null,
+  fieldName        = "gstLines",
+  showDescription  = true,
+  showPercent      = true,
 }) {
   const gstLines = watch(fieldName) || DEFAULT_GST_LINES;
 
@@ -123,8 +125,8 @@ export default function AccountGstTable({
               <th className="border border-gray-300 px-2 py-1.5 text-center font-semibold w-[72px]">Select</th>
               <th className="border border-gray-300 px-2 py-1.5 text-left  font-semibold w-[76px]">CC Code</th>
               <th className="border border-gray-300 px-2 py-1.5 text-left  font-semibold w-[132px]">CC Name</th>
-              <th className="border border-gray-300 px-2 py-1.5 text-left  font-semibold">Description</th>
-              <th className="border border-gray-300 px-2 py-1.5 text-center font-semibold w-[52px]">%</th>
+              {showDescription && <th className="border border-gray-300 px-2 py-1.5 text-left  font-semibold">Description</th>}
+              {showPercent     && <th className="border border-gray-300 px-2 py-1.5 text-center font-semibold w-[52px]">%</th>}
               <th className="border border-gray-300 px-2 py-1.5 text-right font-semibold w-[115px]">GST Amount</th>
             </tr>
           </thead>
@@ -142,28 +144,32 @@ export default function AccountGstTable({
                 </td>
                 <td className="border border-gray-200 px-2 py-[3px]">{line.ccCode}</td>
                 <td className="border border-gray-200 px-2 py-[3px]">{line.ccName}</td>
-                <td className="border border-gray-200 p-0 min-w-[100px]">
-                  <Controller
-                    name={`${fieldName}.${idx}.description`}
-                    control={control}
-                    render={({ field: f }) => (
-                      <ExpandableTextCell
-                        value={f.value || ""}
-                        onChange={disabled ? undefined : f.onChange}
-                        disabled={disabled}
-                        placeholder="Description"
-                        label="GST Description"
-                      />
-                    )}
-                  />
-                </td>
-                <td className="border border-gray-200 px-2 py-[3px] text-center">{fmtPct(pct)}%</td>
+                {showDescription && (
+                  <td className="border border-gray-200 p-0 min-w-[100px]">
+                    <Controller
+                      name={`${fieldName}.${idx}.description`}
+                      control={control}
+                      render={({ field: f }) => (
+                        <ExpandableTextCell
+                          value={f.value || ""}
+                          onChange={disabled ? undefined : f.onChange}
+                          disabled={disabled}
+                          placeholder="Description"
+                          label="GST Description"
+                        />
+                      )}
+                    />
+                  </td>
+                )}
+                {showPercent && (
+                  <td className="border border-gray-200 px-2 py-[3px] text-center">{fmtPct(pct)}%</td>
+                )}
                 <td className="border border-gray-200 px-2 py-[3px] text-right font-medium">{fmt(amount)}</td>
               </tr>
             ))}
             {/* Total row */}
             <tr className={`${ACC.tableHead} font-semibold`}>
-              <td colSpan={5} className="border border-gray-300 px-2 py-1.5 text-right text-[12px]">TOTAL</td>
+              <td colSpan={3 + (showDescription ? 1 : 0) + (showPercent ? 1 : 0)} className="border border-gray-300 px-2 py-1.5 text-right text-[12px]">TOTAL</td>
               <td className="border border-gray-300 px-2 py-1.5 text-right text-[12px]">{fmt(gstTotal)}</td>
             </tr>
           </tbody>

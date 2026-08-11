@@ -21,6 +21,15 @@ import AmountInput       from "@/components/common/AmountInput";
 import GstInput          from "@/components/common/GstInput";
 import ExpandableTextCell from "@/components/project-management/common/ExpandableTextCell";
 import AccountGstTable, { DEFAULT_GST_LINES } from "@/components/finance/account/common/AccountGstTable";
+
+const DEBIT_GST_LINES = [
+  { ...DEFAULT_GST_LINES[0], ccName: "Input-IGST" },
+  { ...DEFAULT_GST_LINES[1], ccName: "Input-CGST" },
+  { ...DEFAULT_GST_LINES[2], ccName: "Input-SGST" },
+];
+
+const toInputCcName = (name = "") =>
+  name.replace(/^Output-/i, "Input-");
 import { ACC }           from "@/components/finance/account/common/accountTheme";
 import { amountToWordsIN } from "@/lib/amountToWords";
 import { formatAmount }  from "@/helper/numberFormatter";
@@ -96,7 +105,7 @@ const DEFAULT_VALUES = {
   creditNoteDate: "",
   remarks:        "",
   items:          [{ ...EMPTY_ITEM }],
-  gstLines:       DEFAULT_GST_LINES,
+  gstLines:       DEBIT_GST_LINES,
 };
 
 // ─── Component ────────────────────────────────────────────────────────────────
@@ -158,13 +167,13 @@ export default function DebitNoteForm({ mode = "create", noteId, onAfterSubmit, 
             ? d.gstLines.map((l) => ({
                 gstType:     l.gstType    || "",
                 ccCode:      l.ccCode     || "",
-                ccName:      l.ccName     || "",
+                ccName:      toInputCcName(l.ccName || ""),
                 description: l.description || "",
                 percent:     Number(l.percent   || 0),
                 gstAmount:   Number(l.gstAmount || 0),
                 isSelected:  !!l.isSelected,
               }))
-            : DEFAULT_GST_LINES,
+            : DEBIT_GST_LINES,
         });
         const locked = d.workflowStatus && !["Draft", "Reback"].includes(d.workflowStatus);
         setIsSubmitted(locked);
@@ -478,6 +487,8 @@ export default function DebitNoteForm({ mode = "create", noteId, onAfterSubmit, 
             disabled={disabled}
             basicTotal={basicTotal}
             actualGstTotal={itemsGstTotal}
+            showDescription={false}
+            showPercent={false}
           />
 
           {/* Summary */}
