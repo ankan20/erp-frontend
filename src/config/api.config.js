@@ -534,6 +534,36 @@ export const API_ENDPOINTS = {
       MY_APPROVAL_STATUS: "/finance/credit-note/my-approval-status/",    // /:id GET
       GET_BY_UUID:        "/finance/credit-note/uuid/",                  // /:uuid GET no-auth
     },
+    PAYMENT_VOUCHER: {
+      APPROVED_PURCHASE_VOUCHERS: "/finance/payment-voucher/approved-purchase-vouchers", // GET ?projectCode
+      PURCHASE_VOUCHER_ITEMS:     "/finance/payment-voucher/purchase-voucher-items/",    // /<pv_id> GET
+      CREATE:             "/finance/payment-voucher/create",                // POST JSON
+      LIST:               "/finance/payment-voucher/list",                  // GET ?projectCode&workflowStatus&vendorId&search
+      GET_BY_ID:          "/finance/payment-voucher/",                      // /<pvm_id> GET
+      GET_BY_UUID:        "/finance/payment-voucher/uuid/",                 // /<uuid> GET no-auth
+      EDIT:               "/finance/payment-voucher/edit/",                 // /<pvm_id> PUT JSON
+      SUBMIT:             "/finance/payment-voucher/submit/",               // /<pvm_id> POST
+      APPROVE:            "/finance/payment-voucher/approve/",              // /<pvm_id> POST { comments }
+      REBACK:             "/finance/payment-voucher/reback/",               // /<pvm_id> POST { comments }
+      REJECT:             "/finance/payment-voucher/reject/",               // /<pvm_id> POST { comments }
+      HISTORY:            "/finance/payment-voucher/history/",              // /<pvm_id> GET
+      MY_APPROVAL_STATUS: "/finance/payment-voucher/my-approval-status/",   // /<pvm_id> GET
+    },
+    BILL_PAYMENT: {
+      APPROVED_PURCHASE_BILLS: "/finance/bill-payment/approved-purchase-bills", // GET ?projectCode&vendorId
+      PURCHASE_BILL_ITEMS:     "/finance/bill-payment/purchase-bill-items/",    // /<bill_id> GET
+      CREATE:             "/finance/bill-payment/create",                   // POST JSON
+      LIST:               "/finance/bill-payment/list",                     // GET ?projectCode&workflowStatus&vendorId&search
+      GET_BY_ID:          "/finance/bill-payment/",                         // /<receipt_id> GET
+      GET_BY_UUID:        "/finance/bill-payment/uuid/",                    // /<uuid> GET no-auth
+      EDIT:               "/finance/bill-payment/edit/",                    // /<receipt_id> PUT JSON
+      SUBMIT:             "/finance/bill-payment/submit/",                  // /<receipt_id> POST
+      APPROVE:            "/finance/bill-payment/approve/",                 // /<receipt_id> POST { comments }
+      REBACK:             "/finance/bill-payment/reback/",                  // /<receipt_id> POST { comments }
+      REJECT:             "/finance/bill-payment/reject/",                  // /<receipt_id> POST { comments }
+      HISTORY:            "/finance/bill-payment/history/",                 // /<receipt_id> GET
+      MY_APPROVAL_STATUS: "/finance/bill-payment/my-approval-status/",      // /<receipt_id> GET
+    },
     CONTRA_ENTRY: {
       CREATE:             "/finance/contra-entry/create",                // POST JSON
       LIST:               "/finance/contra-entry/list",                  // GET ?projectCode&search&fromDate&toDate&workflowStatus
