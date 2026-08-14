@@ -577,6 +577,13 @@ export const API_ENDPOINTS = {
       HISTORY:            "/finance/contra-entry/history/",              // /:id GET
       MY_APPROVAL_STATUS: "/finance/contra-entry/my-approval-status/",   // /:id GET
     },
+    VENDOR_LEDGER: {
+      GET:      "/finance/vendor-ledger",           // GET ?vendorId&projectCode&fromDate&toDate (JWT)
+      GET_BY_UUID: "/finance/vendor-ledger/uuid/",  // /:vendor_uuid GET (public)
+    },
+    MY_LEDGER: {
+      GET: "/finance/my-ledger",                    // GET ?projectCode&fromDate&toDate (JWT)
+    },
   },
 };
 

@@ -633,6 +633,11 @@ export const routeMetaConfig = [
     basePath: "/finance-management/account/payment/[id]",
     breadcrumbs: ["Finance Management", "Accounts", "Payment", "Details"],
   },
+  // Finance Management — Ledger View
+  {
+    basePath: "/finance-management/account/ledger",
+    breadcrumbs: ["Finance Management", "Accounts", "Ledger View"],
+  },
   // Finance Management — Contra Entry
   {
     basePath: "/finance-management/account/contra",

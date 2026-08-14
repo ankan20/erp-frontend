@@ -493,7 +493,7 @@ export const sidebarConfig = [
           },
           {
             title: "Ledger View",
-            path: "/finance-management/report/ledger",
+            path: "/finance-management/account/ledger",
             permissionKey: "ledger_view",
           },
         ],
