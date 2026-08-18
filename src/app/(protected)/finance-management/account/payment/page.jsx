@@ -179,17 +179,17 @@ export default function Page() {
 
         {/* Summary */}
         {filteredData.length > 0 && (
-          <div className="flex flex-col sm:flex-row gap-2 max-w-[480px] ml-auto mt-2">
+          <div className="w-full sm:max-w-[360px] mt-2 rounded-sm border border-gray-300 overflow-hidden divide-y divide-gray-300">
             {[
-              { label: "Bank Payment",  value: bankTotal  },
-              { label: "Cash Payment",  value: cashTotal  },
-              { label: "Total Payment", value: grandTotal },
-            ].map(({ label, value }, i) => (
-              <div key={label} className="flex sm:flex-col rounded-sm border border-gray-300 overflow-hidden flex-1">
-                <div className={`px-3 py-[6px] text-[12px] font-semibold sm:flex-1 ${i < 2 ? ACC.summaryLabelBg : "bg-[#D5DBE6]"}`}>
+              { label: "Bank Payment",  value: bankTotal,  labelBg: ACC.summaryLabelBg, valueBg: ACC.summaryValueBg },
+              { label: "Cash Payment",  value: cashTotal,  labelBg: ACC.summaryLabelBg, valueBg: ACC.summaryValueBg },
+              { label: "Total Payment", value: grandTotal, labelBg: "bg-[#D5DBE6]",     valueBg: ACC.totalValueBg   },
+            ].map(({ label, value, labelBg, valueBg }) => (
+              <div key={label} className="flex items-stretch">
+                <div className={`flex-1 px-3 py-[7px] text-[13px] font-semibold ${labelBg}`}>
                   {label}
                 </div>
-                <div className={`px-3 py-[6px] text-[13px] font-semibold text-right ${i < 2 ? ACC.summaryValueBg : ACC.totalValueBg}`}>
+                <div className={`px-3 py-[7px] text-[13px] font-semibold text-right min-w-[130px] shrink-0 ${valueBg}`}>
                   {fmt(value)}
                 </div>
               </div>
