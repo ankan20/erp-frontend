@@ -353,17 +353,19 @@ export default function OGSaleOrderForm({ mode = "create", saleOrderId, onAfterS
 
           {/* SECTION 1 — Order Details */}
           <PMSection title="Order Details:">
-            <PMFormRow label="Sale Order Number" labelWidth="sm:w-[130px] sm:min-w-[130px]">
-              <PMInput
-                {...register("ogSaleOrderNo")}
-                disabled
-                placeholder="[Auto]"
-                expandable={false}
-                className="max-w-[160px]"
-              />
-            </PMFormRow>
+            <div className="hidden">
+              <PMFormRow label="Sale Order Number" labelWidth="sm:w-[130px] sm:min-w-[130px]">
+                <PMInput
+                  {...register("ogSaleOrderNo")}
+                  disabled
+                  placeholder="[Auto]"
+                  expandable={false}
+                  className="max-w-[160px]"
+                />
+              </PMFormRow>
+            </div>
 
-            <PMFormRow label="Ref. Order Number" labelWidth="sm:w-[130px] sm:min-w-[130px]">
+            <PMFormRow label="Customer Order Number" labelWidth="sm:w-[130px] sm:min-w-[130px]">
               <PMInput
                 {...register("orderNo")}
                 disabled={disabled}

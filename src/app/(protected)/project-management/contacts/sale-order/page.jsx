@@ -50,7 +50,7 @@ export default function Page() {
         const list = (res.data || []).map((r, i) => ({
           id:             r.id,
           sl:             i + 1,
-          orderNo:        r.ogSaleOrderNo        || "",
+          orderNo:        r.orderNo        || "",
           date:           getfmtDisplaydate(r.ogSaleOrderDate) || "",
           orderTitle:     r.orderTitle           || "",
           totalAmount:    fmtNum(r.totalAmount),
