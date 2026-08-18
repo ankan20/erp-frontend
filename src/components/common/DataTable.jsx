@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback } from "react";
 import { ArrowUp, ArrowDown, ArrowUpDown, ChevronDown, Search } from "lucide-react";
+import { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider } from "@/components/ui/tooltip";
 
 // Workflow sort order — statuses not listed here rank 999 and sort alphabetically among themselves
 const STATUS_RANK = { draft: 0, ongoing: 2, approved: 3, completed: 4, reback: 5, rejected: 6, reject: 6 };
@@ -315,8 +316,9 @@ export default function DataTable({
     );
   };
 
-  // ─── RENDER 
+  // ─── RENDER
   return (
+    <TooltipProvider>
     <div className="border border-[#9e9e9e] overflow-x-auto">
       <div className="max-h-[608px] overflow-y-auto">
 
@@ -341,12 +343,17 @@ export default function DataTable({
                     <div className="flex items-center justify-between gap-1">
 
                       {/* Column label — click to sort if sortable */}
-                      <span
-                        onClick={isSortable ? () => handleSort(col.accessor) : undefined}
-                        className={isSortable ? "cursor-pointer flex-1 truncate" : "flex-1 truncate"}
-                      >
-                        {col.header}
-                      </span>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <span
+                            onClick={isSortable ? () => handleSort(col.accessor) : undefined}
+                            className={isSortable ? "cursor-pointer flex-1 truncate min-w-0" : "flex-1 truncate min-w-0"}
+                          >
+                            {col.header}
+                          </span>
+                        </TooltipTrigger>
+                        <TooltipContent side="bottom" variant="text">{col.header}</TooltipContent>
+                      </Tooltip>
 
                       <div className="flex items-center gap-0.5 shrink-0">
                         {/* SORT ICON */}
@@ -447,19 +454,29 @@ export default function DataTable({
                           ${colIndex === 1 ? "text-blue-600" : ""}
                         `}
                       >
-                        <div
-                          className={
-                            isExpanded
-                              ? "whitespace-normal break-words"
-                              : "truncate whitespace-nowrap overflow-hidden"
+                        {(() => {
+                          const isStatus = col.accessor?.toLowerCase().endsWith("status");
+                          const rawText  = row[col.accessor] == null || row[col.accessor] === "" ? "-" : String(row[col.accessor]);
+                          const content  = col.render
+                            ? col.render(row)
+                            : isStatus
+                              ? <StatusBadge value={row[col.accessor]} />
+                              : rawText;
+                          const inner = (
+                            <div className={isExpanded ? "whitespace-normal break-words" : "truncate whitespace-nowrap overflow-hidden"}>
+                              {content}
+                            </div>
+                          );
+                          if (!col.render && !isStatus && !isExpanded) {
+                            return (
+                              <Tooltip>
+                                <TooltipTrigger asChild>{inner}</TooltipTrigger>
+                                <TooltipContent side="top" variant="text">{rawText}</TooltipContent>
+                              </Tooltip>
+                            );
                           }
-                        >
-                          {col.render
-            ? col.render(row)
-            : col.accessor?.toLowerCase().endsWith("status")
-              ? <StatusBadge value={row[col.accessor]} />
-              : (row[col.accessor] == null || row[col.accessor] === "" ? "-" : row[col.accessor])}
-                        </div>
+                          return inner;
+                        })()}
                       </td>
                     );
                   })}
@@ -474,6 +491,7 @@ export default function DataTable({
       {/* Filter dropdown — rendered outside table flow via fixed position */}
       {renderFilterDropdown()}
     </div>
+    </TooltipProvider>
   );
 }
 
