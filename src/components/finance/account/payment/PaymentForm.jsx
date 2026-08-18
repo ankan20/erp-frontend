@@ -53,7 +53,10 @@ const pvItemSchema = z.object({
   paidAmount:    z.number().default(0),
   balanceAmount: z.number().default(0),
   currentAmount: z.coerce.number().min(0).default(0),
-});
+}).refine(
+  (row) => Number(row.currentAmount) <= Number(row.balanceAmount),
+  { message: "Exceeds balance", path: ["currentAmount"] },
+);
 
 const pvGstLineSchema = z.object({
   gstType:       z.string().default(""),
@@ -64,7 +67,10 @@ const pvGstLineSchema = z.object({
   balanceAmount: z.number().default(0),
   currentAmount: z.coerce.number().min(0).default(0),
   isSelected:    z.boolean().default(false),
-});
+}).refine(
+  (row) => !row.isSelected || Number(row.currentAmount) <= Number(row.balanceAmount),
+  { message: "Exceeds balance", path: ["currentAmount"] },
+);
 
 const schema = z.object({
   paymentDate:       z.string().min(1, "Payment Date is required"),
@@ -347,6 +353,13 @@ export default function PaymentForm({
 
   // ── Save Draft ───────────────────────────────────────────────────────────────
   const onSave = async (v) => {
+    const overflowItem = v.items.some((it) => Number(it.currentAmount) > Number(it.balanceAmount));
+    const overflowGst  = v.gstLines.some((l) => l.isSelected && Number(l.currentAmount) > Number(l.balanceAmount));
+    if (overflowItem || overflowGst) {
+      toast.error("Current payment amount cannot exceed the balance amount");
+      return;
+    }
+
     const EP = isBill ? API_ENDPOINTS.FINANCE.BILL_PAYMENT : API_ENDPOINTS.FINANCE.PAYMENT_VOUCHER;
     const url    = mode === "create" ? EP.CREATE : `${EP.EDIT}${paymentId}`;
     const method = mode === "create" ? "POST" : "PUT";
@@ -683,8 +696,10 @@ export default function PaymentForm({
                     ) : (
                       <>
                         {itemFields.map((field, idx) => {
-                          const item = watchedItems[idx] || {};
-                          const bal  = Number(item.balanceAmount || 0);
+                          const item            = watchedItems[idx] || {};
+                          const bal             = Number(item.balanceAmount || 0);
+                          const cur             = Number(item.currentAmount || 0);
+                          const exceedsBalance  = !disabled && cur > bal;
                           return (
                             <tr key={field.id} className={idx % 2 === 0 ? "bg-white" : "bg-[#f7f9fc]"}>
                               <td className="border border-gray-200 px-2 py-[3px] text-center">{idx + 1}</td>
@@ -694,13 +709,25 @@ export default function PaymentForm({
                               <td className="border border-gray-200 px-2 py-[3px] text-right">{item.paidAmount > 0 ? fmt(item.paidAmount) : "—"}</td>
                               <td className="border border-gray-200 px-2 py-[3px] text-right">{bal > 0 ? fmt(bal) : "—"}</td>
                               <td className="border border-gray-200 p-0.5">
-                                <AmountInput
-                                  {...register(`items.${idx}.currentAmount`)}
-                                  value={watchedItems[idx]?.currentAmount ?? ""}
-                                  disabled={disabled}
-                                  placeholder="0.00"
-                                  className={`${getInputClass(false, disabled)} w-full h-[26px] text-[12px] px-1.5 text-right border-0 rounded-sm ${!disabled ? "bg-[#fffbe8]" : ""}`}
-                                />
+                                <div className="flex flex-col">
+                                  <AmountInput
+                                    {...register(`items.${idx}.currentAmount`)}
+                                    value={watchedItems[idx]?.currentAmount ?? ""}
+                                    disabled={disabled}
+                                    placeholder="0.00"
+                                    title={bal > 0 ? `Max: ${fmt(bal)}` : undefined}
+                                    className={`${getInputClass(false, disabled)} w-full h-[26px] text-[12px] px-1.5 text-right border-0 rounded-sm ${
+                                      !disabled
+                                        ? exceedsBalance
+                                          ? "bg-red-50 ring-1 ring-red-400 text-red-700"
+                                          : "bg-[#fffbe8]"
+                                        : ""
+                                    }`}
+                                  />
+                                  {exceedsBalance && (
+                                    <span className="text-[9px] text-red-500 text-right leading-tight px-0.5">max {fmt(bal)}</span>
+                                  )}
+                                </div>
                               </td>
                             </tr>
                           );
@@ -762,9 +789,11 @@ export default function PaymentForm({
                   ) : (
                     <>
                       {gstLineFields.map((field, idx) => {
-                        const line     = watchedGst[idx] || {};
-                        const isActive = !!line.isSelected;
-                        const bal      = Number(line.balanceAmount || 0);
+                        const line            = watchedGst[idx] || {};
+                        const isActive        = !!line.isSelected;
+                        const bal             = Number(line.balanceAmount || 0);
+                        const cur             = Number(line.currentAmount || 0);
+                        const exceedsBalance  = !disabled && isActive && cur > bal;
 
                         const handleGstToggle = (checked) => {
                           const isIGSTRow    = idx === 0;
@@ -808,13 +837,25 @@ export default function PaymentForm({
                             <td className="border border-gray-200 px-2 py-[3px] text-right">{bal > 0 ? fmt(bal) : "—"}</td>
                             <td className="border border-gray-200 p-0.5">
                               {isActive ? (
-                                <AmountInput
-                                  {...register(`gstLines.${idx}.currentAmount`)}
-                                  value={watchedGst[idx]?.currentAmount ?? ""}
-                                  disabled={disabled}
-                                  placeholder="0.00"
-                                  className={`${getInputClass(false, disabled)} w-full h-[26px] text-[12px] px-1.5 text-right border-0 rounded-sm ${!disabled ? "bg-[#fffbe8]" : ""}`}
-                                />
+                                <div className="flex flex-col">
+                                  <AmountInput
+                                    {...register(`gstLines.${idx}.currentAmount`)}
+                                    value={watchedGst[idx]?.currentAmount ?? ""}
+                                    disabled={disabled}
+                                    placeholder="0.00"
+                                    title={bal > 0 ? `Max: ${fmt(bal)}` : undefined}
+                                    className={`${getInputClass(false, disabled)} w-full h-[26px] text-[12px] px-1.5 text-right border-0 rounded-sm ${
+                                      !disabled
+                                        ? exceedsBalance
+                                          ? "bg-red-50 ring-1 ring-red-400 text-red-700"
+                                          : "bg-[#fffbe8]"
+                                        : ""
+                                    }`}
+                                  />
+                                  {exceedsBalance && (
+                                    <span className="text-[9px] text-red-500 text-right leading-tight px-0.5">max {fmt(bal)}</span>
+                                  )}
+                                </div>
                               ) : (
                                 <span className="block px-1.5 text-right text-gray-400">—</span>
                               )}
