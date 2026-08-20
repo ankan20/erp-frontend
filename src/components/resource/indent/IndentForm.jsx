@@ -39,7 +39,7 @@ const indentSchema = z.object({
     z.object({
       itemCode: z.string().min(1),
       itemName: z.string().optional(),
-      qty: z.coerce.number().min(1),
+      qty: z.coerce.number().gt(0),
       ammenmendQty: z.any().optional(),
       location: z.string().min(2),
       note: z.string().optional(),
