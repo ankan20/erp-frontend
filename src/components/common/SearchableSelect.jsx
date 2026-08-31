@@ -218,7 +218,7 @@ export default function SearchableSelect({
                 return (
                   <button
                     type="button"
-                    key={item[valueKey] != null ? String(item[valueKey]) : idx}
+                    key={idx}
                     onClick={() => handleSelect(item)}
                     className={`
                       w-full
