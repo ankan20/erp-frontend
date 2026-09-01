@@ -13,6 +13,7 @@ import SaveButton       from "@/components/common/SaveButton";
 import SaveDraftButton  from "@/components/common/SaveDraftButton";
 import EditButton       from "@/components/common/EditButton";
 import SearchableSelect from "@/components/common/SearchableSelect";
+import AmountInput      from "@/components/common/AmountInput";
 import PMSection        from "@/components/project-management/common/PMSection";
 import PMFormRow        from "@/components/project-management/common/PMFormRow";
 import PMTextarea       from "@/components/project-management/common/PMTextarea";
@@ -21,6 +22,7 @@ import { ACC }          from "@/components/finance/account/common/accountTheme";
 import { apiRequest }      from "@/lib/apiClient";
 import { API_ENDPOINTS }   from "@/config/api.config";
 import { getLocalStorage } from "@/lib/localStorage";
+import { formatAmount }    from "@/helper/numberFormatter";
 
 // ─── Schema ───────────────────────────────────────────────────────────────────
 
@@ -43,11 +45,6 @@ const DEFAULT_VALUES = {
     { drCr: "Dr", accountId: null, openingBalance: 0, debitAmount: 0, creditAmount: 0 },
     { drCr: "Cr", accountId: null, openingBalance: 0, debitAmount: 0, creditAmount: 0 },
   ],
-};
-
-const fmt = (val) => {
-  const n = Number(val);
-  return isNaN(n) ? "0.00" : n.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 };
 
 // ─── Component ────────────────────────────────────────────────────────────────
@@ -143,7 +140,7 @@ export default function ContraEntryForm({ mode = "create", contraId, onAfterSubm
     if (drAmt <= 0) { toast.error("Enter a debit amount greater than zero");  return; }
     if (crAmt <= 0) { toast.error("Enter a credit amount greater than zero"); return; }
     if (Math.abs(drAmt - crAmt) > 0.01) {
-      toast.error(`Debit (${fmt(drAmt)}) must equal Credit (${fmt(crAmt)})`);
+      toast.error(`Debit (${formatAmount(drAmt)}) must equal Credit (${formatAmount(crAmt)})`);
       return;
     }
 
@@ -301,7 +298,8 @@ export default function ContraEntryForm({ mode = "create", contraId, onAfterSubm
                 </thead>
                 <tbody>
                   {ROWS.map(({ idx, drCr, isDebitRow, excludeId }) => {
-                    const closing = idx === 0 ? closing0 : closing1;
+                    const closing  = idx === 0 ? closing0 : closing1;
+                    const lineVals = idx === 0 ? line0 : line1;
                     return (
                       <tr key={idx} className={idx % 2 === 0 ? "bg-white" : "bg-[#f7f9fc]"}>
 
@@ -335,11 +333,9 @@ export default function ContraEntryForm({ mode = "create", contraId, onAfterSubm
 
                         {/* Opening balance */}
                         <td className="border border-gray-200 p-0.5">
-                          <input
-                            type="number"
-                            min="0"
-                            step="0.01"
+                          <AmountInput
                             {...register(`lines.${idx}.openingBalance`)}
+                            value={lineVals.openingBalance}
                             disabled={disabled}
                             placeholder="0.00"
                             className={openingCls}
@@ -349,11 +345,9 @@ export default function ContraEntryForm({ mode = "create", contraId, onAfterSubm
                         {/* Debit — only active for Dr row */}
                         <td className="border border-gray-200 p-0.5">
                           {isDebitRow ? (
-                            <input
-                              type="number"
-                              min="0"
-                              step="0.01"
+                            <AmountInput
                               {...register(`lines.${idx}.debitAmount`)}
+                              value={lineVals.debitAmount}
                               disabled={disabled}
                               placeholder="0.00"
                               className={amountCls}
@@ -368,11 +362,9 @@ export default function ContraEntryForm({ mode = "create", contraId, onAfterSubm
                         {/* Credit — only active for Cr row */}
                         <td className="border border-gray-200 p-0.5">
                           {!isDebitRow ? (
-                            <input
-                              type="number"
-                              min="0"
-                              step="0.01"
+                            <AmountInput
                               {...register(`lines.${idx}.creditAmount`)}
+                              value={lineVals.creditAmount}
                               disabled={disabled}
                               placeholder="0.00"
                               className={amountCls}
@@ -387,7 +379,7 @@ export default function ContraEntryForm({ mode = "create", contraId, onAfterSubm
                         {/* Closing — auto-computed */}
                         <td className="border border-gray-200 p-0.5">
                           <div className="w-full h-[26px] flex items-center justify-end px-2 bg-[#edf8ed] text-gray-600 text-[12px] rounded-sm tabular-nums">
-                            {fmt(closing)}
+                            {formatAmount(closing)}
                           </div>
                         </td>
                       </tr>
@@ -402,15 +394,15 @@ export default function ContraEntryForm({ mode = "create", contraId, onAfterSubm
                     <td className={`border border-gray-300 px-2 py-1.5 text-right text-[12px] tabular-nums ${
                       isUnbalanced ? "text-red-600" : ""
                     }`}>
-                      {fmt(totalDebit)}
+                      {formatAmount(totalDebit)}
                     </td>
                     <td className={`border border-gray-300 px-2 py-1.5 text-right text-[12px] tabular-nums ${
                       isUnbalanced ? "text-red-600" : ""
                     }`}>
-                      {fmt(totalCredit)}
+                      {formatAmount(totalCredit)}
                     </td>
                     <td className="border border-gray-300 px-2 py-1.5 text-right text-[12px] tabular-nums text-gray-500">
-                      {fmt(closing0 + closing1)}
+                      {formatAmount(closing0 + closing1)}
                     </td>
                   </tr>
                 </tbody>
@@ -420,7 +412,7 @@ export default function ContraEntryForm({ mode = "create", contraId, onAfterSubm
             {/* Balance warning strip */}
             {isUnbalanced && (
               <div className="px-3 py-1.5 bg-red-50 border-t border-red-200 text-red-600 text-[12px]">
-                Debit and Credit must be equal — difference: {fmt(Math.abs(totalDebit - totalCredit))}
+                Debit and Credit must be equal — difference: {formatAmount(Math.abs(totalDebit - totalCredit))}
               </div>
             )}
           </div>
