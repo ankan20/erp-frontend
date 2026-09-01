@@ -577,6 +577,19 @@ export const API_ENDPOINTS = {
       HISTORY:            "/finance/contra-entry/history/",              // /:id GET
       MY_APPROVAL_STATUS: "/finance/contra-entry/my-approval-status/",   // /:id GET
     },
+    JOURNAL_ENTRY: {
+      CREATE:             "/finance/journal-entry/create",               // POST JSON
+      LIST:               "/finance/journal-entry/list",                 // GET ?projectCode&search&fromDate&toDate&workflowStatus
+      GET_BY_ID:          "/finance/journal-entry/",                     // /:id GET
+      GET_BY_UUID:        "/finance/journal-entry/uuid/",                // /:uuid GET no-auth
+      EDIT:               "/finance/journal-entry/edit/",                // /:id PUT JSON
+      SUBMIT:             "/finance/journal-entry/submit/",              // /:id POST
+      APPROVE:            "/finance/journal-entry/approve/",             // /:id POST { comments }
+      REBACK:             "/finance/journal-entry/reback/",              // /:id POST { comments }
+      REJECT:             "/finance/journal-entry/reject/",              // /:id POST { comments }
+      HISTORY:            "/finance/journal-entry/history/",             // /:id GET
+      MY_APPROVAL_STATUS: "/finance/journal-entry/my-approval-status/",  // /:id GET
+    },
     VENDOR_LEDGER: {
       GET:      "/finance/vendor-ledger",           // GET ?vendorId&projectCode&fromDate&toDate (JWT)
       GET_BY_UUID: "/finance/vendor-ledger/uuid/",  // /:vendor_uuid GET (public)

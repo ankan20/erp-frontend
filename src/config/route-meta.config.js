@@ -651,4 +651,17 @@ export const routeMetaConfig = [
     basePath: "/finance-management/account/contra/[id]",
     breadcrumbs: ["Finance Management", "Accounts", "Contra Entry", "Details"],
   },
+  // Finance Management — Journal Entry
+  {
+    basePath: "/finance-management/account/journal",
+    breadcrumbs: ["Finance Management", "Accounts", "Journal Entry", "List"],
+  },
+  {
+    basePath: "/finance-management/account/journal/new",
+    breadcrumbs: ["Finance Management", "Accounts", "Journal Entry", "New"],
+  },
+  {
+    basePath: "/finance-management/account/journal/[id]",
+    breadcrumbs: ["Finance Management", "Accounts", "Journal Entry", "Details"],
+  },
 ];

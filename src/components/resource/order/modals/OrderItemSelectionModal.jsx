@@ -28,6 +28,8 @@ import { getLocalStorage } from "@/lib/localStorage";
 
 import { getInputClass } from "@/lib/formStyles";
 
+import { formatQtyDisplay } from "@/helper/numberFormatter";
+
 import ExpandableTextField from "@/components/common/ExpandableTextField";
 
 export default function OrderItemSelectionModal({
@@ -522,15 +524,15 @@ export default function OrderItemSelectionModal({
 
                       {/* INDENT QTY */}
 
-                      <td className="border p-2 text-sm">{item.indentQty}</td>
+                      <td className="border p-2 text-sm">{formatQtyDisplay(item.indentQty)}</td>
 
                       {/* USED */}
 
-                      <td className="border p-2 text-sm">{item.usedQty}</td>
+                      <td className="border p-2 text-sm">{formatQtyDisplay(item.usedQty)}</td>
 
                       {/* BAL */}
 
-                      <td className="border p-2 text-sm">{item.balanceQty}</td>
+                      <td className="border p-2 text-sm">{formatQtyDisplay(item.balanceQty)}</td>
 
                       {/* ORDER QTY */}
 
