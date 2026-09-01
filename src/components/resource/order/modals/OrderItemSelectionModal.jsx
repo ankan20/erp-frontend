@@ -86,14 +86,19 @@ export default function OrderItemSelectionModal({
           );
 
           const myCurrentQty = existing ? Number(existing.qty || 0) : 0;
-          const effectiveBalance = Number(item.balanceQty) + myCurrentQty;
+          const effectiveBalance = parseFloat(
+            (Number(item.balanceQty) + myCurrentQty).toFixed(3),
+          );
+          const roundedApiQty = parseFloat(
+            Number(item.orderQty ?? item.balanceQty ?? 0).toFixed(3),
+          );
 
           return {
             ...item,
 
             selected: !!existing,
 
-            orderQty: existing?.qty || item.orderQty || item.balanceQty,
+            orderQty: existing ? existing.qty : roundedApiQty,
 
             effectiveBalance,
 
