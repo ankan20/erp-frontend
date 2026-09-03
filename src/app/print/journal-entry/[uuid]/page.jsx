@@ -154,16 +154,15 @@ async function downloadDocx(data, uuid, qrCanvasRef) {
         ),
       }),
       ...lines.map((l, idx) => {
-        const rowShading = idx % 2 === 0 ? undefined : { type: ShadingType.CLEAR, color: "F2F2F2", fill: "F2F2F2" };
         return new TableRow({ children: [
-          tCell(String(l.slNo || idx + 1),      cW[0], false, rowShading, "center"),
-          tCell(l.type        || "—",           cW[1], false, rowShading, "center"),
-          tCell(l.drCr        || "—",           cW[2], true,  rowShading, "center"),
-          tCell(l.accountName || l.accountCode || "—", cW[3], false, rowShading),
-          numCell(l.openingBalance, cW[4], false, rowShading),
-          numCell(l.debitAmount,    cW[5], l.drCr === "Dr", rowShading),
-          numCell(l.creditAmount,   cW[6], l.drCr === "Cr", rowShading),
-          numCell(l.closingBalance, cW[7], false, rowShading),
+          tCell(String(l.slNo || idx + 1),      cW[0], false, undefined, "center"),
+          tCell(l.accountType || "—",           cW[1], false, undefined, "center"),
+          tCell(l.drCr        || "—",           cW[2], true,  undefined, "center"),
+          tCell(l.accountName || l.accountCode || "—", cW[3], false, undefined),
+          numCell(l.openingBalance, cW[4], false, undefined),
+          numCell(l.debitAmount,    cW[5], l.drCr === "Dr", undefined),
+          numCell(l.creditAmount,   cW[6], l.drCr === "Cr", undefined),
+          numCell(l.closingBalance, cW[7], false, undefined),
         ]});
       }),
       // Total row
@@ -356,21 +355,14 @@ export default function JournalEntryPrintPage() {
                 </thead>
                 <tbody>
                   {lines.map((l, idx) => {
-                    const isDr  = l.drCr === "Dr";
-                    const rowBg = idx % 2 === 0 ? COLOR.tableRowOdd : COLOR.tableRowEven;
+                    const isDr = l.drCr === "Dr";
                     return (
-                      <tr key={idx} className={rowBg}>
+                      <tr key={idx}>
                         <td className={`${B} px-2 py-2 ${SIZE.tableCell} text-center text-gray-500`}>
                           {l.slNo || idx + 1}
                         </td>
-                        <td className={`${B} px-2 py-2 ${SIZE.tableCell} text-center`}>
-                          <span className={`inline-block px-1.5 py-0.5 rounded text-[10px] font-semibold ${
-                            l.type === "Vendor"
-                              ? "bg-blue-100 text-blue-700"
-                              : "bg-emerald-100 text-emerald-700"
-                          }`}>
-                            {l.type || "—"}
-                          </span>
+                        <td className={`${B} px-2 py-2 ${SIZE.tableCell} text-center text-gray-700`}>
+                          {l.accountType || "—"}
                         </td>
                         <td className={`${B} px-2 py-2 ${SIZE.tableCell} text-center ${WEIGHT.bold} ${isDr ? "text-[#c0392b]" : "text-[#1a7a3c]"}`}>
                           {l.drCr}

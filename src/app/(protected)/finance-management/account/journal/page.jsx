@@ -18,20 +18,13 @@ import { getLocalStorage }   from "@/lib/localStorage";
 import { getfmtDisplaydate } from "@/helper/getfmtDisplayDate";
 import { formatAmount }      from "@/helper/numberFormatter";
 
-const SUMMARY_ITEMS = [
-  { key: "ccToCC",       label: "CC → CC"       },
-  { key: "ccToVendor",   label: "CC → Vendor"   },
-  { key: "vendorToCC",   label: "Vendor → CC"   },
-  { key: "vendorToVendor", label: "Vendor → Vendor" },
-];
-
 export default function Page() {
   const router = useRouter();
   const access = getPageAccess({ pageCode: "journal", pageType: "LIST" });
 
   const [data,         setData]         = useState([]);
   const [filteredData, setFilteredData] = useState([]);
-  const [summary,      setSummary]      = useState({});
+  const [totals,       setTotals]       = useState({ debit: 0, credit: 0 });
   const [loading,      setLoading]      = useState(true);
 
   const projectCode = getLocalStorage("projectInfo")?.projectCode || "";
@@ -44,7 +37,7 @@ export default function Page() {
       method: "GET",
     })
       .then((res) => {
-        const rows = (res.list || []).map((r, i) => ({
+        const rows = (res.data?.list || []).map((r, i) => ({
           sl:             i + 1,
           _id:            r.id,
           voucherNo:      r.voucherNo      || "",
@@ -55,9 +48,13 @@ export default function Page() {
           workflowStatus: r.workflowStatus || "",
           _raw:           r,
         }));
+        const list = res.data?.list || [];
+        setTotals({
+          debit:  list.reduce((s, r) => s + Number(r.totalDebit  || 0), 0),
+          credit: list.reduce((s, r) => s + Number(r.totalCredit || 0), 0),
+        });
         setData(rows);
         setFilteredData(rows);
-        setSummary(res.summary || {});
       })
       .catch(() => toast.error("Failed to fetch Journal Entry list"))
       .finally(() => setLoading(false));
@@ -130,15 +127,18 @@ export default function Page() {
           }}
         />
 
-        {/* Summary cards */}
+        {/* Summary cards — totals computed from the fetched list */}
         <div className="flex flex-col gap-1 pt-1 w-fit">
-          {SUMMARY_ITEMS.map(({ key, label }) => (
-            <div key={key} className="rounded-sm overflow-hidden border border-gray-200 flex">
+          {[
+            { label: "Total Debit",  value: totals.debit  },
+            { label: "Total Credit", value: totals.credit },
+          ].map(({ label, value }) => (
+            <div key={label} className="rounded-sm overflow-hidden border border-gray-200 flex">
               <div className="bg-[#9590d0] text-white text-[12px] font-medium px-3 py-2 flex items-center w-[140px] shrink-0">
                 {label}
               </div>
               <div className="bg-white text-[12px] text-right px-3 py-2 min-w-[80px] sm:min-w-[140px] font-medium text-gray-700 tabular-nums">
-                {summary[key] ? formatAmount(summary[key]) : "—"}
+                {formatAmount(value)}
               </div>
             </div>
           ))}

@@ -50,7 +50,7 @@ export default function Page() {
       method: "GET",
     })
       .then((res) => {
-        const rows = (res.list || []).map((r, i) => ({
+        const rows = (res.data?.list || []).map((r, i) => ({
           sl:             i + 1,
           _id:            r.id,
           voucherNo:      r.voucherNo      || "",
@@ -65,7 +65,7 @@ export default function Page() {
         }));
         setData(rows);
         setFilteredData(rows);
-        setSummary(res.summary || {});
+        setSummary(res.data?.summary || {});
       })
       .catch(() => toast.error("Failed to fetch Contra Entry list"))
       .finally(() => setLoading(false));

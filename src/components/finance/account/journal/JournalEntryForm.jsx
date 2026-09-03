@@ -27,7 +27,9 @@ import { formatAmount }    from "@/helper/numberFormatter";
 // ─── Schema ───────────────────────────────────────────────────────────────────
 
 const lineSchema = z.object({
+  // `type` is UI-only — not sent to API; backend derives CC/Vendor from whichever FK is set
   type:           z.enum(["CC", "Vendor"]),
+  // `accountId` is the UI selection value (holds ccId or ledgerId depending on type)
   accountId:      z.coerce.number().nullable().optional(),
   openingBalance: z.coerce.number().default(0),
   debitAmount:    z.coerce.number().min(0).default(0),
@@ -36,7 +38,9 @@ const lineSchema = z.object({
 
 const schema = z.object({
   remarks: z.string().optional().default(""),
-  lines:   z.array(lineSchema).length(2),
+  // TODO: currently fixed at 2 lines (row 0 = Dr, row 1 = Cr). If dynamic multi-line
+  // add/remove is needed in future, restore useFieldArray and make drCr a per-row selector.
+  lines: z.array(lineSchema).length(2),
 });
 
 const BLANK_LINE = { type: "CC", accountId: null, openingBalance: 0, debitAmount: 0, creditAmount: 0 };
@@ -108,24 +112,19 @@ export default function JournalEntryForm({ mode = "create", journalId, onAfterSu
         const sorted = [...(d.lines || [])].sort((a, b) => a.slNo - b.slNo);
         const dr     = sorted.find((l) => l.drCr === "Dr") || sorted[0] || {};
         const cr     = sorted.find((l) => l.drCr === "Cr") || sorted[1] || {};
+
+        // API returns ccId / vendorId per line; derive type and accountId for the UI
+        const mapLine = (l) => ({
+          type:           l.ccId ? "CC" : "Vendor",
+          accountId:      l.ccId || l.vendorId || null,
+          openingBalance: Number(l.openingBalance || 0),
+          debitAmount:    Number(l.debitAmount    || 0),
+          creditAmount:   Number(l.creditAmount   || 0),
+        });
+
         reset({
           remarks: d.remarks || "",
-          lines: [
-            {
-              type:           dr.type           || "CC",
-              accountId:      dr.accountId      || null,
-              openingBalance: Number(dr.openingBalance || 0),
-              debitAmount:    Number(dr.debitAmount    || 0),
-              creditAmount:   0,
-            },
-            {
-              type:           cr.type           || "CC",
-              accountId:      cr.accountId      || null,
-              openingBalance: Number(cr.openingBalance || 0),
-              debitAmount:    0,
-              creditAmount:   Number(cr.creditAmount   || 0),
-            },
-          ],
+          lines:   [mapLine(dr), mapLine(cr)],
         });
         setErpVoucherNo(d.voucherNo || "");
         setEntryDate(d.entryDate   || "");
@@ -164,9 +163,10 @@ export default function JournalEntryForm({ mode = "create", journalId, onAfterSu
       remarks: v.remarks || "",
       lines: v.lines.map((l, i) => ({
         slNo:           i + 1,
-        type:           l.type,
         drCr:           i === 0 ? "Dr" : "Cr",
-        accountId:      Number(l.accountId),
+        // backend derives CC/Vendor from whichever FK is set; type is UI-only
+        ccId:           l.type === "CC"     ? Number(l.accountId) : null,
+        vendorId:       l.type === "Vendor" ? Number(l.accountId) : null,
         openingBalance: Number(l.openingBalance || 0),
         debitAmount:    i === 0 ? Number(l.debitAmount  || 0) : 0,
         creditAmount:   i === 1 ? Number(l.creditAmount || 0) : 0,
