@@ -1,4 +1,5 @@
 "use client";
+import { DOCX_FONT } from "@/config/fonts.config";
 
 import { useEffect, useRef, useState } from "react";
 import { useParams } from "next/navigation";
@@ -59,7 +60,7 @@ async function downloadDocx(data, qrCanvasRef) {
   } catch (_) {}
 
   const run = (text, opts = {}) =>
-    new TextRun({ text: String(text ?? "-"), font: "Calibri", size: 20, ...opts });
+    new TextRun({ text: String(text ?? "-"), font: DOCX_FONT, size: 20, ...opts });
 
   const nilB        = { style: BorderStyle.NIL, size: 0, color: "auto" };
   const nilBorders  = { top: nilB, bottom: nilB, left: nilB, right: nilB, insideH: nilB, insideV: nilB };
@@ -573,7 +574,7 @@ export default function OGSaleOrderPrintPage() {
           margin: 8mm 8mm 12mm 8mm;
           @bottom-center {
             content: counter(page, decimal-leading-zero) " of " counter(pages, decimal-leading-zero);
-            font-size: 9pt; color: #6b7280; font-family: Calibri, sans-serif;
+            font-size: 9pt; color: #6b7280; font-family: ${DOCX_FONT}, sans-serif;
           }
         }
         @media print {

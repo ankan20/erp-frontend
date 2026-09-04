@@ -1,16 +1,9 @@
-import { Geist, Geist_Mono } from "next/font/google";
+import { APP_FONT, APP_FONT_MONO } from "@/config/fonts.config";
 import { Toaster } from "@/components/ui/sonner";
 import "./globals.css";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
-});
-
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
-});
+const geistSans = APP_FONT;
+const geistMono = APP_FONT_MONO;
 
 export const metadata = {
   title: "Prax Construction ERP",

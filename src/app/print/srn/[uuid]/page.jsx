@@ -1,4 +1,5 @@
 "use client";
+import { DOCX_FONT } from "@/config/fonts.config";
 
 import { useEffect, useRef, useState } from "react";
 import { useParams } from "next/navigation";
@@ -75,7 +76,7 @@ async function downloadDocx(data, qrCanvasRef) {
   let qrBuffer = null;
   try { const c = qrCanvasRef?.current; if (c) { const d = c.toDataURL("image/png"); qrBuffer = await fetch(d).then(r => r.arrayBuffer()); } } catch (_) {}
 
-  const run = (text, opts = {}) => new TextRun({ text: String(text ?? "-"), font: "Calibri", size: 20, ...opts });
+  const run = (text, opts = {}) => new TextRun({ text: String(text ?? "-"), font: DOCX_FONT, size: 20, ...opts });
   const nilB = { style: BorderStyle.NIL, size: 0, color: "auto" };
   const nilBorders = { top: nilB, bottom: nilB, left: nilB, right: nilB, insideH: nilB, insideV: nilB };
   const tblBorder  = { style: BorderStyle.SINGLE, size: 4, color: "B0B0B0" };
@@ -357,7 +358,7 @@ export default function SRNPrintPage() {
             content: counter(page, decimal-leading-zero) " of " counter(pages, decimal-leading-zero);
             font-size: 9pt;
             color: #6b7280;
-            font-family: Calibri, sans-serif;
+            font-family: ${DOCX_FONT}, sans-serif;
           }
         }
         @media print {

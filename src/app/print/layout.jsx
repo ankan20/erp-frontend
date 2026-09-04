@@ -1,11 +1,6 @@
-import { Exo_2 } from "next/font/google";
+import { PRINT_FONT } from "@/config/fonts.config";
 
-const exo2 = Exo_2({
-  subsets: ["latin"],
-  weight: ["300", "400", "500", "600", "700"],
-  variable: "--font-print",
-  display: "swap",
-});
+const exo2 = PRINT_FONT;
 
 export const metadata = {
   title: "Document View",

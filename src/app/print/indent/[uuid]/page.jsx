@@ -1,4 +1,5 @@
 "use client";
+import { DOCX_FONT } from "@/config/fonts.config";
 
 import { useEffect, useRef, useState } from "react";
 import { useParams } from "next/navigation";
@@ -104,7 +105,7 @@ async function downloadDocx(data, qrCanvasRef) {
   } catch (_) {}
 
   const run = (text, opts = {}) =>
-    new TextRun({ text: String(text ?? "-"), font: "Calibri", size: 20, ...opts });
+    new TextRun({ text: String(text ?? "-"), font: DOCX_FONT, size: 20, ...opts });
 
   // NIL borders = truly invisible
   const nilB   = { style: BorderStyle.NIL, size: 0, color: "auto" };
@@ -490,7 +491,7 @@ export default function IndentPrintPage() {
             content: counter(page, decimal-leading-zero) " of " counter(pages, decimal-leading-zero);
             font-size: 9pt;
             color: #6b7280;
-            font-family: Calibri, sans-serif;
+            font-family: ${DOCX_FONT}, sans-serif;
           }
         }
         @media print {

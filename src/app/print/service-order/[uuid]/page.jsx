@@ -1,4 +1,5 @@
 "use client";
+import { DOCX_FONT } from "@/config/fonts.config";
 
 import { useEffect, useRef, useState } from "react";
 import { useParams } from "next/navigation";
@@ -584,7 +585,7 @@ export default function ServiceOrderPrintPage() {
             content: counter(page, decimal-leading-zero) " of " counter(pages, decimal-leading-zero);
             font-size: 9pt;
             color: #6b7280;
-            font-family: Calibri, sans-serif;
+            font-family: ${DOCX_FONT}, sans-serif;
           }
         }
 
