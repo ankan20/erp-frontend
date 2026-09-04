@@ -324,7 +324,7 @@ export default function DataTable({
 
         <table className="w-full min-w-max table-fixed border-collapse text-sm">
 
-          <thead className="bg-[#b7cfa5] sticky top-0 z-10">
+          <thead className="bg-[#2a536d] sticky top-0 z-10">
             <tr>
               {columns.map((col, index) => {
                 const width = col.width || (index === 0 ? "65px" : undefined);
@@ -338,7 +338,7 @@ export default function DataTable({
                   <th
                     key={index}
                     style={width ? { width, minWidth: width, maxWidth: width } : {}}
-                    className="border border-[#9e9e9e] px-2 py-1 font-semibold whitespace-nowrap"
+                    className="border border-[#2e5a72] px-2 py-1 font-semibold whitespace-nowrap text-white"
                   >
                     <div className="flex items-center justify-between gap-1">
 
