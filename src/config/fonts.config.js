@@ -13,23 +13,26 @@
  *      OR a font you embed separately. Standard safe choices: Calibri, Arial, Times New Roman.
  */
 
-import { Tinos, Geist_Mono } from "next/font/google";
+import { Exo_2, Roboto_Mono } from "next/font/google";
 
-export const APP_FONT = Tinos({
+export const APP_FONT = Exo_2({
   variable: "--font-geist-sans",
   subsets: ["latin"],
-  weight: ["400", "700"],
+  weight: ["300", "400", "500", "600", "700"],
   display: "swap",
 });
 
-export const APP_FONT_MONO = Geist_Mono({
+// Changed from Geist_Mono → Roboto_Mono: pairs better with Exo_2 (neutral, clean, built for data/tables)
+export const APP_FONT_MONO = Roboto_Mono({
   variable: "--font-geist-mono",
   subsets: ["latin"],
+  weight: ["400", "500", "700"],
+  display: "swap",
 });
 
-export const PRINT_FONT = Tinos({
+export const PRINT_FONT = Exo_2({
   subsets: ["latin"],
-  weight: ["400", "700"],
+  weight: ["300", "400", "500", "600", "700"],
   variable: "--font-print",
   display: "swap",
 });
