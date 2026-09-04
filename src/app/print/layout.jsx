@@ -8,7 +8,7 @@ export const metadata = {
 
 export default function PrintLayout({ children }) {
   return (
-    <div className={`${exo2.variable} bg-gray-100 min-h-screen`} style={{ fontFamily: "var(--font-print), sans-serif" }}>
+    <div className={`${exo2.variable} bg-gray-100 min-h-screen`} style={{ fontFamily: "var(--font-geist-print), sans-serif" }}>
       {children}
     </div>
   );
