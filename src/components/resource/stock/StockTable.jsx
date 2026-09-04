@@ -208,13 +208,13 @@ function ChildTable({ items: rawItems = [], onItemClick }) {
         <div className="flex items-center justify-between gap-1">
           <span onClick={() => handleSort(col.key)} className="cursor-pointer flex-1 truncate">{col.label}</span>
           <div className="flex items-center gap-0.5 shrink-0">
-            <span onClick={() => handleSort(col.key)} className="cursor-pointer text-gray-600 hover:text-gray-900">
+            <span onClick={() => handleSort(col.key)} className="cursor-pointer text-white/70 hover:text-white">
               {sortConfig.key === col.key
                 ? sortConfig.direction === "asc" ? <ArrowUp size={11} /> : <ArrowDown size={11} />
                 : <ArrowUpDown size={11} className="opacity-40" />}
             </span>
             <span onClick={(e) => openFilter(e, col.key)}
-              className={`cursor-pointer rounded px-0.5 hover:bg-black/10 transition-colors ${filterOn ? "text-blue-600" : "text-gray-500"}`}>
+              className={`cursor-pointer rounded px-0.5 hover:bg-black/10 transition-colors ${filterOn ? "text-yellow-300" : "text-white/70"}`}>
               {filterOn ? (
                 <span className="relative inline-flex items-center">
                   <ChevronDown size={11} />
@@ -272,7 +272,7 @@ function SortFilterHeader({ colKey, label, sortConfig, onSort, filterConfig, onO
           {label}
         </span>
         <div className="flex items-center gap-0.5 shrink-0">
-          <span onClick={() => onSort(colKey)} className="cursor-pointer text-gray-600 hover:text-gray-900">
+          <span onClick={() => onSort(colKey)} className="cursor-pointer text-white/70 hover:text-white">
             {sortConfig.key === colKey
               ? sortConfig.direction === "asc"
                 ? <ArrowUp size={13} />
@@ -281,7 +281,7 @@ function SortFilterHeader({ colKey, label, sortConfig, onSort, filterConfig, onO
           </span>
           <span
             onClick={(e) => onOpenFilter(e, colKey)}
-            className={`cursor-pointer rounded px-0.5 hover:bg-black/10 transition-colors ${filterOn ? "text-blue-600" : "text-gray-500"}`}
+            className={`cursor-pointer rounded px-0.5 hover:bg-black/10 transition-colors ${filterOn ? "text-yellow-300" : "text-white/70"}`}
           >
             {filterOn ? (
               <span className="relative inline-flex items-center">
@@ -557,7 +557,7 @@ export default function StockTable({ data = [], onItemClick, pagination, onPageC
       )}
       <div className="max-h-[608px] overflow-y-auto">
         <table className="w-full min-w-max border-collapse text-sm">
-          <thead className="bg-[#b7cfa5] sticky top-0 z-10">
+          <thead className="bg-[#144664] sticky top-0 z-10 text-white">
             <tr>
               {/* expand + sl_no */}
               <th className="border border-[#9e9e9e] px-2 py-1 font-semibold whitespace-nowrap w-[65px]">
