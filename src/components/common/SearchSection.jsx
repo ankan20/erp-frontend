@@ -32,7 +32,7 @@ export default function SearchSection({
 
           {/* ROW 1 — search input */}
           <div className="flex items-center gap-2 flex-wrap">
-            <div className="px-3.5 py-0.5 bg-[#b4b4d9] border border-[#6a6aa8] text-[14px] leading-5 rounded-sm whitespace-nowrap">
+            <div className="px-3.5 py-0.5 bg-[#7fc3d4] border border-[#5aafc2] text-[14px] leading-5 rounded-sm whitespace-nowrap">
               Contain Search
             </div>
             <input
@@ -47,7 +47,7 @@ export default function SearchSection({
           {showDateRange && (
             <div className="flex items-center gap-4 flex-wrap">
               <div className="flex items-center gap-2">
-                <div className="px-3 py-0.5 bg-[#b4b4d9] border border-[#6a6aa8] text-sm rounded-sm whitespace-nowrap">
+                <div className="px-3 py-0.5 bg-[#7fc3d4] border border-[#5aafc2] text-sm rounded-sm whitespace-nowrap">
                   From
                 </div>
                 <input
@@ -58,7 +58,7 @@ export default function SearchSection({
                 />
               </div>
               <div className="flex items-center gap-2">
-                <div className="px-3 py-0.5 bg-[#b4b4d9] border border-[#6a6aa8] text-sm rounded-sm whitespace-nowrap">
+                <div className="px-3 py-0.5 bg-[#7fc3d4] border border-[#5aafc2] text-sm rounded-sm whitespace-nowrap">
                   To
                 </div>
                 <input
