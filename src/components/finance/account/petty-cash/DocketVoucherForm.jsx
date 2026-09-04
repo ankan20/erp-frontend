@@ -23,7 +23,7 @@ import PMFormRow            from "@/components/project-management/common/PMFormR
 import PMInput              from "@/components/project-management/common/PMInput";
 import PMSelect             from "@/components/project-management/common/PMSelect";
 import PMTextarea           from "@/components/project-management/common/PMTextarea";
-import { getPageActions, usePageActions } from "@/components/common/PageActionButtons";
+import { usePageActions }   from "@/components/common/PageActionButtons";
 
 import { apiRequest }      from "@/lib/apiClient";
 import { API_ENDPOINTS }   from "@/config/api.config";
@@ -46,7 +46,7 @@ const LABEL_W = "sm:w-[160px] sm:min-w-[160px]";
 
 const docketSchema = z.object({
   voucherDate:   z.string().min(1, "Voucher date required"),
-  budgetRef:     z.string().optional(),
+  budgetId:      z.coerce.number().nullable().optional(),
   expensesBy:    z.string().min(1, "Expenses by required"),
   modeOfPayment: z.string().min(1, "Payment mode required"),
   fundSource:    z.string().min(1, "Fund source required"),
@@ -61,11 +61,10 @@ const docketSchema = z.object({
   ).min(1),
 });
 
-const defaultItem = { ccCode: "", ccName: "", description: "", amount: "" };
-
-const defaultValues = {
+const defaultItem    = { ccCode: "", ccName: "", description: "", amount: "" };
+const defaultValues  = {
   voucherDate:   "",
-  budgetRef:     "",
+  budgetId:      null,
   expensesBy:    "",
   modeOfPayment: "",
   fundSource:    "",
@@ -75,9 +74,11 @@ const defaultValues = {
 
 export default function DocketVoucherForm({ mode = "create", voucherId, canApprove = false }) {
   const isViewMode = mode === "view" || mode === "approver";
+
   const [isEditing,         setIsEditing]         = useState(mode === "create");
   const [initialData,       setInitialData]        = useState(null);
   const [ccOptions,         setCcOptions]          = useState([]);
+  const [budgetOptions,     setBudgetOptions]      = useState([]);
   const [attachedFile,      setAttachedFile]       = useState(null);
   const [existingFileUrl,   setExistingFileUrl]    = useState("");
   const [initialFileUrl,    setInitialFileUrl]     = useState("");
@@ -95,13 +96,7 @@ export default function DocketVoucherForm({ mode = "create", voucherId, canAppro
   const projectCode = getLocalStorage("projectInfo")?.projectCode || "";
 
   const {
-    register,
-    control,
-    reset,
-    setValue,
-    getValues,
-    watch,
-    handleSubmit,
+    register, control, reset, setValue, getValues, watch, handleSubmit,
     formState: { errors, isSubmitting },
   } = useForm({ resolver: zodResolver(docketSchema), defaultValues });
 
@@ -111,7 +106,7 @@ export default function DocketVoucherForm({ mode = "create", voucherId, canAppro
   const modeOfPayment = watch("modeOfPayment");
   const isCash        = modeOfPayment === "Cash";
 
-  // When mode switches to Cash, keep only the first row
+  // Cash → only 1 row
   useEffect(() => {
     if (!isEditing || !isCash) return;
     if (fields.length > 1) {
@@ -120,17 +115,51 @@ export default function DocketVoucherForm({ mode = "create", voucherId, canAppro
     }
   }, [isCash]);
 
+  // Load CC codes
   useEffect(() => {
     apiRequest({ url: API_ENDPOINTS.MASTER.GET_ALL_CC_CODE, method: "GET" })
-      .then((res) => {
-        setCcOptions(Array.isArray(res.data) ? res.data : []);
-      })
+      .then((res) => setCcOptions(Array.isArray(res.data) ? res.data : []))
       .catch(() => {});
   }, []);
 
+  // Load approved budgets for the Budget Ref select
+  useEffect(() => {
+    if (!projectCode) return;
+    apiRequest({
+      url:    `${API_ENDPOINTS.FINANCE.PETTY_CASH.BUDGET.LIST}?projectCode=${projectCode}&workflowStatus=Approved`,
+      method: "GET",
+    })
+      .then((res) => setBudgetOptions(res.data?.list || res.data || []))
+      .catch(() => {});
+  }, [projectCode]);
+
+  // Pre-fill items from a selected budget
+  const handleBudgetSelect = async (budgetId) => {
+    if (!budgetId) { setValue("budgetId", null); return; }
+    setValue("budgetId", Number(budgetId));
+    try {
+      const res = await apiRequest({
+        url:    `${API_ENDPOINTS.FINANCE.PETTY_CASH.DOCKET_VOUCHER.BUDGET_ROWS}${budgetId}`,
+        method: "GET",
+      });
+      const rows = res.data?.rows || [];
+      if (rows.length === 0) return;
+      const mapped = rows.map((r) => ({
+        ccCode:      r.ccCode       || "",
+        ccName:      r.ccName       || "",
+        description: r.shortDescription || "",
+        amount:      "",
+      }));
+      setValue("items", mapped);
+      toast.success("Budget rows pre-filled. Adjust amounts as needed.");
+    } catch (err) {
+      toast.error(err.message || "Failed to fetch budget rows");
+    }
+  };
+
+  // Load existing voucher
   useEffect(() => {
     if (mode === "create" || !voucherId) return;
-
     const load = async () => {
       try {
         setIsLoading(true);
@@ -142,22 +171,22 @@ export default function DocketVoucherForm({ mode = "create", voucherId, canAppro
         setVoucherNo(d.voucherNo || "");
         const formData = {
           voucherDate:   d.voucherDate   || "",
-          budgetRef:     d.budgetRef     || "",
+          budgetId:      d.budgetId      || null,
           expensesBy:    d.expensesBy    || "",
           modeOfPayment: d.modeOfPayment || "",
           fundSource:    d.fundSource    || "",
           paymentRefId:  d.paymentRefId  || "",
-          items: (d.items || []).map((it) => ({
-            ccCode:      it.ccCode      || "",
-            ccName:      it.ccName      || "",
-            description: it.description || "",
-            amount:      it.amount      || "",
+          items: (d.details || []).map((it) => ({
+            ccCode:      it.ccCode           || "",
+            ccName:      it.ccName           || "",
+            description: it.shortDescription || "",
+            amount:      it.amount           || "",
           })),
         };
         reset(formData);
         setInitialData(formData);
-        setExistingFileUrl(d.attachmentUrl || "");
-        setInitialFileUrl(d.attachmentUrl  || "");
+        setExistingFileUrl(d.attachmentUrl || d.attachment || "");
+        setInitialFileUrl(d.attachmentUrl  || d.attachment || "");
 
         const notEditable = ["Submitted", "Approved", "Rejected"].includes(d.workflowStatus)
           && d.workflowStatus !== "Reback";
@@ -175,7 +204,6 @@ export default function DocketVoucherForm({ mode = "create", voucherId, canAppro
         setIsLoading(false);
       }
     };
-
     load();
 
     if (canApprove) {
@@ -191,19 +219,20 @@ export default function DocketVoucherForm({ mode = "create", voucherId, canAppro
   const buildPayload = () => {
     const v = getValues();
     const formData = new FormData();
-    formData.append("projectCode",    projectCode);
-    formData.append("voucherDate",    v.voucherDate);
-    formData.append("budgetRef",      v.budgetRef     || "");
-    formData.append("expensesBy",     v.expensesBy);
-    formData.append("modeOfPayment",  v.modeOfPayment);
-    formData.append("fundSource",     v.fundSource);
-    formData.append("paymentRefId",   v.paymentRefId  || "");
-    formData.append("items", JSON.stringify(
-      v.items.map((it) => ({
-        ccCode:      it.ccCode,
-        ccName:      it.ccName      || "",
-        description: it.description || "",
-        amount:      Number(it.amount),
+    formData.append("projectCode",   projectCode);
+    formData.append("voucherDate",   v.voucherDate);
+    if (v.budgetId) formData.append("budgetId", String(v.budgetId));
+    formData.append("expensesBy",    v.expensesBy);
+    formData.append("modeOfPayment", v.modeOfPayment);
+    formData.append("fundSource",    v.fundSource);
+    formData.append("paymentRefId",  v.paymentRefId || "");
+    formData.append("details", JSON.stringify(
+      v.items.map((it, i) => ({
+        slNo:             i + 1,
+        ccCode:           it.ccCode,
+        ccName:           it.ccName      || "",
+        shortDescription: it.description || "",
+        amount:           Number(it.amount),
       }))
     ));
     if (attachedFile) formData.append("attachment", attachedFile);
@@ -340,11 +369,17 @@ export default function DocketVoucherForm({ mode = "create", voucherId, canAppro
                 />
               </PMFormRow>
 
+              {/* Budget Ref — SearchableSelect from approved budget list */}
               <PMFormRow label="Budget Ref." labelWidth={LABEL_W}>
-                <PMInput
-                  {...register("budgetRef")}
-                  placeholder="Number"
+                <SearchableSelect
+                  options={budgetOptions}
+                  value={watch("budgetId") ? String(watch("budgetId")) : ""}
                   disabled={disabled}
+                  onChange={(val) => handleBudgetSelect(val)}
+                  placeholder="Select approved budget…"
+                  labelKey="budgetNo"
+                  valueKey="id"
+                  searchKeys={["budgetNo"]}
                 />
               </PMFormRow>
 

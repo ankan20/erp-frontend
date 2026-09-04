@@ -32,9 +32,10 @@ import { getLocalStorage } from "@/lib/localStorage";
 import { formatAmount }    from "@/helper/numberFormatter";
 
 const FREQUENCY_OPTIONS = [
-  { value: "Weekly",     label: "Weekly"     },
-  { value: "Monthly",    label: "Monthly"    },
-  { value: "Additional", label: "Additional" },
+  { value: "Weekly",    label: "Weekly"    },
+  { value: "Monthly",   label: "Monthly"   },
+  { value: "Quarterly", label: "Quarterly" },
+  { value: "Yearly",    label: "Yearly"    },
 ];
 
 const WEEK_OPTIONS = ["W1", "W2", "W3", "W4", "W5"].map((w) => ({ value: w, label: w }));
@@ -146,11 +147,11 @@ export default function BudgetForm({ mode = "create", budgetId, canApprove = fal
           weekMark:        d.weekMark        || "",
           fromDate:        d.fromDate        || "",
           toDate:          d.toDate          || "",
-          items: (d.items || []).map((it) => ({
-            ccCode:       it.ccCode       || "",
-            ccName:       it.ccName       || "",
-            description:  it.description  || "",
-            budgetAmount: it.budgetAmount  || "",
+          items: (d.details || []).map((it) => ({
+            ccCode:       it.ccCode            || "",
+            ccName:       it.ccName            || "",
+            description:  it.shortDescription  || "",
+            budgetAmount: it.budgetAmount       || "",
           })),
         };
         reset(formData);
@@ -193,16 +194,15 @@ export default function BudgetForm({ mode = "create", budgetId, canApprove = fal
     formData.append("projectCode",     projectCode);
     formData.append("budgetDate",      v.budgetDate);
     formData.append("budgetFrequency", v.budgetFrequency);
-    formData.append("month",           v.month    || "");
-    formData.append("weekMark",        v.weekMark || "");
     formData.append("fromDate",        v.fromDate);
     formData.append("toDate",          v.toDate);
-    formData.append("items", JSON.stringify(
-      v.items.map((it) => ({
-        ccCode:       it.ccCode,
-        ccName:       it.ccName      || "",
-        description:  it.description || "",
-        budgetAmount: Number(it.budgetAmount),
+    formData.append("details", JSON.stringify(
+      v.items.map((it, i) => ({
+        slNo:             i + 1,
+        ccCode:           it.ccCode,
+        ccName:           it.ccName      || "",
+        shortDescription: it.description || "",
+        budgetAmount:     Number(it.budgetAmount),
       }))
     ));
     if (attachedFile) formData.append("attachment", attachedFile);

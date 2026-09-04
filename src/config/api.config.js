@@ -600,29 +600,32 @@ export const API_ENDPOINTS = {
     PETTY_CASH: {
       LEDGER: "/finance/petty-cash/ledger",          // GET ?projectCode&fromDate&toDate
       BUDGET: {
-        LIST:               "/finance/petty-cash/budget/list",               // GET ?projectCode
-        CREATE:             "/finance/petty-cash/budget/create",             // POST JSON
-        GET_BY_ID:          "/finance/petty-cash/budget/",                   // /:id GET
-        UPDATE:             "/finance/petty-cash/budget/edit/",              // /:id PUT JSON
-        SUBMIT:             "/finance/petty-cash/budget/submit/",            // /:id POST
-        APPROVE:            "/finance/petty-cash/budget/approve/",           // /:id POST { comments }
-        REBACK:             "/finance/petty-cash/budget/reback/",            // /:id POST { comments }
-        REJECT:             "/finance/petty-cash/budget/reject/",            // /:id POST { comments }
-        HISTORY:            "/finance/petty-cash/budget/history/",           // /:id GET
-        MY_APPROVAL_STATUS: "/finance/petty-cash/budget/my-approval-status/",// /:id GET
+        LIST:               "/finance/petty-cash/budget/list",                // GET ?projectCode[&workflowStatus&search&fromDate&toDate]
+        CREATE:             "/finance/petty-cash/budget/create",              // POST multipart (details JSON string + attachment file)
+        GET_BY_ID:          "/finance/petty-cash/budget/",                    // /:id GET
+        UPDATE:             "/finance/petty-cash/budget/edit/",               // /:id PUT multipart
+        SUBMIT:             "/finance/petty-cash/budget/submit/",             // /:id POST (no body)
+        APPROVE:            "/finance/petty-cash/budget/approve/",            // /:id POST { comments }
+        REBACK:             "/finance/petty-cash/budget/reback/",             // /:id POST { comments } required
+        REJECT:             "/finance/petty-cash/budget/reject/",             // /:id POST { comments } required
+        HISTORY:            "/finance/petty-cash/budget/history/",            // /:id GET
+        MY_APPROVAL_STATUS: "/finance/petty-cash/budget/my-approval-status/", // /:id GET
+        REVISE:             "/finance/petty-cash/budget/revise/",             // /:id PUT { revisions:[{detailRowId,newAmount,remark}] }
+        REVISION_HISTORY:   "/finance/petty-cash/budget/revision-history/",  // /:id GET
       },
       DOCKET_VOUCHER: {
-        LIST:               "/finance/petty-cash/docket-voucher/list",               // GET ?projectCode
-        CREATE:             "/finance/petty-cash/docket-voucher/create",             // POST FormData
-        GET_BY_ID:          "/finance/petty-cash/docket-voucher/",                   // /:id GET
-        UPDATE:             "/finance/petty-cash/docket-voucher/edit/",              // /:id PUT FormData
-        SUBMIT:             "/finance/petty-cash/docket-voucher/submit/",            // /:id POST
-        APPROVE:            "/finance/petty-cash/docket-voucher/approve/",           // /:id POST { comments }
-        REBACK:             "/finance/petty-cash/docket-voucher/reback/",            // /:id POST { comments }
-        REJECT:             "/finance/petty-cash/docket-voucher/reject/",            // /:id POST { comments }
-        DELETE:             "/finance/petty-cash/docket-voucher/delete/",            // /:id DELETE
-        HISTORY:            "/finance/petty-cash/docket-voucher/history/",           // /:id GET
-        MY_APPROVAL_STATUS: "/finance/petty-cash/docket-voucher/my-approval-status/",// /:id GET
+        LIST:               "/finance/petty-cash/docket-voucher/list",                // GET ?projectCode[&workflowStatus&search&fromDate&toDate]
+        CREATE:             "/finance/petty-cash/docket-voucher/create",              // POST multipart (details JSON string + attachment file)
+        GET_BY_ID:          "/finance/petty-cash/docket-voucher/",                    // /:id GET
+        UPDATE:             "/finance/petty-cash/docket-voucher/edit/",               // /:id PUT multipart
+        SUBMIT:             "/finance/petty-cash/docket-voucher/submit/",             // /:id POST (no body)
+        APPROVE:            "/finance/petty-cash/docket-voucher/approve/",            // /:id POST { comments }
+        REBACK:             "/finance/petty-cash/docket-voucher/reback/",             // /:id POST { comments } required
+        REJECT:             "/finance/petty-cash/docket-voucher/reject/",             // /:id POST { comments } required
+        DELETE:             "/finance/petty-cash/docket-voucher/delete/",             // /:id DELETE
+        HISTORY:            "/finance/petty-cash/docket-voucher/history/",            // /:id GET
+        MY_APPROVAL_STATUS: "/finance/petty-cash/docket-voucher/my-approval-status/", // /:id GET
+        BUDGET_ROWS:        "/finance/petty-cash/docket-voucher/budget-rows/",        // /:budgetId GET — pre-fill helper
       },
     },
   },
