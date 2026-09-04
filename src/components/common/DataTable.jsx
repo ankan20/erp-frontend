@@ -324,7 +324,7 @@ export default function DataTable({
 
         <table className="w-full min-w-max table-fixed border-collapse text-sm">
 
-          <thead className="bg-[#2a536d] sticky top-0 z-10">
+          <thead className="bg-[#3d7a9e] sticky top-0 z-10">
             <tr>
               {columns.map((col, index) => {
                 const width = col.width || (index === 0 ? "65px" : undefined);
