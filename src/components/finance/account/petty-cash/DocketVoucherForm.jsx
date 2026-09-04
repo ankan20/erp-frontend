@@ -14,8 +14,6 @@ import SaveButton           from "@/components/common/SaveButton";
 import EditButton           from "@/components/common/EditButton";
 import SaveDraftButton      from "@/components/common/SaveDraftButton";
 import FileUpload, { ACCEPT_ALL, TYPES_ALL } from "@/components/common/FileUpload";
-import ApprovalActionModal  from "@/components/common/ApprovalActionModal";
-import HistoryTimelineSheet from "@/components/common/HistoryTimelineSheet";
 import SearchableSelect     from "@/components/common/SearchableSelect";
 import AmountInput          from "@/components/common/AmountInput";
 import PMSection            from "@/components/project-management/common/PMSection";
@@ -23,7 +21,6 @@ import PMFormRow            from "@/components/project-management/common/PMFormR
 import PMInput              from "@/components/project-management/common/PMInput";
 import PMSelect             from "@/components/project-management/common/PMSelect";
 import PMTextarea           from "@/components/project-management/common/PMTextarea";
-import { usePageActions }   from "@/components/common/PageActionButtons";
 
 import { apiRequest }      from "@/lib/apiClient";
 import { API_ENDPOINTS }   from "@/config/api.config";
@@ -86,9 +83,6 @@ export default function DocketVoucherForm({ mode = "create", voucherId, canAppro
   const [isLoading,         setIsLoading]          = useState(mode !== "create");
   const [isSubmitted,       setIsSubmitted]        = useState(false);
   const [allowSubmit,       setAllowSubmit]        = useState(false);
-  const [approvalOpen,      setApprovalOpen]       = useState(false);
-  const [historyOpen,       setHistoryOpen]        = useState(false);
-  const [isPendingApproval, setIsPendingApproval]  = useState(false);
   const [voucherNo,         setVoucherNo]          = useState("");
   const [sidebarOpen,       setSidebarOpen]        = useState(true);
 
@@ -206,14 +200,6 @@ export default function DocketVoucherForm({ mode = "create", voucherId, canAppro
     };
     load();
 
-    if (canApprove) {
-      apiRequest({
-        url:    `${API_ENDPOINTS.FINANCE.PETTY_CASH.DOCKET_VOUCHER.MY_APPROVAL_STATUS}${voucherId}`,
-        method: "GET",
-      })
-        .then((res) => setIsPendingApproval(!!res.data?.isPending))
-        .catch(() => {});
-    }
   }, [voucherId, mode]);
 
   const buildPayload = () => {
@@ -302,34 +288,10 @@ export default function DocketVoucherForm({ mode = "create", voucherId, canAppro
     setAllowSubmit(false);
   };
 
-  const handleApprovalAction = async ({ action, comments }) => {
-    const ep = {
-      approve: API_ENDPOINTS.FINANCE.PETTY_CASH.DOCKET_VOUCHER.APPROVE,
-      reback:  API_ENDPOINTS.FINANCE.PETTY_CASH.DOCKET_VOUCHER.REBACK,
-      reject:  API_ENDPOINTS.FINANCE.PETTY_CASH.DOCKET_VOUCHER.REJECT,
-    }[action];
-    if (!ep) return;
-    let tid;
-    try {
-      tid = toast.loading("Processing…");
-      await apiRequest({ url: `${ep}${voucherId}`, method: "POST", data: { comments } });
-      toast.success("Action completed", { id: tid });
-      setApprovalOpen(false);
-      router.refresh();
-    } catch (err) {
-      toast.error(err.message || "Failed", { id: tid });
-    }
-  };
 
   const watchedItems = watch("items") || [];
   const totalAmount  = watchedItems.reduce((s, it) => s + Number(it.amount || 0), 0);
 
-  usePageActions({
-    router,
-    onTimeLine: voucherId ? () => setHistoryOpen(true) : undefined,
-    onApprove:  canApprove && voucherId ? () => setApprovalOpen(true) : undefined,
-    isPendingApproval,
-  });
 
   if (isLoading) {
     return (
@@ -598,21 +560,6 @@ export default function DocketVoucherForm({ mode = "create", voucherId, canAppro
         )}
       </div>
 
-      {approvalOpen && (
-        <ApprovalActionModal
-          open={approvalOpen}
-          onClose={() => setApprovalOpen(false)}
-          onAction={handleApprovalAction}
-        />
-      )}
-
-      {historyOpen && (
-        <HistoryTimelineSheet
-          open={historyOpen}
-          onClose={() => setHistoryOpen(false)}
-          fetchUrl={`${API_ENDPOINTS.FINANCE.PETTY_CASH.DOCKET_VOUCHER.HISTORY}${voucherId}`}
-        />
-      )}
     </>
   );
 }

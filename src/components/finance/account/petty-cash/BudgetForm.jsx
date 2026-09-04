@@ -14,8 +14,6 @@ import SaveButton           from "@/components/common/SaveButton";
 import EditButton           from "@/components/common/EditButton";
 import SaveDraftButton      from "@/components/common/SaveDraftButton";
 import FileUpload, { ACCEPT_ALL, TYPES_ALL } from "@/components/common/FileUpload";
-import ApprovalActionModal  from "@/components/common/ApprovalActionModal";
-import HistoryTimelineSheet from "@/components/common/HistoryTimelineSheet";
 import SearchableSelect     from "@/components/common/SearchableSelect";
 import AmountInput          from "@/components/common/AmountInput";
 import PMSection            from "@/components/project-management/common/PMSection";
@@ -23,7 +21,6 @@ import PMFormRow            from "@/components/project-management/common/PMFormR
 import PMInput              from "@/components/project-management/common/PMInput";
 import PMSelect             from "@/components/project-management/common/PMSelect";
 import PMTextarea           from "@/components/project-management/common/PMTextarea";
-import { usePageActions }   from "@/components/common/PageActionButtons";
 
 import { apiRequest }      from "@/lib/apiClient";
 import { API_ENDPOINTS }   from "@/config/api.config";
@@ -93,9 +90,6 @@ export default function BudgetForm({ mode = "create", budgetId, canApprove = fal
   const [isLoading,         setIsLoading]          = useState(mode !== "create");
   const [isSubmitted,       setIsSubmitted]        = useState(false);
   const [allowSubmit,       setAllowSubmit]        = useState(false);
-  const [approvalOpen,      setApprovalOpen]       = useState(false);
-  const [historyOpen,       setHistoryOpen]        = useState(false);
-  const [isPendingApproval, setIsPendingApproval]  = useState(false);
   const [budgetNo,          setBudgetNo]           = useState("");
   const [sidebarOpen,       setSidebarOpen]        = useState(true);
 
@@ -156,8 +150,8 @@ export default function BudgetForm({ mode = "create", budgetId, canApprove = fal
         };
         reset(formData);
         setInitialData(formData);
-        setExistingFileUrl(d.attachmentUrl || "");
-        setInitialFileUrl(d.attachmentUrl  || "");
+        setExistingFileUrl(d.attachment || "");
+        setInitialFileUrl(d.attachment  || "");
 
         const notEditable = ["Submitted", "Approved", "Rejected"].includes(d.workflowStatus)
           && d.workflowStatus !== "Reback";
@@ -178,14 +172,6 @@ export default function BudgetForm({ mode = "create", budgetId, canApprove = fal
 
     load();
 
-    if (canApprove) {
-      apiRequest({
-        url:    `${API_ENDPOINTS.FINANCE.PETTY_CASH.BUDGET.MY_APPROVAL_STATUS}${budgetId}`,
-        method: "GET",
-      })
-        .then((res) => setIsPendingApproval(!!res.data?.isPending))
-        .catch(() => {});
-    }
   }, [budgetId, mode]);
 
   const buildPayload = () => {
@@ -272,34 +258,10 @@ export default function BudgetForm({ mode = "create", budgetId, canApprove = fal
     setAllowSubmit(false);
   };
 
-  const handleApprovalAction = async ({ action, comments }) => {
-    const ep = {
-      approve: API_ENDPOINTS.FINANCE.PETTY_CASH.BUDGET.APPROVE,
-      reback:  API_ENDPOINTS.FINANCE.PETTY_CASH.BUDGET.REBACK,
-      reject:  API_ENDPOINTS.FINANCE.PETTY_CASH.BUDGET.REJECT,
-    }[action];
-    if (!ep) return;
-    let tid;
-    try {
-      tid = toast.loading("Processing…");
-      await apiRequest({ url: `${ep}${budgetId}`, method: "POST", data: { comments } });
-      toast.success("Action completed", { id: tid });
-      setApprovalOpen(false);
-      router.refresh();
-    } catch (err) {
-      toast.error(err.message || "Failed", { id: tid });
-    }
-  };
 
   const watchedItems  = watch("items") || [];
   const totalBudget   = watchedItems.reduce((s, it) => s + Number(it.budgetAmount || 0), 0);
 
-  usePageActions({
-    router,
-    onTimeLine: budgetId ? () => setHistoryOpen(true) : undefined,
-    onApprove:  canApprove && budgetId ? () => setApprovalOpen(true) : undefined,
-    isPendingApproval,
-  });
 
   if (isLoading) {
     return (
@@ -563,21 +525,6 @@ export default function BudgetForm({ mode = "create", budgetId, canApprove = fal
         )}
       </div>
 
-      {approvalOpen && (
-        <ApprovalActionModal
-          open={approvalOpen}
-          onClose={() => setApprovalOpen(false)}
-          onAction={handleApprovalAction}
-        />
-      )}
-
-      {historyOpen && (
-        <HistoryTimelineSheet
-          open={historyOpen}
-          onClose={() => setHistoryOpen(false)}
-          fetchUrl={`${API_ENDPOINTS.FINANCE.PETTY_CASH.BUDGET.HISTORY}${budgetId}`}
-        />
-      )}
     </>
   );
 }
