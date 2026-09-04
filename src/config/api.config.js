@@ -597,6 +597,34 @@ export const API_ENDPOINTS = {
     MY_LEDGER: {
       GET: "/finance/my-ledger",                    // GET ?projectCode&fromDate&toDate (JWT)
     },
+    PETTY_CASH: {
+      LEDGER: "/finance/petty-cash/ledger",          // GET ?projectCode&fromDate&toDate
+      BUDGET: {
+        LIST:               "/finance/petty-cash/budget/list",               // GET ?projectCode
+        CREATE:             "/finance/petty-cash/budget/create",             // POST JSON
+        GET_BY_ID:          "/finance/petty-cash/budget/",                   // /:id GET
+        UPDATE:             "/finance/petty-cash/budget/edit/",              // /:id PUT JSON
+        SUBMIT:             "/finance/petty-cash/budget/submit/",            // /:id POST
+        APPROVE:            "/finance/petty-cash/budget/approve/",           // /:id POST { comments }
+        REBACK:             "/finance/petty-cash/budget/reback/",            // /:id POST { comments }
+        REJECT:             "/finance/petty-cash/budget/reject/",            // /:id POST { comments }
+        HISTORY:            "/finance/petty-cash/budget/history/",           // /:id GET
+        MY_APPROVAL_STATUS: "/finance/petty-cash/budget/my-approval-status/",// /:id GET
+      },
+      DOCKET_VOUCHER: {
+        LIST:               "/finance/petty-cash/docket-voucher/list",               // GET ?projectCode
+        CREATE:             "/finance/petty-cash/docket-voucher/create",             // POST FormData
+        GET_BY_ID:          "/finance/petty-cash/docket-voucher/",                   // /:id GET
+        UPDATE:             "/finance/petty-cash/docket-voucher/edit/",              // /:id PUT FormData
+        SUBMIT:             "/finance/petty-cash/docket-voucher/submit/",            // /:id POST
+        APPROVE:            "/finance/petty-cash/docket-voucher/approve/",           // /:id POST { comments }
+        REBACK:             "/finance/petty-cash/docket-voucher/reback/",            // /:id POST { comments }
+        REJECT:             "/finance/petty-cash/docket-voucher/reject/",            // /:id POST { comments }
+        DELETE:             "/finance/petty-cash/docket-voucher/delete/",            // /:id DELETE
+        HISTORY:            "/finance/petty-cash/docket-voucher/history/",           // /:id GET
+        MY_APPROVAL_STATUS: "/finance/petty-cash/docket-voucher/my-approval-status/",// /:id GET
+      },
+    },
   },
 };
 

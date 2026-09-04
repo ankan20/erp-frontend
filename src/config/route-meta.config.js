@@ -664,4 +664,35 @@ export const routeMetaConfig = [
     basePath: "/finance-management/account/journal/[id]",
     breadcrumbs: ["Finance Management", "Accounts", "Journal Entry", "Details"],
   },
+  // Finance Management — Petty Cash
+  {
+    basePath: "/finance-management/account/petty-cash",
+    breadcrumbs: ["Finance Management", "Accounts", "Petty Cash"],
+  },
+  // Petty Cash — Budget
+  {
+    basePath: "/finance-management/account/petty-cash/budget",
+    breadcrumbs: ["Finance Management", "Accounts", "Petty Cash", "Budget", "List"],
+  },
+  {
+    basePath: "/finance-management/account/petty-cash/budget/new",
+    breadcrumbs: ["Finance Management", "Accounts", "Petty Cash", "Budget", "New"],
+  },
+  {
+    basePath: "/finance-management/account/petty-cash/budget/[id]",
+    breadcrumbs: ["Finance Management", "Accounts", "Petty Cash", "Budget", "Details"],
+  },
+  // Petty Cash — Docket Voucher
+  {
+    basePath: "/finance-management/account/petty-cash/docket-voucher",
+    breadcrumbs: ["Finance Management", "Accounts", "Petty Cash", "Docket Voucher", "List"],
+  },
+  {
+    basePath: "/finance-management/account/petty-cash/docket-voucher/new",
+    breadcrumbs: ["Finance Management", "Accounts", "Petty Cash", "Docket Voucher", "New"],
+  },
+  {
+    basePath: "/finance-management/account/petty-cash/docket-voucher/[id]",
+    breadcrumbs: ["Finance Management", "Accounts", "Petty Cash", "Docket Voucher", "Details"],
+  },
 ];
