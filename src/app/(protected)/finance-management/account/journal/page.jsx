@@ -42,7 +42,6 @@ export default function Page() {
           _id:            r.id,
           voucherNo:      r.voucherNo      || "",
           date:           getfmtDisplaydate(r.entryDate) || "",
-          narration:      r.narration      || r.remarks || "",
           totalDebit:     formatAmount(r.totalDebit  || 0),
           totalCredit:    formatAmount(r.totalCredit || 0),
           workflowStatus: r.workflowStatus || "",
@@ -65,7 +64,7 @@ export default function Page() {
     if (search) {
       const q = search.toLowerCase();
       filtered = filtered.filter((item) =>
-        ["voucherNo", "narration", "workflowStatus"].some(
+        ["voucherNo", "workflowStatus"].some(
           (k) => String(item[k]).toLowerCase().includes(q),
         ),
       );
@@ -87,7 +86,6 @@ export default function Page() {
     { header: "Sl. no",     accessor: "sl",             width: "60px"  },
     { header: "Voucher No", accessor: "voucherNo",      width: "130px" },
     { header: "Date",       accessor: "date",           width: "110px" },
-    { header: "Narration",  accessor: "narration",      width: "220px" },
     { header: "Debit",      accessor: "totalDebit",     width: "120px", align: "right" },
     { header: "Credit",     accessor: "totalCredit",    width: "120px", align: "right" },
     { header: "Status",     accessor: "workflowStatus", width: "120px" },
