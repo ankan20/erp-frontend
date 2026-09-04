@@ -17,6 +17,7 @@ import AmountInput      from "@/components/common/AmountInput";
 import PMSection        from "@/components/project-management/common/PMSection";
 import PMFormRow        from "@/components/project-management/common/PMFormRow";
 import PMTextarea       from "@/components/project-management/common/PMTextarea";
+import PMDateInput      from "@/components/project-management/common/PMDateInput";
 import { ACC }          from "@/components/finance/account/common/accountTheme";
 
 import { apiRequest }      from "@/lib/apiClient";
@@ -37,7 +38,8 @@ const lineSchema = z.object({
 });
 
 const schema = z.object({
-  remarks: z.string().optional().default(""),
+  entryDate: z.string().optional().default(""),
+  remarks:   z.string().optional().default(""),
   // TODO: currently fixed at 2 lines (row 0 = Dr, row 1 = Cr). If dynamic multi-line
   // add/remove is needed in future, restore useFieldArray and make drCr a per-row selector.
   lines: z.array(lineSchema).length(2),
@@ -46,8 +48,9 @@ const schema = z.object({
 const BLANK_LINE = { type: "CC", accountId: null, openingBalance: 0, debitAmount: 0, creditAmount: 0 };
 
 const DEFAULT_VALUES = {
-  remarks: "",
-  lines: [{ ...BLANK_LINE }, { ...BLANK_LINE }],
+  entryDate: "",
+  remarks:   "",
+  lines:     [{ ...BLANK_LINE }, { ...BLANK_LINE }],
 };
 
 // row 0 = Dr, row 1 = Cr (fixed)
@@ -65,7 +68,6 @@ export default function JournalEntryForm({ mode = "create", journalId, onAfterSu
   const [allowSubmit,  setAllowSubmit]  = useState(mode === "edit");
   const [sidebarOpen,  setSidebarOpen]  = useState(true);
   const [erpVoucherNo, setErpVoucherNo] = useState("");
-  const [entryDate,    setEntryDate]    = useState("");
   const [ccCodeList,   setCcCodeList]   = useState([]);
   const [vendorList,   setVendorList]   = useState([]);
 
@@ -123,11 +125,11 @@ export default function JournalEntryForm({ mode = "create", journalId, onAfterSu
         });
 
         reset({
-          remarks: d.remarks || "",
-          lines:   [mapLine(dr), mapLine(cr)],
+          entryDate: d.entryDate || "",
+          remarks:   d.remarks   || "",
+          lines:     [mapLine(dr), mapLine(cr)],
         });
         setErpVoucherNo(d.voucherNo || "");
-        setEntryDate(d.entryDate   || "");
         const locked = d.workflowStatus && !["Draft", "Reback"].includes(d.workflowStatus);
         setIsSubmitted(locked);
         setAllowSubmit(!locked);
@@ -160,7 +162,8 @@ export default function JournalEntryForm({ mode = "create", journalId, onAfterSu
 
     const payload = {
       projectCode,
-      remarks: v.remarks || "",
+      entryDate: v.entryDate || "",
+      remarks:   v.remarks   || "",
       lines: v.lines.map((l, i) => ({
         slNo:           i + 1,
         drCr:           i === 0 ? "Dr" : "Cr",
@@ -229,27 +232,33 @@ export default function JournalEntryForm({ mode = "create", journalId, onAfterSu
       <div className="flex flex-col gap-3 lg:flex-row lg:items-start">
 
         {/* ── LEFT PANEL ─────────────────────────────────────────────────── */}
-        <div className={`w-full lg:w-[320px] lg:shrink-0 space-y-2 ${!sidebarOpen ? "lg:hidden" : ""}`}>
+        <div className={`w-full lg:w-[380px] lg:shrink-0 space-y-2 ${!sidebarOpen ? "lg:hidden" : ""}`}>
 
           <PMSection title="Entry Details:">
-            <PMFormRow label="ERP Doc. No" labelWidth="sm:w-[130px] sm:min-w-[130px]">
+            <PMFormRow label="ERP Doc. No" labelWidth="sm:w-[150px] sm:min-w-[150px]">
               <input
                 value={erpVoucherNo || "[Auto]"}
                 disabled readOnly
                 className="w-full h-[30px] text-[13px] rounded-sm border border-[#7fa37f] bg-[#edf8ed] text-gray-500 px-2 outline-none"
               />
             </PMFormRow>
-            <PMFormRow label="Entry Date" labelWidth="sm:w-[130px] sm:min-w-[130px]">
-              <input
-                value={entryDate || "[Auto - Today]"}
-                disabled readOnly
-                className="w-full h-[30px] text-[13px] rounded-sm border border-[#7fa37f] bg-[#edf8ed] text-gray-500 px-2 outline-none"
+            <PMFormRow label="Entry Date" labelWidth="sm:w-[150px] sm:min-w-[150px]">
+              <Controller
+                name="entryDate"
+                control={control}
+                render={({ field }) => (
+                  <PMDateInput
+                    {...field}
+                    disabled={disabled}
+                    className="max-w-[200px]"
+                  />
+                )}
               />
             </PMFormRow>
           </PMSection>
 
           <PMSection title="Remarks:">
-            <PMFormRow label="Remarks" labelWidth="sm:w-[130px] sm:min-w-[130px]">
+            <PMFormRow label="Remarks" labelWidth="sm:w-[150px] sm:min-w-[150px]">
               <Controller
                 name="remarks"
                 control={control}
