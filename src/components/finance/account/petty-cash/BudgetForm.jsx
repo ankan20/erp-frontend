@@ -418,7 +418,7 @@ export default function BudgetForm({ mode = "create", budgetId, canApprove = fal
                   <thead className="bg-[#144664]">
                     <tr>
                       <th className="border border-[#2e5a72] px-2 py-1 text-white font-semibold text-center w-[44px]">SL no</th>
-                      <th className="border border-[#2e5a72] px-2 py-1 text-white font-semibold text-left w-[140px]">CC Code</th>
+                      <th className="border border-[#2e5a72] px-2 py-1 text-white font-semibold text-center w-[80px]">CC Code</th>
                       <th className="border border-[#2e5a72] px-2 py-1 text-white font-semibold text-left">CC Name &amp; Short Description for Expenses</th>
                       <th className="border border-[#2e5a72] px-2 py-1 text-white font-semibold text-right w-[130px]">Budget Amount</th>
                       {isEditing && <th className="border border-[#2e5a72] px-2 py-1 w-[40px]" />}
@@ -431,7 +431,7 @@ export default function BudgetForm({ mode = "create", budgetId, canApprove = fal
                         <td className="border border-[#d0d0d0] px-2 py-1 text-center text-gray-500">{index + 1}</td>
 
                         {/* CC Code — read-only, auto-fills when CC Name is selected */}
-                        <td className="border border-[#d0d0d0] px-2 py-1 text-[12px] font-medium text-gray-700 bg-[#f0f6fb] align-middle">
+                        <td className="border border-[#d0d0d0] px-2 py-1 text-[12px] font-medium text-gray-700 bg-[#f0f6fb] align-middle text-center">
                           {watch(`items.${index}.ccCode`) || (
                             <span className="text-gray-300 italic text-[11px]">auto</span>
                           )}
