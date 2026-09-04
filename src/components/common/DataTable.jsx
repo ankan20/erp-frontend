@@ -324,7 +324,7 @@ export default function DataTable({
 
         <table className="w-full min-w-max table-fixed border-collapse text-sm">
 
-          <thead className="bg-[#3d7a9e] sticky top-0 z-10">
+          <thead className="bg-[#144664] sticky top-0 z-10">
             <tr>
               {columns.map((col, index) => {
                 const width = col.width || (index === 0 ? "65px" : undefined);
@@ -338,7 +338,7 @@ export default function DataTable({
                   <th
                     key={index}
                     style={width ? { width, minWidth: width, maxWidth: width } : {}}
-                    className="border border-[#2e5a72] px-2 py-1 font-semibold whitespace-nowrap text-white"
+                    className="border border-[#2e5a72] px-2 py-1 font-semibold whitespace-nowrap text-white text-left"
                   >
                     <div className="flex items-center justify-between gap-1">
 
@@ -360,7 +360,7 @@ export default function DataTable({
                         {isSortable && (
                           <span
                             onClick={() => handleSort(col.accessor)}
-                            className="cursor-pointer text-gray-600 hover:text-gray-900"
+                            className="cursor-pointer text-white/70 hover:text-white"
                           >
                             {sortConfig.key === col.accessor ? (
                               sortConfig.direction === "asc"
@@ -380,7 +380,7 @@ export default function DataTable({
                               cursor-pointer rounded px-0.5
                               hover:bg-black/10
                               transition-colors
-                              ${filterOn ? "text-blue-600" : "text-gray-500"}
+                              ${filterOn ? "text-yellow-300" : "text-white/70"}
                             `}
                             title="Filter"
                           >
