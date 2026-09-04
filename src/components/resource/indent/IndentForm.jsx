@@ -38,6 +38,7 @@ const indentSchema = z.object({
   items: z.array(
     z.object({
       itemCode: z.string().min(1),
+      itemDisplayCode: z.string().optional(),
       itemName: z.string().optional(),
       qty: z.coerce.number().gt(0),
       ammenmendQty: z.any().optional(),
@@ -50,6 +51,7 @@ const indentSchema = z.object({
 
 const defaultItemRow = {
   itemCode: "",
+  itemDisplayCode: "",
   itemName: "",
   qty: "",
   ammenmendQty: "",
@@ -140,13 +142,17 @@ export default function IndentForm({
 
       if (existingItems.length > 0) {
         existingItems.forEach((item, index) => {
-          const matched = fetchedItems.find(
-            (row) => row.itemCode === item.itemCode,
-          );
+          // details API doesn't return itemDisplayCode — fall back to itemCode+itemName
+          const matched = item.itemDisplayCode
+            ? fetchedItems.find((row) => row.itemDisplayCode === item.itemDisplayCode)
+            : fetchedItems.find(
+                (row) => row.itemCode === item.itemCode && row.itemName === item.itemName,
+              );
 
           if (matched) {
+            setValue(`items.${index}.itemCode`, matched.itemCode || "");
+            setValue(`items.${index}.itemDisplayCode`, matched.itemDisplayCode || "");
             setValue(`items.${index}.itemName`, matched.itemName);
-
             setValue(`items.${index}.unit`, matched.unit || "");
           }
         });
@@ -191,6 +197,8 @@ export default function IndentForm({
 
           items: data.items?.map((item) => ({
             itemCode: item.itemCode || "",
+
+            itemDisplayCode: item.itemDisplayCode || "",
 
             itemName: item.itemName || "",
 
@@ -257,6 +265,7 @@ export default function IndentForm({
     const updatedItems = currentItems.map((item) => ({
       ...item,
       itemCode: "",
+      itemDisplayCode: "",
       itemName: "",
       unit: "",
     }));
@@ -411,6 +420,10 @@ export default function IndentForm({
     if (isEditing) {
       if (initialData) {
         reset(initialData);
+        // reload options so SearchableSelect can display the restored items
+        if (initialData.categoryCode) {
+          fetchItemsByCategory(initialData.categoryCode, initialData.items);
+        }
       }
 
       setAttachedFile(null);

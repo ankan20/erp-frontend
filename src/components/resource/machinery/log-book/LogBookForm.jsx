@@ -141,7 +141,7 @@ export default function LogBookForm({ mode = "create", logBookId, onAfterSubmit 
       setAllowSubmit(true);
       toast.success("Draft saved successfully", { id: toastId });
       if (mode === "create" && res.data?.logBookId) {
-        setTimeout(() => router.push(`/resource-management/machinery/log-sheet/log-book/${res.data.logBookId}`), 400);
+        setTimeout(() => router.push(`/resource-management/services/plant-machinery/log-sheet/log-book/${res.data.logBookId}`), 400);
       }
     } catch (err) {
       toast.error(err.message || "Failed to save draft", { id: toastId });

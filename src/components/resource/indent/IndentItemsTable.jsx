@@ -27,6 +27,7 @@ export default function IndentItemsTable({
 }) {
   const defaultItemRow = {
     itemCode: "",
+    itemDisplayCode: "",
     itemName: "",
     note: "",
     unit: "",
@@ -64,9 +65,8 @@ export default function IndentItemsTable({
 
   const handleItemSelect = (rowIndex, value, item) => {
     setValue(`items.${rowIndex}.itemCode`, item?.itemCode || "");
-
+    setValue(`items.${rowIndex}.itemDisplayCode`, item?.itemDisplayCode || "");
     setValue(`items.${rowIndex}.itemName`, item?.itemName || "");
-
     setValue(`items.${rowIndex}.unit`, item?.unit || "");
   };
 
@@ -105,7 +105,7 @@ export default function IndentItemsTable({
             {/* BODY */}
             <tbody>
               {fields.map((field, index) => {
-                const selectedItemCode = watch(`items.${index}.itemCode`);
+                const selectedItemDisplayCode = watch(`items.${index}.itemDisplayCode`);
                 const noteValue = watch(`items.${index}.note`);
                 const locationValue = watch(`items.${index}.location`);
 
@@ -129,13 +129,13 @@ export default function IndentItemsTable({
                     <td className="border border-[#b5b5b5] p-0">
                       <SearchableSelect
                         options={itemsOptions}
-                        value={selectedItemCode}
+                        value={selectedItemDisplayCode}
                         disabled={!isEditing || isSubmitting}
                         onChange={(value, item) => handleItemSelect(index, value, item)}
                         placeholder="Select Item"
                         labelKey="itemName"
-                        valueKey="itemCode"
-                        searchKeys={["itemName", "itemCode"]}
+                        valueKey="itemDisplayCode"
+                        searchKeys={["itemName", "itemDisplayCode"]}
                       />
                     </td>
 

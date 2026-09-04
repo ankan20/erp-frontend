@@ -160,7 +160,7 @@ export default function LogEntryForm({ mode = "create", entryId, onAfterSubmit }
       setAllowSubmit(true);
       toast.success("Draft saved successfully", { id: toastId });
       if (mode === "create" && res.data?.entryId) {
-        setTimeout(() => router.push(`/resource-management/machinery/log-sheet/log-entry/${res.data.entryId}`), 400);
+        setTimeout(() => router.push(`/resource-management/services/plant-machinery/log-sheet/log-entry/${res.data.entryId}`), 400);
       }
     } catch (err) {
       toast.error(err.message || "Failed to save draft", { id: toastId });
