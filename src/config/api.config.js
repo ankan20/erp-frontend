@@ -603,6 +603,7 @@ export const API_ENDPOINTS = {
         LIST:               "/finance/petty-cash/budget/list",                // GET ?projectCode[&workflowStatus&search&fromDate&toDate]
         CREATE:             "/finance/petty-cash/budget/create",              // POST multipart (details JSON string + attachment file)
         GET_BY_ID:          "/finance/petty-cash/budget/",                    // /:id GET
+        GET_BY_UUID:        "/finance/petty-cash/budget/uuid/",               // /:uuid GET no-auth
         UPDATE:             "/finance/petty-cash/budget/edit/",               // /:id PUT multipart
         SUBMIT:             "/finance/petty-cash/budget/submit/",             // /:id POST (no body)
         APPROVE:            "/finance/petty-cash/budget/approve/",            // /:id POST { comments }
@@ -617,6 +618,7 @@ export const API_ENDPOINTS = {
         LIST:               "/finance/petty-cash/docket-voucher/list",                // GET ?projectCode[&workflowStatus&search&fromDate&toDate]
         CREATE:             "/finance/petty-cash/docket-voucher/create",              // POST multipart (details JSON string + attachment file)
         GET_BY_ID:          "/finance/petty-cash/docket-voucher/",                    // /:id GET
+        GET_BY_UUID:        "/finance/petty-cash/docket-voucher/uuid/",               // /:uuid GET no-auth
         UPDATE:             "/finance/petty-cash/docket-voucher/edit/",               // /:id PUT multipart
         SUBMIT:             "/finance/petty-cash/docket-voucher/submit/",             // /:id POST (no body)
         APPROVE:            "/finance/petty-cash/docket-voucher/approve/",            // /:id POST { comments }

@@ -78,7 +78,7 @@ const defaultValues = {
   items: [defaultItem],
 };
 
-export default function BudgetForm({ mode = "create", budgetId, canApprove = false }) {
+export default function BudgetForm({ mode = "create", budgetId, canApprove = false, onUuid, onAfterSubmit }) {
   const isViewMode = mode === "view" || mode === "approver";
   const [isEditing,         setIsEditing]         = useState(mode === "create");
   const [initialData,       setInitialData]        = useState(null);
@@ -134,6 +134,7 @@ export default function BudgetForm({ mode = "create", budgetId, canApprove = fal
         });
         const d = res.data;
         setBudgetNo(d.budgetNo || "");
+        if (d.budgetUuid) onUuid?.(d.budgetUuid);
         const formData = {
           budgetDate:      d.budgetDate      || "",
           budgetFrequency: d.budgetFrequency || "",

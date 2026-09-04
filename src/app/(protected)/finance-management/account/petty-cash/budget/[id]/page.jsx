@@ -21,6 +21,7 @@ export default function Page() {
 
   const [openApproval, setOpenApproval] = useState(false);
   const [openTimeline, setOpenTimeline] = useState(false);
+  const [uuid,         setUuid]         = useState(null);
 
   const { isPendingForMe, myLevel, refresh, dismiss } = useMyApprovalStatus(
     API_ENDPOINTS.FINANCE.PETTY_CASH.BUDGET.MY_APPROVAL_STATUS,
@@ -32,8 +33,9 @@ export default function Page() {
 
   const actions = getPageActions({
     router,
-    onTimeLine: () => setOpenTimeline(true),
-    onApprove:  access.canApprove ? () => setOpenApproval(true) : undefined,
+    onTimeLine:  () => setOpenTimeline(true),
+    onApprove:   access.canApprove ? () => setOpenApproval(true) : undefined,
+    onDownload:  uuid ? () => window.open(`/print/petty-cash-budget/${uuid}`, "_blank") : undefined,
     isPendingApproval: isPendingForMe,
   });
 
@@ -52,6 +54,7 @@ export default function Page() {
         budgetId={id}
         canApprove={access.canApprove}
         onAfterSubmit={refresh}
+        onUuid={setUuid}
       />
 
       <ApprovalActionModal

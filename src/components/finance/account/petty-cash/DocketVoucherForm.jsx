@@ -69,7 +69,7 @@ const defaultValues  = {
   items: [defaultItem],
 };
 
-export default function DocketVoucherForm({ mode = "create", voucherId, canApprove = false }) {
+export default function DocketVoucherForm({ mode = "create", voucherId, canApprove = false, onUuid, onAfterSubmit }) {
   const isViewMode = mode === "view" || mode === "approver";
 
   const [isEditing,         setIsEditing]         = useState(mode === "create");
@@ -163,6 +163,7 @@ export default function DocketVoucherForm({ mode = "create", voucherId, canAppro
         });
         const d = res.data;
         setVoucherNo(d.voucherNo || "");
+        if (d.voucherUuid) onUuid?.(d.voucherUuid);
         const formData = {
           voucherDate:   d.voucherDate   || "",
           budgetId:      d.budgetId      || null,
