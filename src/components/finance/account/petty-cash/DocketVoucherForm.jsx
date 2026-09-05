@@ -35,9 +35,8 @@ const PAYMENT_MODE_OPTIONS = [
 ];
 
 const FUND_SOURCE_OPTIONS = [
-  { value: "Site Cash", label: "Site Cash" },
-  { value: "HO Cash",   label: "HO Cash"  },
-  { value: "Bank/UPI",  label: "Bank/UPI" },
+  { value: "Cash",     label: "Cash"     },
+  { value: "Bank/UPI", label: "Bank/UPI" },
 ];
 
 const LABEL_W = "sm:w-[160px] sm:min-w-[160px]";
