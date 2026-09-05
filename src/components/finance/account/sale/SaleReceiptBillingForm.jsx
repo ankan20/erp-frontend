@@ -265,6 +265,8 @@ export default function SaleReceiptBillingForm({
     apiRequest({ url: `${API_ENDPOINTS.FINANCE.SALE_RECEIPT_BILLING.GET_BY_ID}${billingId}`, method: "GET" })
       .then((res) => {
         const d = res.data || {};
+        // Prevent the clear-on-order-change effect from wiping items/GST after reset sets ogSaleOrderNo
+        skipClearOnOrderChange.current = true;
         reset({
           ogSaleOrderNo:    d.ogSaleOrderNo    || "",
           saleOrderDate:    d.saleOrderDate    || "",

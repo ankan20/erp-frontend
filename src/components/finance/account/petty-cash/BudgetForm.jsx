@@ -93,6 +93,12 @@ export default function BudgetForm({ mode = "create", budgetId, canApprove = fal
   const [allowSubmit,       setAllowSubmit]        = useState(false);
   const [budgetNo,          setBudgetNo]           = useState("");
   const [sidebarOpen,       setSidebarOpen]        = useState(true);
+  const [workflowStatus,    setWorkflowStatus]     = useState("");
+  const [detailIds,         setDetailIds]          = useState([]);   // budgetDetailId per item index
+  const [revisionMap,       setRevisionMap]        = useState({});   // detailRowId → latest revision
+  const [isRevising,        setIsRevising]         = useState(false);
+  const [reviseInputs,      setReviseInputs]       = useState({});   // detailRowId → { newAmount, remark }
+  const [reviseLoading,     setReviseLoading]      = useState(false);
 
   const router      = useRouter();
   const projectCode = getLocalStorage("projectInfo")?.projectCode || "";
@@ -129,13 +135,21 @@ export default function BudgetForm({ mode = "create", budgetId, canApprove = fal
     const load = async () => {
       try {
         setIsLoading(true);
-        const res = await apiRequest({
-          url:    `${API_ENDPOINTS.FINANCE.PETTY_CASH.BUDGET.GET_BY_ID}${budgetId}`,
-          method: "GET",
-        });
-        const d = res.data;
+        const [res, revRes] = await Promise.allSettled([
+          apiRequest({ url: `${API_ENDPOINTS.FINANCE.PETTY_CASH.BUDGET.GET_BY_ID}${budgetId}`, method: "GET" }),
+          apiRequest({ url: `${API_ENDPOINTS.FINANCE.PETTY_CASH.BUDGET.REVISION_HISTORY}${budgetId}`, method: "GET" }),
+        ]);
+
+        if (res.status === "rejected") throw new Error(res.reason?.message || "Failed to load budget");
+        const d = res.value.data;
+
         setBudgetNo(d.budgetNo || "");
+        setWorkflowStatus(d.workflowStatus || "");
         if (d.budgetUuid) onUuid?.(d.budgetUuid);
+
+        const ids = (d.details || []).map((it) => it.id ?? it.budgetDetailId ?? null);
+        setDetailIds(ids);
+
         const formData = {
           budgetDate:      d.budgetDate      || "",
           budgetFrequency: d.budgetFrequency || "",
@@ -154,6 +168,16 @@ export default function BudgetForm({ mode = "create", budgetId, canApprove = fal
         setInitialData(formData);
         setExistingFileUrl(d.attachment || "");
         setInitialFileUrl(d.attachment  || "");
+
+        // Build revision map: detailRowId → latest revision
+        if (revRes.status === "fulfilled") {
+          const revisions = revRes.value.data?.revisions || [];
+          const map = {};
+          revisions.forEach((r) => {
+            map[r.detailRowId] = r; // later entries overwrite earlier = latest
+          });
+          setRevisionMap(map);
+        }
 
         const notEditable = ["Submitted", "Approved", "Rejected"].includes(d.workflowStatus)
           && d.workflowStatus !== "Reback";
@@ -175,6 +199,49 @@ export default function BudgetForm({ mode = "create", budgetId, canApprove = fal
     load();
 
   }, [budgetId, mode]);
+
+  const handleStartRevise = () => {
+    const inputs = {};
+    detailIds.forEach((id, i) => {
+      if (id) inputs[id] = {
+        newAmount: String(getValues(`items.${i}.budgetAmount`) || ""),
+        remark:    "",
+      };
+    });
+    setReviseInputs(inputs);
+    setIsRevising(true);
+  };
+
+  const handleSaveRevise = async () => {
+    const revisions = detailIds
+      .map((id, i) => {
+        if (!id || !reviseInputs[id]) return null;
+        const orig = Number(getValues(`items.${i}.budgetAmount`) || 0);
+        const next = Number(reviseInputs[id].newAmount || 0);
+        if (next === orig && !reviseInputs[id].remark) return null; // unchanged
+        return { detailRowId: id, newAmount: next, remark: reviseInputs[id].remark || "" };
+      })
+      .filter(Boolean);
+
+    if (!revisions.length) { toast.info("No changes to revise"); return; }
+    setReviseLoading(true);
+    try {
+      await apiRequest({
+        url:    `${API_ENDPOINTS.FINANCE.PETTY_CASH.BUDGET.REVISE}${budgetId}`,
+        method: "PUT",
+        data:   { revisions },
+      });
+      toast.success("Budget revised successfully");
+      setIsRevising(false);
+      onAfterSubmit?.();
+      // Re-load to get updated amounts + revision history
+      window.location.reload();
+    } catch (err) {
+      toast.error(err.message || "Failed to revise budget");
+    } finally {
+      setReviseLoading(false);
+    }
+  };
 
   const buildPayload = () => {
     const v = getValues();
@@ -434,20 +501,59 @@ export default function BudgetForm({ mode = "create", budgetId, canApprove = fal
                           </div>
                         </td>
 
-                        {/* Budget Amount — AmountInput */}
+                        {/* Budget Amount — AmountInput / Revise mode / Revision stripe */}
                         <td className="border border-[#d0d0d0] p-0">
-                          <Controller
-                            control={control}
-                            name={`items.${index}.budgetAmount`}
-                            render={({ field: f }) => (
-                              <AmountInput
-                                {...f}
-                                disabled={disabled}
-                                className={getInputClass(errors?.items?.[index]?.budgetAmount, disabled)}
-                                placeholder="0.00"
-                              />
-                            )}
-                          />
+                          {(() => {
+                            const detailId  = detailIds[index];
+                            const rev       = detailId ? revisionMap[detailId] : null;
+                            const inRevise  = isRevising && detailId;
+                            return (
+                              <div className="flex flex-col">
+                                {/* Revision stripe: old amount struck, new amount current */}
+                                {rev && !isRevising && (
+                                  <div className="px-2 pt-1 flex flex-col gap-0.5">
+                                    <span className="text-[10.5px] text-gray-400 line-through font-mono">
+                                      {formatAmount(rev.oldAmount)}
+                                    </span>
+                                    <span className="text-[11px] text-[#1a4f72] font-semibold font-mono">
+                                      {formatAmount(rev.newAmount)}
+                                    </span>
+                                    <span className="text-[9.5px] text-gray-400 truncate" title={`Revised by ${rev.revisedBy} — ${rev.remark}`}>
+                                      ✎ {rev.revisedBy}{rev.remark ? ` · ${rev.remark}` : ""}
+                                    </span>
+                                  </div>
+                                )}
+                                {/* Revise mode: editable inputs */}
+                                {inRevise ? (
+                                  <div className="flex flex-col gap-1 p-1.5">
+                                    <AmountInput
+                                      value={reviseInputs[detailId]?.newAmount ?? ""}
+                                      onChange={(e) => setReviseInputs((prev) => ({ ...prev, [detailId]: { ...prev[detailId], newAmount: e.target.value } }))}
+                                      placeholder="0.00"
+                                    />
+                                    <PMInput
+                                      value={reviseInputs[detailId]?.remark ?? ""}
+                                      onChange={(e) => setReviseInputs((prev) => ({ ...prev, [detailId]: { ...prev[detailId], remark: e.target.value } }))}
+                                      placeholder="Remark…"
+                                    />
+                                  </div>
+                                ) : !rev ? (
+                                  <Controller
+                                    control={control}
+                                    name={`items.${index}.budgetAmount`}
+                                    render={({ field: f }) => (
+                                      <AmountInput
+                                        {...f}
+                                        disabled={disabled}
+                                        className={getInputClass(errors?.items?.[index]?.budgetAmount, disabled)}
+                                        placeholder="0.00"
+                                      />
+                                    )}
+                                  />
+                                ) : null}
+                              </div>
+                            );
+                          })()}
                         </td>
 
                         {/* Delete */}
@@ -519,6 +625,41 @@ export default function BudgetForm({ mode = "create", budgetId, canApprove = fal
               <EditButton onClick={handleEdit} disabled={isSubmitting}>
                 {isEditing ? "Cancel" : "Edit"}
               </EditButton>
+            )}
+          </div>
+        )}
+
+        {/* Revise section — approver only */}
+        {canApprove && !!budgetId && (
+          <div className="flex justify-end gap-3 mt-4">
+            {isRevising ? (
+              <>
+                <button
+                  type="button"
+                  onClick={() => setIsRevising(false)}
+                  disabled={reviseLoading}
+                  className="px-4 py-1.5 text-[13px] font-semibold rounded-sm border border-gray-300 bg-gray-100 hover:bg-gray-200 text-gray-700 transition-colors disabled:opacity-60"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={handleSaveRevise}
+                  disabled={reviseLoading}
+                  className="flex items-center gap-1.5 px-4 py-1.5 text-[13px] font-semibold rounded-sm bg-[#144664] hover:bg-[#0f3550] text-white transition-colors disabled:opacity-60"
+                >
+                  {reviseLoading ? <Loader2 size={13} className="animate-spin" /> : null}
+                  Save Revisions
+                </button>
+              </>
+            ) : (
+              <button
+                type="button"
+                onClick={handleStartRevise}
+                className="px-4 py-1.5 text-[13px] font-semibold rounded-sm border border-[#6d9dc5] bg-[#e8f4fd] hover:bg-[#d0e9fa] text-[#1a4f72] transition-colors"
+              >
+                ✎ Revise Budget
+              </button>
             )}
           </div>
         )}
