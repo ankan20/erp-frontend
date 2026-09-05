@@ -21,6 +21,7 @@ import PMFormRow            from "@/components/project-management/common/PMFormR
 import PMInput              from "@/components/project-management/common/PMInput";
 import PMSelect             from "@/components/project-management/common/PMSelect";
 import PMTextarea           from "@/components/project-management/common/PMTextarea";
+import PMDateInput          from "@/components/project-management/common/PMDateInput";
 
 import { apiRequest }      from "@/lib/apiClient";
 import { API_ENDPOINTS }   from "@/config/api.config";
@@ -294,8 +295,7 @@ export default function BudgetForm({ mode = "create", budgetId, canApprove = fal
               </PMFormRow>
 
               <PMFormRow label="Budget Date" required labelWidth={LABEL_W}>
-                <PMInput
-                  type="date"
+                <PMDateInput
                   {...register("budgetDate")}
                   hasError={errors.budgetDate}
                   disabled={disabled}
@@ -340,8 +340,7 @@ export default function BudgetForm({ mode = "create", budgetId, canApprove = fal
               )}
 
               <PMFormRow label="From Date" required labelWidth={LABEL_W}>
-                <PMInput
-                  type="date"
+                <PMDateInput
                   {...register("fromDate")}
                   hasError={errors.fromDate}
                   disabled={disabled}
@@ -349,8 +348,7 @@ export default function BudgetForm({ mode = "create", budgetId, canApprove = fal
               </PMFormRow>
 
               <PMFormRow label="To Date" required labelWidth={LABEL_W}>
-                <PMInput
-                  type="date"
+                <PMDateInput
                   {...register("toDate")}
                   hasError={errors.toDate}
                   disabled={disabled}

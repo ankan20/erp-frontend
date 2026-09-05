@@ -21,6 +21,7 @@ import PMFormRow            from "@/components/project-management/common/PMFormR
 import PMInput              from "@/components/project-management/common/PMInput";
 import PMSelect             from "@/components/project-management/common/PMSelect";
 import PMTextarea           from "@/components/project-management/common/PMTextarea";
+import PMDateInput          from "@/components/project-management/common/PMDateInput";
 
 import { apiRequest }      from "@/lib/apiClient";
 import { API_ENDPOINTS }   from "@/config/api.config";
@@ -85,6 +86,8 @@ export default function DocketVoucherForm({ mode = "create", voucherId, canAppro
   const [allowSubmit,       setAllowSubmit]        = useState(false);
   const [voucherNo,         setVoucherNo]          = useState("");
   const [sidebarOpen,       setSidebarOpen]        = useState(true);
+  const [budgetRows,        setBudgetRows]         = useState([]);  // fetched rows with budgetAmount / remaining
+  const [budgetMeta,        setBudgetMeta]         = useState(null); // { budgetNo, fromDate, toDate }
 
   const router      = useRouter();
   const projectCode = getLocalStorage("projectInfo")?.projectCode || "";
@@ -129,23 +132,31 @@ export default function DocketVoucherForm({ mode = "create", voucherId, canAppro
 
   // Pre-fill items from a selected budget
   const handleBudgetSelect = async (budgetId) => {
-    if (!budgetId) { setValue("budgetId", null); return; }
+    if (!budgetId) {
+      setValue("budgetId", null);
+      setBudgetRows([]);
+      setBudgetMeta(null);
+      return;
+    }
     setValue("budgetId", Number(budgetId));
     try {
       const res = await apiRequest({
         url:    `${API_ENDPOINTS.FINANCE.PETTY_CASH.DOCKET_VOUCHER.BUDGET_ROWS}${budgetId}`,
         method: "GET",
       });
-      const rows = res.data?.rows || [];
+      const data = res.data || {};
+      const rows = data.rows || [];
+      setBudgetRows(rows);
+      setBudgetMeta({ budgetNo: data.budgetNo, fromDate: data.fromDate, toDate: data.toDate });
       if (rows.length === 0) return;
       const mapped = rows.map((r) => ({
-        ccCode:      r.ccCode       || "",
-        ccName:      r.ccName       || "",
-        description: r.shortDescription || "",
+        ccCode:      r.ccCode            || "",
+        ccName:      r.ccName            || "",
+        description: r.shortDescription  || "",
         amount:      "",
       }));
       setValue("items", mapped);
-      toast.success("Budget rows pre-filled. Adjust amounts as needed.");
+      toast.success("Budget rows pre-filled. Enter the actual amounts.");
     } catch (err) {
       toast.error(err.message || "Failed to fetch budget rows");
     }
@@ -164,6 +175,14 @@ export default function DocketVoucherForm({ mode = "create", voucherId, canAppro
         const d = res.data;
         setVoucherNo(d.voucherNo || "");
         if (d.voucherUuid) onUuid?.(d.voucherUuid);
+        if (d.budgetId) {
+          apiRequest({ url: `${API_ENDPOINTS.FINANCE.PETTY_CASH.DOCKET_VOUCHER.BUDGET_ROWS}${d.budgetId}`, method: "GET" })
+            .then((br) => {
+              setBudgetRows(br.data?.rows || []);
+              setBudgetMeta({ budgetNo: br.data?.budgetNo, fromDate: br.data?.fromDate, toDate: br.data?.toDate });
+            })
+            .catch(() => {});
+        }
         const formData = {
           voucherDate:   d.voucherDate   || "",
           budgetId:      d.budgetId      || null,
@@ -290,8 +309,13 @@ export default function DocketVoucherForm({ mode = "create", voucherId, canAppro
   };
 
 
-  const watchedItems = watch("items") || [];
-  const totalAmount  = watchedItems.reduce((s, it) => s + Number(it.amount || 0), 0);
+  const watchedItems   = watch("items") || [];
+  const totalAmount    = watchedItems.reduce((s, it) => s + Number(it.amount || 0), 0);
+
+  // Per-CC budget helpers
+  const budgetCcCodes = new Set(budgetRows.map((r) => r.ccCode));
+  const getBudgetRow  = (ccCode) => budgetRows.find((r) => r.ccCode === ccCode) || null;
+  const getCcUsed     = (ccCode) => watchedItems.reduce((s, it) => it.ccCode === ccCode ? s + Number(it.amount || 0) : s, 0);
 
 
   if (isLoading) {
@@ -318,14 +342,13 @@ export default function DocketVoucherForm({ mode = "create", voucherId, canAppro
 
           {/* ── LEFT PANEL ─────────────────────────────────── */}
           <div className={`w-full lg:w-[380px] lg:shrink-0 space-y-2 ${!sidebarOpen ? "lg:hidden" : ""}`}>
-            <PMSection title="Docket Voucher Info">
+            <PMSection title="Voucher Docket Info">
               <PMFormRow label="Voucher No" labelWidth={LABEL_W}>
                 <PMInput value={voucherNo || "Auto"} disabled />
               </PMFormRow>
 
               <PMFormRow label="Voucher Date" required labelWidth={LABEL_W}>
-                <PMInput
-                  type="date"
+                <PMDateInput
                   {...register("voucherDate")}
                   hasError={errors.voucherDate}
                   disabled={disabled}
@@ -375,7 +398,7 @@ export default function DocketVoucherForm({ mode = "create", voucherId, canAppro
                 />
               </PMFormRow>
 
-              <PMFormRow label="Payment Ref. ID" labelWidth={LABEL_W}>
+              <PMFormRow label="Transaction Ref. ID" labelWidth={LABEL_W}>
                 <PMInput
                   {...register("paymentRefId")}
                   placeholder="Transaction ID"
@@ -403,7 +426,7 @@ export default function DocketVoucherForm({ mode = "create", voucherId, canAppro
           <div className="flex-1 min-w-0 mt-4 lg:mt-0">
             <div className="border border-[#b5b5b5]">
               <div className="bg-[#d6e6f2] px-3 py-1.5 border-b border-[#b5b5b5] font-bold text-[16px]">
-                Docket Voucher Details
+                Voucher Docket Details
               </div>
               <div className="overflow-x-auto">
                 <table className="w-full border-collapse text-sm min-w-[560px]">
@@ -417,14 +440,24 @@ export default function DocketVoucherForm({ mode = "create", voucherId, canAppro
                     </tr>
                   </thead>
                   <tbody>
-                    {fields.map((field, index) => (
-                      <tr key={field.id} className={index % 2 === 0 ? "bg-white" : "bg-[#f7f7f7]"}>
+                    {fields.map((field, index) => {
+                      const rowCcCode   = watch(`items.${index}.ccCode`);
+                      const budgetRow   = budgetRows.length > 0 ? getBudgetRow(rowCcCode) : null;
+                      const inBudget    = !!budgetRow;
+                      const notInBudget = budgetRows.length > 0 && rowCcCode && !inBudget;
+                      // rowAlloc = total allocated for this CC (budgetAmount, not remaining)
+                      // rowUsed  = already committed in other vouchers + what user enters here
+                      const rowAlloc    = budgetRow ? Number(budgetRow.budgetAmount ?? 0) : 0;
+                      const rowUsed     = inBudget ? Number(budgetRow.usedAmount ?? 0) + getCcUsed(rowCcCode) : 0;
+                      const rowRem      = rowAlloc - rowUsed;
+                      return (
+                      <tr key={field.id} className={`${index % 2 === 0 ? "bg-white" : "bg-[#f7f7f7]"} ${notInBudget ? "bg-orange-50" : ""}`}>
                         {/* SL */}
                         <td className="border border-[#d0d0d0] px-2 py-1 text-center text-gray-500">{index + 1}</td>
 
                         {/* CC Code — read-only, auto-fills when CC Name is selected */}
                         <td className="border border-[#d0d0d0] px-2 py-1 text-[12px] font-medium text-gray-700 bg-[#f0f6fb] align-middle text-center">
-                          {watch(`items.${index}.ccCode`) || (
+                          {rowCcCode || (
                             <span className="text-gray-300 italic text-[11px]">auto</span>
                           )}
                         </td>
@@ -433,19 +466,35 @@ export default function DocketVoucherForm({ mode = "create", voucherId, canAppro
                         <td className="border border-[#d0d0d0] p-0 align-top">
                           <div className="flex flex-col">
                             {/* CC Name — user selects here; CC Code auto-fills */}
-                            <SearchableSelect
-                              options={ccOptions}
-                              value={watch(`items.${index}.ccCode`)}
-                              disabled={disabled}
-                              onChange={(val, item) => {
-                                setValue(`items.${index}.ccCode`, val || "");
-                                setValue(`items.${index}.ccName`, item?.ccName || "");
-                              }}
-                              placeholder="Select CC Name…"
-                              labelKey="ccName"
-                              valueKey="ccCode"
-                              searchKeys={["ccName", "ccCode"]}
-                            />
+                            <div className="relative">
+                              <SearchableSelect
+                                options={ccOptions}
+                                value={rowCcCode}
+                                disabled={disabled}
+                                onChange={(val, item) => {
+                                  setValue(`items.${index}.ccCode`, val || "");
+                                  setValue(`items.${index}.ccName`, item?.ccName || "");
+                                }}
+                                placeholder="Select CC Name…"
+                                labelKey="ccName"
+                                valueKey="ccCode"
+                                searchKeys={["ccName", "ccCode"]}
+                              />
+                              {notInBudget && (
+                                <span className="absolute right-7 top-1/2 -translate-y-1/2 text-[10px] font-semibold text-orange-600 bg-orange-100 border border-orange-300 rounded px-1.5 py-0.5 whitespace-nowrap pointer-events-none">
+                                  Not in budget
+                                </span>
+                              )}
+                            </div>
+                            {inBudget && rowAlloc > 0 && (
+                              <div className="px-2 py-0.5 border-t border-[#c8dff0] bg-[#f0f7fd] flex items-center gap-2 text-[10px]">
+                                <span className="text-gray-500">Alloc: <span className="font-semibold text-gray-700">{formatAmount(rowAlloc)}</span></span>
+                                <span className="text-gray-300">|</span>
+                                <span className="text-amber-500">Used: <span className="font-semibold text-amber-700">{formatAmount(rowUsed)}</span></span>
+                                <span className="text-gray-300">|</span>
+                                <span className={rowRem < 0 ? "text-red-500" : "text-green-600"}>Rem: <span className={`font-semibold ${rowRem < 0 ? "text-red-600" : "text-green-700"}`}>{formatAmount(rowRem)}</span></span>
+                              </div>
+                            )}
                             {/* Description — PMTextarea */}
                             <Controller
                               control={control}
@@ -494,7 +543,7 @@ export default function DocketVoucherForm({ mode = "create", voucherId, canAppro
                           </td>
                         )}
                       </tr>
-                    ))}
+                    );})}
 
                     {/* Total row */}
                     <tr className="bg-[#d6e6f2] font-semibold">
@@ -547,7 +596,7 @@ export default function DocketVoucherForm({ mode = "create", voucherId, canAppro
               disabled={!allowSubmit || isEditing || isSubmitted || isSubmitting || mode === "create"}
               requireConfirmation
               confirmationTitle="Submit Voucher?"
-              confirmationMessage="Once submitted, this docket voucher will be sent for approval."
+              confirmationMessage="Once submitted, this voucher docket will be sent for approval."
             >
               Submit
             </SaveButton>

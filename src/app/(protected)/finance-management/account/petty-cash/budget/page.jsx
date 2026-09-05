@@ -48,7 +48,6 @@ export default function BudgetListPage() {
           }),
           workflowStatus: r.workflowStatus || "",
           createdBy:      r.createdBy      || "",
-          approvedBy:     r.approvedBy     || "",
           _raw:           r,
         }));
         setData(rows);
@@ -63,7 +62,7 @@ export default function BudgetListPage() {
     const q = search.toLowerCase();
     setFilteredData(
       data.filter((r) =>
-        ["budgetNo", "frequency", "workflowStatus", "createdBy", "approvedBy"].some(
+        ["budgetNo", "frequency", "workflowStatus", "createdBy"].some(
           (k) => String(r[k] || "").toLowerCase().includes(q),
         ),
       ),
@@ -80,7 +79,6 @@ export default function BudgetListPage() {
     { header: "Amount",      accessor: "amount",         width: "120px", align: "right" },
     { header: "Status",      accessor: "workflowStatus", width: "110px" },
     { header: "Prepared By", accessor: "createdBy",      width: "130px" },
-    { header: "Approved By", accessor: "approvedBy",     width: "130px" },
   ];
 
   const actions = getPageActions({ router });

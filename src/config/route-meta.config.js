@@ -682,17 +682,17 @@ export const routeMetaConfig = [
     basePath: "/finance-management/account/petty-cash/budget/[id]",
     breadcrumbs: ["Finance Management", "Accounts", "Petty Cash", "Budget", "Details"],
   },
-  // Petty Cash — Docket Voucher
+  // Petty Cash — Voucher Docket
   {
     basePath: "/finance-management/account/petty-cash/docket-voucher",
-    breadcrumbs: ["Finance Management", "Accounts", "Petty Cash", "Docket Voucher", "List"],
+    breadcrumbs: ["Finance Management", "Accounts", "Petty Cash", "Voucher Docket", "List"],
   },
   {
     basePath: "/finance-management/account/petty-cash/docket-voucher/new",
-    breadcrumbs: ["Finance Management", "Accounts", "Petty Cash", "Docket Voucher", "New"],
+    breadcrumbs: ["Finance Management", "Accounts", "Petty Cash", "Voucher Docket", "New"],
   },
   {
     basePath: "/finance-management/account/petty-cash/docket-voucher/[id]",
-    breadcrumbs: ["Finance Management", "Accounts", "Petty Cash", "Docket Voucher", "Details"],
+    breadcrumbs: ["Finance Management", "Accounts", "Petty Cash", "Voucher Docket", "Details"],
   },
 ];

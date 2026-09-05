@@ -55,7 +55,7 @@ export default function DocketVoucherListPage() {
         setData(rows);
         setFilteredData(rows);
       })
-      .catch(() => toast.error("Failed to fetch docket voucher list"))
+      .catch(() => toast.error("Failed to fetch voucher docket list"))
       .finally(() => setLoading(false));
   }, [projectCode, access.allowed]);
 
@@ -116,7 +116,7 @@ export default function DocketVoucherListPage() {
           showDateRange
           actions={
             access.canAdd
-              ? [{ label: "+ Docket Voucher", onClick: () => router.push("/finance-management/account/petty-cash/docket-voucher/new") }]
+              ? [{ label: "+ Voucher Docket", onClick: () => router.push("/finance-management/account/petty-cash/docket-voucher/new") }]
               : []
           }
         />

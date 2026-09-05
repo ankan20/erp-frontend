@@ -44,7 +44,7 @@ export default function Page() {
       header={<PageHeader actions={actions} />}
       pendingApproval={
         isPendingForMe
-          ? `Your approval is required at Level ${myLevel} for this Docket Voucher.`
+          ? `Your approval is required at Level ${myLevel} for this Voucher Docket.`
           : null
       }
       onDismissApproval={isPendingForMe ? dismiss : undefined}
@@ -73,7 +73,7 @@ export default function Page() {
       <HistoryTimelineSheet
         open={openTimeline}
         onClose={() => setOpenTimeline(false)}
-        title="Docket Voucher Approve History"
+        title="Voucher Docket Approve History"
         api={API_ENDPOINTS.FINANCE.PETTY_CASH.DOCKET_VOUCHER.HISTORY}
         entityId={id}
       />

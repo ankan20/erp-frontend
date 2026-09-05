@@ -170,7 +170,7 @@ export default function DocketVoucherPrintPage() {
   return (
     <>
       <PrintTopBar
-        title={`Docket Voucher — ${data.voucherNo || ""}`}
+        title={`Voucher Docket — ${data.voucherNo || ""}`}
         onDownloadPDF={printAsPDF}
         onDownloadDocx={() => downloadDocx(data, uuid, qrCanvasRef)}
       />
@@ -184,7 +184,7 @@ export default function DocketVoucherPrintPage() {
               <Image src="/assets/pdf-images/erp_company_img_pdf.png" alt="Logo" width={130} height={65} className="object-contain" priority />
             </div>
             <div className="flex-1 flex items-center justify-center">
-              <h1 className={`${SIZE.pageTitle} ${WEIGHT.bold} tracking-widest text-gray-900 uppercase`}>Docket Voucher</h1>
+              <h1 className={`${SIZE.pageTitle} ${WEIGHT.bold} tracking-widest text-gray-900 uppercase`}>Voucher Docket</h1>
             </div>
             <div className="flex flex-col items-end gap-1 shrink-0">
               <span className={`${SIZE.subText} text-gray-600`}>www.dishaanhitech.com</span>

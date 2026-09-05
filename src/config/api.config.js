@@ -598,7 +598,10 @@ export const API_ENDPOINTS = {
       GET: "/finance/my-ledger",                    // GET ?projectCode&fromDate&toDate (JWT)
     },
     PETTY_CASH: {
-      LEDGER: "/finance/petty-cash/ledger",          // GET ?projectCode&fromDate&toDate
+      LEDGER: {
+        LIST:          "/finance/petty-cash/ledger/list",      // GET ?projectCode[&workflowStatus&fromDate&toDate]
+        BUDGET_DETAIL: "/finance/petty-cash/ledger/budget/",   // /:budget_id GET
+      },
       BUDGET: {
         LIST:               "/finance/petty-cash/budget/list",                // GET ?projectCode[&workflowStatus&search&fromDate&toDate]
         CREATE:             "/finance/petty-cash/budget/create",              // POST multipart (details JSON string + attachment file)
