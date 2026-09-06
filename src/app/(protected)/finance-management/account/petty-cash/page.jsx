@@ -88,6 +88,56 @@ async function downloadLedgerPDF({ account, entries, summary, projectCode, fromD
   doc.save(`PettyCash_Ledger_${projectCode}_${new Date().toISOString().slice(0, 10)}.pdf`);
 }
 
+async function downloadPendingPDF({ account, entries, projectCode }) {
+  const { default: jsPDF }     = await import("jspdf");
+  const { default: autoTable } = await import("jspdf-autotable");
+
+  const doc   = new jsPDF({ orientation: "landscape", unit: "mm", format: "a4" });
+  const pageW = doc.internal.pageSize.getWidth();
+  let y = 14;
+
+  doc.setFontSize(13); doc.setFont("helvetica", "bold");
+  doc.text("Petty Cash — Under Process Dockets", pageW / 2, y, { align: "center" });
+  y += 6;
+
+  const parts = [`Project: ${projectCode}`];
+  if (account) parts.push(`Account: ${account.bankCode} — ${account.bankName}`);
+  doc.setFontSize(8); doc.setFont("helvetica", "italic");
+  doc.text(parts.join("   |   "), pageW / 2, y, { align: "center" });
+  y += 7;
+
+  const statusLabel = (s) => {
+    if (!s) return "—";
+    const k = s.toLowerCase();
+    return k.startsWith("pending") ? "Under Process" : k === "draft" ? "Draft" : k === "reback" ? "Reback" : s;
+  };
+
+  autoTable(doc, {
+    startY: y,
+    head: [["Date", "Reference No", "Description", "Account", "Debit (DR)", "Status"]],
+    body: (entries || []).map((e) => [
+      fmtD(e.date),
+      e.referenceNo || "—",
+      e.description || "—",
+      e.bankCode || "—",
+      fmt(e.debit),
+      statusLabel(e.workflowStatus),
+    ]),
+    theme: "grid",
+    headStyles: { fillColor: [180, 120, 20], textColor: [255, 255, 255], fontStyle: "bold", fontSize: 7 },
+    bodyStyles: { fontSize: 7 },
+    alternateRowStyles: { fillColor: [255, 253, 240] },
+    columnStyles: {
+      0: { cellWidth: 22 },
+      4: { halign: "right" },
+      5: { halign: "center" },
+    },
+    margin: { left: 10, right: 10 },
+  });
+
+  doc.save(`PettyCash_UnderProcess_${projectCode}_${new Date().toISOString().slice(0, 10)}.pdf`);
+}
+
 // ─── Type badge ───────────────────────────────────────────────────────────────
 function TypeBadge({ type }) {
   const isContra = type === "Contra";
@@ -163,10 +213,77 @@ function InfoBar({ account, summary }) {
   );
 }
 
-// ─── Ledger table ─────────────────────────────────────────────────────────────
+// ─── Status badge (for pending entries) ──────────────────────────────────────
+function StatusBadge({ status }) {
+  if (!status) return null;
+  const key = status.toLowerCase();
+  const label = key.startsWith("pending") ? "Under Process"
+    : key === "draft"  ? "Draft"
+    : key === "reback" ? "Reback"
+    : status;
+  const cls = key.startsWith("pending") ? "bg-blue-100 text-blue-700"
+    : key === "draft"  ? "bg-gray-100 text-gray-600"
+    : key === "reback" ? "bg-amber-100 text-amber-700"
+    : "bg-gray-100 text-gray-600";
+  return (
+    <span className={`inline-block text-[10.5px] px-2 py-0.5 rounded-full font-semibold ${cls}`}>
+      {label}
+    </span>
+  );
+}
+
+// ─── Under-process section ────────────────────────────────────────────────────
+function PendingEntriesTable({ entries }) {
+  if (!entries?.length) return null;
+  const totalPending = entries.reduce((s, e) => s + Number(e.debit || 0), 0);
+  return (
+    <div className="border border-[#f0d88a] rounded-sm overflow-hidden">
+      <div className="flex items-center justify-between px-3 py-1.5 bg-amber-50 border-b border-[#f0d88a]">
+        <span className="text-[11.5px] font-semibold uppercase tracking-wide text-amber-800">
+          Under Process — Pending Dockets
+        </span>
+        <span className="text-[11.5px] font-semibold text-amber-700 font-mono">
+          {fmt(totalPending)} DR pending
+        </span>
+      </div>
+      <div className="overflow-x-auto">
+        <table className="w-full border-collapse text-[12px] min-w-[600px]">
+          <thead>
+            <tr className="bg-[#fef3c7]">
+              <th className="border border-[#f0d88a] px-2 py-1.5 text-left w-[100px] text-amber-900">Date</th>
+              <th className="border border-[#f0d88a] px-2 py-1.5 text-left w-[110px] text-amber-900">Reference No</th>
+              <th className="border border-[#f0d88a] px-2 py-1.5 text-left text-amber-900">Description</th>
+              <th className="border border-[#f0d88a] px-2 py-1.5 text-left w-[90px] text-amber-900">Account</th>
+              <th className="border border-[#f0d88a] px-2 py-1.5 text-right w-[120px] text-amber-900">Debit (DR)</th>
+              <th className="border border-[#f0d88a] px-2 py-1.5 text-center w-[120px] text-amber-900">Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            {entries.map((e, i) => (
+              <tr key={i} className={i % 2 === 0 ? "bg-white" : "bg-[#fffdf0]"}>
+                <td className="border border-[#f0e8c0] px-2 py-1.5 text-gray-600">{fmtD(e.date)}</td>
+                <td className="border border-[#f0e8c0] px-2 py-1.5 font-medium text-amber-800">{e.referenceNo || "—"}</td>
+                <td className="border border-[#f0e8c0] px-2 py-1.5 text-gray-600">{e.description || "—"}</td>
+                <td className="border border-[#f0e8c0] px-2 py-1.5 text-gray-500 font-mono text-[11px]">{e.bankCode || "—"}</td>
+                <td className="border border-[#f0e8c0] px-2 py-1.5 text-right font-mono font-semibold text-amber-800">
+                  {fmt(e.debit)}
+                </td>
+                <td className="border border-[#f0e8c0] px-2 py-1.5 text-center">
+                  <StatusBadge status={e.workflowStatus} />
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
+
+// ─── Approved ledger table ────────────────────────────────────────────────────
 function LedgerTable({ entries }) {
   if (!entries?.length) {
-    return <div className="text-center py-8 text-sm text-gray-400">No entries found.</div>;
+    return <div className="text-center py-8 text-sm text-gray-400">No approved entries found.</div>;
   }
   return (
     <div className="overflow-x-auto border border-[#b5c9d8] rounded-sm">
@@ -185,8 +302,7 @@ function LedgerTable({ entries }) {
         </thead>
         <tbody>
           {entries.map((e, i) => {
-            const isContra = e.type === "Contra";
-            const bal      = Number(e.balance ?? 0);
+            const bal = Number(e.balance ?? 0);
             return (
               <tr key={i} className={i % 2 === 0 ? "bg-white" : "bg-[#f7fbff]"}>
                 <td className="border border-[#d5e8f5] px-2 py-1.5 text-gray-600">{fmtD(e.date)}</td>
@@ -441,15 +557,31 @@ export default function PettyCashPage() {
         )}
 
         {/* No data */}
-        {!loading && fetched && !ledger?.entries?.length && (
+        {!loading && fetched && !ledger?.entries?.length && !ledger?.pendingEntries?.length && (
           <div className="text-center py-10 text-sm text-gray-400">No ledger entries found for the selected filters.</div>
         )}
 
         {/* Ledger */}
-        {!loading && fetched && ledger?.entries?.length > 0 && (
-          <div className="space-y-2">
+        {!loading && fetched && (ledger?.entries?.length > 0 || ledger?.pendingEntries?.length > 0) && (
+          <div className="space-y-3">
             <InfoBar account={ledger.account} summary={ledger.summary} />
-            <LedgerTable entries={ledger.entries} />
+            {/* Under-process pending dockets */}
+            {ledger.pendingEntries?.length > 0 && (
+              <PendingEntriesTable entries={ledger.pendingEntries} />
+            )}
+            {/* Approved ledger */}
+            {ledger.entries?.length > 0 && (
+              <>
+                {ledger.pendingEntries?.length > 0 && (
+                  <div className="flex items-center gap-2 pt-1">
+                    <div className="flex-1 border-t border-[#b5c9d8]" />
+                    <span className="text-[11px] font-semibold uppercase tracking-wide text-[#144664] px-2">Approved Ledger</span>
+                    <div className="flex-1 border-t border-[#b5c9d8]" />
+                  </div>
+                )}
+                <LedgerTable entries={ledger.entries} />
+              </>
+            )}
             {pagination && pagination.totalPages > 1 && (
               <Paginator
                 page={page}
