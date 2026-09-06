@@ -21,9 +21,9 @@ export default function BudgetListPage() {
   const router = useRouter();
   const access = getPageAccess({ pageCode: "petty_cash", pageType: "LIST" });
 
-  const [data,         setData]         = useState([]);
-  const [filteredData, setFilteredData] = useState([]);
-  const [loading,      setLoading]      = useState(true);
+  const [data,    setData]    = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [filters, setFilters] = useState({ search: "", from: "", to: "" });
 
   const projectCode = getLocalStorage("projectInfo")?.projectCode || "";
 
@@ -35,9 +35,10 @@ export default function BudgetListPage() {
     })
       .then((res) => {
         const list = res.data?.list || res.data || [];
-        const rows = list.map((r, i) => ({
+        setData(list.map((r, i) => ({
           sl:             i + 1,
           _id:            r.id,
+          _date:          r.budgetDate || "",
           budgetNo:       r.budgetNo                      || "",
           date:           getfmtDisplaydate(r.budgetDate) || "",
           frequency:      r.budgetFrequency               || "",
@@ -48,26 +49,28 @@ export default function BudgetListPage() {
           }),
           workflowStatus: r.workflowStatus || "",
           createdBy:      r.createdBy      || "",
-          _raw:           r,
-        }));
-        setData(rows);
-        setFilteredData(rows);
+        })));
       })
       .catch(() => toast.error("Failed to fetch budget list"))
       .finally(() => setLoading(false));
-  }, [projectCode, access.allowed]);
+  }, [projectCode]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const handleSearch = ({ search }) => {
-    if (!search) { setFilteredData(data); return; }
-    const q = search.toLowerCase();
-    setFilteredData(
-      data.filter((r) =>
-        ["budgetNo", "frequency", "workflowStatus", "createdBy"].some(
-          (k) => String(r[k] || "").toLowerCase().includes(q),
-        ),
-      ),
-    );
+  const handleSearch = ({ search, from, to }) => {
+    setFilters({ search: search || "", from: from || "", to: to || "" });
   };
+
+  const displayed = data.filter((r) => {
+    if (filters.search) {
+      const q = filters.search.toLowerCase();
+      const match = ["budgetNo", "frequency", "workflowStatus", "createdBy"].some(
+        (k) => String(r[k] || "").toLowerCase().includes(q),
+      );
+      if (!match) return false;
+    }
+    if (filters.from && r._date && r._date < filters.from) return false;
+    if (filters.to   && r._date && r._date > filters.to)   return false;
+    return true;
+  });
 
   const columns = [
     { header: "Sl. no",      accessor: "sl",             width: "55px"  },
@@ -81,23 +84,14 @@ export default function BudgetListPage() {
     { header: "Prepared By", accessor: "createdBy",      width: "130px" },
   ];
 
-  const actions = getPageActions({ router });
-
   if (!access.allowed) return <PageNotAvailable />;
 
-  if (loading) {
-    return (
-      <div className="flex justify-center items-center h-[300px]">
-        <Loader2 className="animate-spin w-6 h-6" />
-      </div>
-    );
-  }
-
   return (
-    <HeaderWrapper header={<PageHeader actions={actions} />}>
+    <HeaderWrapper header={<PageHeader actions={getPageActions({ router })} />}>
       <div className="p-3 space-y-3">
         <SearchSection
           onSearch={handleSearch}
+          showDateRange
           actions={
             access.canAdd
               ? [{ label: "+ Budget", onClick: () => router.push("/finance-management/account/petty-cash/budget/new") }]
@@ -105,14 +99,20 @@ export default function BudgetListPage() {
           }
         />
 
-        <DataTable
-          columns={columns}
-          data={filteredData}
-          onRowClick={(row) => {
-            if (!access.canOpenDetails) return;
-            router.push(`/finance-management/account/petty-cash/budget/${row._id}`);
-          }}
-        />
+        {loading ? (
+          <div className="flex justify-center items-center h-[200px]">
+            <Loader2 className="animate-spin w-6 h-6 text-[#144664]" />
+          </div>
+        ) : (
+          <DataTable
+            columns={columns}
+            data={displayed}
+            onRowClick={(row) => {
+              if (!access.canOpenDetails) return;
+              router.push(`/finance-management/account/petty-cash/budget/${row._id}`);
+            }}
+          />
+        )}
       </div>
     </HeaderWrapper>
   );

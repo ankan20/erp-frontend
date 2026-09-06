@@ -201,8 +201,7 @@ export default function DocketVoucherForm({ mode = "create", voucherId, canAppro
         setExistingFileUrl(d.attachmentUrl || d.attachment || "");
         setInitialFileUrl(d.attachmentUrl  || d.attachment || "");
 
-        const notEditable = ["Submitted", "Approved", "Rejected"].includes(d.workflowStatus)
-          && d.workflowStatus !== "Reback";
+        const notEditable = !["Draft", "Reback"].includes(d.workflowStatus);
         if (notEditable && mode === "edit") {
           setIsSubmitted(true);
           setIsEditing(false);
@@ -287,6 +286,7 @@ export default function DocketVoucherForm({ mode = "create", voucherId, canAppro
       setIsSubmitted(true);
       setIsEditing(false);
       setAllowSubmit(false);
+      onAfterSubmit?.();
     } catch (err) {
       toast.error(err.message || "Failed", { id: tid });
     }
@@ -485,15 +485,6 @@ export default function DocketVoucherForm({ mode = "create", voucherId, canAppro
                                 </span>
                               )}
                             </div>
-                            {inBudget && rowAlloc > 0 && (
-                              <div className="px-2 py-0.5 border-t border-[#c8dff0] bg-[#f0f7fd] flex items-center gap-2 text-[10px]">
-                                <span className="text-gray-500">Alloc: <span className="font-semibold text-gray-700">{formatAmount(rowAlloc)}</span></span>
-                                <span className="text-gray-300">|</span>
-                                <span className="text-amber-500">Used: <span className="font-semibold text-amber-700">{formatAmount(rowUsed)}</span></span>
-                                <span className="text-gray-300">|</span>
-                                <span className={rowRem < 0 ? "text-red-500" : "text-green-600"}>Rem: <span className={`font-semibold ${rowRem < 0 ? "text-red-600" : "text-green-700"}`}>{formatAmount(rowRem)}</span></span>
-                              </div>
-                            )}
                             {/* Description — PMTextarea */}
                             <Controller
                               control={control}
@@ -510,6 +501,15 @@ export default function DocketVoucherForm({ mode = "create", voucherId, canAppro
                                 />
                               )}
                             />
+                            {inBudget && rowAlloc > 0 && (
+                              <div className="px-2 py-0.5 border-t border-[#c8dff0] bg-[#f0f7fd] flex items-center gap-2 text-[10px]">
+                                <span className="text-gray-500">Budget: <span className="font-semibold text-gray-700">{formatAmount(rowAlloc)}</span></span>
+                                <span className="text-gray-300">|</span>
+                                <span className="text-amber-500">Used: <span className="font-semibold text-amber-700">{formatAmount(rowUsed)}</span></span>
+                                <span className="text-gray-300">|</span>
+                                <span className={rowRem < 0 ? "text-red-500" : "text-green-600"}>Balance: <span className={`font-semibold ${rowRem < 0 ? "text-red-600" : "text-green-700"}`}>{formatAmount(rowRem)}</span></span>
+                              </div>
+                            )}
                           </div>
                         </td>
 

@@ -5,8 +5,8 @@ import { useRouter }           from "next/navigation";
 import { Loader2 }             from "lucide-react";
 import { toast }               from "sonner";
 
-import SearchSection    from "@/components/common/SearchSection";
-import DataTable        from "@/components/common/DataTable";
+import SearchSection from "@/components/common/SearchSection";
+import DataTable     from "@/components/common/DataTable";
 import PageHeader       from "@/components/layout/PageHeader";
 import HeaderWrapper    from "@/components/layout/HeaderWrapper";
 import PageNotAvailable from "@/components/common/PageNotAvailable";
@@ -106,14 +106,15 @@ export default function Page() {
   return (
     <HeaderWrapper header={<PageHeader actions={actions} />}>
       <div className="p-3 space-y-3">
+
         <SearchSection
           onSearch={handleSearch}
           showDateRange
-          actions={
-            access.canAdd
-              ? [{ label: "+ Journal Entry", onClick: () => router.push("/finance-management/account/journal/new") }]
-              : []
-          }
+          actions={[
+            { label: "Journal Voucher", onClick: () => router.push("/finance-management/account/journal/vouchering") },
+            { label: "Journal Accounting", onClick: () => router.push("/finance-management/account/journal/accounting") },
+            ...(access.canAdd ? [{ label: "+ Journal Adjustment", onClick: () => router.push("/finance-management/account/journal/new") }] : []),
+          ]}
         />
 
         <DataTable

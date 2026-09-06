@@ -179,8 +179,7 @@ export default function BudgetForm({ mode = "create", budgetId, canApprove = fal
           setRevisionMap(map);
         }
 
-        const notEditable = ["Submitted", "Approved", "Rejected"].includes(d.workflowStatus)
-          && d.workflowStatus !== "Reback";
+        const notEditable = !["Draft", "Reback"].includes(d.workflowStatus);
         if (notEditable && mode === "edit") {
           setIsSubmitted(true);
           setIsEditing(false);

@@ -651,18 +651,44 @@ export const routeMetaConfig = [
     basePath: "/finance-management/account/contra/[id]",
     breadcrumbs: ["Finance Management", "Accounts", "Contra Entry", "Details"],
   },
-  // Finance Management — Journal Entry
+  // Finance Management — Journal Entry (Adjustment)
   {
     basePath: "/finance-management/account/journal",
-    breadcrumbs: ["Finance Management", "Accounts", "Journal Entry", "List"],
+    breadcrumbs: ["Finance Management", "Accounts", "Journal", "List"],
   },
   {
     basePath: "/finance-management/account/journal/new",
-    breadcrumbs: ["Finance Management", "Accounts", "Journal Entry", "New"],
+    breadcrumbs: ["Finance Management", "Accounts", "Journal", "Journal Adjustment", "New"],
   },
   {
     basePath: "/finance-management/account/journal/[id]",
-    breadcrumbs: ["Finance Management", "Accounts", "Journal Entry", "Details"],
+    breadcrumbs: ["Finance Management", "Accounts", "Journal", "Journal Adjustment", "Details"],
+  },
+  // Journal Voucher
+  {
+    basePath: "/finance-management/account/journal/vouchering",
+    breadcrumbs: ["Finance Management", "Accounts", "Journal", "Journal Voucher", "List"],
+  },
+  {
+    basePath: "/finance-management/account/journal/vouchering/new",
+    breadcrumbs: ["Finance Management", "Accounts", "Journal", "Journal Voucher", "New"],
+  },
+  {
+    basePath: "/finance-management/account/journal/vouchering/[id]",
+    breadcrumbs: ["Finance Management", "Accounts", "Journal", "Journal Voucher", "Details"],
+  },
+  // Journal Accounting
+  {
+    basePath: "/finance-management/account/journal/accounting",
+    breadcrumbs: ["Finance Management", "Accounts", "Journal", "Journal Accounting", "List"],
+  },
+  {
+    basePath: "/finance-management/account/journal/accounting/new",
+    breadcrumbs: ["Finance Management", "Accounts", "Journal", "Journal Accounting", "New"],
+  },
+  {
+    basePath: "/finance-management/account/journal/accounting/[id]",
+    breadcrumbs: ["Finance Management", "Accounts", "Journal", "Journal Accounting", "Details"],
   },
   // Finance Management — Petty Cash
   {
