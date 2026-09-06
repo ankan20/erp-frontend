@@ -71,11 +71,14 @@ export const API_ENDPOINTS = {
       DELETE: "/master/term/delete",
     },
     BANK_CASH: {
-      LIST:      "/master/bank-cash/list",
-      CREATE:    "/master/bank-cash/create",
-      GET_BY_ID: "/master/bank-cash",       // /<id>
-      UPDATE:    "/master/bank-cash/update", // /<id>
-      DELETE:    "/master/bank-cash/delete", // /<id>
+      LIST:           "/master/bank-cash/list",
+      CREATE:         "/master/bank-cash/create",
+      GET_BY_ID:      "/master/bank-cash",        // /<id>
+      UPDATE:         "/master/bank-cash/update",  // /<id>
+      DELETE:         "/master/bank-cash/delete",  // /<id>
+      MIGRATE:        "/master/bank-cash/migrate", // POST { bankCashIds, projectIds }
+      LINK_PROJECT:   "/master/bank-cash",         // POST /<id>/link-project   { projectId }
+      UNLINK_PROJECT: "/master/bank-cash",         // POST /<id>/unlink-project { projectId }
     },
   },
   // resource/indent

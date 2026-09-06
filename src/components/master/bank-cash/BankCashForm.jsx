@@ -6,6 +6,7 @@ import { Controller } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
+import { Loader2, X, Check } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
@@ -52,8 +53,124 @@ const label =
 
 const BC = API_ENDPOINTS.MASTER.BANK_CASH;
 
+// ── Project chip ──────────────────────────────────────────────────────────────
+function ProjectChip({ text, onRemove, disabled }) {
+  return (
+    <span className="inline-flex items-center gap-1 text-[11px] bg-blue-50 text-blue-700 border border-blue-200 rounded-full px-2.5 py-0.5 font-medium">
+      {text}
+      {!disabled && (
+        <button type="button" onClick={onRemove} className="text-blue-400 hover:text-red-500 transition-colors">
+          <X size={10} />
+        </button>
+      )}
+    </span>
+  );
+}
+
+// ── Project multi-select section ──────────────────────────────────────────────
+function ProjectSelect({ value, onChange, disabled, allProjects, loading }) {
+  const [search, setSearch] = useState("");
+
+  const filtered = search.trim()
+    ? allProjects.filter((p) =>
+        [p.projectCode, p.projectName].some((f) => f?.toLowerCase().includes(search.toLowerCase()))
+      )
+    : allProjects;
+
+  const toggle = (id) => {
+    onChange(value.includes(id) ? value.filter((x) => x !== id) : [...value, id]);
+  };
+
+  const selectedProjects = allProjects.filter((p) => value.includes(p.id));
+
+  return (
+    <div className="border border-gray-200 rounded-md overflow-hidden">
+      <div className="px-3 py-2 bg-[#d6e6f2] border-b border-gray-200 flex items-center justify-between">
+        <span className="text-[13px] font-semibold">Linked Projects</span>
+        {!disabled && value.length > 0 && (
+          <button type="button" onClick={() => onChange([])} className="text-[11px] text-red-400 hover:text-red-600 transition-colors">
+            Clear all
+          </button>
+        )}
+      </div>
+
+      {selectedProjects.length > 0 && (
+        <div className="flex flex-wrap gap-1.5 p-2 bg-blue-50/40 border-b border-blue-100 min-h-[36px]">
+          {selectedProjects.map((p) => (
+            <ProjectChip
+              key={p.id}
+              text={`${p.projectCode} — ${p.projectName}`}
+              onRemove={() => toggle(p.id)}
+              disabled={disabled}
+            />
+          ))}
+        </div>
+      )}
+
+      {!disabled && (
+        <div className="p-2 border-b border-gray-100">
+          <input
+            type="text"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Search projects..."
+            className="h-7 w-full border border-gray-300 rounded px-2 text-[12px] outline-none focus:border-blue-400 transition"
+          />
+        </div>
+      )}
+
+      {!disabled && (
+        <div className="max-h-[180px] overflow-y-auto divide-y divide-gray-100 bg-white">
+          {loading ? (
+            <div className="flex justify-center py-5">
+              <Loader2 className="animate-spin w-4 h-4 text-gray-400" />
+            </div>
+          ) : filtered.length === 0 ? (
+            <div className="px-3 py-3 text-[12px] text-gray-400 text-center">No projects found</div>
+          ) : (
+            filtered.map((p) => {
+              const checked = value.includes(p.id);
+              return (
+                <button
+                  key={p.id}
+                  type="button"
+                  onClick={() => toggle(p.id)}
+                  className={`w-full flex items-center gap-2.5 px-3 py-2 text-[12px] text-left transition-colors ${
+                    checked ? "bg-blue-50 text-blue-700" : "hover:bg-gray-50 text-gray-700"
+                  }`}
+                >
+                  <span className={`w-4 h-4 rounded border flex items-center justify-center shrink-0 ${
+                    checked ? "bg-blue-500 border-blue-500" : "border-gray-300"
+                  }`}>
+                    {checked && <Check size={10} className="text-white" strokeWidth={3} />}
+                  </span>
+                  <span className={`truncate ${checked ? "font-medium" : ""}`}>
+                    {p.projectCode} — {p.projectName}
+                  </span>
+                </button>
+              );
+            })
+          )}
+        </div>
+      )}
+
+      {disabled && selectedProjects.length === 0 && (
+        <div className="px-3 py-4 text-[12px] text-gray-400 text-center">No projects linked</div>
+      )}
+
+      <div className="px-3 py-1.5 bg-gray-50 border-t border-gray-100">
+        <span className="text-[11px] text-gray-400">{value.length} project{value.length !== 1 ? "s" : ""} linked</span>
+      </div>
+    </div>
+  );
+}
+
+// ── Main form ─────────────────────────────────────────────────────────────────
 export default function BankCashForm({ mode = "create", disabled = false, recordId, initialData }) {
-  const [isEditing, setIsEditing] = useState(mode === "create");
+  const [isEditing, setIsEditing]           = useState(mode === "create");
+  const [allProjects, setAllProjects]       = useState([]);
+  const [loadingProjects, setLoadingProjects] = useState(false);
+  const [linkedProjectIds, setLinkedProjectIds] = useState([]);
   const router = useRouter();
 
   const {
@@ -70,6 +187,15 @@ export default function BankCashForm({ mode = "create", disabled = false, record
   const typeValue = watch("type");
   const isCash = typeValue === "CASH";
   const fieldDisabled = disabled || !isEditing || isSubmitting;
+
+  // Load projects list
+  useEffect(() => {
+    setLoadingProjects(true);
+    apiRequest({ url: API_ENDPOINTS.SETTINGS.GET_ALL_PROJECTS, method: "GET" })
+      .then((res) => setAllProjects(Array.isArray(res?.data) ? res.data : []))
+      .catch(() => {})
+      .finally(() => setLoadingProjects(false));
+  }, []);
 
   // Load initial data for edit/view
   useEffect(() => {
@@ -88,6 +214,7 @@ export default function BankCashForm({ mode = "create", disabled = false, record
         branchManagerContact: initialData.branchManagerContact || "",
         branchManagerMailId:  initialData.branchManagerMailId || "",
       });
+      setLinkedProjectIds((initialData.projects || []).map((p) => p.id));
     }
   }, [initialData, mode, reset]);
 
@@ -107,6 +234,7 @@ export default function BankCashForm({ mode = "create", disabled = false, record
         branchManagerContact: initialData.branchManagerContact || "",
         branchManagerMailId:  initialData.branchManagerMailId || "",
       });
+      setLinkedProjectIds((initialData.projects || []).map((p) => p.id));
     }
     setIsEditing(false);
   };
@@ -129,6 +257,7 @@ export default function BankCashForm({ mode = "create", disabled = false, record
         branchManagerName:    v.branchManagerName    || undefined,
         branchManagerContact: v.branchManagerContact || undefined,
         branchManagerMailId:  v.branchManagerMailId  || undefined,
+        projectIds:           linkedProjectIds,
       };
 
       if (mode === "create") {
@@ -258,6 +387,15 @@ export default function BankCashForm({ mode = "create", disabled = false, record
           </div>
         </div>
       )}
+
+      {/* LINKED PROJECTS */}
+      <ProjectSelect
+        value={linkedProjectIds}
+        onChange={setLinkedProjectIds}
+        disabled={fieldDisabled}
+        allProjects={allProjects}
+        loading={loadingProjects}
+      />
 
       {/* BUTTONS */}
       <div className="flex justify-end gap-3 mt-4">
