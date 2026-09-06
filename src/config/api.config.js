@@ -632,8 +632,11 @@ export const API_ENDPOINTS = {
     },
     PETTY_CASH: {
       LEDGER: {
-        LIST:          "/finance/petty-cash/ledger/list",      // GET ?projectCode[&workflowStatus&fromDate&toDate]
-        BUDGET_DETAIL: "/finance/petty-cash/ledger/budget/",   // /:budget_id GET
+        PROJECT_ACCOUNTS: "/finance/petty-cash/ledger/project-accounts", // GET ?projectCode
+        ACCOUNT_LEDGER:   "/finance/petty-cash/ledger/account-ledger",   // GET ?projectCode[&bankCashId&page&pageSize&fromDate&toDate]
+        // budget-based (kept for BudgetDetail panel if still needed)
+        LIST:          "/finance/petty-cash/ledger/list",
+        BUDGET_DETAIL: "/finance/petty-cash/ledger/budget/",
       },
       BUDGET: {
         LIST:               "/finance/petty-cash/budget/list",                // GET ?projectCode[&workflowStatus&search&fromDate&toDate]
