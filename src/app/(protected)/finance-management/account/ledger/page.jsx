@@ -136,13 +136,34 @@ function LedgerTable({ entries, showVendor = false }) {
   );
 }
 
-function VendorInfoBar({ vendor }) {
-  if (!vendor) return null;
+function InfoBar({ left, summary }) {
   return (
-    <div className="flex flex-wrap gap-4 px-3 py-2 bg-[#f0f4f8] border border-[#c4d1df] rounded-sm text-[12px]">
-      <span><span className="font-semibold text-gray-500">Code:</span> <span className="font-semibold">{vendor.ledgerCode}</span></span>
-      <span><span className="font-semibold text-gray-500">Name:</span> <span className="font-semibold">{vendor.ledgerName}</span></span>
-      {vendor.gstin && <span><span className="font-semibold text-gray-500">GSTIN:</span> {vendor.gstin}</span>}
+    <div className="flex flex-wrap items-center gap-x-1 px-3 py-2 bg-[#f0f4f8] border border-[#c4d1df] rounded-sm text-[12px]">
+      {/* left side: vendor/project details */}
+      <div className="flex flex-wrap gap-x-4 gap-y-1 flex-1 min-w-0">
+        {left}
+      </div>
+      {/* right side: summary figures */}
+      {summary && (
+        <div className="flex items-center gap-3 shrink-0 border-l border-[#c4d1df] pl-3 ml-2">
+          <span className="whitespace-nowrap">
+            <span className="text-gray-500 font-semibold">Debit:</span>{" "}
+            <span className="font-semibold text-[#a32020]">{fmt(summary.totalDebit)}</span>
+          </span>
+          <span className="text-gray-300">|</span>
+          <span className="whitespace-nowrap">
+            <span className="text-gray-500 font-semibold">Credit:</span>{" "}
+            <span className="font-semibold text-[#2d7a2d]">{fmt(summary.totalCredit)}</span>
+          </span>
+          <span className="text-gray-300">|</span>
+          <span className="whitespace-nowrap">
+            <span className="text-gray-500 font-semibold">Balance:</span>{" "}
+            <span className={`font-bold ${summary.balanceType === "Dr" ? "text-[#a32020]" : "text-[#2d7a2d]"}`}>
+              {fmt(summary.closingBalance)} {summary.balanceType}
+            </span>
+          </span>
+        </div>
+      )}
     </div>
   );
 }
@@ -494,17 +515,20 @@ export default function LedgerViewPage() {
             {/* VENDOR LEDGER */}
             {ledgerType === "vendor" && (
               <>
-                <VendorInfoBar vendor={ledgerData.vendor} />
-
-                {ledgerData.filters && (
-                  <div className="text-[11px] text-gray-500 flex flex-wrap gap-3">
-                    {ledgerData.filters.projectCode && <span>Project: <b>{ledgerData.filters.projectCode}</b></span>}
-                    {ledgerData.filters.fromDate && <span>From: <b>{ledgerData.filters.fromDate}</b></span>}
-                    {ledgerData.filters.toDate   && <span>To: <b>{ledgerData.filters.toDate}</b></span>}
-                  </div>
-                )}
-
-                <SummaryBox {...(ledgerData.summary || {})} />
+                <InfoBar
+                  summary={ledgerData.summary}
+                  left={
+                    <>
+                      {ledgerData.vendor && (
+                        <>
+                          <span><span className="font-semibold text-gray-500">Code:</span> <span className="font-semibold">{ledgerData.vendor.ledgerCode}</span></span>
+                          <span><span className="font-semibold text-gray-500">Name:</span> <span className="font-semibold">{ledgerData.vendor.ledgerName}</span></span>
+                          {ledgerData.vendor.gstin && <span><span className="font-semibold text-gray-500">GSTIN:</span> {ledgerData.vendor.gstin}</span>}
+                        </>
+                      )}
+                    </>
+                  }
+                />
                 <LedgerTable entries={ledgerData.entries} showVendor={false} />
               </>
             )}
@@ -512,19 +536,15 @@ export default function LedgerViewPage() {
             {/* MY LEDGER — PROJECT MODE */}
             {ledgerType === "my" && ledgerData.mode === "project" && (
               <>
-                <div className="flex flex-wrap gap-4 text-[12px] font-semibold text-gray-700 px-1">
-                  <span>{ledgerData.projectCode} — {ledgerData.projectName}</span>
-                  {ledgerData.clientName && <span className="text-gray-500">Client: {ledgerData.clientName}</span>}
-                </div>
-
-                {ledgerData.filters && (
-                  <div className="text-[11px] text-gray-500 flex flex-wrap gap-3">
-                    {ledgerData.filters.fromDate && <span>From: <b>{ledgerData.filters.fromDate}</b></span>}
-                    {ledgerData.filters.toDate   && <span>To: <b>{ledgerData.filters.toDate}</b></span>}
-                  </div>
-                )}
-
-                <SummaryBox {...(ledgerData.summary || {})} />
+                <InfoBar
+                  summary={ledgerData.summary}
+                  left={
+                    <>
+                      <span className="font-semibold">{ledgerData.projectCode} — {ledgerData.projectName}</span>
+                      {ledgerData.clientName && <span className="text-gray-500">Client: {ledgerData.clientName}</span>}
+                    </>
+                  }
+                />
                 <LedgerTable entries={ledgerData.entries} showVendor />
               </>
             )}
@@ -532,13 +552,10 @@ export default function LedgerViewPage() {
             {/* MY LEDGER — ALL PROJECTS MODE */}
             {isAllProjectsMode && (
               <>
-                {/* Overall summary */}
-                <div className="flex items-center justify-between">
-                  <span className="text-[12px] font-semibold text-gray-600">
-                    All Projects — {ledgerData.projects?.length || 0} projects
-                  </span>
-                </div>
-                <SummaryBox {...(ledgerData.summary || {})} />
+                <InfoBar
+                  summary={ledgerData.summary}
+                  left={<span className="font-semibold text-gray-600">All Projects — {ledgerData.projects?.length || 0} projects</span>}
+                />
 
                 {/* Per-project blocks */}
                 {(ledgerData.projects || []).map((proj) => (
@@ -579,20 +596,27 @@ function ProjectBlock({ proj }) {
             <span className="ml-3 text-[11px] font-normal text-gray-500">Client: {proj.clientName}</span>
           )}
         </span>
-        <span className="text-gray-400 text-[11px] font-normal flex items-center gap-3">
-          <span>
+        <span className="text-[11px] font-normal flex items-center gap-3 shrink-0">
+          <span className="text-gray-500">
+            Debit: <b className="text-[#a32020]">{fmt(proj.summary?.totalDebit)}</b>
+          </span>
+          <span className="text-gray-300">|</span>
+          <span className="text-gray-500">
+            Credit: <b className="text-[#2d7a2d]">{fmt(proj.summary?.totalCredit)}</b>
+          </span>
+          <span className="text-gray-300">|</span>
+          <span className="text-gray-500">
             Balance: <b className={proj.summary?.balanceType === "Dr" ? "text-[#a32020]" : "text-[#2d7a2d]"}>
               {fmt(proj.summary?.closingBalance)} {proj.summary?.balanceType}
             </b>
           </span>
-          <span className="text-[16px] leading-none">{open ? "▲" : "▼"}</span>
+          <span className="text-gray-400 text-[16px] leading-none ml-1">{open ? "▲" : "▼"}</span>
         </span>
       </button>
 
       {/* Content */}
       {open && (
         <div className="p-3 space-y-3 bg-white">
-          <SummaryBox {...(proj.summary || {})} />
           <LedgerTable entries={proj.entries} showVendor />
         </div>
       )}
