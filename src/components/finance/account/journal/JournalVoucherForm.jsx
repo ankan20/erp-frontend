@@ -628,7 +628,7 @@ export default function JournalVoucherForm({ mode = "create", voucherId, onUuid,
         const newId = res.data?.id;
         if (newId) setTimeout(() => router.push(`/finance-management/account/journal/vouchering/${newId}`), 400);
       } else {
-        await apiRequest({ url: `${BASE}/${voucherId}/edit`, method: "PUT", data: buildFormData() });
+        await apiRequest({ url: `${API_ENDPOINTS.FINANCE.JOURNAL_VOUCHERING.EDIT}${voucherId}`, method: "PUT", data: buildFormData() });
         toast.success("Draft saved", { id: tid });
         const res2 = await apiRequest({
           url:    `${API_ENDPOINTS.FINANCE.JOURNAL_VOUCHERING.GET_BY_ID}${voucherId}`,
@@ -645,7 +645,7 @@ export default function JournalVoucherForm({ mode = "create", voucherId, onUuid,
     let tid;
     try {
       tid = toast.loading("Submitting…");
-      await apiRequest({ url: `${BASE}/${voucherId}/submit`, method: "POST" });
+      await apiRequest({ url: `${API_ENDPOINTS.FINANCE.JOURNAL_VOUCHERING.SUBMIT}${voucherId}`, method: "POST" });
       toast.success("Submitted for approval", { id: tid });
       setIsSubmitted(true);
       setIsEditing(false);

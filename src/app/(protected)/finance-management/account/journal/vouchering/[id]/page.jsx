@@ -27,8 +27,8 @@ export default function Page() {
   const [refreshKey,   setRefreshKey]   = useState(0);
 
   const { isPendingForMe, myLevel, refresh, dismiss } = useMyApprovalStatus(
-    BASE,
-    `${id}/my-status`,
+    API_ENDPOINTS.FINANCE.JOURNAL_VOUCHERING.MY_APPROVAL_STATUS,
+    id,
     access.canApprove,
   );
 
@@ -77,8 +77,8 @@ export default function Page() {
         open={openTimeline}
         onClose={() => setOpenTimeline(false)}
         title="Journal Voucher History"
-        api={BASE}
-        entityId={`${id}/history`}
+        api={API_ENDPOINTS.FINANCE.JOURNAL_VOUCHERING.HISTORY}
+        entityId={id}
       />
     </HeaderWrapper>
   );

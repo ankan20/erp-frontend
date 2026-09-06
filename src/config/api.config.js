@@ -596,20 +596,29 @@ export const API_ENDPOINTS = {
       CREATE:            "/finance/journal-entry/journal-voucher/create",             // POST multipart { projectCode, fundSource, lines(JSON) }
       GET_BY_ID:         "/finance/journal-entry/journal-voucher/",                   // /:id GET
       GET_BY_UUID:       "/finance/journal-entry/journal-voucher/uuid/",              // /:uuid GET no-auth
-      EDIT:              "/finance/journal-entry/journal-voucher/",                   // /:id/edit PUT multipart
-      SUBMIT:            "/finance/journal-entry/journal-voucher/",                   // /:id/submit POST
+      EDIT:              "/finance/journal-entry/journal-voucher/edit/",                   // /:id/ PUT multipart
+      SUBMIT:            "/finance/journal-entry/journal-voucher/submit/",                   // /:id/ POST
       APPROVE:           "/finance/journal-entry/journal-voucher/approve",                    // /:id POST {comments}
       REBACK:            "/finance/journal-entry/journal-voucher/reback",                    // /:id POST {comments}
       REJECT:            "/finance/journal-entry/journal-voucher/reject",                    // /:id POST {comments}
-      HISTORY:           "/finance/journal-entry/journal-voucher/",                   // /:id/history GET
-      MY_STATUS:         "/finance/journal-entry/journal-voucher/",                   // /:id/my-status GET
+      HISTORY:           "/finance/journal-entry/journal-voucher/history/",                   // /:id/ GET
+      MY_APPROVAL_STATUS: "/finance/journal-entry/journal-voucher/my-approval-status/",  // /:id GET
       AVAILABLE_DOCKETS: "/finance/journal-entry/journal-voucher/available-dockets",  // GET ?projectCode&fundSource=Cash|Bank/UPI
     },
     JOURNAL_ACCOUNTING: {
-      LIST:      "/finance/journal-accounting/list",   // GET ?projectCode
-      CREATE:    "/finance/journal-accounting/create", // POST JSON
-      GET_BY_ID: "/finance/journal-accounting/",       // /:id GET
-      SUBMIT:    "/finance/journal-accounting/submit/",// /:id POST
+      BASE:              "/finance/journal-entry/journal-accounting",
+      APPROVED_VOUCHERS: "/finance/journal-entry/journal-accounting/approved-vouchers", // GET ?projectCode
+      CREATE:            "/finance/journal-entry/journal-accounting/create",            // POST multipart
+      LIST:              "/finance/journal-entry/journal-accounting/list",              // GET ?projectCode&page&pageSize
+      GET_BY_ID:         "/finance/journal-entry/journal-accounting/",                  // /:id GET
+      GET_BY_UUID:       "/finance/journal-entry/journal-accounting/uuid/",             // /:uuid GET no-auth
+      EDIT:              "/finance/journal-entry/journal-accounting/edit/",                  // /:id PUT multipart
+      SUBMIT:            "/finance/journal-entry/journal-accounting/submit/",                  // /:id POST
+      APPROVE:           "/finance/journal-entry/journal-accounting/approve",           // /:id POST
+      REBACK:            "/finance/journal-entry/journal-accounting/reback",            // /:id POST
+      REJECT:            "/finance/journal-entry/journal-accounting/reject",            // /:id POST
+      HISTORY:           "/finance/journal-entry/journal-accounting/history/",                  // /:id GET
+      MY_APPROVAL_STATUS: "/finance/journal-entry/journal-accounting/my-approval-status/",  // /:id GET
     },
     VENDOR_LEDGER: {
       GET:      "/finance/vendor-ledger",           // GET ?vendorId&projectCode&fromDate&toDate (JWT)
