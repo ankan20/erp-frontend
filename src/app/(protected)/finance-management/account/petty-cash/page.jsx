@@ -233,18 +233,38 @@ function StatusBadge({ status }) {
 }
 
 // ─── Under-process section ────────────────────────────────────────────────────
-function PendingEntriesTable({ entries }) {
+function PendingEntriesTable({ entries, account, projectCode }) {
+  const [dlBusy, setDlBusy] = useState(false);
   if (!entries?.length) return null;
   const totalPending = entries.reduce((s, e) => s + Number(e.debit || 0), 0);
+
+  const handleDl = async () => {
+    setDlBusy(true);
+    try { await downloadPendingPDF({ account, entries, projectCode }); }
+    finally { setDlBusy(false); }
+  };
+
   return (
     <div className="border border-[#f0d88a] rounded-sm overflow-hidden">
       <div className="flex items-center justify-between px-3 py-1.5 bg-amber-50 border-b border-[#f0d88a]">
         <span className="text-[11.5px] font-semibold uppercase tracking-wide text-amber-800">
           Under Process — Pending Dockets
         </span>
-        <span className="text-[11.5px] font-semibold text-amber-700 font-mono">
-          {fmt(totalPending)} DR pending
-        </span>
+        <div className="flex items-center gap-3">
+          <span className="text-[11.5px] font-semibold text-amber-700 font-mono">
+            {fmt(totalPending)} DR pending
+          </span>
+          <button
+            onClick={handleDl}
+            disabled={dlBusy}
+            className="flex items-center gap-1 text-[11px] px-2 py-0.5 rounded border border-amber-400 text-amber-800 bg-white hover:bg-amber-50 disabled:opacity-50 font-medium"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>
+            </svg>
+            {dlBusy ? "…" : "PDF"}
+          </button>
+        </div>
       </div>
       <div className="overflow-x-auto">
         <table className="w-full border-collapse text-[12px] min-w-[600px]">
@@ -567,7 +587,7 @@ export default function PettyCashPage() {
             <InfoBar account={ledger.account} summary={ledger.summary} />
             {/* Under-process pending dockets */}
             {ledger.pendingEntries?.length > 0 && (
-              <PendingEntriesTable entries={ledger.pendingEntries} />
+              <PendingEntriesTable entries={ledger.pendingEntries} account={ledger.account} projectCode={projectCode} />
             )}
             {/* Approved ledger */}
             {ledger.entries?.length > 0 && (
