@@ -43,7 +43,7 @@ export default function DocketVoucherListPage() {
           budgetNo:       r.budgetNo                        || "",
           expensesBy:     r.expensesBy                      || "",
           modeOfPayment:  r.modeOfPayment                   || "",
-          fundSource:     r.fundSource                      || "",
+          bankCode:       r.bankCode                        || "—",
           paymentRefId:   r.paymentRefId                    || "",
           amount:         Number(r.totalAmount || 0).toLocaleString("en-IN", {
             minimumFractionDigits: 2, maximumFractionDigits: 2,
@@ -64,7 +64,7 @@ export default function DocketVoucherListPage() {
     if (search) {
       const q = search.toLowerCase();
       filtered = filtered.filter((r) =>
-        ["voucherNo", "budgetNo", "expensesBy", "modeOfPayment", "fundSource", "workflowStatus", "createdBy"].some(
+        ["voucherNo", "budgetNo", "expensesBy", "modeOfPayment", "bankCode", "workflowStatus", "createdBy"].some(
           (k) => String(r[k] || "").toLowerCase().includes(q),
         ),
       );
@@ -89,7 +89,7 @@ export default function DocketVoucherListPage() {
     { header: "Budget Ref",   accessor: "budgetNo",       width: "110px" },
     { header: "Expenses By",  accessor: "expensesBy",     width: "130px" },
     { header: "Payment Mode", accessor: "modeOfPayment",  width: "120px" },
-    { header: "Fund Source",  accessor: "fundSource",     width: "110px" },
+    { header: "Account",      accessor: "bankCode",       width: "110px" },
     { header: "Trans. ID",    accessor: "paymentRefId",   width: "120px" },
     { header: "Amount",       accessor: "amount",         width: "110px", align: "right" },
     { header: "Status",       accessor: "workflowStatus", width: "110px" },

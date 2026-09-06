@@ -34,10 +34,7 @@ const PAYMENT_MODE_OPTIONS = [
   { value: "Bank/UPI", label: "Bank/UPI" },
 ];
 
-const FUND_SOURCE_OPTIONS = [
-  { value: "Cash",     label: "Cash"     },
-  { value: "Bank/UPI", label: "Bank/UPI" },
-];
+const BC = API_ENDPOINTS.MASTER.BANK_CASH;
 
 const LABEL_W = "sm:w-[160px] sm:min-w-[160px]";
 
@@ -46,7 +43,6 @@ const docketSchema = z.object({
   budgetId:      z.coerce.number().nullable().optional(),
   expensesBy:    z.string().min(1, "Expenses by required"),
   modeOfPayment: z.string().min(1, "Payment mode required"),
-  fundSource:    z.string().min(1, "Fund source required"),
   paymentRefId:  z.string().optional(),
   items: z.array(
     z.object({
@@ -64,7 +60,6 @@ const defaultValues  = {
   budgetId:      null,
   expensesBy:    "",
   modeOfPayment: "",
-  fundSource:    "",
   paymentRefId:  "",
   items: [defaultItem],
 };
@@ -85,11 +80,17 @@ export default function DocketVoucherForm({ mode = "create", voucherId, canAppro
   const [allowSubmit,       setAllowSubmit]        = useState(false);
   const [voucherNo,         setVoucherNo]          = useState("");
   const [sidebarOpen,       setSidebarOpen]        = useState(true);
-  const [budgetRows,        setBudgetRows]         = useState([]);  // fetched rows with budgetAmount / remaining
-  const [budgetMeta,        setBudgetMeta]         = useState(null); // { budgetNo, fromDate, toDate }
+  const [budgetRows,        setBudgetRows]         = useState([]);
+  const [budgetMeta,        setBudgetMeta]         = useState(null);
+  const [bankCashOptions,      setBankCashOptions]      = useState([]);
+  const [bankCashId,           setBankCashId]           = useState("");
+  const [initialBankCashId,    setInitialBankCashId]    = useState("");
+  const [bankCashLoading,      setBankCashLoading]      = useState(false);
 
   const router      = useRouter();
-  const projectCode = getLocalStorage("projectInfo")?.projectCode || "";
+  const projectInfo = getLocalStorage("projectInfo") || {};
+  const projectCode = projectInfo.projectCode || "";
+  const projectId   = projectInfo.projectId   || null;
 
   const {
     register, control, reset, setValue, getValues, watch, handleSubmit,
@@ -101,6 +102,20 @@ export default function DocketVoucherForm({ mode = "create", voucherId, canAppro
   const disabled      = isViewMode || !isEditing || isSubmitting || isSubmitted;
   const modeOfPayment = watch("modeOfPayment");
   const isCash        = modeOfPayment === "Cash";
+
+  // Fetch bank/cash accounts when mode of payment changes
+  useEffect(() => {
+    if (!modeOfPayment) { setBankCashOptions([]); return; }
+    const type = modeOfPayment === "Cash" ? "CASH" : "BANK";
+    setBankCashOptions([]);
+    setBankCashLoading(true);
+    const params = new URLSearchParams({ type });
+    if (projectId) params.set("projectId", String(projectId));
+    apiRequest({ url: `${BC.LIST}?${params}`, method: "GET" })
+      .then((res) => setBankCashOptions(Array.isArray(res.data) ? res.data : []))
+      .catch(() => {})
+      .finally(() => setBankCashLoading(false));
+  }, [modeOfPayment, projectId]);
 
   // Cash → only 1 row
   useEffect(() => {
@@ -187,7 +202,6 @@ export default function DocketVoucherForm({ mode = "create", voucherId, canAppro
           budgetId:      d.budgetId      || null,
           expensesBy:    d.expensesBy    || "",
           modeOfPayment: d.modeOfPayment || "",
-          fundSource:    d.fundSource    || "",
           paymentRefId:  d.paymentRefId  || "",
           items: (d.details || []).map((it) => ({
             ccCode:      it.ccCode           || "",
@@ -198,6 +212,9 @@ export default function DocketVoucherForm({ mode = "create", voucherId, canAppro
         };
         reset(formData);
         setInitialData(formData);
+        const loadedBcId = d.bankCashId ? String(d.bankCashId) : "";
+        setBankCashId(loadedBcId);
+        setInitialBankCashId(loadedBcId);
         setExistingFileUrl(d.attachmentUrl || d.attachment || "");
         setInitialFileUrl(d.attachmentUrl  || d.attachment || "");
 
@@ -228,7 +245,7 @@ export default function DocketVoucherForm({ mode = "create", voucherId, canAppro
     if (v.budgetId) formData.append("budgetId", String(v.budgetId));
     formData.append("expensesBy",    v.expensesBy);
     formData.append("modeOfPayment", v.modeOfPayment);
-    formData.append("fundSource",    v.fundSource);
+    if (bankCashId) formData.append("bankCashId", bankCashId);
     formData.append("paymentRefId",  v.paymentRefId || "");
     formData.append("details", JSON.stringify(
       v.items.map((it, i) => ({
@@ -295,7 +312,10 @@ export default function DocketVoucherForm({ mode = "create", voucherId, canAppro
   const handleEdit = () => {
     if (isSubmitting || isViewMode) return;
     if (isEditing) {
-      if (initialData) reset(initialData);
+      if (initialData) {
+        reset(initialData);
+        setBankCashId(initialBankCashId);
+      }
       setAttachedFile(null);
       setExistingFileUrl(initialFileUrl);
       setFileResetKey((k) => k + 1);
@@ -378,23 +398,48 @@ export default function DocketVoucherForm({ mode = "create", voucherId, canAppro
               </PMFormRow>
 
               <PMFormRow label="Mode of Payment" required labelWidth={LABEL_W}>
-                <PMSelect
-                  {...register("modeOfPayment")}
-                  hasError={errors.modeOfPayment}
-                  disabled={disabled}
-                  placeholder="Select…"
-                  options={PAYMENT_MODE_OPTIONS}
+                <Controller
+                  control={control}
+                  name="modeOfPayment"
+                  render={({ field }) => (
+                    <PMSelect
+                      {...field}
+                      hasError={errors.modeOfPayment}
+                      disabled={disabled}
+                      placeholder="Select…"
+                      options={PAYMENT_MODE_OPTIONS}
+                      onChange={(e) => { field.onChange(e); setBankCashId(""); }}
+                    />
+                  )}
                 />
               </PMFormRow>
 
-              <PMFormRow label="Fund Source" required labelWidth={LABEL_W}>
-                <PMSelect
-                  {...register("fundSource")}
-                  hasError={errors.fundSource}
-                  disabled={disabled}
-                  placeholder="Select…"
-                  options={FUND_SOURCE_OPTIONS}
-                />
+              <PMFormRow label="Fund Source" labelWidth={LABEL_W}>
+                {!modeOfPayment ? (
+                  <PMInput value="" disabled placeholder="Select mode of payment first" />
+                ) : bankCashLoading ? (
+                  <div className="flex items-center gap-2 h-8 px-2 text-[12px] text-gray-400">
+                    <Loader2 size={13} className="animate-spin" /> Loading…
+                  </div>
+                ) : bankCashOptions.length === 0 ? (
+                  <div className="flex items-center h-8 px-2 text-[12px] text-orange-500 font-medium">
+                    No {isCash ? "cash" : "bank"} accounts linked to this project
+                  </div>
+                ) : (
+                  <SearchableSelect
+                    options={bankCashOptions.map((a) => ({
+                      ...a,
+                      _displayLabel: `${a.bankCode} — ${a.bankHolderName}${a.bankAcNumber ? ` (${a.bankAcNumber})` : ""}`,
+                    }))}
+                    value={bankCashId}
+                    disabled={disabled}
+                    onChange={(val) => setBankCashId(val || "")}
+                    placeholder={`Select ${isCash ? "cash" : "bank"} account…`}
+                    labelKey="_displayLabel"
+                    valueKey="id"
+                    searchKeys={["bankHolderName", "bankCode", "bankAcNumber"]}
+                  />
+                )}
               </PMFormRow>
 
               <PMFormRow label="Transaction Ref. ID" labelWidth={LABEL_W}>
