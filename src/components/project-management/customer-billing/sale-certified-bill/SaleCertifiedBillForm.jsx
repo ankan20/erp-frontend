@@ -195,6 +195,9 @@ export default function SaleCertifiedBillForm({ mode = "create", billId, onAfter
       if (d.preCertifiedAmount !== undefined) {
         setValue("preCertifiedAmount", d.preCertifiedAmount, { shouldDirty: true });
       }
+      // order-lookup sends no order qty — claimQty IS the quantity available to
+      // certify. It fills the read-only Order Qty column (which caps the entry)
+      // and seeds Certified Qty in full, so the user only ever reduces it.
       const mapLookupItem = (it, type) => ({
         type,
         ogSaleOrderItemId: it.id || it.ogSaleOrderItemId || null,
@@ -203,8 +206,8 @@ export default function SaleCertifiedBillForm({ mode = "create", billId, onAfter
         itemName:          it.itemName        || "",
         itemDescription:   it.itemDescription || it.description || "",
         unit:              it.unit            || "",
-        orderQty:          it.orderQty        || it.qty || "",
-        certifiedQty:      it.claimQty        || "",
+        orderQty:          it.claimQty        ?? "",
+        certifiedQty:      it.claimQty        ?? "",
         rate:              it.rate            || "",
         gstPercent:        it.gstPercent      || it.gst  || "",
       });
