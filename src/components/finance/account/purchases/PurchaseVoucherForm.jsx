@@ -19,11 +19,13 @@ import PMFormRow       from "@/components/project-management/common/PMFormRow";
 import PMDateInput     from "@/components/project-management/common/PMDateInput";
 import PMTextarea      from "@/components/project-management/common/PMTextarea";
 
-import AccountGstTable, {
-  DEFAULT_GST_LINES,
-} from "@/components/finance/account/common/AccountGstTable";
+import AccountGstEditableTable, {
+  EMPTY_GST_LINES,
+} from "@/components/finance/account/common/AccountGstEditableTable";
 import AccountSummary  from "@/components/finance/account/common/AccountSummary";
+import AmountInput     from "@/components/common/AmountInput";
 import { ACC }         from "@/components/finance/account/common/accountTheme";
+import { formatAmount } from "@/helper/numberFormatter";
 
 import { apiRequest }      from "@/lib/apiClient";
 import { API_ENDPOINTS }   from "@/config/api.config";
@@ -45,7 +47,8 @@ const gstLineSchema = z.object({
   ccCode:     z.string(),
   ccName:     z.string(),
   description: z.string().optional().default(""),
-  percent:    z.number(),
+  // coerce: the rate is typed here, so form state holds the raw string
+  percent:    z.coerce.number().min(0).default(0),
   gstAmount:  z.coerce.number().default(0),
   isSelected: z.boolean().default(false),
 });
@@ -70,16 +73,11 @@ const DEFAULT_VALUES = {
   remarks:        "",
   discount:       0,
   roundOff:       0,
-  items:          [{ slNo: 1, ccCodeId: null, ccCode: "", ccName: "", description: "", basicAmount: 0 }],
-  gstLines:       DEFAULT_GST_LINES,
+  items:          [{ slNo: 1, ccCodeId: null, ccCode: "", ccName: "", description: "", basicAmount: "" }],
+  gstLines:       EMPTY_GST_LINES,
 };
 
-const newItem = (idx) => ({ slNo: idx + 1, ccCodeId: null, ccCode: "", ccName: "", description: "", basicAmount: 0 });
-
-const fmt = (val) => {
-  const n = Number(val);
-  return isNaN(n) ? "0.00" : n.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-};
+const newItem = (idx) => ({ slNo: idx + 1, ccCodeId: null, ccCode: "", ccName: "", description: "", basicAmount: "" });
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
@@ -114,14 +112,16 @@ export default function PurchaseVoucherForm({
 
   // ── Computed totals ──────────────────────────────────────────────────────────
   const items    = watch("items")    || [];
-  const gstLines = watch("gstLines") || DEFAULT_GST_LINES;
+  const gstLines = watch("gstLines") || EMPTY_GST_LINES;
   const discount = Number(watch("discount") || 0);
   const basicTotal   = items.reduce((s, it) => s + Number(it?.basicAmount || 0), 0);
   const isIGST       = !!gstLines[0]?.isSelected;
   const isCGSTSGST   = !!gstLines[1]?.isSelected;
-  const igstAmt      = isIGST     ? basicTotal * (gstLines[0]?.percent || 18) / 100 : 0;
-  const cgstAmt      = isCGSTSGST ? basicTotal * (gstLines[1]?.percent || 9)  / 100 : 0;
-  const sgstAmt      = isCGSTSGST ? basicTotal * (gstLines[2]?.percent || 9)  / 100 : 0;
+  // Rates come from what the user typed — no fallback rate, or an unset 0% would
+  // silently bill at a hardcoded one
+  const igstAmt      = isIGST     ? basicTotal * Number(gstLines[0]?.percent || 0) / 100 : 0;
+  const cgstAmt      = isCGSTSGST ? basicTotal * Number(gstLines[1]?.percent || 0) / 100 : 0;
+  const sgstAmt      = isCGSTSGST ? basicTotal * Number(gstLines[2]?.percent || 0) / 100 : 0;
   const gstTotal     = igstAmt + cgstAmt + sgstAmt;
   const totalInvoice = basicTotal + gstTotal - discount + Number(watch("roundOff") || 0);
 
@@ -166,7 +166,7 @@ export default function PurchaseVoucherForm({
             percent:    Number(l.percent   || 0),
             gstAmount:  Number(l.gstAmount || 0),
             isSelected: !!l.isSelected,
-          })) : DEFAULT_GST_LINES,
+          })) : EMPTY_GST_LINES,
         });
         const locked = d.workflowStatus && !["Draft", "Reback"].includes(d.workflowStatus);
         setIsSubmitted(locked);
@@ -373,14 +373,12 @@ export default function PurchaseVoucherForm({
                       </td>
 
                       <td className="border border-gray-200 p-0.5">
-                        <input
-                          type="number"
-                          min="0"
-                          step="0.01"
+                        <AmountInput
                           {...register(`items.${idx}.basicAmount`)}
+                          value={items[idx]?.basicAmount ?? ""}
                           disabled={disabled}
                           placeholder="0.00"
-                          className={`w-full h-[26px] text-[12px] px-1.5 text-right outline-none rounded-sm border-0 ${
+                          className={`w-full h-[26px] text-[12px] px-1.5 text-right outline-none rounded-sm border-0 md:text-[12px] focus-visible:ring-0 ${
                             disabled ? "bg-[#edf8ed] text-gray-500" : "bg-transparent focus:bg-white focus:border focus:border-[#93b5cc]"
                           }`}
                         />
@@ -400,7 +398,7 @@ export default function PurchaseVoucherForm({
                   {/* Total row */}
                   <tr className={`${ACC.tableHead} font-semibold`}>
                     <td colSpan={3} className="border border-gray-300 px-2 py-1.5 text-right text-[12px]">TOTAL</td>
-                    <td className="border border-gray-300 px-2 py-1.5 text-right text-[12px]">{fmt(basicTotal)}</td>
+                    <td className="border border-gray-300 px-2 py-1.5 text-right text-[12px]">{formatAmount(basicTotal)}</td>
                     {!disabled && <td className="border border-gray-300" />}
                   </tr>
                 </tbody>
@@ -425,7 +423,7 @@ export default function PurchaseVoucherForm({
           </div>
 
           {/* GST Table */}
-          <AccountGstTable
+          <AccountGstEditableTable
             watch={watch}
             setValue={setValue}
             control={control}

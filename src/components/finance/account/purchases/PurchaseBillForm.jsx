@@ -21,6 +21,8 @@ import PMInput         from "@/components/project-management/common/PMInput";
 
 import SaleBillRightPanel, {
   DEFAULT_GST_LINES,
+  mapApiGstLines,
+  igstEquivalent,
 } from "@/components/finance/account/common/SaleBillRightPanel";
 
 import { apiRequest }        from "@/lib/apiClient";
@@ -68,46 +70,6 @@ const schema = z.object({
   items:          z.array(itemSchema).min(1, "At least one item required"),
   gstLines:       z.array(gstLineSchema).length(3),
 });
-
-// ─── GST line mapping ─────────────────────────────────────────────────────────
-// The backend already aggregates GST across all items and splits it into exactly
-// one IGST / CGST / SGST row (IGST = CGST + SGST), so the rates and amounts are
-// used as-is. Only the order needs normalising: the form and AccountGstTable both
-// index these as [IGST, CGST, SGST], while the API sends them SGST-first.
-const GST_ORDER = ["IGST", "CGST", "SGST"];
-
-const findType = (apiLines, type) =>
-  (apiLines || []).find((l) => String(l.gstType || "").toUpperCase() === type);
-
-// Only the rate, amount and description come from the API. CC code / name stay on
-// the fixed IGST / CGST / SGST labels — the API repeats the items' own CC on all
-// three rows, which would leave them indistinguishable in the table.
-const mapGstLines = (apiLines, { keepSelection = false } = {}) =>
-  GST_ORDER.map((type, i) => {
-    const def = DEFAULT_GST_LINES[i];
-    const l   = findType(apiLines, type);
-    // On a fresh BVS load IGST stays pre-selected, as before — the API sends every
-    // row unselected. A saved bill keeps whatever the user picked.
-    const isSelected = keepSelection ? !!l?.isSelected : i === 0;
-    if (!l) return { ...def, isSelected };
-    return {
-      ...def,
-      description: l.description || "",
-      percent:     Number(l.percent   || 0),
-      gstAmount:   Number(l.gstAmount || 0),
-      isSelected,
-    };
-  });
-
-// Full-rate ("IGST-equivalent") GST — AccountGstTable gives IGST the whole amount
-// and CGST/SGST half each, which is exactly how the API splits it.
-const igstEquivalentFromApi = (apiLines) => {
-  const igst = Number(findType(apiLines, "IGST")?.gstAmount || 0);
-  if (igst > 0) return igst;
-  const pair = Number(findType(apiLines, "CGST")?.gstAmount || 0)
-             + Number(findType(apiLines, "SGST")?.gstAmount || 0);
-  return pair > 0 ? pair : null;
-};
 
 const DEFAULT_VALUES = {
   mode:           "",
@@ -238,8 +200,8 @@ export default function PurchaseBillForm({
           basicAmount: Number(it.basicAmount || 0),
         }));
         setValue("items",    mapped, { shouldDirty: true });
-        setValue("gstLines", mapGstLines(d.gstLines), { shouldDirty: true });
-        setActualGstTotal(igstEquivalentFromApi(d.gstLines));
+        setValue("gstLines", mapApiGstLines(d.gstLines), { shouldDirty: true });
+        setActualGstTotal(igstEquivalent(d.gstLines));
         setAllowSubmit(false);
       } catch {
         setActualGstTotal(null);
@@ -281,7 +243,7 @@ export default function PurchaseBillForm({
             basicAmount: Number(it.basicAmount || 0),
           })),
           gstLines: d.gstLines?.length
-            ? mapGstLines(d.gstLines, { keepSelection: true })
+            ? mapApiGstLines(d.gstLines, { keepSelection: true })
             : DEFAULT_GST_LINES,
         };
         reset(formatted);

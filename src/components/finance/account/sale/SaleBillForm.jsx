@@ -21,6 +21,8 @@ import PMInput from "@/components/project-management/common/PMInput";
 
 import SaleBillRightPanel, {
   DEFAULT_GST_LINES,
+  mapApiGstLines,
+  igstEquivalent,
 } from "@/components/finance/account/common/SaleBillRightPanel";
 
 import { apiRequest } from "@/lib/apiClient";
@@ -129,6 +131,8 @@ export default function SaleBillForm({
   const [certifiedBillsLoading, setCertifiedBillsLoading] = useState(false);
   const [itemsLoading, setItemsLoading] = useState(false);
   const [bankOpts, setBankOpts] = useState([]);
+  // Real GST for this document (IGST-equivalent). null → legacy percent-based maths.
+  const [actualGstTotal, setActualGstTotal] = useState(null);
 
   const {
     register,
@@ -220,6 +224,7 @@ export default function SaleBillForm({
       setValue("billAbstractDate", "", { shouldDirty: true });
       setValue("items", [], { shouldDirty: true });
       setValue("gstLines", DEFAULT_GST_LINES, { shouldDirty: true });
+      setActualGstTotal(null);
       setCertifiedBillOpts([]);
       fetchCertifiedBills(value);
     },
@@ -256,8 +261,13 @@ export default function SaleBillForm({
           basicAmount: Number(it.basicAmount || 0),
         }));
         setValue("items", items, { shouldDirty: true });
-        setValue("gstLines", DEFAULT_GST_LINES, { shouldDirty: true });
+        // Use the certified bill's own GST when the API returns it; when it does
+        // not, mapApiGstLines falls back to DEFAULT_GST_LINES and igstEquivalent
+        // to null, i.e. exactly the previous behaviour.
+        setValue("gstLines", mapApiGstLines(res.data?.gstLines), { shouldDirty: true });
+        setActualGstTotal(igstEquivalent(res.data?.gstLines));
       } catch {
+        setActualGstTotal(null);
         toast.error("Failed to load certified bill items");
       } finally {
         setItemsLoading(false);
@@ -302,21 +312,28 @@ export default function SaleBillForm({
             hsnSac: it.hsnSac || "",
             basicAmount: Number(it.basicAmount || 0),
           })),
-          gstLines: (d.gstLines?.length === 3
-            ? d.gstLines
-            : DEFAULT_GST_LINES
-          ).map((l) => ({
-            gstType: l.gstType || "",
-            ccCode: l.ccCode || "",
-            ccName: l.ccName || "",
-            description: l.description || "",
-            percent: Number(l.percent || 0),
-            gstAmount: Number(l.gstAmount || 0),
-            isSelected: !!l.isSelected,
-          })),
+          gstLines: d.gstLines?.length
+            ? mapApiGstLines(d.gstLines, { keepSelection: true })
+            : DEFAULT_GST_LINES,
         };
         reset(formatted);
         setInitialData(formatted);
+
+        // Rebuild the document's real GST from the saved rates, so a reopened bill
+        // renders exactly like a freshly loaded one. Derived from percent rather than
+        // gstAmount because unselected rows are stored with a zero amount.
+        const savedBasic = formatted.items.reduce(
+          (s, it) => s + Number(it.basicAmount || 0),
+          0,
+        );
+        const igstPct = Number(formatted.gstLines[0]?.percent || 0);
+        const pairPct =
+          Number(formatted.gstLines[1]?.percent || 0) +
+          Number(formatted.gstLines[2]?.percent || 0);
+        const effPct = igstPct > 0 ? igstPct : pairPct;
+        setActualGstTotal(
+          effPct > 0 && savedBasic > 0 ? (savedBasic * effPct) / 100 : null,
+        );
         if (d.saleBillNo) setErpBillNo(d.saleBillNo);
         if (d.saleBillUuid && onUuid) onUuid(d.saleBillUuid);
         if (formatted.ogSaleOrderNo)
@@ -366,11 +383,15 @@ export default function SaleBillForm({
     const isIGST = !!gstLines[0]?.isSelected;
     const isCGSTSGST = !!gstLines[1]?.isSelected;
 
+    // Same branch AccountGstTable and SaleBillRightPanel use, so the saved amounts
+    // always match what the table shows.
+    const hasActual = actualGstTotal !== null && actualGstTotal !== undefined;
     const computedGst = gstLines.map((l, i) => {
       let amt = 0;
-      if (i === 0 && isIGST) amt = (basicTotal * l.percent) / 100;
-      if (i === 1 && isCGSTSGST) amt = (basicTotal * l.percent) / 100;
-      if (i === 2 && isCGSTSGST) amt = (basicTotal * l.percent) / 100;
+      const legacy = (basicTotal * l.percent) / 100;
+      if (i === 0 && isIGST) amt = hasActual ? actualGstTotal : legacy;
+      if (i === 1 && isCGSTSGST) amt = hasActual ? actualGstTotal / 2 : legacy;
+      if (i === 2 && isCGSTSGST) amt = hasActual ? actualGstTotal / 2 : legacy;
       return {
         ...l,
         gstAmount: amt,
@@ -799,6 +820,7 @@ export default function SaleBillForm({
             disabled={disabled}
             itemsLoading={itemsLoading}
             itemFields={itemFields}
+            actualGstTotal={actualGstTotal}
           />
 
           {/* Action Buttons */}

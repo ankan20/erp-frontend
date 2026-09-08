@@ -28,6 +28,57 @@ export const DEFAULT_GST_LINES = [
   { gstType: "SGST", ccCode: "SGST", ccName: "Output-SGST", description: "", percent: 9,  gstAmount: 0, isSelected: false },
 ];
 
+// ─── API → form mapping ───────────────────────────────────────────────────────
+// Document APIs (BVS items, certified-bill items, saved bills) return GST already
+// aggregated across every item and split into one IGST / CGST / SGST row, but in
+// their own order. These map that onto the fixed [IGST, CGST, SGST] triplet this
+// table indexes by position. Only rate, amount and description are taken from the
+// response — CC code / name stay on the labels below, because the APIs repeat the
+// items' own CC on all three rows, which leaves them indistinguishable in the table.
+const GST_ORDER = ["IGST", "CGST", "SGST"];
+
+const findType = (apiLines, type) =>
+  (apiLines || []).find((l) => String(l.gstType || "").toUpperCase() === type);
+
+/**
+ * @param apiLines      raw gstLines from an API response (missing/short is fine)
+ * @param keepSelection true for a saved document (honour its isSelected);
+ *                      false for a fresh load (IGST pre-selected, as the APIs
+ *                      send every row unselected)
+ * @param defaults      label/fallback rows, for modules using their own naming
+ */
+export const mapApiGstLines = (
+  apiLines,
+  { keepSelection = false, defaults = DEFAULT_GST_LINES } = {},
+) =>
+  GST_ORDER.map((type, i) => {
+    const def = defaults[i];
+    const l   = findType(apiLines, type);
+    const isSelected = keepSelection ? !!l?.isSelected : i === 0;
+    if (!l) return { ...def, isSelected };
+    return {
+      ...def,
+      description: l.description || "",
+      percent:     Number(l.percent   || 0),
+      gstAmount:   Number(l.gstAmount || 0),
+      isSelected,
+    };
+  });
+
+/**
+ * Full-rate ("IGST-equivalent") GST for a document — this table gives IGST the
+ * whole amount and CGST/SGST half each, which is how the APIs split it.
+ * Returns null when the response carries no GST, so callers fall back to the
+ * legacy `basicTotal × stored percent` maths.
+ */
+export const igstEquivalent = (apiLines) => {
+  const igst = Number(findType(apiLines, "IGST")?.gstAmount || 0);
+  if (igst > 0) return igst;
+  const pair = Number(findType(apiLines, "CGST")?.gstAmount || 0)
+             + Number(findType(apiLines, "SGST")?.gstAmount || 0);
+  return pair > 0 ? pair : null;
+};
+
 const fmt = (val) => {
   const n = Number(val);
   if (isNaN(n)) return "0.00";

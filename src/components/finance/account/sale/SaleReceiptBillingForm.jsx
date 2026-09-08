@@ -154,7 +154,8 @@ export default function SaleReceiptBillingForm({
         const match = apiGst.find((l) => l.gstType === def.gstType);
         return match
           ? { ...def, ccCode: match.ccCode || def.ccCode, ccName: match.ccName || def.ccName,
-              percent: Number(match.percent || def.percent),
+              // ?? not || — a genuine 0% from the API must not fall back to the default rate
+              percent: Number(match.percent ?? def.percent),
               bookedAmount: Number(match.bookedAmount || 0), receivedAmount: Number(match.receivedAmount || 0),
               balanceAmount: Number(match.balanceAmount || 0),
               currentAmount: Number(match.currentAmount || 0),
@@ -293,7 +294,8 @@ export default function SaleReceiptBillingForm({
             const match = (d.gstLines || []).find((l) => l.gstType === def.gstType);
             return match
               ? { ...def, ccCode: match.ccCode || def.ccCode, ccName: match.ccName || def.ccName,
-                  percent: Number(match.percent || def.percent),
+                  // ?? not || — a genuine 0% must not fall back to the default rate
+                  percent: Number(match.percent ?? def.percent),
                   bookedAmount: Number(match.bookedAmount || 0), receivedAmount: Number(match.receivedAmount || 0),
                   balanceAmount: Number(match.balanceAmount || 0), currentAmount: Number(match.currentAmount || 0),
                   isSelected: !!match.isSelected }

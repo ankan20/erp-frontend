@@ -29,11 +29,13 @@ import { useEffect }                  from "react";
 import AccountBasicTable              from "./AccountBasicTable";
 import AccountGstTable, {
   DEFAULT_GST_LINES,
+  mapApiGstLines,
+  igstEquivalent,
 }                                     from "./AccountGstTable";
 import AccountSummary                 from "./AccountSummary";
 
-// Re-export so SaleBillForm can still import DEFAULT_GST_LINES from this file
-export { DEFAULT_GST_LINES };
+// Re-export so the bill forms can import these from this file
+export { DEFAULT_GST_LINES, mapApiGstLines, igstEquivalent };
 
 export default function SaleBillRightPanel({
   control,
