@@ -1,0 +1,90 @@
+"use client";
+
+// Journal → Voucher Docket (details). Same module, same APIs and approval flow
+// as the Petty Cash copy; the permission is checked against the "journal" page.
+
+import { useState }             from "react";
+import { useParams, useRouter } from "next/navigation";
+
+import HeaderWrapper        from "@/components/layout/HeaderWrapper";
+import PageHeader           from "@/components/layout/PageHeader";
+import PageNotAvailable     from "@/components/common/PageNotAvailable";
+import ApprovalActionModal  from "@/components/common/ApprovalActionModal";
+import HistoryTimelineSheet from "@/components/common/HistoryTimelineSheet";
+import { getPageActions }   from "@/components/common/PageActionButtons";
+import { getPageAccess }    from "@/helper/getPageAccess";
+import { API_ENDPOINTS }    from "@/config/api.config";
+import { useMyApprovalStatus } from "@/hooks/useMyApprovalStatus";
+import DocketVoucherForm    from "@/components/finance/account/petty-cash/DocketVoucherForm";
+
+const BASE_PATH = "/finance-management/account/journal/docket-voucher";
+
+export default function Page() {
+  const router = useRouter();
+  const { id } = useParams();
+  const access = getPageAccess({ pageCode: "journal", pageType: "EDIT" });
+
+  const [openApproval, setOpenApproval] = useState(false);
+  const [openTimeline, setOpenTimeline] = useState(false);
+  const [uuid,         setUuid]         = useState(null);
+  const [refreshKey,   setRefreshKey]   = useState(0);
+
+  const { isPendingForMe, myLevel, refresh, dismiss } = useMyApprovalStatus(
+    API_ENDPOINTS.FINANCE.PETTY_CASH.DOCKET_VOUCHER.MY_APPROVAL_STATUS,
+    id,
+    access.canApprove,
+  );
+
+  if (!access.allowed) return <PageNotAvailable />;
+
+  const actions = getPageActions({
+    router,
+    onTimeLine:  () => setOpenTimeline(true),
+    onApprove:   access.canApprove ? () => setOpenApproval(true) : undefined,
+    onDownload:  uuid ? () => window.open(`/print/petty-cash-docket/${uuid}`, "_blank") : undefined,
+    isPendingApproval: isPendingForMe,
+  });
+
+  return (
+    <HeaderWrapper
+      header={<PageHeader actions={actions} />}
+      pendingApproval={
+        isPendingForMe
+          ? `Your approval is required at Level ${myLevel} for this Voucher Docket.`
+          : null
+      }
+      onDismissApproval={isPendingForMe ? dismiss : undefined}
+    >
+      <DocketVoucherForm
+        key={refreshKey}
+        mode={access.mode}
+        voucherId={id}
+        canApprove={access.canApprove}
+        onAfterSubmit={refresh}
+        onUuid={setUuid}
+        basePath={BASE_PATH}
+      />
+
+      <ApprovalActionModal
+        open={openApproval}
+        onClose={() => setOpenApproval(false)}
+        payload={{ id }}
+        pendingInfo={{ isPendingForMe, myLevel }}
+        actions={[
+          { type: "approve", api: API_ENDPOINTS.FINANCE.PETTY_CASH.DOCKET_VOUCHER.APPROVE },
+          { type: "reback",  api: API_ENDPOINTS.FINANCE.PETTY_CASH.DOCKET_VOUCHER.REBACK  },
+          { type: "reject",  api: API_ENDPOINTS.FINANCE.PETTY_CASH.DOCKET_VOUCHER.REJECT  },
+        ]}
+        onSuccess={() => { setOpenApproval(false); refresh(); setRefreshKey((k) => k + 1); }}
+      />
+
+      <HistoryTimelineSheet
+        open={openTimeline}
+        onClose={() => setOpenTimeline(false)}
+        title="Voucher Docket Approve History"
+        api={API_ENDPOINTS.FINANCE.PETTY_CASH.DOCKET_VOUCHER.HISTORY}
+        entityId={id}
+      />
+    </HeaderWrapper>
+  );
+}

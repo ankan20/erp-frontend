@@ -690,6 +690,19 @@ export const routeMetaConfig = [
     basePath: "/finance-management/account/journal/accounting/[id]",
     breadcrumbs: ["Finance Management", "Accounts", "Journal", "Journal Accounting", "Details"],
   },
+  // Journal — Voucher Docket (same module as Petty Cash → Voucher Docket)
+  {
+    basePath: "/finance-management/account/journal/docket-voucher",
+    breadcrumbs: ["Finance Management", "Accounts", "Journal", "Voucher Docket", "List"],
+  },
+  {
+    basePath: "/finance-management/account/journal/docket-voucher/new",
+    breadcrumbs: ["Finance Management", "Accounts", "Journal", "Voucher Docket", "New"],
+  },
+  {
+    basePath: "/finance-management/account/journal/docket-voucher/[id]",
+    breadcrumbs: ["Finance Management", "Accounts", "Journal", "Voucher Docket", "Details"],
+  },
   // Finance Management — Petty Cash
   {
     basePath: "/finance-management/account/petty-cash",

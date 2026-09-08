@@ -64,7 +64,19 @@ const defaultValues  = {
   items: [defaultItem],
 };
 
-export default function DocketVoucherForm({ mode = "create", voucherId, canApprove = false, onUuid, onAfterSubmit }) {
+/**
+ * basePath — route this form lives under. The same module is mounted twice:
+ * under Petty Cash and under Journal (which checks the "journal" page permission
+ * instead). It only affects where a freshly created docket redirects to.
+ */
+export default function DocketVoucherForm({
+  mode = "create",
+  voucherId,
+  canApprove = false,
+  onUuid,
+  onAfterSubmit,
+  basePath = "/finance-management/account/petty-cash/docket-voucher",
+}) {
   const isViewMode = mode === "view" || mode === "approver";
 
   const [isEditing,         setIsEditing]         = useState(mode === "create");
@@ -284,7 +296,7 @@ export default function DocketVoucherForm({ mode = "create", voucherId, canAppro
       setAllowSubmit(true);
       toast.success("Draft saved", { id: tid });
       if (mode === "create" && res.data?.id) {
-        setTimeout(() => router.push(`/finance-management/account/petty-cash/docket-voucher/${res.data.id}`), 400);
+        setTimeout(() => router.push(`${basePath}/${res.data.id}`), 400);
       }
     } catch (err) {
       toast.error(err.message || "Failed", { id: tid });

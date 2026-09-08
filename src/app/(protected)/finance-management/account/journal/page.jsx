@@ -111,6 +111,7 @@ export default function Page() {
           onSearch={handleSearch}
           showDateRange
           actions={[
+            { label: "Voucher Docket", onClick: () => router.push("/finance-management/account/journal/docket-voucher") },
             { label: "Journal Voucher", onClick: () => router.push("/finance-management/account/journal/vouchering") },
             { label: "Journal Accounting", onClick: () => router.push("/finance-management/account/journal/accounting") },
             ...(access.canAdd ? [{ label: "+ Journal Adjustment", onClick: () => router.push("/finance-management/account/journal/new") }] : []),
