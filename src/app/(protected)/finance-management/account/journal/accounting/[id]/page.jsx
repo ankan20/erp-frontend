@@ -14,8 +14,6 @@ import { API_ENDPOINTS }     from "@/config/api.config";
 import { useMyApprovalStatus } from "@/hooks/useMyApprovalStatus";
 import JournalAccountingForm from "@/components/finance/account/journal/JournalAccountingForm";
 
-const BASE = API_ENDPOINTS.FINANCE.JOURNAL_ACCOUNTING.BASE;
-
 export default function Page() {
   const router = useRouter();
   const { id } = useParams();

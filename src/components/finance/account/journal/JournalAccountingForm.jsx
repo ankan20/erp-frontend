@@ -21,7 +21,6 @@ import { getLocalStorage } from "@/lib/localStorage";
 import { formatAmount }    from "@/helper/numberFormatter";
 import { getfmtDisplaydate } from "@/helper/getfmtDisplayDate";
 
-const BASE = API_ENDPOINTS.FINANCE.JOURNAL_ACCOUNTING.BASE;
 const LABEL_W = "sm:w-[160px] sm:min-w-[160px]";
 
 function today() {
@@ -169,26 +168,23 @@ export default function JournalAccountingForm({ mode = "create", accountingId, o
     }
   };
 
+  // Submit only submits — same as Journal Voucher / Contra / the bill forms.
+  // The record is already saved (the button is disabled while editing and in
+  // create mode), so there is nothing to PUT first.
   const handleSubmitAccounting = async () => {
     if (!validate(false)) return;
     const tid = toast.loading("Submitting…");
     setIsSubmitting(true);
     try {
-      if (mode === "create") {
-        const res = await apiRequest({ url: API_ENDPOINTS.FINANCE.JOURNAL_ACCOUNTING.CREATE, method: "POST", data: buildFormData() });
-        const newId = res.data.id;
-        await apiRequest({ url: `${API_ENDPOINTS.FINANCE.JOURNAL_ACCOUNTING.SUBMIT}${newId}`, method: "POST" });
-        toast.success("Submitted for approval", { id: tid });
-        router.replace(`/finance-management/account/journal/accounting/${newId}`);
-      } else {
-        await apiRequest({ url: `${API_ENDPOINTS.FINANCE.JOURNAL_ACCOUNTING.EDIT}${accountingId}`, method: "PUT", data: buildFormData() });
-        await apiRequest({ url: `${API_ENDPOINTS.FINANCE.JOURNAL_ACCOUNTING.SUBMIT}${accountingId}`, method: "POST" });
-        toast.success("Submitted for approval", { id: tid });
-        setIsSubmitted(true);
-        setAllowSubmit(false);
-        setIsEditing(false);
-        onAfterSubmit?.();
-      }
+      await apiRequest({
+        url:    `${API_ENDPOINTS.FINANCE.JOURNAL_ACCOUNTING.SUBMIT}${accountingId}`,
+        method: "POST",
+      });
+      toast.success("Submitted for approval", { id: tid });
+      setIsSubmitted(true);
+      setAllowSubmit(false);
+      setIsEditing(false);
+      onAfterSubmit?.();
     } catch (err) {
       toast.error(err.message || "Failed to submit", { id: tid });
     } finally {
@@ -405,13 +401,23 @@ export default function JournalAccountingForm({ mode = "create", accountingId, o
       {!isViewMode && (
         <div className="flex flex-wrap justify-end gap-2 pt-1">
           {isEditing && (
-            <SaveDraftButton onClick={handleSaveDraft} disabled={isSubmitting}>
+            <SaveDraftButton
+              onClick={handleSaveDraft}
+              loading={isSubmitting}
+              disabled={isSubmitting}
+              requireConfirmation
+              confirmationTitle="Save Draft?"
+              confirmationMessage="This journal accounting record will be saved as a draft."
+            >
               Save as Draft
             </SaveDraftButton>
           )}
           <SaveButton
             onClick={handleSubmitAccounting}
+            loading={isSubmitting}
+            loadingText="Submitting…"
             disabled={!allowSubmit || isEditing || isSubmitted || isSubmitting || mode === "create"}
+            requireConfirmation
             confirmationTitle="Submit for Approval?"
             confirmationMessage="Once submitted, this journal accounting record will be sent for approval."
           >
