@@ -630,6 +630,15 @@ export const API_ENDPOINTS = {
     MY_LEDGER: {
       GET: "/finance/my-ledger",                    // GET ?projectCode&fromDate&toDate (JWT)
     },
+    PROFIT_LOSS: {
+      // GET ?projectCode[&fromDate&toDate] (JWT) — view only, no create/edit.
+      // Expected: { data: { rows: [ { code, order, workDone, booked, stock, actual,
+      //   orderPercent?, workDonePercent?, bookedPercent?, stockPercent?,
+      //   actualPercent? } ] } }  — `code` is the CC code (CRIN, DRCW, …).
+      // Section totals and % are derived on the client from the leaf rows;
+      // any *Percent the API sends overrides the derived value for that cell.
+      GET: "/finance/profit-loss",
+    },
     PETTY_CASH: {
       LEDGER: {
         PROJECT_ACCOUNTS: "/finance/petty-cash/ledger/project-accounts", // GET ?projectCode
