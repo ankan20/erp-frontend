@@ -14,6 +14,8 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
 import SearchableSelect from "@/components/common/SearchableSelect";
+import AmountInput from "@/components/common/AmountInput";
+import { formatAmount } from "@/helper/numberFormatter";
 import SaveButton from "@/components/common/SaveButton";
 import EditButton from "@/components/common/EditButton";
 import SaveDraftButton from "@/components/common/SaveDraftButton";
@@ -34,6 +36,13 @@ const ORDER_CATEGORIES = [
   { label: "Job Contract Order",     value: "Job_Contract_Order" },
 ];
 
+// AmountInput keeps the raw string in form state — coerce, but reject blanks
+const requiredAmount = z
+  .any()
+  .refine((v) => v !== "" && v !== null && v !== undefined && !isNaN(Number(v)), "Required")
+  .transform(Number)
+  .refine((n) => n >= 0, "Required");
+
 const brrSchema = z.object({
   vendorId:          z.string().min(1, "Required"),
   partyAddress:      z.string().optional(),
@@ -48,9 +57,9 @@ const brrSchema = z.object({
   submissionDate:    z.string().optional(),
   receivedThrough:   z.string().optional(),
   receivedReference: z.string().optional(),
-  basicAmount:       z.number({ invalid_type_error: "Required" }).min(0),
-  gstAmount:         z.number({ invalid_type_error: "Required" }).min(0),
-  totalAmount:       z.number().optional(),
+  basicAmount:       requiredAmount,
+  gstAmount:         requiredAmount,
+  totalAmount:       z.coerce.number().optional(),
   brrNo:             z.string().optional(),
   brrDate:           z.string().optional(),
 });
@@ -249,9 +258,8 @@ export default function BRRForm({ mode = "create", brrId, onDataLoaded, onAfterS
   // Save draft
   const handleSaveDraft = async () => {
     if (totalExceedsOrder) {
-      const fmt = (n) => Number(n).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
       toast.error(
-        `BRR total ₹${fmt(totalAmount)} exceeds order total ₹${fmt(orderMaxTotal)}. Please reduce the amounts.`
+        `BRR total ₹${formatAmount(totalAmount)} exceeds order total ₹${formatAmount(orderMaxTotal)}. Please reduce the amounts.`
       );
       return;
     }
@@ -492,29 +500,27 @@ export default function BRRForm({ mode = "create", brrId, onDataLoaded, onAfterS
             {/* Amounts */}
             <div className="flex flex-col gap-[2px] mb-4">
               <FieldRow label="Basic Amount" required>
-                <Input
-                  type="number"
-                  step="0.01"
-                  min="0"
-                  {...register("basicAmount", { valueAsNumber: true })}
+                <AmountInput
+                  {...register("basicAmount")}
+                  value={basicAmount}
                   disabled={disabled}
+                  placeholder="0.00"
                   className={`${getInputClass(errors.basicAmount, disabled)} w-full h-[34px]`}
                 />
               </FieldRow>
               <FieldRow label="GST Amount" required>
-                <Input
-                  type="number"
-                  step="0.01"
-                  min="0"
-                  {...register("gstAmount", { valueAsNumber: true })}
+                <AmountInput
+                  {...register("gstAmount")}
+                  value={gstAmount}
                   disabled={disabled}
+                  placeholder="0.00"
                   className={`${getInputClass(errors.gstAmount, disabled)} w-full h-[34px]`}
                 />
               </FieldRow>
               <FieldRow label="Total Amount">
                 <div>
                   <Input
-                    value={totalAmount.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                    value={formatAmount(totalAmount)}
                     disabled
                     className={`${getInputClass(false, true)} w-full h-[34px] ${totalExceedsOrder ? "bg-red-50 border-red-400" : "bg-orange-50"}`}
                   />
