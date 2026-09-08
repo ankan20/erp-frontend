@@ -2,7 +2,7 @@
 
 import React from "react";
 import { Input } from "@/components/ui/input";
-import { formatAmount } from "@/helper/numberFormatter";
+import { formatAmount, sanitizeDecimalInput } from "@/helper/numberFormatter";
 
 /**
  * AmountInput — use this for ANY rupee / rate / amount field across the project.
@@ -83,7 +83,10 @@ const AmountInput = React.forwardRef(function AmountInput(
       name={name}
       value={value ?? ""}
       onChange={(e) => {
-        if (/^\d*(\.\d{0,2})?$/.test(e.target.value)) onChange(e);
+        // Sanitise rather than reject, so pasted values ("1,20,000.00", "₹1234.50")
+        // land instead of silently disappearing
+        e.target.value = sanitizeDecimalInput(e.target.value, 2);
+        onChange(e);
       }}
       onBlur={onBlur}
       inputMode="decimal"

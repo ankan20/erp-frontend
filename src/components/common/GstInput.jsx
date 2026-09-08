@@ -2,6 +2,7 @@
 
 import React from "react";
 import { Input } from "@/components/ui/input";
+import { sanitizeDecimalInput } from "@/helper/numberFormatter";
 
 function formatGst(val) {
   if (val === "" || val === null || val === undefined) return "";
@@ -82,7 +83,10 @@ const GstInput = React.forwardRef(function GstInput(
         name={name}
         value={value ?? ""}
         onChange={(e) => {
-          if (/^\d*(\.\d{0,2})?$/.test(e.target.value)) onChange(e);
+          // Sanitise rather than reject, so pasted values ("18.00%", " 5.5 ")
+          // land instead of silently disappearing
+          e.target.value = sanitizeDecimalInput(e.target.value, 2);
+          onChange(e);
         }}
         onBlur={onBlur}
         inputMode="decimal"

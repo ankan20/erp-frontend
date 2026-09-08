@@ -95,6 +95,36 @@ export function formatAmount(num) {
  * @param {number|string} num  - Raw numeric value
  * @returns {string}  e.g. "100.500". Returns "" for empty/null/undefined.
  */
+/**
+ * Clean a typed OR PASTED value down to a plain decimal string.
+ *
+ * The amount / qty / GST inputs used to test the raw value against a regex and
+ * silently ignore anything that failed, which made pasting almost useless:
+ * "1,20,000.00" (the format this app itself displays), "₹1234.50", a value with
+ * a trailing newline out of Excel, or "12.345" in a 2-decimal field all vanished
+ * with no feedback. This normalises instead of rejecting.
+ *
+ *   "1,20,000.00" → "120000.00"      "₹ 1234.50"  → "1234.50"
+ *   "12.345" (2dp) → "12.34"          "1.2.3"      → "1.23"
+ *   "12."         → "12."   (kept, so the decimal point stays typable)
+ *
+ * Returns a STRING for form state — never format() output, never a number.
+ *
+ * @param {string|number} raw
+ * @param {number} maxDecimals  2 for amounts / GST %, 3 for qty
+ * @returns {string}
+ */
+export function sanitizeDecimalInput(raw, maxDecimals = 2) {
+  if (raw === null || raw === undefined) return "";
+  // Drop ₹, commas, spaces, newlines, letters, sign — keep digits and dots
+  const cleaned = String(raw).replace(/[^\d.]/g, "");
+  const [whole, ...rest] = cleaned.split(".");
+  if (rest.length === 0) return whole;                 // no decimal point typed
+  if (maxDecimals === 0) return whole;
+  // First dot wins ("1.2.3" → "1.23"); excess precision is trimmed, not rejected
+  return `${whole}.${rest.join("").slice(0, maxDecimals)}`;
+}
+
 export function formatQtyDisplay(num) {
   if (num === "" || num === null || num === undefined) return "";
   const value = Number(num);

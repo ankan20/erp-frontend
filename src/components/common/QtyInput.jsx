@@ -2,7 +2,7 @@
 
 import React from "react";
 import { Input } from "@/components/ui/input";
-import { formatQtyDisplay } from "@/helper/numberFormatter";
+import { formatQtyDisplay, sanitizeDecimalInput } from "@/helper/numberFormatter";
 
 /**
  * QtyInput — use this for ANY quantity field across the project.
@@ -97,7 +97,10 @@ const QtyInput = React.forwardRef(function QtyInput(
       name={name}
       value={value ?? ""}
       onChange={(e) => {
-        if (/^\d*(\.\d{0,3})?$/.test(e.target.value)) onChange(e);
+        // Sanitise rather than reject, so pasted values ("1,250.500") land
+        // instead of silently disappearing
+        e.target.value = sanitizeDecimalInput(e.target.value, 3);
+        onChange(e);
       }}
       onBlur={onBlur}
       inputMode="decimal"
