@@ -69,6 +69,46 @@ const schema = z.object({
   gstLines:       z.array(gstLineSchema).length(3),
 });
 
+// ─── GST line mapping ─────────────────────────────────────────────────────────
+// The backend already aggregates GST across all items and splits it into exactly
+// one IGST / CGST / SGST row (IGST = CGST + SGST), so the rates and amounts are
+// used as-is. Only the order needs normalising: the form and AccountGstTable both
+// index these as [IGST, CGST, SGST], while the API sends them SGST-first.
+const GST_ORDER = ["IGST", "CGST", "SGST"];
+
+const findType = (apiLines, type) =>
+  (apiLines || []).find((l) => String(l.gstType || "").toUpperCase() === type);
+
+// Only the rate, amount and description come from the API. CC code / name stay on
+// the fixed IGST / CGST / SGST labels — the API repeats the items' own CC on all
+// three rows, which would leave them indistinguishable in the table.
+const mapGstLines = (apiLines, { keepSelection = false } = {}) =>
+  GST_ORDER.map((type, i) => {
+    const def = DEFAULT_GST_LINES[i];
+    const l   = findType(apiLines, type);
+    // On a fresh BVS load IGST stays pre-selected, as before — the API sends every
+    // row unselected. A saved bill keeps whatever the user picked.
+    const isSelected = keepSelection ? !!l?.isSelected : i === 0;
+    if (!l) return { ...def, isSelected };
+    return {
+      ...def,
+      description: l.description || "",
+      percent:     Number(l.percent   || 0),
+      gstAmount:   Number(l.gstAmount || 0),
+      isSelected,
+    };
+  });
+
+// Full-rate ("IGST-equivalent") GST — AccountGstTable gives IGST the whole amount
+// and CGST/SGST half each, which is exactly how the API splits it.
+const igstEquivalentFromApi = (apiLines) => {
+  const igst = Number(findType(apiLines, "IGST")?.gstAmount || 0);
+  if (igst > 0) return igst;
+  const pair = Number(findType(apiLines, "CGST")?.gstAmount || 0)
+             + Number(findType(apiLines, "SGST")?.gstAmount || 0);
+  return pair > 0 ? pair : null;
+};
+
 const DEFAULT_VALUES = {
   mode:           "",
   vendorId:       null,
@@ -109,6 +149,8 @@ export default function PurchaseBillForm({
   const [brrLoading,    setBrrLoading]    = useState(false);
   const [itemsLoading,  setItemsLoading]  = useState(false);
   const [erpBillNo,     setErpBillNo]     = useState("");
+  // Real GST for this document (IGST-equivalent). null → legacy percent-based maths.
+  const [actualGstTotal, setActualGstTotal] = useState(null);
 
   const {
     register, control, handleSubmit, reset, getValues, setValue, watch,
@@ -195,16 +237,18 @@ export default function PurchaseBillForm({
           hsnSac:      it.hsnSac      || "",
           basicAmount: Number(it.basicAmount || 0),
         }));
-        setValue("items",    mapped,            { shouldDirty: true });
-        setValue("gstLines", DEFAULT_GST_LINES, { shouldDirty: true });
+        setValue("items",    mapped, { shouldDirty: true });
+        setValue("gstLines", mapGstLines(d.gstLines), { shouldDirty: true });
+        setActualGstTotal(igstEquivalentFromApi(d.gstLines));
         setAllowSubmit(false);
       } catch {
+        setActualGstTotal(null);
         toast.error("Failed to load BVS items");
       } finally {
         setItemsLoading(false);
       }
     },
-    [projectCode, mode, setValue], // eslint-disable-line react-hooks/exhaustive-deps
+    [projectCode, mode, setValue],
   );
 
   const selectedBrrId = watch("brrId");
@@ -236,17 +280,21 @@ export default function PurchaseBillForm({
             hsnSac:      it.hsnSac      || "",
             basicAmount: Number(it.basicAmount || 0),
           })),
-          gstLines: d.gstLines?.length === 3 ? d.gstLines.map((l) => ({
-            gstType:    l.gstType    || "",
-            ccCode:     l.ccCode     || "",
-            ccName:     l.ccName     || "",
-            description: l.description || "",
-            percent:    Number(l.percent    || 0),
-            gstAmount:  Number(l.gstAmount  || 0),
-            isSelected: !!l.isSelected,
-          })) : DEFAULT_GST_LINES,
+          gstLines: d.gstLines?.length
+            ? mapGstLines(d.gstLines, { keepSelection: true })
+            : DEFAULT_GST_LINES,
         };
         reset(formatted);
+
+        // Rebuild the document's real GST from the saved rates, so a reopened bill
+        // renders exactly like a freshly loaded one. Derived from percent rather than
+        // gstAmount because unselected rows are stored with a zero amount.
+        const savedBasic = formatted.items.reduce((s, it) => s + Number(it.basicAmount || 0), 0);
+        const igstPct    = Number(formatted.gstLines[0]?.percent || 0);
+        const pairPct    = Number(formatted.gstLines[1]?.percent || 0)
+                         + Number(formatted.gstLines[2]?.percent || 0);
+        const effPct     = igstPct > 0 ? igstPct : pairPct;
+        setActualGstTotal(effPct > 0 && savedBasic > 0 ? (savedBasic * effPct) / 100 : null);
         const locked = d.workflowStatus && !["Draft", "Reback"].includes(d.workflowStatus);
         setIsSubmitted(locked);
         setAllowSubmit(!locked);
@@ -373,6 +421,7 @@ export default function PurchaseBillForm({
                     setValue("orderType", "",   { shouldDirty: true });
                     setValue("brrId",     null, { shouldDirty: true });
                     setValue("items",     [],   { shouldDirty: true });
+                    setActualGstTotal(null);
                     setBrrOpts([]);
                   }}
                   placeholder="Select from Vendor List"
@@ -395,6 +444,7 @@ export default function PurchaseBillForm({
                     setValue("orderType", order?.orderType || "", { shouldDirty: true });
                     setValue("brrId",     null,                   { shouldDirty: true });
                     setValue("items",     [],                     { shouldDirty: true });
+                    setActualGstTotal(null);
                   }}
                   placeholder={ordersLoading ? "Loading…" : "Filter List from Vendor Order"}
                   labelKey="orderNo"
@@ -413,6 +463,7 @@ export default function PurchaseBillForm({
                   onChange={(v) => {
                     field.onChange(v ? Number(v) : null);
                     setValue("items", [], { shouldDirty: true });
+                    setActualGstTotal(null);
                   }}
                   placeholder={brrLoading ? "Loading…" : "Filter List from Bill Entry"}
                   labelKey="brrNo"
@@ -471,6 +522,7 @@ export default function PurchaseBillForm({
             disabled={disabled}
             itemsLoading={itemsLoading}
             itemFields={itemFields}
+            actualGstTotal={actualGstTotal}
           />
 
           {!isViewMode && (

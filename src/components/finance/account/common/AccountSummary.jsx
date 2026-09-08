@@ -2,18 +2,16 @@
 
 import { ACC }             from "./accountTheme";
 import { amountToWordsIN } from "@/lib/amountToWords";
+import AmountInput         from "@/components/common/AmountInput";
+import { formatAmount }    from "@/helper/numberFormatter";
 
-const fmt = (val) => {
-  const n = Number(val);
-  if (isNaN(n)) return "0.00";
-  return n.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-};
+// formatAmount() returns "" for empty/NaN — summary cells always want a number
+const fmt = (val) => formatAmount(Number(val) || 0);
 
 const fmtRoundOff = (val) => {
-  const n = Number(val);
-  if (isNaN(n) || n === 0) return "0.00";
-  const abs = Math.abs(n).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-  return n > 0 ? `+${abs}` : `-${abs}`;
+  const n = Number(val) || 0;
+  if (n === 0) return "0.00";
+  return `${n > 0 ? "+" : "-"}${formatAmount(Math.abs(n))}`;
 };
 
 const ROW   = "flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-1.5";
@@ -29,15 +27,19 @@ export default function AccountSummary({
   disabled     = false,
   wordsLabel   = "Amount (In word)",
 }) {
-  const discountVal      = watch ? Number(watch("discount") || 0) : 0;
+  // Raw form value — keep it unconverted so partial input ("12.") stays typable
+  const discountRaw      = watch ? watch("discount") : 0;
+  const discountVal      = Number(discountRaw) || 0;
   const hasDiscountError = basicTotal > 0 && discountVal > basicTotal;
 
-  // Clamp helper — called from discount onChange before passing to RHF
+  // Clamp helper — called from discount onChange before passing to RHF.
+  // AmountInput already blocks negatives and >2 decimals, so only the
+  // basicTotal ceiling needs rewriting; everything else passes through as typed.
   const clampDiscount = (e, rhfOnChange) => {
-    let val = parseFloat(e.target.value);
-    if (isNaN(val) || val < 0) val = 0;
-    if (basicTotal > 0 && val > basicTotal) val = basicTotal;
-    e.target.value = String(val);
+    const val = parseFloat(e.target.value);
+    if (!isNaN(val) && basicTotal > 0 && val > basicTotal) {
+      e.target.value = String(basicTotal);
+    }
     rhfOnChange?.(e);
   };
 
@@ -65,15 +67,13 @@ export default function AccountSummary({
         <div className={`rounded-sm border overflow-hidden sm:w-[180px] sm:shrink-0 ${
           hasDiscountError ? "border-red-500" : "border-gray-300"
         }`}>
-          <input
-            type="number"
-            min="0"
-            step="0.01"
+          <AmountInput
             {...discountProps}
+            value={discountRaw ?? ""}
             onChange={(e) => clampDiscount(e, discountOnChange)}
             disabled={disabled}
             placeholder="0.00"
-            className={`w-full min-h-[34px] h-full text-[13px] text-right px-3 outline-none ${
+            className={`w-full min-h-[34px] h-full text-[13px] md:text-[13px] text-right px-3 border-0 rounded-none outline-none focus-visible:ring-0 ${
               disabled
                 ? ACC.inputDisabled
                 : hasDiscountError

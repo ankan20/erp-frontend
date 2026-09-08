@@ -249,8 +249,10 @@ export default function BRRForm({ mode = "create", brrId, onDataLoaded, onAfterS
     if (v.submissionDate)    fd.append("submissionDate",    v.submissionDate);
     if (v.receivedThrough)   fd.append("receivedThrough",   v.receivedThrough);
     if (v.receivedReference) fd.append("receivedReference", v.receivedReference);
-    fd.append("basicAmount",       String(v.basicAmount || 0));
-    fd.append("gstAmount",         String(v.gstAmount   || 0));
+    // getValues() is raw form state (AmountInput keeps the typed string), so coerce
+    // here — a field left mid-decimal ("12.") must not reach the API as-is
+    fd.append("basicAmount",       String(Number(v.basicAmount) || 0));
+    fd.append("gstAmount",         String(Number(v.gstAmount)   || 0));
     if (attachedFile) fd.append("attachedDoc", attachedFile);
     return fd;
   };

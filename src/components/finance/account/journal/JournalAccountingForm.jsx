@@ -219,11 +219,11 @@ export default function JournalAccountingForm({ mode = "create", accountingId, o
   }));
 
   return (
-    <div className="flex flex-col gap-4 p-3">
-      <div className="flex gap-4 items-start">
+    <div className="flex flex-col gap-3 sm:gap-4 p-2 sm:p-3">
+      <div className="flex flex-col gap-3 lg:flex-row lg:items-start">
 
         {/* ── Left panel ─────────────────────────────────────────── */}
-        <div className="w-[400px] shrink-0">
+        <div className="w-full lg:w-[400px] lg:shrink-0">
           <PMSection title="Voucher Info">
             <PMFormRow label="Voucher No" labelWidth={LABEL_W}>
               <PMInput value={voucherNo || "Auto"} disabled />
@@ -286,13 +286,59 @@ export default function JournalAccountingForm({ mode = "create", accountingId, o
         </div>
 
         {/* ── Right panel ────────────────────────────────────────── */}
-        <div className="flex-1 min-w-0">
+        <div className="w-full flex-1 min-w-0">
           <div className="border border-[#b5b5b5] rounded-sm overflow-hidden">
-            <div className="bg-[#d6e6f2] px-3 py-2 border-b border-[#b5b5b5]">
+            <div className="bg-[#d6e6f2] px-3 py-2 border-b border-[#b5b5b5] flex flex-wrap items-center justify-between gap-x-3 gap-y-1">
               <span className="text-[13px] font-semibold text-[#144664]">Journal Accounting Lines</span>
+              {lines.length > 0 && (
+                <span className="md:hidden text-[12px] font-semibold text-[#144664] tabular-nums">
+                  Total: {formatAmount(totalAmount)}
+                </span>
+              )}
             </div>
 
-            <div className="overflow-x-auto">
+            {/* Mobile (under md): stacked cards — a 5-column table cannot fit a phone */}
+            <div className="md:hidden divide-y divide-[#e2e2e2]">
+              {lines.length === 0 ? (
+                <div className="text-center py-10 text-gray-400 text-[13px] px-3">
+                  {mode === "create" ? "Select a Journal Voucher to load lines" : "No lines found"}
+                </div>
+              ) : lines.map((l, i) => (
+                <div key={l.journalLineId || i} className={`p-2.5 ${i % 2 === 0 ? "bg-white" : "bg-[#f7f7f7]"}`}>
+                  <div className="flex items-start gap-2">
+                    <span className="text-[11px] text-gray-500 shrink-0 pt-0.5">{l.slNo || i + 1}.</span>
+                    <span className="text-[11px] font-semibold text-[#144664] bg-[#f0f6fb] border border-[#d6e6f2] rounded px-1.5 py-0.5 shrink-0">
+                      {l.ccCode}
+                    </span>
+                    <span className="text-[12px] font-medium text-gray-800 min-w-0 break-words">{l.ccName || "—"}</span>
+                  </div>
+
+                  {l.shortDescription && (
+                    <p className="mt-1 text-[11px] text-gray-500 break-words">{l.shortDescription}</p>
+                  )}
+
+                  <div className="mt-2 flex flex-wrap items-center justify-between gap-2">
+                    <span className="text-[11px] text-gray-500 tabular-nums">
+                      Orig. Amount:{" "}
+                      <span className="font-mono text-gray-600">{formatAmount(l.originalAmount)}</span>
+                    </span>
+                    <label className="flex items-center gap-1.5">
+                      <span className="text-[11px] text-gray-600">Amount</span>
+                      <AmountInput
+                        value={l.amount}
+                        onChange={(e) => setLineAmount(i, e.target.value)}
+                        disabled={disabled}
+                        placeholder="0.00"
+                        className="w-[130px] h-[30px] text-right font-mono text-[12px] px-2 rounded-sm border border-[#b5b5b5] bg-white disabled:bg-[#edf8ed] disabled:text-gray-500"
+                      />
+                    </label>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* Desktop (≥ md): full table */}
+            <div className="hidden md:block overflow-x-auto">
               <table className="w-full border-collapse text-sm min-w-[520px]">
                 <thead className="bg-[#144664]">
                   <tr>
@@ -357,7 +403,7 @@ export default function JournalAccountingForm({ mode = "create", accountingId, o
 
       {/* ── Action buttons ───────────────────────────────────────── */}
       {!isViewMode && (
-        <div className="flex justify-end gap-2 pt-1">
+        <div className="flex flex-wrap justify-end gap-2 pt-1">
           {isEditing && (
             <SaveDraftButton onClick={handleSaveDraft} disabled={isSubmitting}>
               Save as Draft

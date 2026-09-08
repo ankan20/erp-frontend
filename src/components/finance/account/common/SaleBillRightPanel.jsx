@@ -18,6 +18,11 @@
  *   disabled      — bool
  *   itemsLoading  — bool
  *   itemFields    — array from useFieldArray({ name: "items" })
+ *   actualGstTotal — number|null. Real GST for the loaded document (IGST-equivalent,
+ *                    i.e. the full rate, with CGST/SGST each taking half). When given,
+ *                    it replaces the legacy `basicTotal × stored percent` maths here
+ *                    AND in AccountGstTable, so the table and the summary always agree.
+ *                    Leave null to keep the legacy behaviour unchanged.
  */
 
 import { useEffect }                  from "react";
@@ -35,9 +40,10 @@ export default function SaleBillRightPanel({
   watch,
   setValue,
   register,
-  disabled     = false,
-  itemsLoading = false,
-  itemFields   = [],
+  disabled       = false,
+  itemsLoading   = false,
+  itemFields     = [],
+  actualGstTotal = null,
 }) {
   // ── Totals (shared between GST table and Summary) ──────────────────────────
   const items    = watch("items")    || [];
@@ -49,9 +55,13 @@ export default function SaleBillRightPanel({
 
   const isIGST     = !!gstLines[0]?.isSelected;
   const isCGSTSGST = !!gstLines[1]?.isSelected;
-  const igstAmt    = isIGST     ? basicTotal * (gstLines[0]?.percent || 18) / 100 : 0;
-  const cgstAmt    = isCGSTSGST ? basicTotal * (gstLines[1]?.percent || 9)  / 100 : 0;
-  const sgstAmt    = isCGSTSGST ? basicTotal * (gstLines[2]?.percent || 9)  / 100 : 0;
+
+  // Mirrors AccountGstTable's maths exactly so the GST table and the summary
+  // below it can never disagree. hasActual === false → legacy path, unchanged.
+  const hasActual  = actualGstTotal !== null && actualGstTotal !== undefined;
+  const igstAmt    = isIGST     ? (hasActual ? actualGstTotal     : basicTotal * (gstLines[0]?.percent || 18) / 100) : 0;
+  const cgstAmt    = isCGSTSGST ? (hasActual ? actualGstTotal / 2 : basicTotal * (gstLines[1]?.percent || 9)  / 100) : 0;
+  const sgstAmt    = isCGSTSGST ? (hasActual ? actualGstTotal / 2 : basicTotal * (gstLines[2]?.percent || 9)  / 100) : 0;
   const gstTotal   = igstAmt + cgstAmt + sgstAmt;
   const totalInvoice = basicTotal + gstTotal - discount + roundOff;
 
@@ -80,6 +90,7 @@ export default function SaleBillRightPanel({
         control={control}
         disabled={disabled}
         basicTotal={basicTotal}
+        actualGstTotal={actualGstTotal}
       />
 
       <AccountSummary

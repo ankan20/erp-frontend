@@ -296,7 +296,9 @@ export default function JournalEntryForm({ mode = "create", journalId, onAfterSu
                     <th className="border border-gray-300 px-2 py-1.5 text-left  font-semibold">Particulars</th>
                     <th className="border border-gray-300 px-2 py-1.5 text-right font-semibold w-[120px]">Opening</th>
                     <th className="border border-gray-300 px-2 py-1.5 text-right font-semibold w-[120px]">Debit</th>
-                    <th className="border border-gray-300 px-2 py-1.5 text-right font-semibold w-[120px]">Credit</th>
+                    <th className="border border-gray-300 px-2 py-1.5 text-right font-semibold w-[120px]">
+                      Credit <span className="font-normal text-[10px] opacity-70">(auto)</span>
+                    </th>
                     <th className="border border-gray-300 px-2 py-1.5 text-right font-semibold w-[120px]">Closing</th>
                   </tr>
                 </thead>
@@ -384,15 +386,25 @@ export default function JournalEntryForm({ mode = "create", journalId, onAfterSu
                           />
                         </td>
 
-                        {/* Debit — active on row 0 only */}
+                        {/* Debit — active on row 0 only; drives the Credit amount */}
                         <td className="border border-gray-200 p-0.5">
                           {isDebit ? (
-                            <AmountInput
-                              {...register(`lines.${idx}.debitAmount`)}
-                              value={line.debitAmount}
-                              disabled={disabled}
-                              placeholder="0.00"
-                              className={amountCls}
+                            <Controller
+                              name="lines.0.debitAmount"
+                              control={control}
+                              render={({ field: f }) => (
+                                <AmountInput
+                                  {...f}
+                                  onChange={(e) => {
+                                    f.onChange(e.target.value);
+                                    // Fixed 2-line Dr/Cr pair — Credit always mirrors Debit
+                                    setValue("lines.1.creditAmount", e.target.value, { shouldDirty: true });
+                                  }}
+                                  disabled={disabled}
+                                  placeholder="0.00"
+                                  className={amountCls}
+                                />
+                              )}
                             />
                           ) : (
                             <div className="w-full h-[26px] flex items-center justify-center text-gray-300 bg-[#f5f5f5] rounded-sm select-none">
@@ -401,16 +413,15 @@ export default function JournalEntryForm({ mode = "create", journalId, onAfterSu
                           )}
                         </td>
 
-                        {/* Credit — active on row 1 only */}
+                        {/* Credit — row 1 only, read-only: auto-filled from Debit */}
                         <td className="border border-gray-200 p-0.5">
                           {!isDebit ? (
-                            <AmountInput
-                              {...register(`lines.${idx}.creditAmount`)}
-                              value={line.creditAmount}
-                              disabled={disabled}
-                              placeholder="0.00"
-                              className={amountCls}
-                            />
+                            <div
+                              title="Auto — always equal to the Debit amount"
+                              className="w-full h-[26px] flex items-center justify-end px-1.5 bg-[#edf8ed] text-gray-600 text-[12px] rounded-sm tabular-nums"
+                            >
+                              {formatAmount(line.creditAmount || 0)}
+                            </div>
                           ) : (
                             <div className="w-full h-[26px] flex items-center justify-center text-gray-300 bg-[#f5f5f5] rounded-sm select-none">
                               —
