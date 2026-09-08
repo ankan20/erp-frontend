@@ -145,13 +145,34 @@ export default function AppSidebar({ collapsed, setCollapsed }) {
     });
   };
 
+  // ─── COLLAPSED FLYOUT PLACEMENT ──────────────────────────────────────────────
+  // A flyout is fixed-positioned at the hovered row's top. On a short viewport, or
+  // when the row sits low, a long list used to run past the bottom of the screen
+  // and get clipped — with no way to reach the hidden items. So: slide the panel
+  // up until it fits, and cap its height so anything still too tall scrolls.
+  const VIEWPORT_MARGIN = 8;
+  const ROW_HEIGHT      = 37; // px-3 py-2 + text-sm + 1px divider
+  const HEADER_HEIGHT   = 33; // uppercase title strip
+
+  const placeFlyout = (anchorTop, itemCount = 0) => {
+    const estimated = HEADER_HEIGHT + itemCount * ROW_HEIGHT;
+    const roomTotal = window.innerHeight - VIEWPORT_MARGIN * 2;
+    const height    = Math.min(estimated, roomTotal);
+    const top       = Math.max(
+      VIEWPORT_MARGIN,
+      Math.min(anchorTop, window.innerHeight - height - VIEWPORT_MARGIN),
+    );
+    // Height estimates can be a little off; maxHeight + inner scroll absorbs it
+    return { top, maxHeight: window.innerHeight - top - VIEWPORT_MARGIN };
+  };
+
   // ─── COLLAPSED FLYOUT HANDLERS ───────────────────────────────────────────────
 
   // Open flyout when icon row is hovered
   const handleIconEnter = (e, item, index) => {
     clearTimeout(flyoutTimer.current);
     const rect = e.currentTarget.getBoundingClientRect();
-    setFlyout({ index, item, top: rect.top });
+    setFlyout({ index, item, ...placeFlyout(rect.top, item.children?.length) });
     setSubFlyout(null); // reset sub-flyout when switching modules
   };
 
@@ -187,7 +208,7 @@ export default function AppSidebar({ collapsed, setCollapsed }) {
         ? Math.max(0, rect.right - PANEL_WIDTH) // slide left from right edge, not from left edge
         : rect.right;
     setSubFlyout({
-      top: rect.top,
+      ...placeFlyout(rect.top, child.children?.length),
       left,
       title: child.title,
       children: child.children,
@@ -228,7 +249,7 @@ export default function AppSidebar({ collapsed, setCollapsed }) {
         ? Math.max(0, rect.right - PANEL_WIDTH)
         : rect.right;
     setSubSubFlyout({
-      top: rect.top,
+      ...placeFlyout(rect.top, child.children?.length),
       left,
       title: child.title,
       children: child.children,
@@ -266,12 +287,12 @@ export default function AppSidebar({ collapsed, setCollapsed }) {
   // ─── FLYOUT PANEL (level 1) — floats to the right of the icon rail ──────────
   const renderFlyout = () => {
     if (!flyout) return null;
-    const { item, top } = flyout;
+    const { item, top, maxHeight } = flyout;
 
     return (
       <div
         // Fixed so it floats over page content regardless of layout
-        style={{ position: "fixed", top, left: 50, zIndex: 9999 }}
+        style={{ position: "fixed", top, left: 50, zIndex: 9999, maxHeight }}
         onMouseEnter={handleFlyoutEnter}
         onMouseLeave={handleFlyoutLeave}
         // CHANGED: glass effect — backdrop blur + light blue tint + rounded corners
@@ -279,6 +300,7 @@ export default function AppSidebar({ collapsed, setCollapsed }) {
           w-[210px]
           rounded-r-xl
           overflow-hidden
+          flex flex-col
           select-none
           shadow-xl
           border border-white/40
@@ -287,11 +309,12 @@ export default function AppSidebar({ collapsed, setCollapsed }) {
         "
       >
         {/* Module title header — glass tinted */}
-        <div className="px-3 py-2 text-xs font-semibold text-sky-800 uppercase tracking-wide bg-sky-200/60 border-b border-white/30">
+        <div className="shrink-0 px-3 py-2 text-xs font-semibold text-sky-800 uppercase tracking-wide bg-sky-200/60 border-b border-white/30">
           {item.title}
         </div>
 
-        {/* Children list */}
+        {/* Children list — scrolls only when the list is taller than the screen */}
+        <div className="overflow-y-auto overscroll-contain">
         {item.children?.map((child, ci) => {
           const hasNested = child.children && child.children.length > 0;
           const childActive = hasActiveChild(child);
@@ -318,6 +341,7 @@ export default function AppSidebar({ collapsed, setCollapsed }) {
             </div>
           );
         })}
+        </div>
       </div>
     );
   };
@@ -325,17 +349,18 @@ export default function AppSidebar({ collapsed, setCollapsed }) {
   // ─── SUB-FLYOUT PANEL (level 2) ─────────────────────────────────────────────
   const renderSubFlyout = () => {
     if (!subFlyout) return null;
-    const { top, left, title, children } = subFlyout;
+    const { top, left, title, children, maxHeight } = subFlyout;
 
     return (
       <div
-        style={{ position: "fixed", top, left, zIndex: 10000 }}
+        style={{ position: "fixed", top, left, zIndex: 10000, maxHeight }}
         onMouseEnter={handleSubFlyoutEnter}
         onMouseLeave={handleSubFlyoutLeave}
         className="
           w-[200px]
           rounded-xl
           overflow-hidden
+          flex flex-col
           select-none
           shadow-xl
           border border-white/40
@@ -343,10 +368,11 @@ export default function AppSidebar({ collapsed, setCollapsed }) {
           backdrop-blur-md
         "
       >
-        <div className="px-3 py-2 text-xs font-semibold text-sky-800 uppercase tracking-wide bg-sky-200/60 border-b border-white/30">
+        <div className="shrink-0 px-3 py-2 text-xs font-semibold text-sky-800 uppercase tracking-wide bg-sky-200/60 border-b border-white/30">
           {title}
         </div>
 
+        <div className="overflow-y-auto overscroll-contain">
         {children?.map((leaf, li) => {
           // FIXED: item may have further children (e.g. Order → Material Order, Service Order)
           const hasNested = leaf.children && leaf.children.length > 0;
@@ -373,6 +399,7 @@ export default function AppSidebar({ collapsed, setCollapsed }) {
             </div>
           );
         })}
+        </div>
       </div>
     );
   };
@@ -380,17 +407,18 @@ export default function AppSidebar({ collapsed, setCollapsed }) {
   // ─── SUB-SUB-FLYOUT PANEL (level 3) ─────────────────────────────────────────
   const renderSubSubFlyout = () => {
     if (!subSubFlyout) return null;
-    const { top, left, title, children } = subSubFlyout;
+    const { top, left, title, children, maxHeight } = subSubFlyout;
 
     return (
       <div
-        style={{ position: "fixed", top, left, zIndex: 10001 }}
+        style={{ position: "fixed", top, left, zIndex: 10001, maxHeight }}
         onMouseEnter={handleSubSubFlyoutEnter}
         onMouseLeave={handleSubSubFlyoutLeave}
         className="
           w-[190px]
           rounded-xl
           overflow-hidden
+          flex flex-col
           select-none
           shadow-xl
           border border-white/40
@@ -398,10 +426,11 @@ export default function AppSidebar({ collapsed, setCollapsed }) {
           backdrop-blur-md
         "
       >
-        <div className="px-3 py-2 text-xs font-semibold text-sky-800 uppercase tracking-wide bg-sky-200/60 border-b border-white/30">
+        <div className="shrink-0 px-3 py-2 text-xs font-semibold text-sky-800 uppercase tracking-wide bg-sky-200/60 border-b border-white/30">
           {title}
         </div>
 
+        <div className="overflow-y-auto overscroll-contain">
         {children?.map((item, i) => {
           const itemActive = item.path ? isActive(item.path) : false;
 
@@ -422,11 +451,12 @@ export default function AppSidebar({ collapsed, setCollapsed }) {
             </div>
           );
         })}
+        </div>
       </div>
     );
   };
 
-  // ─── RENDER 
+  // ─── RENDER
 
   return (
     <div
