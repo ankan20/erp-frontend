@@ -273,7 +273,7 @@ export const sidebarConfig = [
     basePath: "/project-management",
     children: [
       {
-        title: "Contacts",
+        title: "Contracts",
         children: [
           {
             title: "Sale Order",

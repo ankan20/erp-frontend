@@ -341,6 +341,26 @@ export const API_ENDPOINTS = {
       MY_APPROVAL_STATUS: "/project-mgmt/og-sale-order/my-approval-status/",        // /:id GET
       GET_BY_UUID:        "/project-mgmt/og-sale-order/uuid/",                      // /:uuid GET no-auth
     },
+    BUDGET_MASTER: {
+      // Lookups
+      SALE_ORDERS:        "/project-mgmt/contract/budget/sale-orders",             // GET ?projectCode — approved sale orders
+      SALE_ORDER_ITEMS:   "/project-mgmt/contract/budget/sale-order-items/",       // /:saleOrderId GET
+      CC_CODES:           "/project-mgmt/contract/budget/cc-codes",                // GET — active CC codes
+      // CRUD
+      CREATE:             "/project-mgmt/contract/budget/create",                  // POST JSON
+      LIST:               "/project-mgmt/contract/budget/list",                    // GET ?projectCode
+      GET_BY_ID:          "/project-mgmt/contract/budget/",                        // /:id GET
+      GET_BY_UUID:        "/project-mgmt/contract/budget/uuid/",                   // /:uuid GET no-auth
+      UPDATE:             "/project-mgmt/contract/budget/edit/",                   // /:id PUT (Draft / Reback only)
+      // Workflow — no trailing slash: ApprovalActionModal / HistoryTimelineSheet
+      // and useMyApprovalStatus all append `/${id}` themselves
+      SUBMIT:             "/project-mgmt/contract/budget/submit/",                 // /:id POST
+      APPROVE:            "/project-mgmt/contract/budget/approve",                 // /:id POST
+      REBACK:             "/project-mgmt/contract/budget/reback",                  // /:id POST
+      REJECT:             "/project-mgmt/contract/budget/reject",                  // /:id POST
+      HISTORY:            "/project-mgmt/contract/budget/history",                 // /:id GET
+      MY_APPROVAL_STATUS: "/project-mgmt/contract/budget/my-approval-status",      // /:id GET
+    },
     SALE_CLAIM_BILL: {
       LIST:               "/project-mgmt/billing/list",                             // GET ?projectCode&mode=sale_order_bill
       CREATE:             "/project-mgmt/billing/create",                           // POST

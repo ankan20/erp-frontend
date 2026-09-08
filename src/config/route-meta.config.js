@@ -473,6 +473,19 @@ export const routeMetaConfig = [
     basePath: "/project-management/contacts/sale-order/[id]",
     breadcrumbs: ["Project Management", "Contacts", "Sale Order", "Details"],
   },
+  // Budget Master
+  {
+    basePath: "/project-management/contacts/budget",
+    breadcrumbs: ["Project Management", "Contacts", "Budget Master", "List"],
+  },
+  {
+    basePath: "/project-management/contacts/budget/new",
+    breadcrumbs: ["Project Management", "Contacts", "Budget Master", "New"],
+  },
+  {
+    basePath: "/project-management/contacts/budget/[id]",
+    breadcrumbs: ["Project Management", "Contacts", "Budget Master", "Details"],
+  },
   // Extra Work
   {
     basePath: "/project-management/contacts/extra-work",

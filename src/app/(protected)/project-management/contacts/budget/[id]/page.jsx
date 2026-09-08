@@ -1,0 +1,85 @@
+"use client";
+
+import { useState }             from "react";
+import { useParams, useRouter } from "next/navigation";
+
+import HeaderWrapper        from "@/components/layout/HeaderWrapper";
+import PageHeader           from "@/components/layout/PageHeader";
+import PageNotAvailable     from "@/components/common/PageNotAvailable";
+import ApprovalActionModal  from "@/components/common/ApprovalActionModal";
+import HistoryTimelineSheet from "@/components/common/HistoryTimelineSheet";
+import { getPageActions }   from "@/components/common/PageActionButtons";
+import { getPageAccess }    from "@/helper/getPageAccess";
+import { API_ENDPOINTS }    from "@/config/api.config";
+import { useMyApprovalStatus } from "@/hooks/useMyApprovalStatus";
+import BudgetMasterForm     from "@/components/project-management/contacts/budget/BudgetMasterForm";
+
+const BUDGET = API_ENDPOINTS.PROJECT.BUDGET_MASTER;
+
+export default function Page() {
+  const router = useRouter();
+  const { id } = useParams();
+  const access = getPageAccess({ pageCode: "budget_master", pageType: "EDIT" });
+
+  const [openApproval, setOpenApproval] = useState(false);
+  const [openTimeline, setOpenTimeline] = useState(false);
+  const [uuid,         setUuid]         = useState(null);
+  const [refreshKey,   setRefreshKey]   = useState(0);
+
+  const { isPendingForMe, myLevel, refresh, dismiss } = useMyApprovalStatus(
+    BUDGET.MY_APPROVAL_STATUS,
+    id,
+    access.canApprove,
+  );
+
+  if (!access.allowed) return <PageNotAvailable />;
+
+  const actions = getPageActions({
+    router,
+    onTimeLine: () => setOpenTimeline(true),
+    onApprove:  access.canApprove ? () => setOpenApproval(true) : undefined,
+    onDownload: uuid ? () => window.open(`/print/budget/${uuid}`, "_blank") : undefined,
+    isPendingApproval: isPendingForMe,
+  });
+
+  return (
+    <HeaderWrapper
+      header={<PageHeader actions={actions} />}
+      pendingApproval={
+        isPendingForMe
+          ? `Your approval is required at Level ${myLevel} for this Budget.`
+          : null
+      }
+      onDismissApproval={isPendingForMe ? dismiss : undefined}
+    >
+      <BudgetMasterForm
+        key={refreshKey}
+        mode={access.mode}
+        budgetId={id}
+        onUuid={setUuid}
+        onAfterSubmit={refresh}
+      />
+
+      <ApprovalActionModal
+        open={openApproval}
+        onClose={() => setOpenApproval(false)}
+        payload={{ id }}
+        pendingInfo={{ isPendingForMe, myLevel }}
+        actions={[
+          { type: "approve", api: BUDGET.APPROVE },
+          { type: "reback",  api: BUDGET.REBACK  },
+          { type: "reject",  api: BUDGET.REJECT  },
+        ]}
+        onSuccess={() => { setOpenApproval(false); refresh(); setRefreshKey((k) => k + 1); }}
+      />
+
+      <HistoryTimelineSheet
+        open={openTimeline}
+        onClose={() => setOpenTimeline(false)}
+        title="Budget Approve History"
+        api={BUDGET.HISTORY}
+        entityId={id}
+      />
+    </HeaderWrapper>
+  );
+}

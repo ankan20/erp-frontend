@@ -22,6 +22,7 @@ import { apiRequest }     from "@/lib/apiClient";
 import { API_ENDPOINTS }  from "@/config/api.config";
 import { getLocalStorage } from "@/lib/localStorage";
 import { formatAmount }   from "@/helper/numberFormatter";
+import { PL_COLUMNS }     from "@/config/profitLoss.config";
 
 import ProfitLossTable          from "@/components/finance/report/profit-loss/ProfitLossTable";
 import { buildProfitLossRows }  from "@/components/finance/report/profit-loss/buildProfitLossRows";
@@ -38,7 +39,7 @@ function FilterLabel({ children }) {
   );
 }
 
-function SummaryBox({ sale, expenses, result }) {
+function SummaryBox({ sale, expenses, result, columnLabel }) {
   const profit = result ?? 0;
   const items = [
     { label: "Total Sale",     value: formatAmount(sale ?? 0),     bg: "bg-[#e8f4e8]", vBg: "bg-[#ccebcc]", text: "text-[#2d7a2d]" },
@@ -51,7 +52,10 @@ function SummaryBox({ sale, expenses, result }) {
     },
   ];
   return (
-    <div className="flex flex-col sm:flex-row gap-2 sm:justify-end">
+    <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:justify-end">
+      {columnLabel && (
+        <span className="text-[11px] text-gray-500 sm:mr-1">Summary of</span>
+      )}
       {items.map((it) => (
         <div key={it.label} className="flex items-stretch rounded-sm overflow-hidden border border-[#9aa9b8]">
           <div className={`${it.bg} px-3 py-1 text-[12px] font-semibold whitespace-nowrap`}>{it.label}</div>
@@ -60,6 +64,34 @@ function SummaryBox({ sale, expenses, result }) {
           </div>
         </div>
       ))}
+    </div>
+  );
+}
+
+/** Which value column the summary boxes describe */
+function ColumnPicker({ columns, value, onChange, hasData }) {
+  return (
+    <div className="flex flex-wrap items-center gap-1">
+      {columns.map((c) => {
+        const active = c.key === value;
+        const empty  = !hasData(c.key);
+        return (
+          <button
+            key={c.key}
+            onClick={() => onChange(c.key)}
+            title={empty ? `${c.label} — no data in this period` : `Summarise the ${c.label} column`}
+            className={`px-2.5 py-1 text-[12px] rounded-sm border transition-colors ${
+              active
+                ? "bg-[#5a5aaa] border-[#4a4a9a] text-white font-semibold"
+                : empty
+                ? "bg-white border-[#d0d0d0] text-gray-400 hover:bg-gray-50"
+                : "bg-white border-[#8f8f8f] text-gray-700 hover:bg-gray-100"
+            }`}
+          >
+            {c.label}
+          </button>
+        );
+      })}
     </div>
   );
 }
@@ -91,6 +123,21 @@ export default function ProfitLossPage() {
     [data],
   );
 
+  // The summary boxes describe ONE of the five value columns. Default to the
+  // first column that actually carries data — pinning it to "actual" showed
+  // 0.00 whenever the period only had Order figures.
+  const [pickedColumn, setPickedColumn] = useState(null);
+  const columnHasData = useCallback(
+    (key) => sale?.[key] !== null || expenses?.[key] !== null,
+    [sale, expenses],
+  );
+  const autoColumn = useMemo(
+    () => PL_COLUMNS.find((c) => columnHasData(c.key))?.key || "actual",
+    [columnHasData],
+  );
+  const summaryColumn = pickedColumn ?? autoColumn;
+  const summaryLabel  = PL_COLUMNS.find((c) => c.key === summaryColumn)?.label || "";
+
   const handleFetch = useCallback(async () => {
     if (fromDate && toDate && fromDate > toDate) {
       toast.error("From date cannot be after To date");
@@ -98,6 +145,7 @@ export default function ProfitLossPage() {
     }
     setLoading(true);
     setFetched(false);
+    setPickedColumn(null);   // let the new period pick its own default column
     try {
       const params = new URLSearchParams();
       if (projectCode) params.set("projectCode", projectCode);
@@ -124,6 +172,7 @@ export default function ProfitLossPage() {
     setToDate("");
     setData(null);
     setFetched(false);
+    setPickedColumn(null);
   };
 
   const exportArgs = { rows, projectCode, fromDate, toDate };
@@ -238,7 +287,20 @@ export default function ProfitLossPage() {
           </div>
         ) : (
           <>
-            <SummaryBox sale={sale?.actual} expenses={expenses?.actual} result={result?.actual} />
+            <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-2">
+              <ColumnPicker
+                columns={PL_COLUMNS}
+                value={summaryColumn}
+                onChange={setPickedColumn}
+                hasData={columnHasData}
+              />
+              <SummaryBox
+                sale={sale?.[summaryColumn]}
+                expenses={expenses?.[summaryColumn]}
+                result={result?.[summaryColumn]}
+                columnLabel={summaryLabel}
+              />
+            </div>
             <ProfitLossTable rows={rows} />
             <p className="text-[11px] text-gray-500">
               % of each row is its share of total Sale (row A) within the same column.
