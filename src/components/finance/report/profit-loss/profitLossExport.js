@@ -40,12 +40,31 @@ const fileStamp = () => new Date().toISOString().slice(0, 10);
 
 // ─── PDF ──────────────────────────────────────────────────────────────────────
 
-export async function downloadProfitLossPDF({ rows, projectCode, fromDate, toDate }) {
+const MARGIN = 8;
+
+/**
+ * Build the statement document.
+ *
+ * Column widths are DERIVED from the page width so the table fills the sheet
+ * edge to edge — fixed millimetre widths left ~42mm of dead space on the right
+ * and squeezed Particulars until the longer labels wrapped or clipped.
+ */
+async function buildProfitLossDoc({ rows, projectCode, fromDate, toDate }) {
   const { default: jsPDF }     = await import("jspdf");
   const { default: autoTable } = await import("jspdf-autotable");
 
   const doc   = new jsPDF({ orientation: "landscape", unit: "mm", format: "a4" });
   const pageW = doc.internal.pageSize.getWidth();
+  const pageH = doc.internal.pageSize.getHeight();
+
+  const usable = pageW - MARGIN * 2;              // 281mm on A4 landscape
+  const refW   = 16;
+  const codeW  = 14;
+  const amtW   = 23;
+  const pctW   = 13;
+  // Particulars soaks up whatever is left, so nothing is clipped
+  const partW  = usable - refW - codeW - PL_COLUMNS.length * (amtW + pctW);
+
   let y = 14;
 
   doc.setFontSize(13); doc.setFont("helvetica", "bold");
@@ -82,15 +101,16 @@ export async function downloadProfitLossPDF({ rows, projectCode, fromDate, toDat
     body,
     startY: y,
     theme: "grid",
-    styles:     { fontSize: 6.5, cellPadding: 1, lineColor: [180, 180, 180], lineWidth: 0.1 },
-    headStyles: { fillColor: [20, 70, 100], textColor: 255, fontSize: 6.5, halign: "left" },
+    tableWidth: usable,
+    styles:     { fontSize: 7, cellPadding: 1.2, lineColor: [180, 180, 180], lineWidth: 0.1, overflow: "linebreak" },
+    headStyles: { fillColor: [20, 70, 100], textColor: 255, fontSize: 7, halign: "center", valign: "middle" },
     columnStyles: {
-      0: { cellWidth: 14 },
-      1: { cellWidth: 13 },
-      2: { cellWidth: 52 },
+      0: { cellWidth: refW },
+      1: { cellWidth: codeW },
+      2: { cellWidth: partW },
       ...PL_COLUMNS.reduce((acc, _c, i) => {
-        acc[3 + i * 2]     = { cellWidth: 21, halign: "right" };
-        acc[3 + i * 2 + 1] = { cellWidth: 11, halign: "right" };
+        acc[3 + i * 2]     = { cellWidth: amtW, halign: "right" };
+        acc[3 + i * 2 + 1] = { cellWidth: pctW, halign: "right" };
         return acc;
       }, {}),
     },
@@ -103,15 +123,66 @@ export async function downloadProfitLossPDF({ rows, projectCode, fromDate, toDat
         data.cell.styles.fillColor = fill;
         data.cell.styles.fontStyle = "bold";
       }
+      // Indent Particulars by nesting depth, as on screen
+      if (data.column.index === 2 && row?.depth) {
+        data.cell.styles.cellPadding = { top: 1.2, bottom: 1.2, right: 1.2, left: 1.2 + row.depth * 2 };
+      }
       const value = row?.values?.[PL_COLUMNS[Math.floor((data.column.index - 3) / 2)]?.key];
       if (data.column.index >= 3 && (data.column.index - 3) % 2 === 0 && value < 0) {
         data.cell.styles.textColor = [190, 30, 30];
       }
     },
-    margin: { left: 8, right: 8 },
+    didDrawPage: (data) => {
+      doc.setFontSize(7); doc.setFont("helvetica", "normal");
+      doc.setTextColor(120);
+      doc.text(
+        `Page ${doc.internal.getNumberOfPages()}`,
+        pageW - MARGIN, pageH - 4, { align: "right" },
+      );
+      doc.setTextColor(0);
+      data.settings.margin.top = 10;   // continuation pages start higher
+    },
+    margin: { left: MARGIN, right: MARGIN, top: 10, bottom: 10 },
   });
 
-  doc.save(`Profit_Loss_${projectCode || "all"}_${fileStamp()}.pdf`);
+  return doc;
+}
+
+export async function downloadProfitLossPDF(args) {
+  const doc = await buildProfitLossDoc(args);
+  doc.save(`Profit_Loss_${args.projectCode || "all"}_${fileStamp()}.pdf`);
+}
+
+/**
+ * Send the same document straight to the printer.
+ * Rendered into a hidden iframe rather than window.open, which popup blockers
+ * routinely swallow when the call comes from an async handler.
+ */
+export async function printProfitLossPDF(args) {
+  const doc     = await buildProfitLossDoc(args);
+  const blobUrl = doc.output("bloburl");
+
+  const frame = document.createElement("iframe");
+  frame.style.position = "fixed";
+  frame.style.right = "0";
+  frame.style.bottom = "0";
+  frame.style.width = "0";
+  frame.style.height = "0";
+  frame.style.border = "0";
+  frame.src = blobUrl;
+
+  frame.onload = () => {
+    try {
+      frame.contentWindow.focus();
+      frame.contentWindow.print();
+    } catch {
+      window.open(blobUrl, "_blank");   // fallback if the frame refuses
+    }
+    // Leave it long enough for the print dialog to take the document
+    setTimeout(() => frame.remove(), 60_000);
+  };
+
+  document.body.appendChild(frame);
 }
 
 // ─── Excel ────────────────────────────────────────────────────────────────────

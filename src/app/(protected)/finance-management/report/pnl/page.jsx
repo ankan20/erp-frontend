@@ -29,6 +29,7 @@ import { buildProfitLossRows }  from "@/components/finance/report/profit-loss/bu
 import {
   downloadProfitLossPDF,
   downloadProfitLossExcel,
+  printProfitLossPDF,
 } from "@/components/finance/report/profit-loss/profitLossExport";
 
 function FilterLabel({ children }) {
@@ -189,9 +190,16 @@ export default function ProfitLossPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [rows, projectCode, fromDate, toDate]);
 
+  const handlePrint = useCallback(async () => {
+    try { await printProfitLossPDF(exportArgs); }
+    catch (err) { toast.error(err?.message || "Failed to open print dialog"); }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [rows, projectCode, fromDate, toDate]);
+
   const actions = usePageActions({
     router,
-    onDownload: fetched ? handlePDF : undefined,
+    onPrint:    fetched ? handlePrint : undefined,
+    onDownload: fetched ? handlePDF   : undefined,
   });
 
   if (!access.allowed) return <PageNotAvailable />;
