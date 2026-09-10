@@ -7,11 +7,12 @@
  * this tree is ignored; any code here the API omits renders blank. That way the
  * statement always reads the same, whatever the backend has data for.
  *
- * tone → row styling:
- *   section  — A / B  (blue band)
- *   group    — B.1, B.2.1, B.2.2, B.2.3 (green band)
- *   subgroup — B.2 (pink band)
- *   total    — C, Profit & Loss (blue band, bold)
+ * `family` sets the colour family of a whole branch — children inherit it — and
+ * the row's depth then picks the shade, so a nested group is always a lighter
+ * version of its parent (B.2.1 lighter than B.2, lighter than B).
+ *   sale    — A and everything under it
+ *   expense — B and everything under it
+ *   result  — C, the bottom line
  */
 
 // The five value columns, each rendered with its own "% " column beside it
@@ -27,7 +28,7 @@ export const PL_STRUCTURE = [
   {
     ref: "A",
     title: "SALE",
-    tone: "section",
+    family: "sale",
     children: [
       { ref: "A.1", code: "CRIN", title: "Certified Invoice sale" },
       { ref: "A.2", code: "CRHL", title: "Certified but Hold" },
@@ -40,12 +41,11 @@ export const PL_STRUCTURE = [
   {
     ref: "B",
     title: "Expenses",
-    tone: "section",
+    family: "expense",
     children: [
       {
         ref: "B.1",
         title: "Direct Expenses",
-        tone: "group",
         children: [
           { ref: "B.1.1", code: "DRCW", title: "Composite Work Charges" },
           { ref: "B.1.2", code: "DRMC", title: "Consumable Materials" },
@@ -61,12 +61,10 @@ export const PL_STRUCTURE = [
       {
         ref: "B.2",
         title: "Indirect Expenses",
-        tone: "subgroup",
         children: [
           {
             ref: "B.2.1",
             title: "Project Overhead",
-            tone: "group",
             children: [
               { ref: "B.2.1.1",  code: "IRDC", title: "Assets Depreciation Charges" },
               { ref: "B.2.1.2",  code: "IRAD", title: "Assets Rental Charges" },
@@ -89,7 +87,6 @@ export const PL_STRUCTURE = [
           {
             ref: "B.2.2",
             title: "Employee Overhead",
-            tone: "group",
             children: [
               { ref: "B.2.2.1", code: "IOFM", title: "Food Exp. at Guest House" },
               { ref: "B.2.2.2", code: "IOHR", title: "House Rent & Electricity" },
@@ -104,7 +101,6 @@ export const PL_STRUCTURE = [
           {
             ref: "B.2.3",
             title: "Office Overhead",
-            tone: "group",
             children: [
               { ref: "B.2.3.1",  code: "IOCR", title: "Head Office Expenses" },
               { ref: "B.2.3.2",  code: "CRBC", title: "Bank Charges" },
@@ -126,4 +122,4 @@ export const PL_STRUCTURE = [
 ];
 
 // Bottom line: Sale (A) − Expenses (B)
-export const PL_RESULT_ROW = { ref: "C", title: "Profit & Loss", tone: "total" };
+export const PL_RESULT_ROW = { ref: "C", title: "Profit & Loss", family: "result" };

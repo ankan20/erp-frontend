@@ -56,21 +56,28 @@ function indexByCode(data) {
 
 const emptyValues = () => COLS.reduce((acc, k) => ({ ...acc, [k]: null }), {});
 
-// Walk the tree depth-first, emitting a row per node with values rolled up
-function walk(nodes, byCode, depth, out) {
+// Walk the tree depth-first, emitting a row per node with values rolled up.
+// `ancestors` is every enclosing group's ref — the table hides a row when any
+// of them is collapsed, and `family` is inherited so a branch shares a colour.
+function walk(nodes, byCode, depth, out, ancestors = [], family = null) {
   const subtotal = emptyValues();
 
   nodes.forEach((node) => {
+    const nodeFamily = node.family || family;
+
     if (node.children?.length) {
       const rowIndex = out.length;
       out.push(null);                                   // placeholder, filled below
-      const childTotal = walk(node.children, byCode, depth + 1, out);
+      const childTotal = walk(
+        node.children, byCode, depth + 1, out, [...ancestors, node.ref], nodeFamily,
+      );
       out[rowIndex] = {
         ref:      node.ref,
         code:     node.code || "",
         title:    node.title,
-        tone:     node.tone || "section",
+        family:   nodeFamily,
         depth,
+        ancestors,
         isGroup:  true,
         values:   childTotal,
         percents: {},
@@ -91,11 +98,12 @@ function walk(nodes, byCode, depth, out) {
     });
 
     out.push({
-      ref:   node.ref,
-      code:  node.code || "",
-      title: node.title,
-      tone:  "leaf",
+      ref:    node.ref,
+      code:   node.code || "",
+      title:  node.title,
+      family: nodeFamily,
       depth,
+      ancestors,
       isGroup: false,
       values,
       percents,
@@ -121,12 +129,13 @@ export function buildProfitLossRows(apiData) {
     else result[k] = (sale[k] ?? 0) - (expenses[k] ?? 0);
   });
   rows.push({
-    ref:   PL_RESULT_ROW.ref,
-    code:  "",
-    title: PL_RESULT_ROW.title,
-    tone:  PL_RESULT_ROW.tone,
-    depth: 0,
-    isGroup: true,
+    ref:    PL_RESULT_ROW.ref,
+    code:   "",
+    title:  PL_RESULT_ROW.title,
+    family: PL_RESULT_ROW.family,
+    depth:  0,
+    ancestors: [],
+    isGroup: false,          // nothing nests under the bottom line
     values: result,
     percents: {},
   });

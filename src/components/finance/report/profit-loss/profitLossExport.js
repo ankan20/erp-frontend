@@ -9,22 +9,20 @@ import { formatAmount } from "@/helper/numberFormatter";
  * on-screen layout: the same column pairs and the same section shading.
  */
 
-// Row tone → PDF fill, matching the table's bands
-const PDF_FILL = {
-  section:  [207, 224, 240],
-  subgroup: [242, 213, 234],
-  group:    [217, 234, 211],
-  total:    [188, 214, 236],
-  leaf:     null,
+// family → shade by depth, mirroring the table's bands exactly
+const PDF_SHADES = {
+  sale:    [[207, 232, 212]],
+  expense: [[247, 212, 212], [250, 228, 228], [253, 240, 240]],
+  result:  [[188, 214, 236]],
 };
 
-const XLSX_FILL = {
-  section:  "CFE0F0",
-  subgroup: "F2D5EA",
-  group:    "D9EAD3",
-  total:    "BCD6EC",
-  leaf:     null,
-};
+/** Band fill for a row, or null for leaf rows (which stay white). */
+function pdfFill(row) {
+  if (!row?.family) return null;
+  if (!row.isGroup && row.family !== "result") return null;
+  const shades = PDF_SHADES[row.family] || PDF_SHADES.result;
+  return shades[Math.min(row.depth, shades.length - 1)];
+}
 
 const amountCell  = (v) => (v === null || v === undefined ? "" : formatAmount(v));
 const percentCell = (v) =>
@@ -100,7 +98,7 @@ export async function downloadProfitLossPDF({ rows, projectCode, fromDate, toDat
     didParseCell: (data) => {
       if (data.section !== "body") return;
       const row  = rows[data.row.index];
-      const fill = PDF_FILL[row?.tone];
+      const fill = pdfFill(row);
       if (fill) {
         data.cell.styles.fillColor = fill;
         data.cell.styles.fontStyle = "bold";
@@ -180,5 +178,3 @@ export async function downloadProfitLossExcel({ rows, projectCode, fromDate, toD
   XLSX.utils.book_append_sheet(wb, ws, "Profit & Loss");
   XLSX.writeFile(wb, `Profit_Loss_${projectCode || "all"}_${fileStamp()}.xlsx`);
 }
-
-export { XLSX_FILL };
