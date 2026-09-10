@@ -722,9 +722,9 @@ export default function SaleCertifiedBillForm({ mode = "create", billId, onAfter
                           {formatAmount(gstAmt)}
                         </td>
 
-                        {/* AMOUNT */}
+                        {/* AMOUNT — basic + GST, i.e. the line total */}
                         <td className="border border-[#ccc] bg-[#edf8ed] px-2 text-[13px] font-medium text-right align-middle">
-                          {formatAmount(amount)}
+                          {formatAmount(amount + gstAmt)}
                         </td>
 
                       </tr>
@@ -745,7 +745,7 @@ export default function SaleCertifiedBillForm({ mode = "create", billId, onAfter
                     <td className="border border-[#9ec5e0] px-2 text-right text-[13px]">{formatAmount(thisBillAmount)}</td>
                     <td className="border border-[#9ec5e0]" />
                     <td className="border border-[#9ec5e0] px-2 text-right text-[13px]">{formatAmount(gstAmount)}</td>
-                    <td className="border border-[#9ec5e0] px-2 text-right text-[13px]">{formatAmount(thisBillAmount)}</td>
+                    <td className="border border-[#9ec5e0] px-2 text-right text-[13px]">{formatAmount(thisBillAmount + gstAmount)}</td>
                   </tr>
                 </tfoot>
 

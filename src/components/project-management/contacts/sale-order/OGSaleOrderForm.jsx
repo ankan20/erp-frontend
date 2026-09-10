@@ -126,12 +126,14 @@ export default function OGSaleOrderForm({ mode = "create", saleOrderId, onAfterS
   // ── TOTALS ────────────────────────────────────────────────────────────────────
   const watchedRows = watch("rows") || [];
 
-  const boqBasic  = watchedRows.filter((r) => r.type === "boq").reduce((s, it) => s + rowSubtotal(it), 0);
-  const basicAmount = boqBasic;
+  // BOQ and Non-BOQ rows both count — the order's basic / GST / total cover
+  // every line, and `type` only decides which array a row is posted in
+  const basicAmount = watchedRows.reduce((s, it) => s + rowSubtotal(it), 0);
 
-  const gstAmount = watchedRows.filter((r) => r.type === "boq").reduce((s, it) => {
-    return s + rowSubtotal(it) * Number(it?.gstPercent || 0) / 100;
-  }, 0);
+  const gstAmount = watchedRows.reduce(
+    (s, it) => s + rowSubtotal(it) * Number(it?.gstPercent || 0) / 100,
+    0,
+  );
 
   const totalAmount = basicAmount + gstAmount;
 
@@ -510,11 +512,11 @@ export default function OGSaleOrderForm({ mode = "create", saleOrderId, onAfterS
                 <tbody>
                   {fields.map((field, index) => {
                     const row    = watchedRows[index] || {};
-                    const isBoq  = row.type === "boq";
                     const qty    = Number(row.orderQty || 0);
                     const rate   = Number(row.rate     || 0);
-                    const amount = qty * rate;
-                    const gstAmt = isBoq ? (amount * Number(row.gstPercent || 0) / 100) : 0;
+                    const basic  = qty * rate;
+                    const gstAmt = basic * Number(row.gstPercent || 0) / 100;
+                    const amount = basic + gstAmt;   // line total, GST included
                     return (
                       <tr key={field.id} className={index % 2 === 0 ? "bg-white" : "bg-[#f5f8fc]"}>
                         {/* SL */}
@@ -610,9 +612,9 @@ export default function OGSaleOrderForm({ mode = "create", saleOrderId, onAfterS
                           />
                         </td>
 
-                        {/* BASIC AMOUNT — blank for Non-BOQ */}
+                        {/* BASIC AMOUNT — qty × rate */}
                         <td className="border border-[#ccc] bg-[#edf8ed] px-2 text-[13px] font-medium text-right align-middle">
-                          {isBoq ? formatAmount(amount) : ""}
+                          {formatAmount(basic)}
                         </td>
 
                         {/* GST % */}
@@ -626,14 +628,14 @@ export default function OGSaleOrderForm({ mode = "create", saleOrderId, onAfterS
                           />
                         </td>
 
-                        {/* GST AMOUNT — blank for Non-BOQ */}
+                        {/* GST AMOUNT — basic × GST % */}
                         <td className="border border-[#ccc] bg-[#edf8ed] px-2 text-[13px] font-medium text-right align-middle">
-                          {isBoq ? formatAmount(gstAmt) : ""}
+                          {formatAmount(gstAmt)}
                         </td>
 
-                        {/* AMOUNT — blank for Non-BOQ */}
+                        {/* AMOUNT — basic + GST */}
                         <td className="border border-[#ccc] bg-[#edf8ed] px-2 text-[13px] font-medium text-right align-middle">
-                          {isBoq ? formatAmount(amount) : ""}
+                          {formatAmount(amount)}
                         </td>
 
                         {/* DELETE */}
@@ -662,10 +664,10 @@ export default function OGSaleOrderForm({ mode = "create", saleOrderId, onAfterS
                     <td className="border border-[#9ec5e0]" />
                     <td className="border border-[#9ec5e0]" />
                     <td className="border border-[#9ec5e0] px-2 text-right text-[13px]">TOTAL=</td>
-                    <td className="border border-[#9ec5e0] px-2 text-right text-[13px]">{formatAmount(boqBasic)}</td>
+                    <td className="border border-[#9ec5e0] px-2 text-right text-[13px]">{formatAmount(basicAmount)}</td>
                     <td className="border border-[#9ec5e0]" />
                     <td className="border border-[#9ec5e0] px-2 text-right text-[13px]">{formatAmount(gstAmount)}</td>
-                    <td className="border border-[#9ec5e0] px-2 text-right text-[13px]">{formatAmount(boqBasic)}</td>
+                    <td className="border border-[#9ec5e0] px-2 text-right text-[13px]">{formatAmount(totalAmount)}</td>
                     {!disabled && <td className="border border-[#9ec5e0]" />}
                   </tr>
                 </tfoot>

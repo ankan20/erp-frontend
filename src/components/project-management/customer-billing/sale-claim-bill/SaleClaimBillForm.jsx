@@ -654,9 +654,9 @@ export default function SaleClaimBillForm({ mode = "create", billId, onAfterSubm
                           {formatAmount(gstAmt)}
                         </td>
 
-                        {/* AMOUNT */}
+                        {/* AMOUNT — basic + GST, i.e. the line total */}
                         <td className="border border-[#ccc] bg-[#edf8ed] px-2 text-[13px] font-medium text-right align-middle">
-                          {formatAmount(amount)}
+                          {formatAmount(amount + gstAmt)}
                         </td>
 
                       </tr>
@@ -677,7 +677,7 @@ export default function SaleClaimBillForm({ mode = "create", billId, onAfterSubm
                     <td className="border border-[#9ec5e0] px-2 text-right text-[13px]">{formatAmount(thisBillClaim)}</td>
                     <td className="border border-[#9ec5e0]" />
                     <td className="border border-[#9ec5e0] px-2 text-right text-[13px]">{formatAmount(gstAmount)}</td>
-                    <td className="border border-[#9ec5e0] px-2 text-right text-[13px]">{formatAmount(thisBillClaim)}</td>
+                    <td className="border border-[#9ec5e0] px-2 text-right text-[13px]">{formatAmount(thisBillClaim + gstAmount)}</td>
                   </tr>
                 </tfoot>
 
