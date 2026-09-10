@@ -7,9 +7,7 @@ import { z }           from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { toast }       from "sonner";
 import { useRouter }   from "next/navigation";
-import {
-  Loader2, PanelLeftClose, PanelLeftOpen, ChevronDown, ChevronRight,
-} from "lucide-react";
+import { Loader2, PanelLeftClose, PanelLeftOpen } from "lucide-react";
 
 import SaveButton       from "@/components/common/SaveButton";
 import SaveDraftButton  from "@/components/common/SaveDraftButton";
@@ -20,7 +18,7 @@ import PMFormRow        from "@/components/project-management/common/PMFormRow";
 import PMInput          from "@/components/project-management/common/PMInput";
 import PMDateInput      from "@/components/project-management/common/PMDateInput";
 import PMTextarea       from "@/components/project-management/common/PMTextarea";
-import BudgetItemCcRows from "./BudgetItemCcRows";
+import BudgetCcMatrix    from "./BudgetCcMatrix";
 
 import { apiRequest }        from "@/lib/apiClient";
 import { API_ENDPOINTS }     from "@/config/api.config";
@@ -70,6 +68,31 @@ const DEFAULT_VALUES = {
 // Stable fallback — a fresh [] each render would re-run the totals useMemo every time
 const NO_ITEMS = [];
 
+/**
+ * Give every item the same CC column list, in first-seen order.
+ * A saved budget only stores the CC codes an item actually uses, but the grid
+ * addresses cells by column index, so the arrays must line up.
+ */
+function alignCcColumns(items) {
+  const columns = [];
+  const seen    = new Set();
+  items.forEach((it) => {
+    (it.ccCodes || []).forEach((c) => {
+      const id = Number(c.ccCodeId);
+      if (!id || seen.has(id)) return;
+      seen.add(id);
+      columns.push({ ccCodeId: id, ccCode: c.ccCode || "", ccName: c.ccName || "" });
+    });
+  });
+  return items.map((it) => ({
+    ...it,
+    ccCodes: columns.map((col) => {
+      const hit = (it.ccCodes || []).find((c) => Number(c.ccCodeId) === col.ccCodeId);
+      return { ...col, ccValue: hit ? hit.ccValue : "" };
+    }),
+  }));
+}
+
 // ─── Component ────────────────────────────────────────────────────────────────
 
 export default function BudgetMasterForm({ mode = "create", budgetId, onAfterSubmit, onUuid }) {
@@ -88,7 +111,6 @@ export default function BudgetMasterForm({ mode = "create", budgetId, onAfterSub
   const [orderOpts,  setOrderOpts]  = useState([]);
   const [ccOptions,  setCcOptions]  = useState([]);
   const [orderInfo,  setOrderInfo]  = useState({ no: "", title: "" });
-  const [expanded,   setExpanded]   = useState({});   // itemIndex → bool
   const [initialData, setInitialData] = useState(null);
 
   const {
@@ -96,7 +118,7 @@ export default function BudgetMasterForm({ mode = "create", budgetId, onAfterSub
     formState: { errors, isSubmitting },
   } = useForm({ resolver: zodResolver(schema), defaultValues: DEFAULT_VALUES });
 
-  const { fields: itemFields, replace: replaceItems } = useFieldArray({ control, name: "items" });
+  const { replace: replaceItems } = useFieldArray({ control, name: "items" });
 
   const disabled = isViewMode || !isEditing || isSubmitting || isSubmitted;
 
@@ -105,23 +127,69 @@ export default function BudgetMasterForm({ mode = "create", budgetId, onAfterSub
   // one of those nested values changes — which left CC Cost and Grand Total at 0
   const watchedItems = useWatch({ control, name: "items", defaultValue: NO_ITEMS }) ?? NO_ITEMS;
 
+  // CC codes are columns shared by every item, so items[i].ccCodes is kept
+  // index-aligned with this list — cell (i, c) is items.<i>.ccCodes.<c>
+  const ccColumns = watchedItems[0]?.ccCodes ?? NO_ITEMS;
+
   // ── Totals — Grand Total = Σ initial amounts + Σ all CC code costs ─────────
   const totals = useMemo(() => {
     let initial = 0;
     let cc      = 0;
+    const perColumn = [];
     const perItem = watchedItems.map((it) => {
       const qty           = Number(it?.orderQty || 0);
       const initialAmount = qty * Number(it?.rate || 0);
-      const itemCcCost    = (it?.ccCodes || []).reduce(
-        (s, c) => s + qty * Number(c?.ccValue || 0),
-        0,
-      );
+      let itemCcCost      = 0;
+      (it?.ccCodes || []).forEach((c, ci) => {
+        const cell = qty * Number(c?.ccValue || 0);
+        itemCcCost   += cell;
+        perColumn[ci] = (perColumn[ci] || 0) + cell;
+      });
       initial += initialAmount;
       cc      += itemCcCost;
       return { initialAmount, itemCcCost, totalCost: initialAmount + itemCcCost };
     });
-    return { perItem, totalInitialCost: initial, totalCcCost: cc, grandTotal: initial + cc };
+    return {
+      perItem, perColumn,
+      totalInitialCost: initial,
+      totalCcCost:      cc,
+      grandTotal:       initial + cc,
+    };
   }, [watchedItems]);
+
+  // ── CC columns: adding one gives every item a new allocation cell ──────────
+  const addCcColumn = useCallback((ccId, opt) => {
+    const items = getValues("items") || [];
+    if (!items.length) return;
+    const id = Number(ccId);
+    if ((items[0].ccCodes || []).some((c) => Number(c.ccCodeId) === id)) {
+      toast.error(`${opt?.ccCode || "That CC code"} is already a column`);
+      return;
+    }
+    setValue(
+      "items",
+      items.map((it) => ({
+        ...it,
+        ccCodes: [
+          ...(it.ccCodes || []),
+          { ccCodeId: id, ccCode: opt?.ccCode || "", ccName: opt?.ccName || "", ccValue: "" },
+        ],
+      })),
+      { shouldDirty: true },
+    );
+  }, [getValues, setValue]);
+
+  const removeCcColumn = useCallback((colIndex) => {
+    const items = getValues("items") || [];
+    setValue(
+      "items",
+      items.map((it) => ({
+        ...it,
+        ccCodes: (it.ccCodes || []).filter((_, i) => i !== colIndex),
+      })),
+      { shouldDirty: true },
+    );
+  }, [getValues, setValue]);
 
   // ── Lookups ───────────────────────────────────────────────────────────────
   useEffect(() => {
@@ -178,7 +246,6 @@ export default function BudgetMasterForm({ mode = "create", budgetId, onAfterSub
         no:    option?.ogSaleOrderNo || option?.saleOrderNo || option?.orderNo || res.data?.saleOrderNo || "",
         title: option?.orderTitle    || option?.saleOrderTitle || res.data?.saleOrderTitle || "",
       });
-      setExpanded({});
       if (!list.length) toast.info("This sale order has no items");
     } catch (err) {
       toast.error(err?.message || "Failed to load sale order items");
@@ -216,6 +283,9 @@ export default function BudgetMasterForm({ mode = "create", budgetId, onAfterSub
             })),
           })),
         };
+        // Saved items only carry the CC codes they actually use. The grid needs
+        // every item aligned to one column list, so normalise to their union.
+        formatted.items = alignCcColumns(formatted.items);
         reset(formatted);
         setInitialData(formatted);
         setBudgetNo(d.budgetNo || "");
@@ -252,10 +322,15 @@ export default function BudgetMasterForm({ mode = "create", budgetId, onAfterSub
       unitItem:          it.unitItem        || "",
       orderQty:          Number(it.orderQty || 0),
       rate:              Number(it.rate     || 0),
-      ccCodes: (it.ccCodes || []).map((c) => ({
-        ccCodeId: Number(c.ccCodeId),
-        ccValue:  Number(c.ccValue || 0),
-      })),
+      // A column exists for every item, but only cells with a value are a real
+      // allocation — send those, so an item is not stored against CC codes it
+      // was never budgeted for
+      ccCodes: (it.ccCodes || [])
+        .filter((c) => Number(c.ccCodeId) > 0 && Number(c.ccValue || 0) > 0)
+        .map((c) => ({
+          ccCodeId: Number(c.ccCodeId),
+          ccValue:  Number(c.ccValue),
+        })),
     })),
   });
 
@@ -327,8 +402,6 @@ export default function BudgetMasterForm({ mode = "create", budgetId, onAfterSub
     setIsEditing(true);
     setAllowSubmit(false);
   };
-
-  const toggleExpand = (i) => setExpanded((p) => ({ ...p, [i]: !p[i] }));
 
   if (isLoading) {
     return (
@@ -438,92 +511,18 @@ export default function BudgetMasterForm({ mode = "create", budgetId, onAfterSub
 
         {/* ── RIGHT PANEL ──────────────────────────────────────────────────── */}
         <div className="flex-1 min-w-0 space-y-2">
-          <div className="border border-gray-300 rounded-sm overflow-hidden">
-            <div className="bg-[#d6e6f2] px-3 py-[6px] border-b border-gray-300 flex flex-wrap items-center justify-between gap-2">
-              <span className="text-[13px] font-semibold text-[#144664]">
-                Budget Items &amp; CC Code Allocation
-              </span>
-              <span className="text-[12px] font-semibold text-[#144664] tabular-nums">
-                Grand Total: {formatAmount(totals.grandTotal)}
-              </span>
-            </div>
+          <BudgetCcMatrix
+            control={control}
+            items={watchedItems}
+            ccColumns={ccColumns}
+            totals={totals}
+            ccOptions={ccOptions}
+            disabled={disabled}
+            itemsLoading={itemsLoading}
+            onAddColumn={addCcColumn}
+            onRemoveColumn={removeCcColumn}
+          />
 
-            <div className="overflow-x-auto">
-              <table className="w-full min-w-[900px] border-collapse text-[12px]">
-                <thead className="sticky top-0 z-10">
-                  <tr className="bg-[#144664] text-white">
-                    <th className="border border-[#2e5a72] px-1 py-1.5 w-[30px]" />
-                    <th className="border border-[#2e5a72] px-2 py-1.5 text-center font-semibold w-[46px]">SL</th>
-                    <th className="border border-[#2e5a72] px-2 py-1.5 text-left font-semibold w-[92px]">Item Code</th>
-                    <th className="border border-[#2e5a72] px-2 py-1.5 text-left font-semibold">Item Name &amp; Description</th>
-                    <th className="border border-[#2e5a72] px-2 py-1.5 text-left font-semibold w-[76px]">Unit</th>
-                    <th className="border border-[#2e5a72] px-2 py-1.5 text-right font-semibold w-[96px]">Order Qty</th>
-                    <th className="border border-[#2e5a72] px-2 py-1.5 text-right font-semibold w-[104px]">Rate</th>
-                    <th className="border border-[#2e5a72] px-2 py-1.5 text-right font-semibold w-[120px]">Initial Amt</th>
-                    <th className="border border-[#2e5a72] px-2 py-1.5 text-right font-semibold w-[120px]">CC Cost</th>
-                    <th className="border border-[#2e5a72] px-2 py-1.5 text-right font-semibold w-[130px]">Total Cost</th>
-                  </tr>
-                </thead>
-
-                <tbody>
-                  {itemsLoading ? (
-                    <tr>
-                      <td colSpan={COL_COUNT + 1} className="border border-gray-200 py-6 text-center text-gray-400">
-                        <Loader2 className="animate-spin w-4 h-4 inline mr-1.5" />Loading sale order items…
-                      </td>
-                    </tr>
-                  ) : itemFields.length === 0 ? (
-                    <tr>
-                      <td colSpan={COL_COUNT + 1} className="border border-gray-200 py-8 text-center text-[#bbb] italic">
-                        Select a Sale Order to load its items
-                      </td>
-                    </tr>
-                  ) : (
-                    itemFields.map((field, idx) => {
-                      const item  = watchedItems[idx] || {};
-                      const calc  = totals.perItem[idx] || { initialAmount: 0, itemCcCost: 0, totalCost: 0 };
-                      const open  = expanded[idx] ?? true;
-                      const ccQty = (item.ccCodes || []).length;
-
-                      return (
-                        <FragmentRows
-                          key={field.id}
-                          idx={idx}
-                          item={item}
-                          calc={calc}
-                          open={open}
-                          ccQty={ccQty}
-                          onToggle={() => toggleExpand(idx)}
-                          control={control}
-                          setValue={setValue}
-                          ccOptions={ccOptions}
-                          disabled={disabled}
-                          colSpan={COL_COUNT + 1}
-                        />
-                      );
-                    })
-                  )}
-
-                  {itemFields.length > 0 && (
-                    <tr className="bg-[#d6e6f2] font-semibold">
-                      <td colSpan={7} className="border border-gray-300 px-2 py-1.5 text-right text-[12px]">
-                        TOTAL
-                      </td>
-                      <td className="border border-gray-300 px-2 py-1.5 text-right text-[12px] tabular-nums">
-                        {formatAmount(totals.totalInitialCost)}
-                      </td>
-                      <td className="border border-gray-300 px-2 py-1.5 text-right text-[12px] tabular-nums">
-                        {formatAmount(totals.totalCcCost)}
-                      </td>
-                      <td className="border border-gray-300 px-2 py-1.5 text-right text-[12px] tabular-nums font-bold">
-                        {formatAmount(totals.grandTotal)}
-                      </td>
-                    </tr>
-                  )}
-                </tbody>
-              </table>
-            </div>
-          </div>
 
           {errors.items && (
             <p className="text-[12px] text-red-500">{errors.items.message || "Check the item rows"}</p>
@@ -567,68 +566,5 @@ export default function BudgetMasterForm({ mode = "create", budgetId, onAfterSub
         </div>
       </div>
     </div>
-  );
-}
-
-/* Item row + its CC allocation rows */
-function FragmentRows({ idx, item, calc, open, ccQty, onToggle, control, setValue, ccOptions, disabled, colSpan }) {
-  return (
-    <>
-      <tr className={idx % 2 === 0 ? "bg-white" : "bg-[#f7f9fc]"}>
-        <td className="border border-gray-200 px-1 py-[3px] text-center align-top">
-          <button
-            type="button"
-            onClick={onToggle}
-            title={open ? "Hide CC codes" : "Show CC codes"}
-            className="p-0.5 text-[#3b6ea5] hover:bg-[#e6eef7] rounded transition"
-          >
-            {open ? <ChevronDown size={13} /> : <ChevronRight size={13} />}
-          </button>
-        </td>
-        <td className="border border-gray-200 px-2 py-[3px] text-center text-gray-500 align-top">
-          {item.slNo || idx + 1}
-        </td>
-        <td className="border border-gray-200 px-2 py-[3px] align-top font-medium text-[#144664]">
-          {item.itemCode || "—"}
-        </td>
-        <td className="border border-gray-200 px-2 py-[3px] align-top">
-          <div className="text-gray-800">{item.itemName || "—"}</div>
-          {item.itemDescription && (
-            <div className="text-[11px] text-gray-500">{item.itemDescription}</div>
-          )}
-          {!open && ccQty > 0 && (
-            <div className="text-[10px] text-[#3b6ea5] mt-0.5">{ccQty} CC code{ccQty > 1 ? "s" : ""} allocated</div>
-          )}
-        </td>
-        <td className="border border-gray-200 px-2 py-[3px] align-top text-gray-600">{item.unitItem || "—"}</td>
-        <td className="border border-gray-200 px-2 py-[3px] align-top text-right tabular-nums">
-          {formatQtyDisplay(item.orderQty)}
-        </td>
-        <td className="border border-gray-200 px-2 py-[3px] align-top text-right tabular-nums">
-          {formatAmount(item.rate)}
-        </td>
-        <td className="border border-gray-200 px-2 py-[3px] align-top text-right tabular-nums bg-[#f3f8f3]">
-          {formatAmount(calc.initialAmount)}
-        </td>
-        <td className="border border-gray-200 px-2 py-[3px] align-top text-right tabular-nums">
-          {formatAmount(calc.itemCcCost)}
-        </td>
-        <td className="border border-gray-200 px-2 py-[3px] align-top text-right tabular-nums font-semibold">
-          {formatAmount(calc.totalCost)}
-        </td>
-      </tr>
-
-      {open && (
-        <BudgetItemCcRows
-          control={control}
-          setValue={setValue}
-          itemIndex={idx}
-          orderQty={item.orderQty}
-          ccOptions={ccOptions}
-          disabled={disabled}
-          colSpan={colSpan}
-        />
-      )}
-    </>
   );
 }
