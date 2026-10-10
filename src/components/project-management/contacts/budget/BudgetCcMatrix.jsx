@@ -2,6 +2,7 @@
 
 import { Controller } from "react-hook-form";
 import { Loader2, Plus, X } from "lucide-react";
+import { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider } from "@/components/ui/tooltip";
 
 import SearchableSelect from "@/components/common/SearchableSelect";
 import AmountInput      from "@/components/common/AmountInput";
@@ -23,9 +24,9 @@ import { formatAmount, formatQtyDisplay } from "@/helper/numberFormatter";
 
 // Pinned column offsets must match the widths below
 const STICKY = {
-  sl:   "sticky left-0 z-20 w-[44px] min-w-[44px]",
-  code: "sticky left-[44px] z-20 w-[92px] min-w-[92px]",
-  name: "sticky left-[136px] z-20 w-[220px] min-w-[220px]",
+  sl:   "sticky left-0 z-20 w-[44px] min-w-[44px] max-w-[44px]",
+  code: "sticky left-[44px] z-20 w-[92px] min-w-[92px] max-w-[92px]",
+  name: "sticky left-[136px] z-20 w-[220px] min-w-[220px] max-w-[220px]",
 };
 
 export default function BudgetCcMatrix({
@@ -42,6 +43,7 @@ export default function BudgetCcMatrix({
   const colCount = 7 + ccColumns.length;   // pinned 3 + unit/qty/rate/initial + CC cols + 2 trailing
 
   return (
+    <TooltipProvider>
     <div className="border border-gray-300 rounded-sm overflow-hidden">
       {/* Header strip — CC code picker lives here, it applies to every item */}
       <div className="bg-[#d6e6f2] px-3 py-[6px] border-b border-gray-300 flex flex-wrap items-center gap-x-3 gap-y-2">
@@ -73,7 +75,7 @@ export default function BudgetCcMatrix({
       </div>
 
       <div className="overflow-x-auto">
-        <table className="w-full border-collapse text-[12px]" style={{ minWidth: 900 + ccColumns.length * 130 }}>
+        <table className="w-full table-fixed border-collapse text-[12px]" style={{ minWidth: 962 + ccColumns.length * 130 }}>
           <thead className="sticky top-0 z-30">
             <tr className="bg-[#144664] text-white">
               <th className={`${STICKY.sl} bg-[#144664] border border-[#2e5a72] px-2 py-1.5 text-center font-semibold`}>SL</th>
@@ -142,9 +144,14 @@ export default function BudgetCcMatrix({
                     <td className={`${STICKY.name} ${zebra} border border-gray-200 px-2 py-[3px]`}>
                       <div className="text-gray-800 truncate" title={item.itemName}>{item.itemName || "—"}</div>
                       {item.itemDescription && (
-                        <div className="text-[10px] text-gray-500 truncate" title={item.itemDescription}>
-                          {item.itemDescription}
-                        </div>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <div className="text-[10px] text-gray-500 truncate cursor-default">{item.itemDescription}</div>
+                          </TooltipTrigger>
+                          <TooltipContent variant="text" side="top" className="max-w-[320px] whitespace-normal">
+                            {item.itemDescription}
+                          </TooltipContent>
+                        </Tooltip>
                       )}
                     </td>
                     <td className="border border-gray-200 px-2 py-[3px] text-gray-600">{item.unitItem || "—"}</td>
@@ -219,6 +226,7 @@ export default function BudgetCcMatrix({
         </div>
       )}
     </div>
+    </TooltipProvider>
   );
 }
 
