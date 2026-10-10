@@ -197,7 +197,7 @@ export const sidebarConfig = [
               },
               {
                 title: "Log Sheet",
-                path: "/resource-management/services/plant-machinery/log-sheet", //chanded required latter in file 
+                path: "/resource-management/services/plant-machinery/log-sheet", //chanded required latter in file u
                 permissionKey: "log_sheet",
               },
               {
