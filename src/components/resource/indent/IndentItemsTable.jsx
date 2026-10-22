@@ -34,6 +34,7 @@ export default function IndentItemsTable({
     qty: "",
     ammenmendQty: "",
     location: "",
+    isAsset: false,
   };
 
   const scrollRef = useRef(null);
@@ -68,6 +69,7 @@ export default function IndentItemsTable({
     setValue(`items.${rowIndex}.itemDisplayCode`, item?.itemDisplayCode || "");
     setValue(`items.${rowIndex}.itemName`, item?.itemName || "");
     setValue(`items.${rowIndex}.unit`, item?.unit || "");
+    setValue(`items.${rowIndex}.isAsset`, item?.isAsset ?? false);
   };
 
 
@@ -108,6 +110,7 @@ export default function IndentItemsTable({
                 const selectedItemDisplayCode = watch(`items.${index}.itemDisplayCode`);
                 const noteValue = watch(`items.${index}.note`);
                 const locationValue = watch(`items.${index}.location`);
+                const isAsset = watch(`items.${index}.isAsset`);
 
                 return (
                   <tr key={field.id}>
@@ -118,11 +121,18 @@ export default function IndentItemsTable({
 
                     {/* ITEM CODE */}
                     <td className="border border-[#b5b5b5] px-2 py-[2px]">
-                      <Input
-                        {...register(`items.${index}.itemCode`)}
-                        disabled
-                        className={getInputClass(false, true)}
-                      />
+                      <div className="flex items-center gap-1">
+                        <Input
+                          {...register(`items.${index}.itemCode`)}
+                          disabled
+                          className={getInputClass(false, true)}
+                        />
+                        {isAsset && (
+                          <span className="shrink-0 px-1 py-0.5 text-[10px] font-bold bg-amber-100 text-amber-700 border border-amber-300 rounded">
+                            FA
+                          </span>
+                        )}
+                      </div>
                     </td>
 
                     {/* ITEM NAME */}

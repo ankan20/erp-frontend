@@ -12,6 +12,7 @@ const itemSchema = z.object({
   gstAmount: z.number().optional(),
   location: z.string().optional(),
   note: z.string().optional(),
+  isAsset: z.boolean().optional(),
 });
 
 const termSchema = z.object({

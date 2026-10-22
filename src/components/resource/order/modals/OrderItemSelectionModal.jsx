@@ -230,6 +230,8 @@ export default function OrderItemSelectionModal({
 
       itemUnit: item.itemUnit || "",
 
+      isAsset: item.isAsset ?? false,
+
       qty: item.orderQty,
 
       rate: item.rate || "",
@@ -506,7 +508,14 @@ export default function OrderItemSelectionModal({
 
                       {/* CODE */}
 
-                      <td className="border p-2 text-sm">{item.itemCode}</td>
+                      <td className="border p-2 text-sm">
+                        <div className="flex items-center gap-1">
+                          <span>{item.itemCode}</span>
+                          {item.isAsset && (
+                            <span className="shrink-0 px-1 py-0.5 text-[10px] font-bold bg-amber-100 text-amber-700 border border-amber-300 rounded">FA</span>
+                          )}
+                        </div>
+                      </td>
 
                       {/* NAME */}
 

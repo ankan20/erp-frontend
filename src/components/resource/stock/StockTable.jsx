@@ -252,7 +252,14 @@ function ChildTable({ items: rawItems = [], onItemClick }) {
           {CHILD_COLS.map((col) => (
             <div key={col.key} className={`px-2 py-1.5 border-r border-[#d4e8ef] last:border-r-0 ${col.cellCls}`}
               title={col.key === "itemName" ? item[col.key] : undefined}>
-              {col.numeric ? fmtNum(item[col.key]) : (item[col.key] ?? "-")}
+              {col.key === "itemCode" ? (
+                <div className="flex items-center gap-1">
+                  <span>{item[col.key] ?? "-"}</span>
+                  {item.isAsset && (
+                    <span className="shrink-0 px-1 py-0.5 text-[10px] font-bold bg-amber-100 text-amber-700 border border-amber-300 rounded">FA</span>
+                  )}
+                </div>
+              ) : col.numeric ? fmtNum(item[col.key]) : (item[col.key] ?? "-")}
             </div>
           ))}
         </div>

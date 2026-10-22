@@ -206,7 +206,12 @@ export default function GRNItemsTable({
                   </TD>
 
                   <TD>
-                    <ReadCell value={item.itemCode} />
+                    <div className="flex items-center gap-1 px-[2px]">
+                      <ReadCell value={item.itemCode} />
+                      {item.isAsset && (
+                        <span className="shrink-0 px-1 py-0.5 text-[10px] font-bold bg-amber-100 text-amber-700 border border-amber-300 rounded">FA</span>
+                      )}
+                    </div>
                   </TD>
 
                   {/* ITEM */}

@@ -26,6 +26,7 @@ const defaultRow = {
   gstAmount: 0,
   note: "",
   location: "",
+  isAsset: false,
 };
 
 export default function WithoutIndentItemsTable({ form, disabled, itemOptions = [], projectCode }) {
@@ -59,6 +60,7 @@ export default function WithoutIndentItemsTable({ form, disabled, itemOptions = 
     setValue(`items.${index}.amount`,   0);
     setValue(`items.${index}.gstPercent`, "");
     setValue(`items.${index}.gstAmount`,  0);
+    setValue(`items.${index}.isAsset`, item?.isAsset ?? false);
   };
 
   const recalc = (index, qty, rate, gstPercent) => {
@@ -106,13 +108,19 @@ export default function WithoutIndentItemsTable({ form, disabled, itemOptions = 
               <tbody>
                 {fields.map((field, index) => {
                   const selectedCode = watch(`items.${index}.itemCode`);
+                  const isAsset = watch(`items.${index}.isAsset`);
                   return (
                     <tr key={field.id}>
                       <td className="border px-2 py-[2px] text-center text-sm">{index + 1}</td>
 
                       {/* ITEM CODE */}
                       <td className="border px-2 py-[2px] text-sm bg-[#edf8ed]">
-                        {items[index]?.itemCode || ""}
+                        <div className="flex items-center gap-1">
+                          <span>{items[index]?.itemCode || ""}</span>
+                          {isAsset && (
+                            <span className="shrink-0 px-1 py-0.5 text-[10px] font-bold bg-amber-100 text-amber-700 border border-amber-300 rounded">FA</span>
+                          )}
+                        </div>
                       </td>
 
                       {/* ITEM NAME — searchable select */}

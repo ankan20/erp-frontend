@@ -319,7 +319,14 @@ export default function GRNItemSelectionModal({ open, onClose, form, brrId, init
                               </div>
                             </td>
                             <td className="border border-[#ddd] p-2 pl-7">{item.grnl}</td>
-                            <td className="border border-[#ddd] p-2">{item.itemCode}</td>
+                            <td className="border border-[#ddd] p-2">
+                              <div className="flex items-center gap-1">
+                                <span>{item.itemCode}</span>
+                                {item.isAsset && (
+                                  <span className="shrink-0 px-1 py-0.5 text-[10px] font-bold bg-amber-100 text-amber-700 border border-amber-300 rounded">FA</span>
+                                )}
+                              </div>
+                            </td>
                             <td className="border border-[#ddd] p-1">
                               <ExpandableTextField value={item.itemName || ""} disabled title="Item Name" minHeight="min-h-[30px]" modalHeight="min-h-[180px]" />
                             </td>

@@ -178,7 +178,12 @@ export default function OrderItemsTab({
 
                       {/* ITEM CODE */}
                       <td className="border px-2 py-[2px] text-sm bg-[#edf8ed]">
-                        {items[index]?.itemCode || ""}
+                        <div className="flex items-center gap-1">
+                          <span>{items[index]?.itemCode || ""}</span>
+                          {items[index]?.isAsset && (
+                            <span className="shrink-0 px-1 py-0.5 text-[10px] font-bold bg-amber-100 text-amber-700 border border-amber-300 rounded">FA</span>
+                          )}
+                        </div>
                       </td>
 
                       {/* ITEM NAME */}

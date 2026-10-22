@@ -45,6 +45,7 @@ const indentSchema = z.object({
       location: z.string().min(2),
       note: z.string().optional(),
       unit: z.string().optional(),
+      isAsset: z.boolean().optional(),
     }),
   ),
 });
@@ -58,6 +59,7 @@ const defaultItemRow = {
   location: "",
   note: "",
   unit: "",
+  isAsset: false,
 };
 
 const defaultValues = {
@@ -154,6 +156,7 @@ export default function IndentForm({
             setValue(`items.${index}.itemDisplayCode`, matched.itemDisplayCode || "");
             setValue(`items.${index}.itemName`, matched.itemName);
             setValue(`items.${index}.unit`, matched.unit || "");
+            setValue(`items.${index}.isAsset`, matched.isAsset ?? false);
           }
         });
       }
@@ -211,6 +214,8 @@ export default function IndentForm({
             note: item.note || "",
 
             unit: item.unit || "",
+
+            isAsset: item.isAsset ?? false,
           })) || [defaultItemRow],
         };
 
@@ -268,6 +273,7 @@ export default function IndentForm({
       itemDisplayCode: "",
       itemName: "",
       unit: "",
+      isAsset: false,
     }));
 
     setValue("items", updatedItems);
@@ -303,6 +309,8 @@ export default function IndentForm({
       JSON.stringify(
         values.items.map((item) => ({
           itemCode: item.itemCode,
+
+          isAsset: item.isAsset ?? false,
 
           qty: Number(item.qty),
 

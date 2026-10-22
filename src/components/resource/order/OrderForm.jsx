@@ -261,6 +261,7 @@ export default function OrderForm({ mode = "create", orderId, onUuid, onAfterSub
             : {
                 indentItemId: null,
                 itemCode: item.itemCode,
+                isAsset: item.isAsset ?? false,
                 qty: Number(item.qty),
                 rate: Number(item.rate),
                 gstPercent: Number(item.gstPercent),

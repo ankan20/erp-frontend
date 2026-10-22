@@ -140,7 +140,14 @@ export default function BRRBillingDetailsTab({
                       <TD><ReadCell value={item.grnNo} /></TD>
                       <TD><ReadCell value={item.grnDate} /></TD>
                       <TD><ReadCell value={item.grnl} /></TD>
-                      <TD><ReadCell value={item.itemCode} /></TD>
+                      <TD>
+                        <div className="flex items-center gap-1 px-[2px]">
+                          <ReadCell value={item.itemCode} />
+                          {item.isAsset && (
+                            <span className="shrink-0 px-1 py-0.5 text-[10px] font-bold bg-amber-100 text-amber-700 border border-amber-300 rounded">FA</span>
+                          )}
+                        </div>
+                      </TD>
                       <TD>
                         <ExpandableTextField value={item.itemName || ""} onChange={() => {}} disabled title="Item Name" minHeight="min-h-[28px]" modalHeight="min-h-[180px]" />
                       </TD>
@@ -213,7 +220,14 @@ export default function BRRBillingDetailsTab({
                       <TD><ReadCell value={item.srnNo} /></TD>
                       <TD><ReadCell value={item.srnDate} /></TD>
                       <TD><ReadCell value={item.srnl} /></TD>
-                      <TD><ReadCell value={item.itemCode} /></TD>
+                      <TD>
+                        <div className="flex items-center gap-1 px-[2px]">
+                          <ReadCell value={item.itemCode} />
+                          {item.isAsset && (
+                            <span className="shrink-0 px-1 py-0.5 text-[10px] font-bold bg-amber-100 text-amber-700 border border-amber-300 rounded">FA</span>
+                          )}
+                        </div>
+                      </TD>
                       <TD>
                         <ExpandableTextField value={item.itemName || ""} onChange={() => {}} disabled title="Item Name" minHeight="min-h-[28px]" modalHeight="min-h-[180px]" />
                       </TD>

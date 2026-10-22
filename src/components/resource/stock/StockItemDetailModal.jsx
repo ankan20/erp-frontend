@@ -50,7 +50,7 @@ export default function StockItemDetailModal({ item, projectCode, onClose }) {
   const doFetch = async ({ from = "", to = "", page = 1, isInitial = false } = {}) => {
     isInitial ? setLoading(true) : setLedgerLoading(true);
     try {
-      let url = `${API_ENDPOINTS.RESOURCE.MATERIAL_MANAGEMENT.STOCK.ITEM_DETAIL}?project_code=${projectCode}&item_code=${item.itemCode}&entries_limit=${ENTRIES_LIMIT}&grn_page=${page}&gin_page=${page}`;
+      let url = `${API_ENDPOINTS.RESOURCE.MATERIAL_MANAGEMENT.STOCK.ITEM_DETAIL}?project_code=${projectCode}&item_code=${item.itemCode}&is_asset=${item.isAsset ?? false}&entries_limit=${ENTRIES_LIMIT}&grn_page=${page}&gin_page=${page}`;
       if (from) url += `&from_date=${from}`;
       if (to)   url += `&to_date=${to}`;
       const res = await apiRequest({ url, method: "GET" });
