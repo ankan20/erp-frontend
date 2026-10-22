@@ -345,7 +345,7 @@ function CcEntriesModal({ open, onClose, entries, disabled, ccCode, ccName, item
 
   return (
     <Dialog open={open} onOpenChange={(v) => { if (!v) onClose(); }}>
-      <DialogContent className="w-[95vw] max-w-[640px] p-0 gap-0" onClick={(e) => e.stopPropagation()}>
+      <DialogContent className="w-[95vw] max-w-[640px] sm:max-w-[720px] md:max-w-[860px] lg:max-w-[1000px] xl:max-w-[1120px] p-0 gap-0" onClick={(e) => e.stopPropagation()}>
         <DialogHeader className="px-5 py-3 border-b bg-[#f0f7fa]">
           <DialogTitle className="text-[14px] font-semibold text-[#144664]">
             {ccCode || "CC"}{ccName ? ` — ${ccName}` : ""}&nbsp;·&nbsp;Entries

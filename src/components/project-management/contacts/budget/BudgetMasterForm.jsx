@@ -46,6 +46,7 @@ const ccCodeSchema = z.object({
 
 const itemSchema = z.object({
   ogSaleOrderItemId: z.coerce.number().nullable().optional(),
+  type:              z.string().optional().default(""),
   slNo:              z.coerce.number().default(1),
   itemCode:          z.string().optional().default(""),
   itemName:          z.string().optional().default(""),
@@ -239,6 +240,7 @@ export default function BudgetMasterForm({ mode = "create", budgetId, onAfterSub
       replaceItems(
         list.map((it, i) => ({
           ogSaleOrderItemId: it.id ?? it.ogSaleOrderItemId ?? null,
+          type:              it.type || "",
           slNo:              it.slNo || i + 1,
           itemCode:          it.itemCode        || "",
           itemName:          it.itemName        || "",
@@ -275,6 +277,7 @@ export default function BudgetMasterForm({ mode = "create", budgetId, onAfterSub
           remarks:     d.remarks     || "",
           items: (d.items || []).map((it, i) => ({
             ogSaleOrderItemId: it.ogSaleOrderItemId ?? null,
+            type:              it.type || "",
             slNo:              it.slNo || i + 1,
             itemCode:          it.itemCode        || "",
             itemName:          it.itemName        || "",
@@ -327,6 +330,7 @@ export default function BudgetMasterForm({ mode = "create", budgetId, onAfterSub
     remarks:     v.remarks || "",
     items: v.items.map((it, i) => ({
       ogSaleOrderItemId: it.ogSaleOrderItemId ?? null,
+      type:              it.type || "",
       slNo:              i + 1,
       itemCode:          it.itemCode        || "",
       itemName:          it.itemName        || "",
