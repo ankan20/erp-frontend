@@ -29,12 +29,19 @@ const BUDGET = API_ENDPOINTS.PROJECT.BUDGET_MASTER;
 
 // ─── Schema ───────────────────────────────────────────────────────────────────
 
+const entrySchema = z.object({
+  slNo:        z.coerce.number().default(1),
+  description: z.string().default(""),
+  amount:      z.coerce.number().min(0).default(0),
+});
+
 const ccCodeSchema = z.object({
   ccCodeId: z.coerce.number({ message: "Required" }).min(1, "Select a CC code"),
   ccCode:   z.string().optional().default(""),
   ccName:   z.string().optional().default(""),
   // AmountInput keeps the typed string in form state
   ccValue:  z.coerce.number().min(0).default(0),
+  entries:  z.array(entrySchema).default([]),
 });
 
 const itemSchema = z.object({
@@ -88,7 +95,7 @@ function alignCcColumns(items) {
     ...it,
     ccCodes: columns.map((col) => {
       const hit = (it.ccCodes || []).find((c) => Number(c.ccCodeId) === col.ccCodeId);
-      return { ...col, ccValue: hit ? hit.ccValue : "" };
+      return { ...col, ccValue: hit ? hit.ccValue : "", entries: hit ? (hit.entries || []) : [] };
     }),
   }));
 }
@@ -172,7 +179,7 @@ export default function BudgetMasterForm({ mode = "create", budgetId, onAfterSub
         ...it,
         ccCodes: [
           ...(it.ccCodes || []),
-          { ccCodeId: id, ccCode: opt?.ccCode || "", ccName: opt?.ccName || "", ccValue: "" },
+          { ccCodeId: id, ccCode: opt?.ccCode || "", ccName: opt?.ccName || "", ccValue: "", entries: [] },
         ],
       })),
       { shouldDirty: true },
@@ -280,6 +287,11 @@ export default function BudgetMasterForm({ mode = "create", budgetId, onAfterSub
               ccCode:   c.ccCode   || "",
               ccName:   c.ccName   || "",
               ccValue:  Number(c.ccValue || 0),
+              entries:  (c.entries || []).map((e, ei) => ({
+                slNo:        e.slNo || ei + 1,
+                description: e.description || "",
+                amount:      Number(e.amount || 0),
+              })),
             })),
           })),
         };
@@ -330,6 +342,13 @@ export default function BudgetMasterForm({ mode = "create", budgetId, onAfterSub
         .map((c) => ({
           ccCodeId: Number(c.ccCodeId),
           ccValue:  Number(c.ccValue),
+          entries:  (c.entries || [])
+            .filter((e) => (e.description || "").trim())
+            .map((e, ei) => ({
+              slNo:        ei + 1,
+              description: (e.description || "").trim(),
+              amount:      Number(e.amount || 0),
+            })),
         })),
     })),
   });
@@ -513,6 +532,7 @@ export default function BudgetMasterForm({ mode = "create", budgetId, onAfterSub
         <div className="flex-1 min-w-0 space-y-2">
           <BudgetCcMatrix
             control={control}
+            setValue={setValue}
             items={watchedItems}
             ccColumns={ccColumns}
             totals={totals}
