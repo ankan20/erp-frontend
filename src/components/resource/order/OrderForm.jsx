@@ -37,7 +37,7 @@ const defaultValues = {
   contactNumber: "",
   quotationNo: "",
   quotationDate: "",
-  orderMessage: "",
+  orderMessage: "Please supply the goods &/or provide service covered by this order strictly as per the conditions mentioned here in:",
   gstType: "",
   items: [],
   terms: [],
