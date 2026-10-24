@@ -710,6 +710,7 @@ export const API_ENDPOINTS = {
       CREATE:      "/hr/employee",         // POST
       GET_BY_ID:   "/hr/employee/",        // /:id GET
       UPDATE:      "/hr/employee/",        // /:id PUT
+      UPLOAD_DOC:  "/hr/employee/",        // /:id/upload-doc POST multipart
       DEPARTMENTS: "/hr/employee/departments", // GET
     },
     RECRUITMENT: {

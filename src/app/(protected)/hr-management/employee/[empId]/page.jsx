@@ -52,6 +52,37 @@ function SelectField({ label, value, edit, onChange, options }) {
   );
 }
 
+// ─── Upload document row ───────────────────────────────────────────────────────
+function UploadDocRow({ label, icon, docType, currentUrl, subtitle, uploading, onUpload }) {
+  const inputRef = useState(null)[0];
+  return (
+    <div className="flex items-center justify-between bg-gray-50 rounded-lg px-4 py-3 border border-gray-200">
+      <div className="flex items-center gap-3 flex-1 min-w-0">
+        <span className="text-xl">{icon}</span>
+        <div className="min-w-0">
+          <p className="text-sm font-medium text-gray-700">{label}</p>
+          {subtitle && <p className="text-xs text-gray-500 font-mono truncate">{subtitle}</p>}
+          {currentUrl && !subtitle && (
+            <a href={currentUrl} target="_blank" rel="noreferrer"
+              className="text-xs text-blue-600 hover:underline truncate block max-w-xs">{currentUrl}</a>
+          )}
+        </div>
+      </div>
+      <div className="flex items-center gap-2 flex-shrink-0 ml-3">
+        {currentUrl && (
+          <a href={currentUrl} target="_blank" rel="noreferrer"
+            className="px-2.5 py-1 text-xs bg-emerald-100 text-emerald-700 rounded-md hover:bg-emerald-200 font-medium">View</a>
+        )}
+        <label className={`px-2.5 py-1 text-xs rounded-md font-medium cursor-pointer transition-colors ${uploading ? "bg-gray-200 text-gray-500" : "bg-blue-100 text-blue-700 hover:bg-blue-200"}`}>
+          {uploading ? "Uploading…" : currentUrl ? "Replace" : "Upload"}
+          <input type="file" className="hidden" disabled={uploading}
+            onChange={(e) => e.target.files?.[0] && onUpload(e.target.files[0])} />
+        </label>
+      </div>
+    </div>
+  );
+}
+
 // ─── Star rating display ───────────────────────────────────────────────────────
 function Stars({ rating }) {
   const n = Math.round(Number(rating) || 0);
@@ -129,10 +160,11 @@ export default function EmployeeDetailPage() {
     action_taken: "", status: "Active", description: "",
   });
 
-  // Document link management (in-memory, saved to other_doc_urls JSON)
+  // Document management
   const [docLinks, setDocLinks] = useState([]);
   const [showDocModal, setShowDocModal] = useState(false);
   const [docForm, setDocForm] = useState({ name: "", url: "" });
+  const [uploading, setUploading] = useState({});  // { doc_type: true/false }
 
   // Load employee
   useEffect(() => {
@@ -220,7 +252,36 @@ export default function EmployeeDetailPage() {
     setSavingPerf(false);
   };
 
-  // Add document link and auto-save
+  // Upload a file to backend
+  const handleFileUpload = async (file, docType, docName) => {
+    if (!file) return;
+    setUploading((u) => ({ ...u, [docType]: true }));
+    const fd = new FormData();
+    fd.append("file", file);
+    fd.append("doc_type", docType);
+    fd.append("doc_name", docName);
+    const token = typeof window !== "undefined" ? localStorage.getItem("token") : null;
+    try {
+      const r = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL || "http://132.154.156.82/api"}${API_ENDPOINTS.HR.EMPLOYEE.UPLOAD_DOC}${empId}/upload-doc`,
+        { method: "POST", headers: token ? { Authorization: `Bearer ${token}` } : {}, body: fd }
+      );
+      const json = await r.json();
+      if (json?.data) {
+        setEmp(json.data);
+        setForm(json.data);
+        try { setDocLinks(JSON.parse(json.data.other_doc_urls || "[]")); } catch { setDocLinks([]); }
+        toast.success(`${docName} uploaded`);
+      } else {
+        toast.error(json?.message || "Upload failed");
+      }
+    } catch {
+      toast.error("Upload failed");
+    }
+    setUploading((u) => ({ ...u, [docType]: false }));
+  };
+
+  // Add document link and auto-save (URL-based fallback)
   const handleAddDoc = async () => {
     if (!docForm.name.trim() || !docForm.url.trim()) return;
     const newLinks = [...docLinks, { ...docForm, id: Date.now() }];
@@ -418,55 +479,39 @@ export default function EmployeeDetailPage() {
                 {/* CV */}
                 <div>
                   <p className="text-xs font-semibold text-blue-700 uppercase tracking-widest mb-3 border-b pb-2">Resume / CV</p>
-                  {editing ? (
-                    <div className="flex flex-col gap-1 max-w-lg">
-                      <label className="text-xs text-gray-500 font-medium uppercase">CV URL (Google Drive, OneDrive, etc.)</label>
-                      <input type="url" value={form.cv_url ?? ""} onChange={(e) => setForm((f) => ({ ...f, cv_url: e.target.value }))}
-                        placeholder="https://drive.google.com/..."
-                        className="border border-gray-300 rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
-                    </div>
-                  ) : (
-                    <div className="flex items-center gap-4 p-4 bg-gray-50 rounded-xl border border-gray-200">
-                      <span className="text-2xl">📄</span>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium text-gray-700">Resume / CV</p>
-                        {form.cv_url ? (
-                          <a href={form.cv_url} target="_blank" rel="noreferrer"
-                            className="text-xs text-blue-600 hover:underline break-all">{form.cv_url}</a>
-                        ) : (
-                          <p className="text-xs text-gray-400">Not uploaded — click Edit to add a CV link</p>
-                        )}
-                      </div>
-                      {form.cv_url && (
-                        <a href={form.cv_url} target="_blank" rel="noreferrer"
-                          className="px-3 py-1.5 text-xs rounded-lg bg-blue-700 text-white hover:bg-blue-800 flex-shrink-0">View CV</a>
-                      )}
-                    </div>
-                  )}
+                  <UploadDocRow
+                    label="Resume / CV"
+                    icon="📄"
+                    docType="cv"
+                    currentUrl={emp.cv_url}
+                    uploading={!!uploading["cv"]}
+                    onUpload={(file) => handleFileUpload(file, "cv", "Resume / CV")}
+                  />
                 </div>
 
-                {/* Identity */}
+                {/* Identity & KYC */}
                 <div>
                   <p className="text-xs font-semibold text-blue-700 uppercase tracking-widest mb-3 border-b pb-2">Identity & KYC</p>
                   <div className="space-y-2">
                     {[
-                      { label: "PAN Card", value: emp.pan_number, icon: "🪪" },
-                      { label: "Aadhaar Card", value: emp.aadhaar_masked, icon: "🪪" },
-                      { label: "Passport", value: emp.passport_number ? `${emp.passport_number}${emp.passport_expiry ? ` (exp: ${emp.passport_expiry})` : ""}` : null, icon: "📘" },
-                    ].map(({ label, value, icon }) => (
-                      <div key={label} className="flex items-center justify-between bg-gray-50 rounded-lg px-4 py-3 border border-gray-200">
-                        <div className="flex items-center gap-3">
-                          <span>{icon}</span>
-                          <div>
-                            <p className="text-sm font-medium text-gray-700">{label}</p>
-                            {value && <p className="text-xs text-gray-500 font-mono">{value}</p>}
-                          </div>
-                        </div>
-                        <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${value ? "bg-emerald-100 text-emerald-700" : "bg-gray-200 text-gray-500"}`}>
-                          {value ? "On File" : "Not Provided"}
-                        </span>
-                      </div>
-                    ))}
+                      { label: "PAN Card", docType: "pan_card", number: emp.pan_number, icon: "🪪" },
+                      { label: "Aadhaar Card", docType: "aadhaar", number: emp.aadhaar_masked, icon: "🪪" },
+                      { label: "Passport", docType: "passport", number: emp.passport_number ? `${emp.passport_number}${emp.passport_expiry ? ` (exp: ${emp.passport_expiry})` : ""}` : null, icon: "📘" },
+                    ].map(({ label, docType, number, icon }) => {
+                      const existingDoc = docLinks.find((d) => d.doc_type === docType);
+                      return (
+                        <UploadDocRow
+                          key={docType}
+                          label={label}
+                          icon={icon}
+                          docType={docType}
+                          currentUrl={existingDoc?.url}
+                          subtitle={number}
+                          uploading={!!uploading[docType]}
+                          onUpload={(file) => handleFileUpload(file, docType, label)}
+                        />
+                      );
+                    })}
                   </div>
                 </div>
 
@@ -479,30 +524,29 @@ export default function EmployeeDetailPage() {
                       <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
                       </svg>
-                      Upload Document
+                      Add Document
                     </button>
                   </div>
-                  {docLinks.length === 0 ? (
+                  {docLinks.filter((d) => !["cv", "pan_card", "aadhaar", "passport"].includes(d.doc_type)).length === 0 ? (
                     <div className="text-center py-8 text-gray-400">
-                      <p className="text-sm">No documents uploaded yet.</p>
-                      <p className="text-xs mt-1">Click "Upload Document" to add a link.</p>
+                      <p className="text-sm">No other documents yet.</p>
                     </div>
                   ) : (
                     <div className="space-y-2">
-                      {docLinks.map((doc, i) => (
+                      {docLinks.filter((d) => !["cv", "pan_card", "aadhaar", "passport"].includes(d.doc_type)).map((doc, i) => (
                         <div key={doc.id || i} className="flex items-center justify-between bg-gray-50 rounded-lg px-4 py-3 border border-gray-200">
                           <div className="flex items-center gap-3 flex-1 min-w-0">
                             <span className="text-lg">📎</span>
                             <div className="min-w-0">
                               <p className="text-sm font-medium text-gray-700">{doc.name}</p>
                               <a href={doc.url} target="_blank" rel="noreferrer"
-                                className="text-xs text-blue-600 hover:underline truncate block">{doc.url}</a>
+                                className="text-xs text-blue-600 hover:underline truncate block max-w-xs">{doc.url}</a>
                             </div>
                           </div>
                           <div className="flex items-center gap-2 flex-shrink-0 ml-3">
                             <a href={doc.url} target="_blank" rel="noreferrer"
                               className="px-2.5 py-1 text-xs bg-blue-100 text-blue-700 rounded-md hover:bg-blue-200">View</a>
-                            <button onClick={() => handleRemoveDoc(i)}
+                            <button onClick={() => handleRemoveDoc(docLinks.indexOf(doc))}
                               className="px-2.5 py-1 text-xs bg-red-100 text-red-700 rounded-md hover:bg-red-200">Remove</button>
                           </div>
                         </div>
@@ -550,15 +594,43 @@ export default function EmployeeDetailPage() {
 
             {/* ── Performance ── */}
             {activeTab === 6 && (
-              <div className="space-y-6">
+              <div className="space-y-5">
                 {loadingPerf ? (
                   <div className="py-12 text-center text-gray-400">Loading performance data...</div>
                 ) : (
                   <>
-                    {/* Performance Reviews section */}
-                    <div>
-                      <div className="flex items-center justify-between mb-4">
-                        <h3 className="text-sm font-semibold text-gray-700">Performance Reviews</h3>
+                    {/* KPI row */}
+                    {(() => {
+                      const avgRating = reviews.length
+                        ? (reviews.reduce((s, r) => s + (Number(r.rating) || 0), 0) / reviews.filter(r => r.rating).length || 0).toFixed(1)
+                        : "—";
+                      const avgGoals = reviews.filter(r => r.goals_completion_pct != null).length
+                        ? Math.round(reviews.filter(r => r.goals_completion_pct != null).reduce((s, r) => s + Number(r.goals_completion_pct), 0) / reviews.filter(r => r.goals_completion_pct != null).length)
+                        : null;
+                      const pipCount = reviews.filter(r => r.pip_active).length;
+                      const completedCount = reviews.filter(r => r.status === "Completed").length;
+                      return (
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                          {[
+                            { label: "Total Reviews", value: reviews.length, color: "text-blue-700", bg: "bg-blue-50" },
+                            { label: "Avg Rating", value: avgRating !== "NaN" ? avgRating : "—", color: "text-amber-600", bg: "bg-amber-50", suffix: reviews.length ? "/5" : "" },
+                            { label: "Goals Completion", value: avgGoals != null ? `${avgGoals}%` : "—", color: "text-emerald-600", bg: "bg-emerald-50" },
+                            { label: "PIP Active", value: pipCount, color: pipCount > 0 ? "text-red-600" : "text-gray-500", bg: pipCount > 0 ? "bg-red-50" : "bg-gray-50" },
+                          ].map((k) => (
+                            <div key={k.label} className={`${k.bg} rounded-xl border border-gray-200 p-4`}>
+                              <p className="text-xs text-gray-500 font-medium uppercase tracking-wide">{k.label}</p>
+                              <p className={`text-2xl font-bold mt-1 ${k.color}`}>{k.value}{k.suffix || ""}</p>
+                              {k.label === "Total Reviews" && <p className="text-xs text-gray-400 mt-0.5">{completedCount} completed</p>}
+                            </div>
+                          ))}
+                        </div>
+                      );
+                    })()}
+
+                    {/* Reviews section */}
+                    <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+                      <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
+                        <h3 className="text-sm font-semibold text-gray-800">Performance Reviews</h3>
                         <button onClick={() => setShowReviewModal(true)}
                           className="flex items-center gap-1.5 px-3 py-1.5 text-xs bg-blue-700 text-white rounded-lg hover:bg-blue-800 font-medium">
                           <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
@@ -567,19 +639,16 @@ export default function EmployeeDetailPage() {
                           Add Review
                         </button>
                       </div>
-
                       {reviews.length === 0 ? (
-                        <div className="border-2 border-dashed border-gray-200 rounded-xl py-10 text-center text-gray-400">
-                          <p className="text-sm">No performance reviews yet.</p>
-                        </div>
+                        <div className="py-10 text-center text-gray-400 text-sm">No performance reviews yet.</div>
                       ) : (
-                        <div className="space-y-3">
+                        <div className="divide-y divide-gray-100">
                           {reviews.map((rev) => (
-                            <div key={rev.id} className="bg-white border border-gray-200 rounded-xl p-4 shadow-sm">
-                              <div className="flex items-start justify-between gap-3 flex-wrap">
+                            <div key={rev.id} className="px-5 py-4">
+                              <div className="flex items-start justify-between gap-4 flex-wrap">
                                 <div className="flex-1 min-w-0">
-                                  <div className="flex items-center gap-2 flex-wrap mb-1">
-                                    <span className="text-sm font-semibold text-gray-800">{rev.cycle_name || "—"}</span>
+                                  <div className="flex items-center gap-2 flex-wrap mb-2">
+                                    <span className="text-sm font-semibold text-gray-800">{rev.cycle_name || "Unnamed Cycle"}</span>
                                     <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${STATUS_STYLE_REVIEW[rev.status] || "bg-gray-100 text-gray-600"}`}>
                                       {rev.status}
                                     </span>
@@ -587,18 +656,20 @@ export default function EmployeeDetailPage() {
                                       <span className="text-xs px-2 py-0.5 rounded-full bg-red-100 text-red-700 font-medium">PIP Active</span>
                                     )}
                                   </div>
-                                  <div className="flex items-center gap-3 mt-2">
+                                  {/* Rating */}
+                                  <div className="flex items-center gap-3 mb-3">
                                     <Stars rating={rev.rating} />
-                                    <span className="text-xs text-gray-500">{rev.rating ? `${rev.rating}/5` : "Not rated"}</span>
+                                    <span className="text-sm font-bold text-gray-700">{rev.rating ? `${rev.rating} / 5` : "Not rated"}</span>
                                   </div>
+                                  {/* Goals bar */}
                                   {rev.goals_completion_pct != null && (
-                                    <div className="mt-3">
-                                      <div className="flex justify-between text-xs text-gray-500 mb-1">
-                                        <span>Goals Completion</span>
-                                        <span className="font-medium">{rev.goals_completion_pct}%</span>
+                                    <div className="mb-2">
+                                      <div className="flex justify-between text-xs text-gray-500 mb-1.5">
+                                        <span className="font-medium">Goals Completion</span>
+                                        <span className="font-bold">{rev.goals_completion_pct}%</span>
                                       </div>
-                                      <div className="w-full bg-gray-100 rounded-full h-2">
-                                        <div className="h-2 rounded-full transition-all"
+                                      <div className="w-full bg-gray-100 rounded-full h-3">
+                                        <div className="h-3 rounded-full transition-all duration-500"
                                           style={{
                                             width: `${rev.goals_completion_pct}%`,
                                             backgroundColor: rev.goals_completion_pct >= 80 ? "#10b981" : rev.goals_completion_pct >= 50 ? "#3b82f6" : "#f59e0b",
@@ -606,11 +677,11 @@ export default function EmployeeDetailPage() {
                                       </div>
                                     </div>
                                   )}
-                                  {rev.notes && <p className="mt-2 text-xs text-gray-500 italic">"{rev.notes}"</p>}
+                                  {rev.notes && <p className="text-xs text-gray-500 italic mt-2 bg-gray-50 px-3 py-2 rounded-lg">"{rev.notes}"</p>}
                                 </div>
-                                <div className="text-right text-xs text-gray-400 flex-shrink-0">
-                                  {rev.next_review_date && <p>Next: {rev.next_review_date}</p>}
-                                  <p className="mt-1">{rev.created_at?.slice(0, 10) || ""}</p>
+                                <div className="text-right text-xs text-gray-400 flex-shrink-0 space-y-1">
+                                  <p className="font-medium text-gray-600 text-sm">{rev.created_at?.slice(0, 10) || ""}</p>
+                                  {rev.next_review_date && <p className="text-blue-600">Next: {rev.next_review_date}</p>}
                                 </div>
                               </div>
                             </div>
@@ -619,10 +690,10 @@ export default function EmployeeDetailPage() {
                       )}
                     </div>
 
-                    {/* Discipline Cases section */}
-                    <div>
-                      <div className="flex items-center justify-between mb-4">
-                        <h3 className="text-sm font-semibold text-gray-700">Discipline Cases</h3>
+                    {/* Discipline section */}
+                    <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+                      <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
+                        <h3 className="text-sm font-semibold text-gray-800">Discipline Cases</h3>
                         <button onClick={() => setShowDisciplineModal(true)}
                           className="flex items-center gap-1.5 px-3 py-1.5 text-xs bg-gray-700 text-white rounded-lg hover:bg-gray-800 font-medium">
                           <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
@@ -631,20 +702,17 @@ export default function EmployeeDetailPage() {
                           Add Case
                         </button>
                       </div>
-
                       {disciplines.length === 0 ? (
-                        <div className="border-2 border-dashed border-gray-200 rounded-xl py-10 text-center text-gray-400">
-                          <p className="text-sm">No discipline cases on record.</p>
-                        </div>
+                        <div className="py-10 text-center text-gray-400 text-sm">No discipline cases on record.</div>
                       ) : (
-                        <div className="space-y-3">
+                        <div className="divide-y divide-gray-100">
                           {disciplines.map((dc) => (
-                            <div key={dc.id} className="bg-white border border-gray-200 rounded-xl p-4 shadow-sm">
+                            <div key={dc.id} className="px-5 py-4">
                               <div className="flex items-start justify-between gap-3">
                                 <div className="flex-1 min-w-0">
                                   <div className="flex items-center gap-2 flex-wrap mb-1">
-                                    <span className="text-xs font-mono text-gray-500">{dc.case_code}</span>
-                                    <span className="text-sm font-medium text-gray-800">{dc.incident_type || "—"}</span>
+                                    <span className="text-xs font-mono bg-gray-100 text-gray-500 px-2 py-0.5 rounded">{dc.case_code}</span>
+                                    <span className="text-sm font-semibold text-gray-800">{dc.incident_type || "—"}</span>
                                     <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${SEVERITY_STYLE[dc.severity] || "bg-gray-100 text-gray-600"}`}>
                                       {dc.severity}
                                     </span>
@@ -652,14 +720,17 @@ export default function EmployeeDetailPage() {
                                       {dc.status}
                                     </span>
                                   </div>
-                                  {dc.description && <p className="text-xs text-gray-600 mt-1">{dc.description}</p>}
+                                  {dc.description && <p className="text-xs text-gray-600 mt-1.5 bg-gray-50 px-3 py-2 rounded-lg">{dc.description}</p>}
                                   {dc.action_taken && (
-                                    <p className="text-xs text-gray-500 mt-1">
-                                      <span className="font-medium">Action: </span>{dc.action_taken}
+                                    <p className="text-xs text-gray-500 mt-1.5">
+                                      <span className="font-semibold text-gray-600">Action taken: </span>{dc.action_taken}
                                     </p>
                                   )}
                                 </div>
-                                <span className="text-xs text-gray-400 flex-shrink-0">{dc.incident_date || dc.created_at?.slice(0, 10) || ""}</span>
+                                <span className="text-xs text-gray-400 flex-shrink-0 text-right">
+                                  {dc.incident_date && <p className="font-medium text-gray-500">{dc.incident_date}</p>}
+                                  <p>{dc.created_at?.slice(0, 10) || ""}</p>
+                                </span>
                               </div>
                             </div>
                           ))}
