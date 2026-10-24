@@ -24,6 +24,7 @@ import { X } from "lucide-react";
 import { getLocalStorage } from "@/lib/localStorage";
 import { getfmtDisplaydate } from "@/helper/getfmtDisplayDate";
 import { getFormatCategoryName } from "@/helper/getFormatCategoryName";
+import { useColumnResize } from "@/hooks/useColumnResize";
 
 export default function Page() {
   const router = useRouter();
@@ -36,6 +37,7 @@ export default function Page() {
   const [filteredData, setFilteredData] = useState([]);
   const [loading, setLoading] = useState(true);
   const [projectCode, setProjectCode] = useState("");
+  const { tableRef } = useColumnResize();
 
   useEffect(() => {
     const projectInfo = getLocalStorage("projectInfo") || {};
@@ -319,7 +321,7 @@ export default function Page() {
                 {/* TABLE */}
                 <div className="overflow-x-auto px-4 pt-4 pb-5">
                   <div className="rounded-[10px] border border-[#6b8f4e]">
-                    <table className="min-w-[480px] w-full border-collapse text-[13px]">
+                    <table ref={tableRef} className="min-w-[480px] w-full border-collapse text-[13px]">
                       <thead>
                         <tr className="bg-[#efd98d]">
                           <th className="border-r border-[#6b8f4e] px-4 py-2.5 text-left font-semibold text-[#1f1f1f] whitespace-nowrap">

@@ -6,6 +6,7 @@ import { toast } from "sonner";
 import { apiRequest } from "@/lib/apiClient";
 import { API_ENDPOINTS } from "@/config/api.config";
 import { getLocalStorage } from "@/lib/localStorage";
+import { useColumnResize } from "@/hooks/useColumnResize";
 
 const GRN_CATEGORIES = ["Purchases_Order", "Site_Transfer_Order", "Customer_Supply_Order"];
 
@@ -28,6 +29,7 @@ export default function BRRSelector({ onSelect }) {
   const [list, setList] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
+  const { tableRef } = useColumnResize();
 
   const projectCode = getLocalStorage("projectInfo")?.projectCode;
 
@@ -89,7 +91,7 @@ export default function BRRSelector({ onSelect }) {
         </div>
       ) : (
         <div className="border border-[#9e9e9e] overflow-x-auto">
-          <table className="border-collapse text-[12px] min-w-[900px] w-full">
+          <table ref={tableRef} className="border-collapse text-[12px] min-w-[900px] w-full">
             <thead>
               <tr>
                 <TH>BRR No.</TH>

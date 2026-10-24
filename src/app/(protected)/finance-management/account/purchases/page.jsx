@@ -16,6 +16,7 @@ import { apiRequest }        from "@/lib/apiClient";
 import { API_ENDPOINTS }     from "@/config/api.config";
 import { getLocalStorage }   from "@/lib/localStorage";
 import { getfmtDisplaydate } from "@/helper/getfmtDisplayDate";
+import { useColumnResize } from "@/hooks/useColumnResize";
 
 const fmtNum = (val) => {
   const n = Number(val);
@@ -24,6 +25,7 @@ const fmtNum = (val) => {
 };
 
 export default function Page() {
+  const { tableRef } = useColumnResize();
   const router = useRouter();
   const access = getPageAccess({ pageCode: "purchases", pageType: "LIST" });
 
@@ -167,7 +169,7 @@ export default function Page() {
         {/* Summary totals */}
         <div className="pt-1 overflow-x-auto">
           <div className="inline-block rounded-md overflow-hidden border border-gray-300">
-            <table className="text-[13px] border-separate border-spacing-0">
+            <table ref={tableRef} className="text-[13px] border-separate border-spacing-0">
               <tbody>
                 {[
                   ["Booked Amount", bookedAmt],

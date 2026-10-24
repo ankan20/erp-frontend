@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Users, X } from "lucide-react";
 import SearchableSelect from "@/components/common/SearchableSelect";
+import { useColumnResize } from "@/hooks/useColumnResize";
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -59,6 +60,7 @@ const DEFAULT_FIELDS = { startTime: "09:00", finishTime: "17:00", lunchHour: 1, 
 // ── Mass Entry / Mass Change Modal ────────────────────────────────────────────
 
 function MassModal({ open, onClose, mode, labourList, alreadyInTableIds, checkedRows, locationOptions, onSave }) {
+  const { tableRef } = useColumnResize();
   const [fields,   setFields]   = useState(DEFAULT_FIELDS);
   const [selected, setSelected] = useState([]);
 
@@ -231,7 +233,7 @@ function MassModal({ open, onClose, mode, labourList, alreadyInTableIds, checked
             </div>
           ) : (
             <div className="flex-1 overflow-y-auto border border-gray-200 rounded min-h-0">
-              <table className="min-w-full text-[12px] border-collapse">
+              <table ref={tableRef} className="min-w-full text-[12px] border-collapse">
                 <thead className="sticky top-0 z-10">
                   <tr className="bg-[#d9d9d9]">
                     <th className="w-[40px] border-b border-gray-300 px-2 py-1.5 text-center">
@@ -325,6 +327,7 @@ export default function DLRDetailsTable({
   );
 
   const checkedRows = useMemo(() => rows.filter((r) => r._checked), [rows]);
+  const { tableRef } = useColumnResize();
   const anyChecked  = checkedRows.length > 0;
 
   const setRows = (next) => onItemsChange?.(next);
@@ -391,7 +394,7 @@ export default function DLRDetailsTable({
 
         {/* Table */}
         <div className="overflow-auto max-h-[490px] border border-gray-300">
-          <table className="min-w-full text-[12px] border-collapse">
+          <table ref={tableRef} className="min-w-full text-[12px] border-collapse">
             <thead className="sticky top-0 z-10">
               <tr className="bg-[#d9d9d9] font-bold text-gray-800">
                 {!disabled && <th className={`${cellCls} w-[30px]`} />}

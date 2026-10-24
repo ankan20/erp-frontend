@@ -4,6 +4,7 @@ import { Input } from "@/components/ui/input";
 import ExpandableTextField from "@/components/common/ExpandableTextField";
 import SearchableSelect from "@/components/common/SearchableSelect";
 import { getInputClass } from "@/lib/formStyles";
+import { useColumnResize } from "@/hooks/useColumnResize";
 
 // HEADER
 const TH = ({ children, w = "auto", center = false }) => (
@@ -78,6 +79,7 @@ export default function GRNItemsTable({
   disabled,
   storeLocations = [],
 }) {
+  const { tableRef } = useColumnResize();
   if (!items?.length) {
     return (
       <div className="border rounded-sm p-4 text-center text-gray-400">
@@ -99,6 +101,7 @@ export default function GRNItemsTable({
         "
       >
         <table
+          ref={tableRef}
           className="
             border-collapse
             text-[12px]

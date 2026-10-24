@@ -17,6 +17,7 @@ import { apiRequest }     from "@/lib/apiClient";
 import { API_ENDPOINTS }  from "@/config/api.config";
 import { getLocalStorage } from "@/lib/localStorage";
 import { formatAmount }   from "@/helper/numberFormatter";
+import { useColumnResize } from "@/hooks/useColumnResize";
 
 const PC_LEDGER = API_ENDPOINTS.FINANCE.PETTY_CASH.LEDGER;
 const PAGE_SIZE = 20;
@@ -234,6 +235,7 @@ function StatusBadge({ status }) {
 
 // ─── Under-process section ────────────────────────────────────────────────────
 function PendingEntriesTable({ entries, account, projectCode }) {
+  const { tableRef } = useColumnResize();
   const [dlBusy, setDlBusy] = useState(false);
   if (!entries?.length) return null;
   const totalPending = entries.reduce((s, e) => s + Number(e.debit || 0), 0);
@@ -267,7 +269,7 @@ function PendingEntriesTable({ entries, account, projectCode }) {
         </div>
       </div>
       <div className="overflow-x-auto">
-        <table className="w-full border-collapse text-[12px] min-w-[600px]">
+        <table ref={tableRef} className="w-full border-collapse text-[12px] min-w-[600px]">
           <thead>
             <tr className="bg-[#fef3c7]">
               <th className="border border-[#f0d88a] px-2 py-1.5 text-left w-[100px] text-amber-900">Date</th>
@@ -302,12 +304,13 @@ function PendingEntriesTable({ entries, account, projectCode }) {
 
 // ─── Approved ledger table ────────────────────────────────────────────────────
 function LedgerTable({ entries }) {
+  const { tableRef } = useColumnResize();
   if (!entries?.length) {
     return <div className="text-center py-8 text-sm text-gray-400">No approved entries found.</div>;
   }
   return (
     <div className="overflow-x-auto border border-[#b5c9d8] rounded-sm">
-      <table className="w-full border-collapse text-[12px] min-w-[700px]">
+      <table ref={tableRef} className="w-full border-collapse text-[12px] min-w-[700px]">
         <thead>
           <tr className="bg-[#144664] text-white">
             <th className="border border-[#1e5c7e] px-2 py-1.5 text-left w-[100px]">Date</th>

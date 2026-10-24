@@ -36,6 +36,7 @@ import { ChevronUp, ChevronDown, Trash2 } from "lucide-react";
 import ExpandableTextArea from "@/components/common/ExpandableTextArea";
 import TermsSelectionModal from "@/components/common/TermsSelectionModal";
 import { pointPrefix } from "@/helper/termsHelpers";
+import { useColumnResize } from "@/hooks/useColumnResize";
 
 /* ─── TermRow ─────────────────────────────────────────────── */
 function TermRow({ term, idx, total, disabled, onMove, onDelete, onUpdateGroup }) {
@@ -149,6 +150,7 @@ export default function TermsSection({
 }) {
   const [activeTab, setActiveTab] = useState("Special_Terms");
   const [openModal, setOpenModal] = useState(false);
+  const { tableRef } = useColumnResize();
 
   const generalTerms = terms.filter((t) => t.termType !== "Special_Terms");
   const specialTerms = terms.filter((t) => t.termType === "Special_Terms");
@@ -231,7 +233,7 @@ export default function TermsSection({
         {/* Table — overflow-x-auto for mobile */}
         <div className="overflow-x-auto">
           <div className="overflow-y-auto max-h-[620px]">
-            <table className="w-full border-collapse min-w-[420px]">
+            <table ref={tableRef} className="w-full border-collapse min-w-[420px]">
               <thead className="sticky top-0 z-10">
                 <tr className="bg-[#D3D3D3]">
                   <th className="border px-2 py-1 text-sm w-[70px]">Sl No.</th>

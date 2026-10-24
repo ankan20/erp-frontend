@@ -7,6 +7,7 @@ import { apiRequest } from "@/lib/apiClient";
 import { toast } from "sonner";
 import { Pencil } from "lucide-react";
 import SaveButton from "@/components/common/SaveButton";
+import { useColumnResize } from "@/hooks/useColumnResize";
 
 
 export default function GroupCategorySection({
@@ -31,6 +32,7 @@ export default function GroupCategorySection({
   });
 
   const [saving, setSaving] = useState(false);
+  const { tableRef } = useColumnResize();
 
   // 🔥 FETCH LIST
   const fetchList = async () => {
@@ -125,7 +127,7 @@ export default function GroupCategorySection({
 
       {/* TABLE */}
       <div className="border max-h-75 overflow-y-auto">
-        <table className="w-full text-sm">
+        <table ref={tableRef} className="w-full text-sm">
           <thead className="bg-green-200">
             <tr>
               <th className="border p-2 text-left">{title}</th>

@@ -30,6 +30,7 @@ import { formatAmount } from "@/helper/numberFormatter";
 import { apiRequest }      from "@/lib/apiClient";
 import { API_ENDPOINTS }   from "@/config/api.config";
 import { getLocalStorage } from "@/lib/localStorage";
+import { useColumnResize } from "@/hooks/useColumnResize";
 
 // ─── Schema ───────────────────────────────────────────────────────────────────
 
@@ -107,6 +108,7 @@ export default function PurchaseVoucherForm({
 
   const { fields: itemFields, append, remove } = useFieldArray({ control, name: "items" });
   const tableContainerRef = useRef(null);
+  const { tableRef } = useColumnResize();
 
   const disabled = isViewMode || !isEditing || isSubmitting || isSubmitted;
 
@@ -315,13 +317,13 @@ export default function PurchaseVoucherForm({
               <span className={ACC.sectionTitle}>BASIC</span>
             </div>
             <div ref={tableContainerRef} className="overflow-x-auto max-h-[600px] overflow-y-auto">
-              <table className="w-full min-w-[480px] border-collapse text-[12px]">
+              <table ref={tableRef} className="w-full min-w-[480px] border-collapse text-[12px]">
                 <thead className="sticky top-0 z-10">
                   <tr className={ACC.tableHead}>
                     <th className="border border-gray-300 px-2 py-1.5 text-center font-semibold w-[44px]">SL no</th>
                     <th className="border border-gray-300 px-2 py-1.5 text-left  font-semibold w-[160px]">CC Code</th>
                     <th className="border border-gray-300 px-2 py-1.5 text-left  font-semibold">CC Name &amp; Description</th>
-                    <th className="border border-gray-300 px-2 py-1.5 text-right font-semibold w-[110px]">Basic Amount</th>
+                    <th className="border border-gray-300 px-2 py-1.5 text-right font-semibold w-[110px] min-w-[120px]">Basic Amount</th>
                     {!disabled && <th className="border border-gray-300 px-1 py-1.5 w-[34px]" />}
                   </tr>
                 </thead>

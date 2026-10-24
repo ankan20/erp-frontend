@@ -5,6 +5,7 @@ import { ChevronDown, ChevronRight, ChevronsDownUp, ChevronsUpDown } from "lucid
 
 import { PL_COLUMNS } from "@/config/profitLoss.config";
 import { formatAmount } from "@/helper/numberFormatter";
+import { useColumnResize } from "@/hooks/useColumnResize";
 
 /**
  * ProfitLossTable — read-only rendering of the P&L statement.
@@ -76,6 +77,7 @@ function Percent({ value }) {
 }
 
 export default function ProfitLossTable({ rows = [] }) {
+  const { tableRef } = useColumnResize();
   const groupRefs = useMemo(
     () => rows.filter((r) => r.isGroup).map((r) => r.ref),
     [rows],
@@ -133,7 +135,7 @@ export default function ProfitLossTable({ rows = [] }) {
       </div>
 
       <div className="overflow-auto max-h-[calc(100vh-300px)]">
-        <table className="w-full min-w-[1180px] border-collapse text-[12px]">
+        <table ref={tableRef} className="w-full min-w-[1180px] border-collapse text-[12px]">
           <thead className="sticky top-0 z-30">
             <tr className="bg-[#144664] text-white">
               <th className={`${STICKY.ref} bg-[#144664] border border-[#2e5a72] px-2 py-2 text-left font-semibold`}>
@@ -241,7 +243,7 @@ function Legend({ swatch, label }) {
 function FragmentHead() {
   return (
     <>
-      <th className="border border-[#2e5a72] px-2 py-1 text-right font-medium w-[118px] min-w-[118px]">Amount</th>
+      <th className="border border-[#2e5a72] px-2 py-1 text-right font-medium w-[118px] min-w-[120px]">Amount</th>
       <th className="border border-[#2e5a72] px-1 py-1 text-right font-medium w-[50px] min-w-[50px]">%</th>
     </>
   );

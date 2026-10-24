@@ -4,6 +4,7 @@ import { useEffect, useMemo } from "react";
 
 import { Checkbox } from "@/components/ui/checkbox";
 import { amountToWordsIN } from "@/lib/amountToWords";
+import { useColumnResize } from "@/hooks/useColumnResize";
 
 export default function OrderSummaryTab({
   form,
@@ -14,6 +15,8 @@ export default function OrderSummaryTab({
 
     setValue,
   } = form;
+  const { tableRef: tableRef1 } = useColumnResize();
+  const { tableRef: tableRef2 } = useColumnResize();
 
   const items = watch("items") || [];
 
@@ -157,7 +160,7 @@ export default function OrderSummaryTab({
     overflow-y-auto
   "
         >
-          <table
+          <table ref={tableRef1}
             className="
             w-full
             border-collapse
@@ -175,9 +178,7 @@ export default function OrderSummaryTab({
 
                 <th className="border px-2 py-1 text-sm">CC Name</th>
 
-                <th className="border px-2 py-1 text-sm w-[180px]">
-                  Basic Amount
-                </th>
+                <th className="border px-2 py-1 text-sm w-[180px] min-w-[120px]">Basic Amount</th>
               </tr>
             </thead>
 
@@ -274,7 +275,7 @@ export default function OrderSummaryTab({
 
         {/* TABLE */}
 
-        <table
+        <table ref={tableRef2}
           className="
             w-full
             border-collapse
@@ -292,7 +293,7 @@ export default function OrderSummaryTab({
 
               <th className="border px-2 py-1 text-sm">CC Name</th>
 
-              <th className="border px-2 py-1 text-sm w-[180px]">GST Amount</th>
+              <th className="border px-2 py-1 text-sm w-[180px] min-w-[120px]">GST Amount</th>
             </tr>
           </thead>
 

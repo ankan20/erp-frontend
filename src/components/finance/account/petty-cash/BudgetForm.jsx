@@ -28,6 +28,7 @@ import { API_ENDPOINTS }   from "@/config/api.config";
 import { getInputClass }   from "@/lib/formStyles";
 import { getLocalStorage } from "@/lib/localStorage";
 import { formatAmount }    from "@/helper/numberFormatter";
+import { useColumnResize } from "@/hooks/useColumnResize";
 
 const FREQUENCY_OPTIONS = [
   { value: "Weekly",    label: "Weekly"    },
@@ -80,6 +81,7 @@ const defaultValues = {
 };
 
 export default function BudgetForm({ mode = "create", budgetId, canApprove = false, onUuid, onAfterSubmit }) {
+  const { tableRef } = useColumnResize();
   const isViewMode = mode === "view" || mode === "approver";
   const [isEditing,         setIsEditing]         = useState(mode === "create");
   const [initialData,       setInitialData]        = useState(null);
@@ -441,7 +443,7 @@ export default function BudgetForm({ mode = "create", budgetId, canApprove = fal
                 Budget Details
               </div>
               <div className="overflow-x-auto">
-                <table className="w-full border-collapse text-sm min-w-[560px]">
+                <table ref={tableRef} className="w-full border-collapse text-sm min-w-[560px]">
                   <thead className="bg-[#144664]">
                     <tr>
                       <th className="border border-[#2e5a72] px-2 py-1 text-white font-semibold text-center w-[44px]">SL no</th>

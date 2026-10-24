@@ -37,6 +37,7 @@ import { apiRequest }    from "@/lib/apiClient";
 import { API_ENDPOINTS } from "@/config/api.config";
 import { getLocalStorage } from "@/lib/localStorage";
 import { DEBIT_NOTE_OPTIONS, DN_CODE_BY_NAME } from "./debitNoteOptions";
+import { useColumnResize } from "@/hooks/useColumnResize";
 
 // ─── helpers ──────────────────────────────────────────────────────────────────
 const fmt = (val) => {
@@ -126,6 +127,7 @@ export default function DebitNoteForm({ mode = "create", noteId, onAfterSubmit, 
   } = useForm({ resolver: zodResolver(schema), defaultValues: DEFAULT_VALUES });
 
   const { fields, append, remove } = useFieldArray({ control, name: "items" });
+  const { tableRef } = useColumnResize();
 
   const disabled     = isViewMode || !isEditing || isSubmitting || isSubmitted;
   const watchedItems = watch("items") || [];
@@ -316,7 +318,7 @@ export default function DebitNoteForm({ mode = "create", noteId, onAfterSubmit, 
               <span className={ACC.sectionTitle}>BASIC</span>
             </div>
             <div className="overflow-x-auto">
-              <table className="w-full min-w-[640px] border-collapse text-[12px]">
+              <table ref={tableRef} className="w-full min-w-[640px] border-collapse text-[12px]">
                 <thead className="sticky top-0 z-10">
                   <tr className={ACC.tableHead}>
                     <th className="border border-gray-300 px-2 py-1.5 text-center font-semibold w-[46px]">SL</th>
@@ -425,7 +427,7 @@ export default function DebitNoteForm({ mode = "create", noteId, onAfterSubmit, 
                           </td>
 
                           {/* Total Amount — computed */}
-                          <td className="border border-gray-200 px-2 py-[3px] text-right align-middle bg-[#edf8ed] text-gray-700 font-medium">
+                          <td className="border border-gray-200 px-2 py-[3px] text-right align-middle bg-[#edf8ed] text-gray-700 font-medium whitespace-nowrap">
                             {formatAmount(rowTotal)}
                           </td>
 

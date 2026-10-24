@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef, useCallback } from "react";
+import { useColumnResize } from "@/hooks/useColumnResize";
 import { ArrowUp, ArrowDown, ArrowUpDown, ChevronDown, Search } from "lucide-react";
 import { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider } from "@/components/ui/tooltip";
 
@@ -71,6 +72,7 @@ export default function DataTable({
   const [filterSearch, setFilterSearch] = useState("");
 
   const dropdownRef = useRef(null);
+  const { tableRef } = useColumnResize();
 
   // Close dropdown on outside click
   useEffect(() => {
@@ -322,7 +324,7 @@ export default function DataTable({
     <div className="border border-[#9e9e9e] overflow-x-auto">
       <div className="max-h-[608px] overflow-y-auto">
 
-        <table className="w-full min-w-max table-fixed border-collapse text-sm">
+        <table ref={tableRef} className="w-full min-w-max table-fixed border-collapse text-sm">
 
           <thead className="bg-[#144664] sticky top-0 z-10">
             <tr>

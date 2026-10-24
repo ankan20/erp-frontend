@@ -25,6 +25,7 @@ import { getInputClass }   from "@/lib/formStyles";
 import { apiRequest }      from "@/lib/apiClient";
 import { API_ENDPOINTS }   from "@/config/api.config";
 import { getLocalStorage } from "@/lib/localStorage";
+import { useColumnResize } from "@/hooks/useColumnResize";
 
 const PAYMENT_MODES = ["Bank", "Cash"];
 
@@ -113,6 +114,8 @@ export default function PaymentForm({
   onAfterSubmit,
   onUuid,
 }) {
+  const { tableRef: tableRef1 } = useColumnResize();
+  const { tableRef: tableRef2 } = useColumnResize();
   const router      = useRouter();
   const isViewMode  = mode === "view" || mode === "approver";
   const projectCode = getLocalStorage("projectInfo")?.projectCode || "";
@@ -674,7 +677,7 @@ export default function PaymentForm({
               </div>
             ) : (
               <div className="overflow-x-auto">
-                <table className="w-full min-w-[700px] border-collapse text-[12px]">
+                <table ref={tableRef1} className="w-full min-w-[700px] border-collapse text-[12px]">
                   <thead>
                     <tr className={ACC.tableHead}>
                       <th className="border border-gray-300 px-2 py-1.5 text-center font-semibold w-[40px]">SL no</th>
@@ -767,7 +770,7 @@ export default function PaymentForm({
               <span className={ACC.sectionTitle}>GST</span>
             </div>
             <div className="overflow-x-auto">
-              <table className="w-full min-w-[760px] border-collapse text-[12px]">
+              <table ref={tableRef2} className="w-full min-w-[760px] border-collapse text-[12px]">
                 <thead>
                   <tr className={ACC.tableHead}>
                     <th className="border border-gray-300 px-2 py-1.5 text-center font-semibold w-[56px]">Select</th>

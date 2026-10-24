@@ -31,6 +31,7 @@ import { getInputClass } from "@/lib/formStyles";
 import { formatQtyDisplay } from "@/helper/numberFormatter";
 
 import ExpandableTextField from "@/components/common/ExpandableTextField";
+import { useColumnResize } from "@/hooks/useColumnResize";
 
 export default function OrderItemSelectionModal({
   open,
@@ -126,6 +127,8 @@ export default function OrderItemSelectionModal({
   }, [open, costHead, projectCode, existingItems, onClose]);
 
   // SEARCH FILTER
+
+  const { tableRef } = useColumnResize();
 
   const filteredItems = useMemo(() => {
     if (!search) {
@@ -373,6 +376,7 @@ export default function OrderItemSelectionModal({
           "
         >
           <table
+          ref={tableRef}
             className="
               w-full
               border-collapse

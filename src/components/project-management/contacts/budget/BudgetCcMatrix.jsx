@@ -9,6 +9,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import SearchableSelect from "@/components/common/SearchableSelect";
 import AmountInput      from "@/components/common/AmountInput";
 import { formatAmount, formatQtyDisplay } from "@/helper/numberFormatter";
+import { useColumnResize } from "@/hooks/useColumnResize";
 
 /**
  * Budget allocation matrix.
@@ -41,6 +42,7 @@ export default function BudgetCcMatrix({
   onAddColumn,
   onRemoveColumn,
 }) {
+  const { tableRef } = useColumnResize();
   const colCount = 7 + ccColumns.length;
 
   return (
@@ -76,15 +78,15 @@ export default function BudgetCcMatrix({
       </div>
 
       <div className="overflow-x-auto">
-        <table className="w-full table-fixed border-collapse text-[12px]" style={{ minWidth: 962 + ccColumns.length * 130 }}>
+        <table ref={tableRef} className="w-full table-fixed border-collapse text-[12px]" style={{ minWidth: 962 + ccColumns.length * 130 }}>
           <thead className="sticky top-0 z-30">
             <tr className="bg-[#144664] text-white">
               <th className={`${STICKY.sl} bg-[#144664] border border-[#2e5a72] px-2 py-1.5 text-center font-semibold`}>SL</th>
               <th className={`${STICKY.code} bg-[#144664] border border-[#2e5a72] px-2 py-1.5 text-left font-semibold`}>Item Code</th>
               <th className={`${STICKY.name} bg-[#144664] border border-[#2e5a72] px-2 py-1.5 text-left font-semibold`}>Item Name</th>
               <th className="border border-[#2e5a72] px-2 py-1.5 text-left font-semibold w-[70px] min-w-[70px]">Unit</th>
-              <th className="border border-[#2e5a72] px-2 py-1.5 text-right font-semibold w-[92px] min-w-[92px]">Order Qty</th>
-              <th className="border border-[#2e5a72] px-2 py-1.5 text-right font-semibold w-[96px] min-w-[96px]">Rate</th>
+              <th className="border border-[#2e5a72] px-2 py-1.5 text-right font-semibold w-[92px] min-w-[110px]">Order Qty</th>
+              <th className="border border-[#2e5a72] px-2 py-1.5 text-right font-semibold w-[96px] min-w-[110px]">Rate</th>
               <th className="border border-[#2e5a72] px-2 py-1.5 text-right font-semibold w-[112px] min-w-[112px]">Initial Amt</th>
 
               {ccColumns.map((c, ci) => (
@@ -156,13 +158,13 @@ export default function BudgetCcMatrix({
                       )}
                     </td>
                     <td className="border border-gray-200 px-2 py-[3px] text-gray-600">{item.unitItem || "—"}</td>
-                    <td className="border border-gray-200 px-2 py-[3px] text-right tabular-nums">
+                    <td className="border border-gray-200 px-2 py-[3px] text-right tabular-nums whitespace-nowrap">
                       {formatQtyDisplay(item.orderQty)}
                     </td>
-                    <td className="border border-gray-200 px-2 py-[3px] text-right tabular-nums">
+                    <td className="border border-gray-200 px-2 py-[3px] text-right tabular-nums whitespace-nowrap">
                       {formatAmount(item.rate)}
                     </td>
-                    <td className="border border-gray-200 px-2 py-[3px] text-right tabular-nums bg-[#f3f8f3]">
+                    <td className="border border-gray-200 px-2 py-[3px] text-right tabular-nums bg-[#f3f8f3] whitespace-nowrap">
                       {formatAmount(calc.initialAmount)}
                     </td>
 
@@ -183,10 +185,10 @@ export default function BudgetCcMatrix({
                       />
                     ))}
 
-                    <td className="border border-gray-200 px-2 py-[3px] text-right tabular-nums">
+                    <td className="border border-gray-200 px-2 py-[3px] text-right tabular-nums whitespace-nowrap">
                       {formatAmount(calc.itemCcCost)}
                     </td>
-                    <td className="border border-gray-200 px-2 py-[3px] text-right tabular-nums font-semibold">
+                    <td className="border border-gray-200 px-2 py-[3px] text-right tabular-nums font-semibold whitespace-nowrap">
                       {formatAmount(calc.totalCost)}
                     </td>
                   </tr>
@@ -202,7 +204,7 @@ export default function BudgetCcMatrix({
                   TOTAL
                 </td>
                 <td className="border border-gray-300" colSpan={3} />
-                <td className="border border-gray-300 px-2 py-1.5 text-right text-[12px] tabular-nums">
+                <td className="border border-gray-300 px-2 py-1.5 text-right text-[12px] tabular-nums whitespace-nowrap">
                   {formatAmount(totals.totalInitialCost)}
                 </td>
                 {ccColumns.map((c, ci) => (
@@ -213,10 +215,10 @@ export default function BudgetCcMatrix({
                     {formatAmount(totals.perColumn[ci] || 0)}
                   </td>
                 ))}
-                <td className="border border-gray-300 px-2 py-1.5 text-right text-[12px] tabular-nums">
+                <td className="border border-gray-300 px-2 py-1.5 text-right text-[12px] tabular-nums whitespace-nowrap">
                   {formatAmount(totals.totalCcCost)}
                 </td>
-                <td className="border border-gray-300 px-2 py-1.5 text-right text-[12px] tabular-nums font-bold">
+                <td className="border border-gray-300 px-2 py-1.5 text-right text-[12px] tabular-nums font-bold whitespace-nowrap">
                   {formatAmount(totals.grandTotal)}
                 </td>
               </tr>
@@ -317,6 +319,7 @@ function CcCell({ control, setValue, itemIndex, colIndex, orderQty, value, entri
 // ─── CcEntriesModal ───────────────────────────────────────────────────────────
 // Modal for viewing / editing the line-item entries of a CC allocation cell.
 function CcEntriesModal({ open, onClose, entries, disabled, ccCode, ccName, itemName, onApply }) {
+  const { tableRef } = useColumnResize();
   const [rows, setRows] = useState(() => entries.map((e) => ({ ...e })));
 
   const addRow = () =>
@@ -356,12 +359,12 @@ function CcEntriesModal({ open, onClose, entries, disabled, ccCode, ccName, item
         </DialogHeader>
 
         <div className="overflow-auto max-h-[50vh] px-4 pt-3 pb-2">
-          <table className="w-full border-collapse text-[12px]">
+          <table ref={tableRef} className="w-full border-collapse text-[12px]">
             <thead>
               <tr className="bg-[#d6e6f2]">
                 <th className="border border-[#b5c9d6] px-2 py-1.5 text-center font-semibold w-[46px]">Sl.</th>
                 <th className="border border-[#b5c9d6] px-2 py-1.5 text-left font-semibold">Description</th>
-                <th className="border border-[#b5c9d6] px-2 py-1.5 text-right font-semibold w-[130px]">Amount</th>
+                <th className="border border-[#b5c9d6] px-2 py-1.5 text-right font-semibold w-[130px] min-w-[120px]">Amount</th>
                 {!disabled && (
                   <th className="border border-[#b5c9d6] px-2 py-1.5 w-[38px]" />
                 )}
@@ -438,7 +441,7 @@ function CcEntriesModal({ open, onClose, entries, disabled, ccCode, ccName, item
                   >
                     Total
                   </td>
-                  <td className="border border-gray-300 px-2 py-1.5 text-right text-[12px] tabular-nums">
+                  <td className="border border-gray-300 px-2 py-1.5 text-right text-[12px] tabular-nums whitespace-nowrap">
                     {formatAmount(total)}
                   </td>
                   {!disabled && <td className="border border-gray-300" />}

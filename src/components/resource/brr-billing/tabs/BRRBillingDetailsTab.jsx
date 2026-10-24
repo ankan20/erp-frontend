@@ -5,6 +5,7 @@ import ExpandableTextField from "@/components/common/ExpandableTextField";
 import { getInputClass } from "@/lib/formStyles";
 import GRNItemSelectionModal from "../modals/GRNItemSelectionModal";
 import SRNItemSelectionModal from "../modals/SRNItemSelectionModal";
+import { useColumnResize } from "@/hooks/useColumnResize";
 
 const TH = ({ children, w = "auto", center = false }) => (
   <th
@@ -67,6 +68,8 @@ export default function BRRBillingDetailsTab({
   openItemModal,
   setOpenItemModal,
 }) {
+  const { tableRef: tableRef1 } = useColumnResize();
+  const { tableRef: tableRef2 } = useColumnResize();
   const items = form.watch("items") || [];
   const isGRN = billingType === "grn";
 
@@ -109,7 +112,7 @@ export default function BRRBillingDetailsTab({
         </div>
         <div className="overflow-x-auto overflow-y-auto max-h-[680px] w-full">
           {isGRN ? (
-            <table className="border-collapse text-[12px] min-w-[1400px] w-full">
+            <table ref={tableRef1} className="border-collapse text-[12px] min-w-[1400px] w-full">
               <thead>
                 <tr>
                   <TH w="50px"  center>Sl.</TH>
@@ -190,7 +193,7 @@ export default function BRRBillingDetailsTab({
               </tfoot>
             </table>
           ) : (
-            <table className="border-collapse text-[12px] min-w-[1300px] w-full">
+            <table ref={tableRef2} className="border-collapse text-[12px] min-w-[1300px] w-full">
               <thead>
                 <tr>
                   <TH w="50px"  center>Sl.</TH>

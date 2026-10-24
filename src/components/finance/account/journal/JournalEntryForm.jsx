@@ -24,6 +24,7 @@ import { apiRequest }      from "@/lib/apiClient";
 import { API_ENDPOINTS }   from "@/config/api.config";
 import { getLocalStorage } from "@/lib/localStorage";
 import { formatAmount }    from "@/helper/numberFormatter";
+import { useColumnResize } from "@/hooks/useColumnResize";
 
 // ─── Schema ───────────────────────────────────────────────────────────────────
 
@@ -75,6 +76,7 @@ export default function JournalEntryForm({ mode = "create", journalId, onAfterSu
     register, control, handleSubmit, reset, watch, setValue,
     formState: { isSubmitting },
   } = useForm({ resolver: zodResolver(schema), defaultValues: DEFAULT_VALUES });
+  const { tableRef } = useColumnResize();
 
   const watchedLines = watch("lines") || [];
   const disabled     = isViewMode || !isEditing || isSubmitting || isSubmitted;
@@ -287,7 +289,7 @@ export default function JournalEntryForm({ mode = "create", journalId, onAfterSu
             </div>
 
             <div className="overflow-x-auto">
-              <table className="w-full min-w-[800px] border-collapse text-[12px]">
+              <table ref={tableRef} className="w-full min-w-[800px] border-collapse text-[12px]">
                 <thead className="sticky top-0 z-10">
                   <tr className={ACC.tableHead}>
                     <th className="border border-gray-300 px-2 py-1.5 text-center font-semibold w-[36px]">Sl.</th>
@@ -445,13 +447,13 @@ export default function JournalEntryForm({ mode = "create", journalId, onAfterSu
                     <td colSpan={5} className="border border-gray-300 px-3 py-1.5 text-right text-[12px]">
                       TOTAL
                     </td>
-                    <td className={`border border-gray-300 px-2 py-1.5 text-right text-[12px] tabular-nums ${isUnbalanced ? "text-red-600" : ""}`}>
+                    <td className={`border border-gray-300 px-2 py-1.5 text-right text-[12px] tabular-nums ${isUnbalanced ? "text-red-600" : ""} whitespace-nowrap`}>
                       {formatAmount(totalDebit)}
                     </td>
-                    <td className={`border border-gray-300 px-2 py-1.5 text-right text-[12px] tabular-nums ${isUnbalanced ? "text-red-600" : ""}`}>
+                    <td className={`border border-gray-300 px-2 py-1.5 text-right text-[12px] tabular-nums ${isUnbalanced ? "text-red-600" : ""} whitespace-nowrap`}>
                       {formatAmount(totalCredit)}
                     </td>
-                    <td className="border border-gray-300 px-2 py-1.5 text-right text-[12px] tabular-nums text-gray-500">
+                    <td className="border border-gray-300 px-2 py-1.5 text-right text-[12px] tabular-nums text-gray-500 whitespace-nowrap">
                       {formatAmount(
                         Number(line0.openingBalance || 0) - Number(line0.debitAmount || 0) +
                         Number(line1.openingBalance || 0) + Number(line1.creditAmount || 0)

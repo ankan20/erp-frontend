@@ -5,6 +5,7 @@ import { Trash2 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import ExpandableTextField from "@/components/common/ExpandableTextField";
 import { getInputClass } from "@/lib/formStyles";
+import { useColumnResize } from "@/hooks/useColumnResize";
 
 /**
  * Common BOQ (Bill of Quantity) table for project-management modules.
@@ -46,6 +47,7 @@ export default function BOQTable({
   footerTotals = {},
 }) {
   const scrollRef = useRef(null);
+  const { tableRef } = useColumnResize();
 
   const handleAddRow = () => {
     append(defaultRow);
@@ -72,7 +74,7 @@ export default function BOQTable({
 
         {/* SCROLLABLE TABLE */}
         <div ref={scrollRef} className="overflow-auto max-h-[calc(100vh-260px)]">
-          <table className="w-full border-collapse text-sm table-fixed" style={{ minWidth: columns.reduce((s, c) => s + parseInt(c.width || "100"), 0) + (disabled ? 0 : 50) }}>
+          <table ref={tableRef} className="w-full border-collapse text-sm table-fixed" style={{ minWidth: columns.reduce((s, c) => s + parseInt(c.width || "100"), 0) + (disabled ? 0 : 50) }}>
 
             {/* HEADER */}
             <thead className="sticky top-0 z-20 bg-[#3b6ea5] text-white">
@@ -158,7 +160,7 @@ export default function BOQTable({
 
                     if (col.type === "computed") {
                       return (
-                        <td key={col.key} className={`border border-[#ccc] bg-[#edf8ed] px-2 text-[13px] font-medium ${getAlign(col.align)}`}>
+                        <td key={col.key} className={`border border-[#ccc] bg-[#edf8ed] px-2 text-[13px] font-medium whitespace-nowrap ${getAlign(col.align)}`}>
                           {fmt(val)}
                         </td>
                       );

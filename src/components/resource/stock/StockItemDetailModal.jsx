@@ -6,6 +6,7 @@ import { apiRequest } from "@/lib/apiClient";
 import { API_ENDPOINTS } from "@/config/api.config";
 import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
+import { useColumnResize } from "@/hooks/useColumnResize";
 
 function downloadExcel(rows, item) {
   import("xlsx").then((XLSX) => {
@@ -46,6 +47,7 @@ export default function StockItemDetailModal({ item, projectCode, onClose }) {
   const [filterTo, setFilterTo]     = useState("");
   const [typeFilter, setTypeFilter] = useState("ALL");
   const [ledgerPage, setLedgerPage] = useState(1);
+  const { tableRef } = useColumnResize();
 
   const doFetch = async ({ from = "", to = "", page = 1, isInitial = false } = {}) => {
     isInitial ? setLoading(true) : setLedgerLoading(true);
@@ -227,7 +229,7 @@ export default function StockItemDetailModal({ item, projectCode, onClose }) {
                       <Loader2 className="animate-spin w-5 h-5 text-[#4d8ea3]" />
                     </div>
                   )}
-                  <table className="w-full min-w-max border-collapse text-xs">
+                  <table ref={tableRef} className="w-full min-w-max border-collapse text-xs">
                     <thead className="bg-[#b7cfa5] sticky top-0 z-10">
                       <tr>
                         <th className="border border-[#9e9e9e] px-2 py-1.5 text-left font-semibold w-[40px]">#</th>

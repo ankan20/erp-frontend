@@ -8,10 +8,12 @@ import AmountInput from "@/components/common/AmountInput";
 import QtyInput from "@/components/common/QtyInput";
 import { formatAmount, formatQtyDisplay } from "@/helper/numberFormatter";
 import ServiceOrderItemSelectionModal from "../modals/ServiceOrderItemSelectionModal";
+import { useColumnResize } from "@/hooks/useColumnResize";
 
 export default function ServiceOrderItemsTab({ form, disabled, openItemModal, setOpenItemModal }) {
   const { control, watch, setValue, formState: { errors } } = form;
   const { fields, remove } = useFieldArray({ control, name: "items" });
+  const { tableRef } = useColumnResize();
   const items = watch("items") || [];
 
   const totalAmount = items.reduce((sum, item) => sum + Number(item?.amount || 0), 0);
@@ -42,19 +44,19 @@ export default function ServiceOrderItemsTab({ form, disabled, openItemModal, se
 
         {!!fields.length && (
           <div className="overflow-auto max-h-[680px]">
-            <table className="w-full border-collapse min-w-[900px]">
+            <table ref={tableRef} className="w-full border-collapse min-w-[1100px]">
               <thead className="sticky top-0 z-10">
                 <tr className="bg-[#D3D3D3]">
                   <th className="border px-2 py-1 text-sm min-w-[44px]">Sl No</th>
                   <th className="border px-2 py-1 text-sm min-w-[90px]">Item Code</th>
                   <th className="border px-2 py-1 text-sm min-w-[150px]">Item Name</th>
-                  <th className="border px-2 py-1 text-sm min-w-[70px]">Note</th>
+                  <th className="border px-2 py-1 text-sm min-w-[140px]">Note</th>
                   <th className="border px-2 py-1 text-sm min-w-[70px]">Unit</th>
                   <th className="border px-2 py-1 text-sm min-w-[90px]">Qty</th>
-                  <th className="border px-2 py-1 text-sm min-w-[100px]">Rate</th>
-                  <th className="border px-2 py-1 text-sm min-w-[90px]">Amount</th>
+                  <th className="border px-2 py-1 text-sm min-w-[110px]">Rate</th>
+                  <th className="border px-2 py-1 text-sm min-w-[120px]">Amount</th>
                   <th className="border px-2 py-1 text-sm min-w-[80px]">GST %</th>
-                  <th className="border px-2 py-1 text-sm min-w-[90px]">GST Amount</th>
+                  <th className="border px-2 py-1 text-sm min-w-[120px]">GST Amount</th>
                   <th className="border px-2 py-1 text-sm min-w-[90px]">Location</th>
                   {!disabled && <th className="border px-2 py-1 text-sm min-w-[50px]">Action</th>}
                 </tr>
@@ -70,7 +72,7 @@ export default function ServiceOrderItemsTab({ form, disabled, openItemModal, se
                       <ExpandableTextField value={items[index]?.itemName || ""} disabled title="Item Name" placeholder="Item Name" minHeight="min-h-[34px]" modalHeight="min-h-[180px]" />
                     </td>
                     <td className="border p-0 align-top">
-                      <div className="w-[70px] overflow-hidden">
+                      <div className="overflow-hidden">
                         <Controller control={control} name={`items.${index}.note`} render={({ field }) => (
                           <ExpandableTextField value={field.value} onChange={field.onChange} disabled={disabled} error={errors?.items?.[index]?.note} title="Note" placeholder="Note" minHeight="min-h-[34px]" modalHeight="min-h-[180px]" />
                         )} />
@@ -79,11 +81,11 @@ export default function ServiceOrderItemsTab({ form, disabled, openItemModal, se
                     <td className="border px-2 py-[2px] align-top overflow-hidden">
                       <ExpandableTextField value={items[index]?.itemUnit || ""} onChange={() => {}} disabled title="Unit" placeholder="" minHeight="min-h-[34px]" modalHeight="min-h-[120px]" />
                     </td>
-                    <td className="border px-2 py-[2px] text-sm bg-[#edf8ed] text-center">
+                    <td className="border px-2 py-[2px] text-sm bg-[#edf8ed] text-center whitespace-nowrap">
                       {formatQtyDisplay(items[index]?.qty) || ""}
                     </td>
                     {disabled ? (
-                      <td className="border px-2 py-[2px] text-sm bg-[#edf8ed] text-right">
+                      <td className="border px-2 py-[2px] text-sm bg-[#edf8ed] text-right whitespace-nowrap">
                         {formatAmount(items[index]?.rate) || ""}
                       </td>
                     ) : (
@@ -97,11 +99,11 @@ export default function ServiceOrderItemsTab({ form, disabled, openItemModal, se
                         )} />
                       </td>
                     )}
-                    <td className="border px-2 py-[2px] text-sm bg-[#edf8ed] text-right">
+                    <td className="border px-2 py-[2px] text-sm bg-[#edf8ed] text-right whitespace-nowrap">
                       {formatAmount(items[index]?.amount) || "0.00"}
                     </td>
                     {disabled ? (
-                      <td className="border px-2 py-[2px] text-sm bg-[#edf8ed] text-right">
+                      <td className="border px-2 py-[2px] text-sm bg-[#edf8ed] text-right whitespace-nowrap">
                         {formatAmount(items[index]?.gstPercent) || ""}
                       </td>
                     ) : (
@@ -115,11 +117,11 @@ export default function ServiceOrderItemsTab({ form, disabled, openItemModal, se
                         )} />
                       </td>
                     )}
-                    <td className="border px-2 py-[2px] text-sm bg-[#edf8ed] text-right">
+                    <td className="border px-2 py-[2px] text-sm bg-[#edf8ed] text-right whitespace-nowrap">
                       {formatAmount(items[index]?.gstAmount) || "0.00"}
                     </td>
                     <td className="border p-0 align-top">
-                      <div className="w-[90px] overflow-hidden">
+                      <div className="overflow-hidden">
                         <Controller control={control} name={`items.${index}.location`} render={({ field }) => (
                           <ExpandableTextField value={field.value} onChange={field.onChange} disabled={disabled} error={errors?.items?.[index]?.location} title="Location" placeholder="Location" minHeight="min-h-[34px]" modalHeight="min-h-[180px]" />
                         )} />

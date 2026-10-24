@@ -26,6 +26,7 @@ import { formatAmount } from "@/helper/numberFormatter";
 import { apiRequest }      from "@/lib/apiClient";
 import { API_ENDPOINTS }   from "@/config/api.config";
 import { getLocalStorage } from "@/lib/localStorage";
+import { useColumnResize } from "@/hooks/useColumnResize";
 
 // ── Schema ────────────────────────────────────────────────────────────────────
 
@@ -92,6 +93,8 @@ export default function SaleReceiptBillingForm({
   onAfterSubmit,
   onUuid,
 }) {
+  const { tableRef: tableRef1 } = useColumnResize();
+  const { tableRef: tableRef2 } = useColumnResize();
   const router      = useRouter();
   const isViewMode  = mode === "view" || mode === "approver";
   const projectCode = getLocalStorage("projectInfo")?.projectCode || "";
@@ -531,7 +534,7 @@ export default function SaleReceiptBillingForm({
               <span className={ACC.sectionTitle}>BASIC</span>
             </div>
             <div className="overflow-x-auto max-h-[500px] overflow-y-auto">
-              <table className="w-full min-w-[620px] border-collapse text-[12px]">
+              <table ref={tableRef1} className="w-full min-w-[620px] border-collapse text-[12px]">
                 <thead className="sticky top-0 z-10">
                   <tr className={ACC.tableHead}>
                     <th className="border border-gray-300 px-2 py-1.5 text-center font-semibold w-[40px]">SL</th>
@@ -606,7 +609,7 @@ export default function SaleReceiptBillingForm({
               <span className={ACC.sectionTitle}>GST</span>
             </div>
             <div className="overflow-x-auto">
-              <table className="w-full min-w-[680px] border-collapse text-[12px]">
+              <table ref={tableRef2} className="w-full min-w-[680px] border-collapse text-[12px]">
                 <thead>
                   <tr className={ACC.tableHead}>
                     <th className="border border-gray-300 px-2 py-1.5 text-center font-semibold w-[30px]" />

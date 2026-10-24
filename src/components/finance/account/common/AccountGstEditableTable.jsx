@@ -35,6 +35,7 @@ import { ACC }        from "./accountTheme";
 import GstInput       from "@/components/common/GstInput";
 import ExpandableTextCell from "@/components/project-management/common/ExpandableTextCell";
 import { formatAmount }   from "@/helper/numberFormatter";
+import { useColumnResize } from "@/hooks/useColumnResize";
 
 // Blank rates — the user supplies them. Deliberately NOT AccountGstTable's
 // DEFAULT_GST_LINES, whose 18 / 9 / 9 would be a hardcoded rate on this form.
@@ -53,6 +54,7 @@ export default function AccountGstEditableTable({
   fieldName       = "gstLines",
   showDescription = true,
 }) {
+  const { tableRef } = useColumnResize();
   const gstLines = watch(fieldName) || EMPTY_GST_LINES;
 
   const isIGST     = !!gstLines[0]?.isSelected;
@@ -125,7 +127,7 @@ export default function AccountGstEditableTable({
       </div>
 
       <div className="overflow-x-auto">
-        <table className="w-full min-w-[460px] border-collapse text-[12px]">
+        <table ref={tableRef} className="w-full min-w-[460px] border-collapse text-[12px]">
           <thead>
             <tr className={ACC.tableHead}>
               <th className="border border-gray-300 px-2 py-1.5 text-center font-semibold w-[72px]">Select</th>
@@ -135,7 +137,7 @@ export default function AccountGstEditableTable({
                 <th className="border border-gray-300 px-2 py-1.5 text-left font-semibold">Description</th>
               )}
               <th className="border border-gray-300 px-2 py-1.5 text-center font-semibold w-[86px]">%</th>
-              <th className="border border-gray-300 px-2 py-1.5 text-right font-semibold w-[115px]">GST Amount</th>
+              <th className="border border-gray-300 px-2 py-1.5 text-right font-semibold w-[115px] min-w-[120px]">GST Amount</th>
             </tr>
           </thead>
           <tbody>

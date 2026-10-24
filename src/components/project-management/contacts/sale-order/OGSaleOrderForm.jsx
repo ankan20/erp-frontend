@@ -28,6 +28,7 @@ import { apiRequest }      from "@/lib/apiClient";
 import { API_ENDPOINTS }   from "@/config/api.config";
 import { getLocalStorage } from "@/lib/localStorage";
 import { getInputClass }   from "@/lib/formStyles";
+import { useColumnResize } from "@/hooks/useColumnResize";
 
 // ── SCHEMA ────────────────────────────────────────────────────────────────────
 const rowSchema = z.object({
@@ -87,6 +88,7 @@ const mapRow = (it, type) => ({
 
 // ── COMPONENT ─────────────────────────────────────────────────────────────────
 export default function OGSaleOrderForm({ mode = "create", saleOrderId, onAfterSubmit, onUuid }) {
+  const { tableRef } = useColumnResize();
   const isViewMode  = mode === "view" || mode === "approver";
   const router      = useRouter();
   const projectCode = getLocalStorage("projectInfo")?.projectCode || "";
@@ -486,7 +488,7 @@ export default function OGSaleOrderForm({ mode = "create", saleOrderId, onAfterS
               Items
             </div>
             <div ref={scrollRef} className="overflow-x-auto overflow-y-auto lg:max-h-[calc(100vh-300px)]">
-              <table className="w-full border-collapse text-sm" style={{ minWidth: 1325 }}>
+              <table ref={tableRef} className="w-full border-collapse text-sm" style={{ minWidth: 1325 }}>
                 <thead className="sticky top-0 z-20">
                   <tr className="bg-[#3b6ea5] text-white">
                     <th className="border border-[#2a5080] w-[44px] text-center text-[13px] py-1.5">SL No</th>
@@ -502,8 +504,8 @@ export default function OGSaleOrderForm({ mode = "create", saleOrderId, onAfterS
                     </th>
                     <th className="border border-[#2a5080] w-[100px] text-right px-2 text-[13px] py-1.5">Basic Amt</th>
                     <th className="border border-[#2a5080] w-[90px] text-right px-2 text-[13px] py-1.5">GST %</th>
-                    <th className="border border-[#2a5080] w-[100px] text-right px-2 text-[13px] py-1.5">GST Amt</th>
-                    <th className="border border-[#2a5080] w-[110px] text-right px-2 text-[13px] py-1.5">Amount</th>
+                    <th className="border border-[#2a5080] w-[100px] text-right px-2 text-[13px] py-1.5 min-w-[120px]">GST Amt</th>
+                    <th className="border border-[#2a5080] w-[110px] text-right px-2 text-[13px] py-1.5 min-w-[120px]">Amount</th>
                     {!disabled && (
                       <th className="border border-[#2a5080] w-[40px] text-center text-[13px] py-1.5">Del</th>
                     )}
@@ -613,7 +615,7 @@ export default function OGSaleOrderForm({ mode = "create", saleOrderId, onAfterS
                         </td>
 
                         {/* BASIC AMOUNT — qty × rate */}
-                        <td className="border border-[#ccc] bg-[#edf8ed] px-2 text-[13px] font-medium text-right align-middle">
+                        <td className="border border-[#ccc] bg-[#edf8ed] px-2 text-[13px] font-medium text-right align-middle whitespace-nowrap">
                           {formatAmount(basic)}
                         </td>
 
@@ -629,12 +631,12 @@ export default function OGSaleOrderForm({ mode = "create", saleOrderId, onAfterS
                         </td>
 
                         {/* GST AMOUNT — basic × GST % */}
-                        <td className="border border-[#ccc] bg-[#edf8ed] px-2 text-[13px] font-medium text-right align-middle">
+                        <td className="border border-[#ccc] bg-[#edf8ed] px-2 text-[13px] font-medium text-right align-middle whitespace-nowrap">
                           {formatAmount(gstAmt)}
                         </td>
 
                         {/* AMOUNT — basic + GST */}
-                        <td className="border border-[#ccc] bg-[#edf8ed] px-2 text-[13px] font-medium text-right align-middle">
+                        <td className="border border-[#ccc] bg-[#edf8ed] px-2 text-[13px] font-medium text-right align-middle whitespace-nowrap">
                           {formatAmount(amount)}
                         </td>
 
@@ -663,11 +665,11 @@ export default function OGSaleOrderForm({ mode = "create", saleOrderId, onAfterS
                     <td className="border border-[#9ec5e0]" />
                     <td className="border border-[#9ec5e0]" />
                     <td className="border border-[#9ec5e0]" />
-                    <td className="border border-[#9ec5e0] px-2 text-right text-[13px]">TOTAL=</td>
-                    <td className="border border-[#9ec5e0] px-2 text-right text-[13px]">{formatAmount(basicAmount)}</td>
+                    <td className="border border-[#9ec5e0] px-2 text-right text-[13px] whitespace-nowrap">TOTAL=</td>
+                    <td className="border border-[#9ec5e0] px-2 text-right text-[13px] whitespace-nowrap">{formatAmount(basicAmount)}</td>
                     <td className="border border-[#9ec5e0]" />
-                    <td className="border border-[#9ec5e0] px-2 text-right text-[13px]">{formatAmount(gstAmount)}</td>
-                    <td className="border border-[#9ec5e0] px-2 text-right text-[13px]">{formatAmount(totalAmount)}</td>
+                    <td className="border border-[#9ec5e0] px-2 text-right text-[13px] whitespace-nowrap">{formatAmount(gstAmount)}</td>
+                    <td className="border border-[#9ec5e0] px-2 text-right text-[13px] whitespace-nowrap">{formatAmount(totalAmount)}</td>
                     {!disabled && <td className="border border-[#9ec5e0]" />}
                   </tr>
                 </tfoot>

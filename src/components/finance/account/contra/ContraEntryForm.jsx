@@ -23,6 +23,7 @@ import { apiRequest }      from "@/lib/apiClient";
 import { API_ENDPOINTS }   from "@/config/api.config";
 import { getLocalStorage } from "@/lib/localStorage";
 import { formatAmount }    from "@/helper/numberFormatter";
+import { useColumnResize } from "@/hooks/useColumnResize";
 
 // ─── Schema ───────────────────────────────────────────────────────────────────
 
@@ -66,6 +67,7 @@ export default function ContraEntryForm({ mode = "create", contraId, onAfterSubm
     register, control, handleSubmit, reset, watch, setValue,
     formState: { isSubmitting },
   } = useForm({ resolver: zodResolver(schema), defaultValues: DEFAULT_VALUES });
+  const { tableRef } = useColumnResize();
 
   const disabled = isViewMode || !isEditing || isSubmitting || isSubmitted;
 
@@ -285,7 +287,7 @@ export default function ContraEntryForm({ mode = "create", contraId, onAfterSubm
             </div>
 
             <div className="overflow-x-auto">
-              <table className="w-full min-w-[680px] border-collapse text-[12px]">
+              <table ref={tableRef} className="w-full min-w-[680px] border-collapse text-[12px]">
                 <thead className="sticky top-0 z-10">
                   <tr className={ACC.tableHead}>
                     <th className="border border-gray-300 px-2 py-1.5 text-center font-semibold w-[60px]">Dr./Cr.</th>
@@ -404,15 +406,15 @@ export default function ContraEntryForm({ mode = "create", contraId, onAfterSubm
                     </td>
                     <td className={`border border-gray-300 px-2 py-1.5 text-right text-[12px] tabular-nums ${
                       isUnbalanced ? "text-red-600" : ""
-                    }`}>
+                    } whitespace-nowrap`}>
                       {formatAmount(totalDebit)}
                     </td>
                     <td className={`border border-gray-300 px-2 py-1.5 text-right text-[12px] tabular-nums ${
                       isUnbalanced ? "text-red-600" : ""
-                    }`}>
+                    } whitespace-nowrap`}>
                       {formatAmount(totalCredit)}
                     </td>
-                    <td className="border border-gray-300 px-2 py-1.5 text-right text-[12px] tabular-nums text-gray-500">
+                    <td className="border border-gray-300 px-2 py-1.5 text-right text-[12px] tabular-nums text-gray-500 whitespace-nowrap">
                       {formatAmount(closing0 + closing1)}
                     </td>
                   </tr>

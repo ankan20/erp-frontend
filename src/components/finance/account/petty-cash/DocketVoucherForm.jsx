@@ -28,6 +28,7 @@ import { API_ENDPOINTS }   from "@/config/api.config";
 import { getInputClass }   from "@/lib/formStyles";
 import { getLocalStorage } from "@/lib/localStorage";
 import { formatAmount }    from "@/helper/numberFormatter";
+import { useColumnResize } from "@/hooks/useColumnResize";
 
 const PAYMENT_MODE_OPTIONS = [
   { value: "Cash",     label: "Cash"     },
@@ -110,6 +111,7 @@ export default function DocketVoucherForm({
   } = useForm({ resolver: zodResolver(docketSchema), defaultValues });
 
   const { fields, append, remove } = useFieldArray({ control, name: "items" });
+  const { tableRef } = useColumnResize();
 
   const disabled      = isViewMode || !isEditing || isSubmitting || isSubmitted;
   const modeOfPayment = watch("modeOfPayment");
@@ -485,13 +487,13 @@ export default function DocketVoucherForm({
                 Voucher Docket Details
               </div>
               <div className="overflow-x-auto">
-                <table className="w-full border-collapse text-sm min-w-[560px]">
+                <table ref={tableRef} className="w-full border-collapse text-sm min-w-[560px]">
                   <thead className="bg-[#144664]">
                     <tr>
                       <th className="border border-[#2e5a72] px-2 py-1 text-white font-semibold text-center w-[44px]">SL no</th>
                       <th className="border border-[#2e5a72] px-2 py-1 text-white font-semibold text-center w-[80px]">CC Code</th>
                       <th className="border border-[#2e5a72] px-2 py-1 text-white font-semibold text-left">CC Name &amp; Short Description for Expenses</th>
-                      <th className="border border-[#2e5a72] px-2 py-1 text-white font-semibold text-right w-[120px]">Amount</th>
+                      <th className="border border-[#2e5a72] px-2 py-1 text-white font-semibold text-right w-[120px] min-w-[120px]">Amount</th>
                       {isEditing && <th className="border border-[#2e5a72] px-2 py-1 w-[40px]" />}
                     </tr>
                   </thead>

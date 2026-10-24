@@ -28,6 +28,7 @@ import { apiRequest }      from "@/lib/apiClient";
 import { API_ENDPOINTS }   from "@/config/api.config";
 import { getLocalStorage } from "@/lib/localStorage";
 import { getInputClass }   from "@/lib/formStyles";
+import { useColumnResize } from "@/hooks/useColumnResize";
 
 const BILL_MODE = "sale_certified_bill";
 
@@ -82,6 +83,7 @@ const defaultValues = {
 
 // ── COMPONENT ─────────────────────────────────────────────────────────────────
 export default function SaleCertifiedBillForm({ mode = "create", billId, onAfterSubmit, onUuid }) {
+  const { tableRef } = useColumnResize();
   const isViewMode  = mode === "view" || mode === "approver";
   const router      = useRouter();
   const projectCode = getLocalStorage("projectInfo")?.projectCode || "";
@@ -554,7 +556,7 @@ export default function SaleCertifiedBillForm({ mode = "create", billId, onAfter
             </div>
 
             <div className="overflow-x-auto overflow-y-auto lg:max-h-[calc(100vh-260px)]">
-              <table className="w-full border-collapse text-sm" style={{ minWidth: 1260 }}>
+              <table ref={tableRef} className="w-full border-collapse text-sm" style={{ minWidth: 1260 }}>
 
                 <thead className="sticky top-0 z-20">
                   <tr className="bg-[#3b6ea5] text-white">
@@ -563,13 +565,13 @@ export default function SaleCertifiedBillForm({ mode = "create", billId, onAfter
                     <th className="border border-[#2a5080] w-[110px] text-left px-2 text-[13px] py-1.5">Item Code</th>
                     <th className="border border-[#2a5080] text-left px-2 text-[13px] py-1.5">Item Name &amp; Description</th>
                     <th className="border border-[#2a5080] w-[60px] text-center text-[13px] py-1.5">Unit</th>
-                    <th className="border border-[#2a5080] w-[85px] text-right px-2 text-[13px] py-1.5">Order Qty</th>
+                    <th className="border border-[#2a5080] w-[85px] text-right px-2 text-[13px] py-1.5 min-w-[110px]">Order Qty</th>
                     <th className="border border-[#2a5080] w-[90px] text-right px-2 text-[13px] py-1.5">Certified Qty</th>
-                    <th className="border border-[#2a5080] w-[90px] text-right px-2 text-[13px] py-1.5">Rate</th>
+                    <th className="border border-[#2a5080] w-[90px] text-right px-2 text-[13px] py-1.5 min-w-[110px]">Rate</th>
                     <th className="border border-[#2a5080] w-[100px] text-right px-2 text-[13px] py-1.5">Basic Amt</th>
                     <th className="border border-[#2a5080] w-[90px] text-right px-2 text-[13px] py-1.5">GST %</th>
-                    <th className="border border-[#2a5080] w-[100px] text-right px-2 text-[13px] py-1.5">GST Amt</th>
-                    <th className="border border-[#2a5080] w-[105px] text-right px-2 text-[13px] py-1.5">Amount</th>
+                    <th className="border border-[#2a5080] w-[100px] text-right px-2 text-[13px] py-1.5 min-w-[120px]">GST Amt</th>
+                    <th className="border border-[#2a5080] w-[105px] text-right px-2 text-[13px] py-1.5 min-w-[120px]">Amount</th>
                   </tr>
                 </thead>
 
@@ -660,7 +662,7 @@ export default function SaleCertifiedBillForm({ mode = "create", billId, onAfter
                         </td>
 
                         {/* ORDER QTY — read-only reference */}
-                        <td className="border border-[#ccc] bg-[#f0f4f8] px-2 text-[13px] text-right align-middle text-[#555]">
+                        <td className="border border-[#ccc] bg-[#f0f4f8] px-2 text-[13px] text-right align-middle text-[#555] whitespace-nowrap">
                           {orderQty > 0 ? formatQtyDisplay(orderQty) : "—"}
                           <input {...register(`items.${index}.orderQty`)} type="hidden" />
                         </td>
@@ -702,7 +704,7 @@ export default function SaleCertifiedBillForm({ mode = "create", billId, onAfter
                         </td>
 
                         {/* BASIC AMOUNT */}
-                        <td className="border border-[#ccc] bg-[#edf8ed] px-2 text-[13px] font-medium text-right align-middle">
+                        <td className="border border-[#ccc] bg-[#edf8ed] px-2 text-[13px] font-medium text-right align-middle whitespace-nowrap">
                           {formatAmount(amount)}
                         </td>
 
@@ -718,12 +720,12 @@ export default function SaleCertifiedBillForm({ mode = "create", billId, onAfter
                         </td>
 
                         {/* GST AMOUNT */}
-                        <td className="border border-[#ccc] bg-[#edf8ed] px-2 text-[13px] font-medium text-right align-middle">
+                        <td className="border border-[#ccc] bg-[#edf8ed] px-2 text-[13px] font-medium text-right align-middle whitespace-nowrap">
                           {formatAmount(gstAmt)}
                         </td>
 
                         {/* AMOUNT — basic + GST, i.e. the line total */}
-                        <td className="border border-[#ccc] bg-[#edf8ed] px-2 text-[13px] font-medium text-right align-middle">
+                        <td className="border border-[#ccc] bg-[#edf8ed] px-2 text-[13px] font-medium text-right align-middle whitespace-nowrap">
                           {formatAmount(amount + gstAmt)}
                         </td>
 
@@ -741,11 +743,11 @@ export default function SaleCertifiedBillForm({ mode = "create", billId, onAfter
                     <td className="border border-[#9ec5e0]" />
                     <td className="border border-[#9ec5e0]" />
                     <td className="border border-[#9ec5e0]" />
-                    <td className="border border-[#9ec5e0] px-2 text-right text-[13px]">TOTAL=</td>
-                    <td className="border border-[#9ec5e0] px-2 text-right text-[13px]">{formatAmount(thisBillAmount)}</td>
+                    <td className="border border-[#9ec5e0] px-2 text-right text-[13px] whitespace-nowrap">TOTAL=</td>
+                    <td className="border border-[#9ec5e0] px-2 text-right text-[13px] whitespace-nowrap">{formatAmount(thisBillAmount)}</td>
                     <td className="border border-[#9ec5e0]" />
-                    <td className="border border-[#9ec5e0] px-2 text-right text-[13px]">{formatAmount(gstAmount)}</td>
-                    <td className="border border-[#9ec5e0] px-2 text-right text-[13px]">{formatAmount(thisBillAmount + gstAmount)}</td>
+                    <td className="border border-[#9ec5e0] px-2 text-right text-[13px] whitespace-nowrap">{formatAmount(gstAmount)}</td>
+                    <td className="border border-[#9ec5e0] px-2 text-right text-[13px] whitespace-nowrap">{formatAmount(thisBillAmount + gstAmount)}</td>
                   </tr>
                 </tfoot>
 

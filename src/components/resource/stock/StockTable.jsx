@@ -2,6 +2,7 @@
 
 import React, { useState, useRef, useEffect, useCallback, useMemo } from "react";
 import { createPortal } from "react-dom";
+import { useColumnResize } from "@/hooks/useColumnResize";
 import {
   ArrowUp,
   ArrowDown,
@@ -35,6 +36,7 @@ const CHILD_COLS = [
 const NON_NUMERIC_CHILD_KEYS = CHILD_COLS.filter((c) => !c.numeric).map((c) => c.key);
 
 function ChildTable({ items: rawItems = [], onItemClick }) {
+  const { tableRef } = useColumnResize();
   const items = useMemo(() =>
     rawItems.map((item) => {
       const cleaned = { ...item };
@@ -204,17 +206,17 @@ function ChildTable({ items: rawItems = [], onItemClick }) {
   const ColHeader = ({ col }) => {
     const filterOn = isFilterActive(col.key);
     return (
-      <div className={`px-2 py-1.5 border-r border-[#9e9e9e] last:border-r-0 font-semibold ${col.cls}`}>
+      <th className={`border border-[#9e9e9e] px-2 py-1.5 font-semibold ${col.cls}`}>
         <div className="flex items-center justify-between gap-1">
           <span onClick={() => handleSort(col.key)} className="cursor-pointer flex-1 truncate">{col.label}</span>
           <div className="flex items-center gap-0.5 shrink-0">
-            <span onClick={() => handleSort(col.key)} className="cursor-pointer text-white/70 hover:text-white">
+            <span onClick={() => handleSort(col.key)} className="cursor-pointer text-[#2e5a72] hover:text-[#144664]">
               {sortConfig.key === col.key
                 ? sortConfig.direction === "asc" ? <ArrowUp size={11} /> : <ArrowDown size={11} />
-                : <ArrowUpDown size={11} className="opacity-40" />}
+                : <ArrowUpDown size={11} className="opacity-60" />}
             </span>
             <span onClick={(e) => openFilter(e, col.key)}
-              className={`cursor-pointer rounded px-0.5 hover:bg-black/10 transition-colors ${filterOn ? "text-yellow-300" : "text-white/70"}`}>
+              className={`cursor-pointer rounded px-0.5 hover:bg-black/10 transition-colors ${filterOn ? "text-blue-700" : "text-[#2e5a72]"}`}>
               {filterOn ? (
                 <span className="relative inline-flex items-center">
                   <ChevronDown size={11} />
@@ -226,45 +228,48 @@ function ChildTable({ items: rawItems = [], onItemClick }) {
             </span>
           </div>
         </div>
-      </div>
+      </th>
     );
   };
 
   return (
-    <div className="ml-6 border-l-4 border-[#7fc3d4] bg-[#f0f7fa]">
-      {/* child header */}
-      <div className="grid grid-cols-[60px_120px_1fr_110px_110px_100px_100px_110px] bg-[#c5dde8] border-b border-[#9e9e9e] text-xs">
-        <div className="px-2 py-1.5 border-r border-[#9e9e9e] text-center font-semibold">Sl. no</div>
-        {CHILD_COLS.map((col) => <ColHeader key={col.key} col={col} />)}
-      </div>
-
-      {/* child rows */}
-      {sorted.length === 0 ? (
-        <div className="px-4 py-3 text-xs text-gray-400">No items</div>
-      ) : sorted.map((item, ci) => (
-        <div
-          key={ci}
-          onClick={(e) => { e.stopPropagation(); onItemClick && onItemClick(item); }}
-          className={`grid grid-cols-[60px_120px_1fr_110px_110px_100px_100px_110px] border-b border-[#d4e8ef] cursor-pointer text-xs
-            ${ci % 2 === 0 ? "bg-[#f0f7fa]" : "bg-white"} hover:bg-[#dff0f7] transition-colors`}
-        >
-          <div className="px-2 py-1.5 border-r border-[#d4e8ef] text-center text-gray-500">{item.slNo}</div>
-          {CHILD_COLS.map((col) => (
-            <div key={col.key} className={`px-2 py-1.5 border-r border-[#d4e8ef] last:border-r-0 ${col.cellCls}`}
-              title={col.key === "itemName" ? item[col.key] : undefined}>
-              {col.key === "itemCode" ? (
-                <div className="flex items-center gap-1">
-                  <span>{item[col.key] ?? "-"}</span>
-                  {item.isAsset && (
-                    <span className="shrink-0 px-1 py-0.5 text-[10px] font-bold bg-amber-100 text-amber-700 border border-amber-300 rounded">FA</span>
-                  )}
-                </div>
-              ) : col.numeric ? fmtNum(item[col.key]) : (item[col.key] ?? "-")}
-            </div>
+    <div className="ml-6 border-l-4 border-[#7fc3d4] overflow-x-auto">
+      <table ref={tableRef} className="w-full min-w-max border-collapse text-xs bg-[#f0f7fa]">
+        <thead>
+          <tr className="bg-[#c5dde8]">
+            <th className="border border-[#9e9e9e] px-2 py-1.5 text-center font-semibold w-[60px] min-w-[60px]">Sl. no</th>
+            {CHILD_COLS.map((col) => <ColHeader key={col.key} col={col} />)}
+          </tr>
+        </thead>
+        <tbody>
+          {sorted.length === 0 ? (
+            <tr>
+              <td colSpan={CHILD_COLS.length + 1} className="px-4 py-3 text-xs text-gray-400">No items</td>
+            </tr>
+          ) : sorted.map((item, ci) => (
+            <tr
+              key={ci}
+              onClick={(e) => { e.stopPropagation(); onItemClick && onItemClick(item); }}
+              className={`cursor-pointer border-b border-[#d4e8ef] hover:bg-[#dff0f7] transition-colors ${ci % 2 === 0 ? "bg-[#f0f7fa]" : "bg-white"}`}
+            >
+              <td className="border border-[#d4e8ef] px-2 py-1.5 text-center text-gray-500">{item.slNo}</td>
+              {CHILD_COLS.map((col) => (
+                <td key={col.key} className={`border border-[#d4e8ef] px-2 py-1.5 ${col.cellCls}`}
+                  title={col.key === "itemName" ? item[col.key] : undefined}>
+                  {col.key === "itemCode" ? (
+                    <div className="flex items-center gap-1">
+                      <span>{item[col.key] ?? "-"}</span>
+                      {item.isAsset && (
+                        <span className="shrink-0 px-1 py-0.5 text-[10px] font-bold bg-amber-100 text-amber-700 border border-amber-300 rounded">FA</span>
+                      )}
+                    </div>
+                  ) : col.numeric ? fmtNum(item[col.key]) : (item[col.key] ?? "-")}
+                </td>
+              ))}
+            </tr>
           ))}
-        </div>
-      ))}
-
+        </tbody>
+      </table>
       {renderFilterDropdown()}
     </div>
   );
@@ -308,6 +313,8 @@ function SortFilterHeader({ colKey, label, sortConfig, onSort, filterConfig, onO
 }
 
 export default function StockTable({ data = [], onItemClick, pagination, onPageChange, tableLoading }) {
+  const { tableRef } = useColumnResize();
+
   // ─── SORT (on parent rows only)
   const [sortConfig, setSortConfig] = useState({ key: null, direction: null });
 
@@ -563,7 +570,7 @@ export default function StockTable({ data = [], onItemClick, pagination, onPageC
         </div>
       )}
       <div className="max-h-[608px] overflow-y-auto">
-        <table className="w-full min-w-max border-collapse text-sm">
+        <table ref={tableRef} className="w-full min-w-max border-collapse text-sm">
           <thead className="bg-[#144664] sticky top-0 z-10 text-white">
             <tr>
               {/* expand + sl_no */}

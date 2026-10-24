@@ -11,6 +11,7 @@ import { apiRequest } from "@/lib/apiClient";
 import { API_ENDPOINTS } from "@/config/api.config";
 import { formatQtyDisplay } from "@/helper/numberFormatter";
 import QtyInput from "@/components/common/QtyInput";
+import { useColumnResize } from "@/hooks/useColumnResize";
 
 export default function IndentItemsTable({
   fields,
@@ -40,6 +41,7 @@ export default function IndentItemsTable({
   const scrollRef = useRef(null);
 
   const [useLocations, setUseLocations] = useState([]);
+  const { tableRef } = useColumnResize();
 
   useEffect(() => {
     if (!projectCode) return;
@@ -86,17 +88,17 @@ export default function IndentItemsTable({
           ref={scrollRef}
           className="overflow-auto max-h-[calc(100vh-300px)]"
         >
-          <table className="w-full border-collapse text-sm min-w-[1000px]">
+          <table ref={tableRef} className="w-full border-collapse text-sm min-w-[1000px]">
             {/* HEADER */}
             <thead className="sticky top-0 z-20 bg-[#d9d9d9]">
               <tr>
-                <th className="border border-[#b5b5b5] px-2 py-1 text-sm min-w-[44px] text-center">Sl no</th>
-                <th className="border border-[#b5b5b5] px-2 py-1 text-sm min-w-[90px] text-left">Item Code</th>
+                <th className="border border-[#b5b5b5] px-2 py-1 text-sm min-w-[50px] text-center">Sl no</th>
+                <th className="border border-[#b5b5b5] px-2 py-1 text-sm min-w-[100px] text-left">Item Code</th>
                 <th className="border border-[#b5b5b5] px-2 py-1 text-sm min-w-[160px] text-left">Item Name</th>
-                <th className="border border-[#b5b5b5] px-2 py-1 text-sm min-w-[80px] text-left">Note</th>
+                <th className="border border-[#b5b5b5] px-2 py-1 text-sm min-w-[100px] text-left">Note</th>
                 <th className="border border-[#b5b5b5] px-2 py-1 text-sm min-w-[70px] text-center">Unit</th>
                 <th className="border border-[#b5b5b5] px-2 py-1 text-sm min-w-[90px] text-center">Qty</th>
-                <th className="border border-[#b5b5b5] px-2 py-1 text-sm min-w-[100px] text-center">Ammenmend Qty</th>
+                <th className="border border-[#b5b5b5] px-2 py-1 text-sm min-w-[140px] text-center">Ammenmend Qty</th>
                 <th className="border border-[#b5b5b5] px-2 py-1 text-sm min-w-[130px] text-left">Use To</th>
                 {isEditing && (
                   <th className="border border-[#b5b5b5] px-2 py-1 text-sm min-w-[50px] text-center">Action</th>

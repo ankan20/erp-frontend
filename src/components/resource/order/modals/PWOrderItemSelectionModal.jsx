@@ -18,12 +18,14 @@ import { API_ENDPOINTS } from "@/config/api.config";
 import { getLocalStorage } from "@/lib/localStorage";
 import { getInputClass } from "@/lib/formStyles";
 import ExpandableTextField from "@/components/common/ExpandableTextField";
+import { useColumnResize } from "@/hooks/useColumnResize";
 
 export default function PWOrderItemSelectionModal({ open, onClose, form }) {
   const [loading, setLoading] = useState(false);
   const [search, setSearch] = useState("");
   const [items, setItems] = useState([]);
   const [tempRows, setTempRows] = useState([]);
+  const { tableRef } = useColumnResize();
 
   const projectInfo = getLocalStorage("projectInfo");
   const projectCode = projectInfo?.projectCode;
@@ -233,7 +235,7 @@ export default function PWOrderItemSelectionModal({ open, onClose, form }) {
 
         {/* TABLE */}
         <div className="overflow-auto max-h-[65vh]">
-          <table className="w-full border-collapse">
+          <table ref={tableRef} className="w-full border-collapse">
             <thead className="sticky top-0 z-10 bg-gray-100">
               <tr>
                 <th className="border p-2 min-w-[60px]">

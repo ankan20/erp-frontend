@@ -4,6 +4,7 @@ import { Controller } from "react-hook-form";
 import { Loader2 }    from "lucide-react";
 import { ACC }        from "./accountTheme";
 import ExpandableTextCell from "@/components/project-management/common/ExpandableTextCell";
+import { useColumnResize } from "@/hooks/useColumnResize";
 
 const fmt = (val) => {
   const n = Number(val);
@@ -20,6 +21,7 @@ export default function AccountBasicTable({
   itemsLoading = false,
   emptyText    = "Select a certified bill to load items",
 }) {
+  const { tableRef } = useColumnResize();
   const items      = watch("items") || [];
   const basicTotal = items.reduce((s, it) => s + Number(it?.basicAmount || 0), 0);
 
@@ -32,7 +34,7 @@ export default function AccountBasicTable({
 
       {/* Table — scrollable after ~20 rows, header stays fixed */}
       <div className="overflow-x-auto max-h-[600px] overflow-y-auto">
-        <table className="w-full min-w-[420px] border-collapse text-[12px]">
+        <table ref={tableRef} className="w-full min-w-[420px] border-collapse text-[12px]">
           <thead className="sticky top-0 z-10">
             <tr className={ACC.tableHead}>
               <th className="border border-gray-300 px-2 py-1.5 text-center font-semibold w-[46px]">SL no</th>
@@ -40,7 +42,7 @@ export default function AccountBasicTable({
               {/* Merged Name + Description column */}
               <th className="border border-gray-300 px-2 py-1.5 text-left  font-semibold">Name &amp; Description</th>
               <th className="border border-gray-300 px-2 py-1.5 text-left  font-semibold w-[88px]">HSN/SAC</th>
-              <th className="border border-gray-300 px-2 py-1.5 text-right font-semibold w-[115px]">Basic Amount</th>
+              <th className="border border-gray-300 px-2 py-1.5 text-right font-semibold w-[115px] min-w-[120px]">Basic Amount</th>
             </tr>
           </thead>
           <tbody>

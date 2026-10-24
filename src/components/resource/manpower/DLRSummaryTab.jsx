@@ -2,6 +2,7 @@
 
 import { useMemo } from "react";
 import { Loader2 } from "lucide-react";
+import { useColumnResize } from "@/hooks/useColumnResize";
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -53,6 +54,8 @@ const HEADER_BG = "bg-[#d8e0d1]";
 // ── Component ─────────────────────────────────────────────────────────────────
 
 export default function DLRSummaryTab({ items = [], serverData = null, loading = false }) {
+  const { tableRef: tableRef1 } = useColumnResize();
+  const { tableRef: tableRef2 } = useColumnResize();
   const { categoryRows, locationRows } = useMemo(() => {
     if (serverData) {
       const catRows = (serverData.mandaysSummary || serverData.categoryRows || serverData.mandays || []).map((r, i) => ({
@@ -96,7 +99,7 @@ export default function DLRSummaryTab({ items = [], serverData = null, loading =
         <div className={`${HEADER_BG} border border-gray-300 px-3 py-1 mb-0`}>
           <span className="text-[13px] font-semibold text-[#1a3a5c]">Mandays Summary</span>
         </div>
-        <table className="min-w-full border-collapse border border-gray-300">
+        <table ref={tableRef1} className="min-w-full border-collapse border border-gray-300">
           <thead>
             <tr className={COL_HDR}>
               <th className={th}>Sl No</th>
@@ -142,7 +145,7 @@ export default function DLRSummaryTab({ items = [], serverData = null, loading =
         <div className={`${HEADER_BG} border border-gray-300 px-3 py-1 mb-0`}>
           <span className="text-[13px] font-semibold text-[#1a3a5c]">Area Wise Summary</span>
         </div>
-        <table className="min-w-full border-collapse border border-gray-300">
+        <table ref={tableRef2} className="min-w-full border-collapse border border-gray-300">
           <thead>
             <tr className={COL_HDR}>
               <th className={th}>Sl No</th>

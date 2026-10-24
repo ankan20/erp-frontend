@@ -18,6 +18,7 @@ import { apiRequest } from "@/lib/apiClient";
 import { API_ENDPOINTS } from "@/config/api.config";
 import SearchableSelect from "@/components/common/SearchableSelect";
 import {
+import { useColumnResize } from "@/hooks/useColumnResize";
   AlertDialog,
   AlertDialogAction,
   AlertDialogCancel,
@@ -279,6 +280,7 @@ export default function ApproverSection({ projectCode, projectData, refetchKey =
         const editUsersData = creatorRes?.data || {};
         Object.entries(editUsersData).forEach(([key, users]) => {
           const [moduleCode, permission] = key.split(".");
+  const { tableRef } = useColumnResize();
           if (permission !== "EDIT") return;
           const rowId = MODULE_ROW_MAP[moduleCode];
           if (!rowId) return;
@@ -498,6 +500,7 @@ export default function ApproverSection({ projectCode, projectData, refetchKey =
                 style={{ maxHeight: "calc(100vh - 340px)" }}
               >
                 <table
+          ref={tableRef}
                   className="w-full border-collapse text-[12px]"
                   style={{ minWidth: `${240 + 160 + maxLevels * 155 + 72}px` }}
                 >

@@ -13,6 +13,7 @@ import QtyInput from "@/components/common/QtyInput";
 import { formatAmount, formatQtyDisplay } from "@/helper/numberFormatter";
 import { apiRequest } from "@/lib/apiClient";
 import { API_ENDPOINTS } from "@/config/api.config";
+import { useColumnResize } from "@/hooks/useColumnResize";
 
 
 const defaultRow = {
@@ -35,6 +36,7 @@ export default function WithoutIndentItemsTable({ form, disabled, itemOptions = 
   const scrollRef = useRef(null);
 
   const [useLocations, setUseLocations] = useState([]);
+  const { tableRef } = useColumnResize();
 
   useEffect(() => {
     if (!projectCode) return;
@@ -88,7 +90,7 @@ export default function WithoutIndentItemsTable({ form, disabled, itemOptions = 
 
         {!!fields.length && (
           <div ref={scrollRef} className="overflow-auto max-h-[680px]">
-            <table className="w-full border-collapse min-w-[900px]">
+            <table ref={tableRef} className="w-full border-collapse min-w-[900px]">
               <thead className="sticky top-0 z-10 bg-[#D3D3D3]">
                 <tr>
                   <th className="border px-2 py-1 text-sm w-[44px]">Sl no</th>
@@ -96,10 +98,10 @@ export default function WithoutIndentItemsTable({ form, disabled, itemOptions = 
                   <th className="border px-2 py-1 text-sm min-w-[160px]">Item Name</th>
                   <th className="border px-2 py-1 text-sm min-w-[70px]">Unit</th>
                   <th className="border px-2 py-1 text-sm min-w-[90px]">Qty</th>
-                  <th className="border px-2 py-1 text-sm min-w-[100px]">Rate</th>
-                  <th className="border px-2 py-1 text-sm min-w-[90px]">Amount</th>
+                  <th className="border px-2 py-1 text-sm min-w-[110px]">Rate</th>
+                  <th className="border px-2 py-1 text-sm min-w-[120px]">Amount</th>
                   <th className="border px-2 py-1 text-sm min-w-[80px]">GST %</th>
-                  <th className="border px-2 py-1 text-sm min-w-[90px]">GST Amount</th>
+                  <th className="border px-2 py-1 text-sm min-w-[120px]">GST Amount</th>
                   <th className="border px-2 py-1 text-sm min-w-[80px]">Note</th>
                   <th className="border px-2 py-1 text-sm min-w-[130px]">Use To</th>
                   {!disabled && <th className="border px-2 py-1 text-sm w-[60px]">Action</th>}
@@ -153,7 +155,7 @@ export default function WithoutIndentItemsTable({ form, disabled, itemOptions = 
 
                       {/* QTY */}
                       {disabled ? (
-                        <td className="border px-2 py-[2px] text-sm bg-[#edf8ed] text-center">
+                        <td className="border px-2 py-[2px] text-sm bg-[#edf8ed] text-center whitespace-nowrap">
                           {formatQtyDisplay(items[index]?.qty) || ""}
                         </td>
                       ) : (
@@ -177,7 +179,7 @@ export default function WithoutIndentItemsTable({ form, disabled, itemOptions = 
 
                       {/* RATE */}
                       {disabled ? (
-                        <td className="border px-2 py-[2px] text-sm bg-[#edf8ed] text-right">
+                        <td className="border px-2 py-[2px] text-sm bg-[#edf8ed] text-right whitespace-nowrap">
                           {formatAmount(items[index]?.rate) || ""}
                         </td>
                       ) : (
@@ -200,13 +202,13 @@ export default function WithoutIndentItemsTable({ form, disabled, itemOptions = 
                       )}
 
                       {/* AMOUNT */}
-                      <td className="border px-2 py-[2px] text-sm bg-[#edf8ed] text-right">
+                      <td className="border px-2 py-[2px] text-sm bg-[#edf8ed] text-right whitespace-nowrap">
                         {formatAmount(items[index]?.amount) || "0.00"}
                       </td>
 
                       {/* GST % */}
                       {disabled ? (
-                        <td className="border px-2 py-[2px] text-sm bg-[#edf8ed] text-right">
+                        <td className="border px-2 py-[2px] text-sm bg-[#edf8ed] text-right whitespace-nowrap">
                           {formatAmount(items[index]?.gstPercent) || ""}
                         </td>
                       ) : (
@@ -229,7 +231,7 @@ export default function WithoutIndentItemsTable({ form, disabled, itemOptions = 
                       )}
 
                       {/* GST AMOUNT */}
-                      <td className="border px-2 py-[2px] text-sm bg-[#edf8ed] text-right">
+                      <td className="border px-2 py-[2px] text-sm bg-[#edf8ed] text-right whitespace-nowrap">
                         {formatAmount(items[index]?.gstAmount) || "0.00"}
                       </td>
 

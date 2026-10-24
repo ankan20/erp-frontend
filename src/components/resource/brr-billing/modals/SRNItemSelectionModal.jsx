@@ -12,6 +12,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import ExpandableTextField from "@/components/common/ExpandableTextField";
 import { apiRequest } from "@/lib/apiClient";
 import { API_ENDPOINTS } from "@/config/api.config";
+import { useColumnResize } from "@/hooks/useColumnResize";
 
 const inr = (n) =>
   n > 0
@@ -29,6 +30,7 @@ export default function SRNItemSelectionModal({ open, onClose, form, brrId, init
   const [loading, setLoading] = useState(false);
   const [search, setSearch]   = useState("");
   const [groups, setGroups]   = useState([]);
+  const { tableRef } = useColumnResize();
 
   const existingItems = form.watch("items") || [];
 
@@ -241,7 +243,7 @@ export default function SRNItemSelectionModal({ open, onClose, form, brrId, init
           )}
 
           {!loading && filteredGroups.length > 0 && (
-            <table className="w-full border-collapse text-[12px]">
+            <table ref={tableRef} className="w-full border-collapse text-[12px]">
               <thead className="sticky top-0 z-10 bg-[#d9d9d9]">
                 <tr>
                   <th className="border border-[#bbb] p-2 w-[44px]" />
@@ -250,10 +252,10 @@ export default function SRNItemSelectionModal({ open, onClose, form, brrId, init
                   <th className="border border-[#bbb] p-2 min-w-[190px] text-left font-semibold">Item Name</th>
                   <th className="border border-[#bbb] p-2 min-w-[65px]  text-center font-semibold">Unit</th>
                   <th className="border border-[#bbb] p-2 min-w-[85px]  text-center font-semibold">Rcvd Qty</th>
-                  <th className="border border-[#bbb] p-2 min-w-[75px]  text-center font-semibold">Rate</th>
-                  <th className="border border-[#bbb] p-2 min-w-[90px]  text-center font-semibold">Amount</th>
+                  <th className="border border-[#bbb] p-2 min-w-[110px]  text-center font-semibold">Rate</th>
+                  <th className="border border-[#bbb] p-2 min-w-[120px]  text-center font-semibold">Amount</th>
                   <th className="border border-[#bbb] p-2 min-w-[65px]  text-center font-semibold">GST %</th>
-                  <th className="border border-[#bbb] p-2 min-w-[90px]  text-center font-semibold">GST Amt</th>
+                  <th className="border border-[#bbb] p-2 min-w-[120px]  text-center font-semibold">GST Amt</th>
                   <th className="border border-[#bbb] p-2 min-w-[95px]  text-center font-semibold">Total Amt</th>
                   <th className="border border-[#bbb] p-2 min-w-[140px] text-left font-semibold">Use Location</th>
                   <th className="border border-[#bbb] p-2 min-w-[140px] text-left font-semibold">Store Location</th>

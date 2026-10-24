@@ -2,9 +2,12 @@
 
 import { Checkbox } from "@/components/ui/checkbox";
 import { amountToWordsIN } from "@/lib/amountToWords";
+import { useColumnResize } from "@/hooks/useColumnResize";
 
 export default function BRRBillingSummaryTab({ form }) {
   const { watch, setValue } = form;
+  const { tableRef: tableRef1 } = useColumnResize();
+  const { tableRef: tableRef2 } = useColumnResize();
 
   const ccSummary          = watch("ccSummary") || [];
   const gstType            = watch("gstType") || "";
@@ -32,15 +35,15 @@ export default function BRRBillingSummaryTab({ form }) {
           <h2 className="text-[15px] font-semibold">BASIC</h2>
         </div>
         <div className="max-h-[295px] overflow-y-auto">
-          <table className="w-full border-collapse">
+          <table ref={tableRef1} className="w-full border-collapse">
             <thead>
               <tr className="bg-[#D3D3D3]">
                 <th className="border px-2 py-1 text-sm w-[90px]">Sl no</th>
                 <th className="border px-2 py-1 text-sm w-[180px]">CC Code</th>
                 <th className="border px-2 py-1 text-sm">CC Name</th>
-                <th className="border px-2 py-1 text-sm w-[120px]">Basic Amount</th>
-                <th className="border px-2 py-1 text-sm w-[120px]">GST Amount</th>
-                <th className="border px-2 py-1 text-sm w-[120px]">Total Amount</th>
+                <th className="border px-2 py-1 text-sm w-[120px] min-w-[120px]">Basic Amount</th>
+                <th className="border px-2 py-1 text-sm w-[120px] min-w-[120px]">GST Amount</th>
+                <th className="border px-2 py-1 text-sm w-[120px] min-w-[130px]">Total Amount</th>
               </tr>
             </thead>
             <tbody>
@@ -80,13 +83,13 @@ export default function BRRBillingSummaryTab({ form }) {
         <div className="w-full bg-[#F5E4D7] border-b border-gray-300 px-4 py-1">
           <h2 className="text-[15px] font-semibold">GST</h2>
         </div>
-        <table className="w-full border-collapse">
+        <table ref={tableRef2} className="w-full border-collapse">
           <thead>
             <tr className="bg-[#D3D3D3]">
               <th className="border px-2 py-1 text-sm w-[120px]">Select</th>
               <th className="border px-2 py-1 text-sm w-[180px]">CC Code</th>
               <th className="border px-2 py-1 text-sm">CC Name</th>
-              <th className="border px-2 py-1 text-sm w-[180px]">GST Amount</th>
+              <th className="border px-2 py-1 text-sm w-[180px] min-w-[120px]">GST Amount</th>
             </tr>
           </thead>
           <tbody>

@@ -54,7 +54,7 @@ import { formatAmount, sanitizeDecimalInput } from "@/helper/numberFormatter";
  *   PATTERN 3 — always-readonly cell  (never add this component):
  *
  *     import { formatAmount } from "@/helper/numberFormatter";
- *     <td className="... bg-[#edf8ed] text-right">{formatAmount(item.amount)}</td>
+ *     <td className="... bg-[#edf8ed] text-right whitespace-nowrap">{formatAmount(item.amount)}</td>
  *
  * ─── IMPORTANT ───────────────────────────────────────────────────────────────
  *   ❌  Never pass formatAmount() output back into form state or an API payload.

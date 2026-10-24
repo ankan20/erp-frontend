@@ -18,6 +18,7 @@ import { apiRequest }      from "@/lib/apiClient";
 import { API_ENDPOINTS }   from "@/config/api.config";
 import { getLocalStorage } from "@/lib/localStorage";
 import { formatAmount }    from "@/helper/numberFormatter";
+import { useColumnResize } from "@/hooks/useColumnResize";
 
 const LABEL_W = "sm:w-[130px] sm:min-w-[130px]";
 const BASE    = API_ENDPOINTS.FINANCE.JOURNAL_VOUCHERING.BASE;
@@ -110,14 +111,14 @@ function CashPanel({ dockets, selectedItems, onToggleItem, onToggleCc }) {
         </div>
       )}
       <div className="overflow-x-auto">
-        <table className="w-full border-collapse text-sm min-w-[500px]">
+        <table ref={tableRef1} className="w-full border-collapse text-sm min-w-[500px]">
           <thead className="bg-[#144664]">
             <tr>
               <th className="border border-[#2e5a72] px-2 py-1 text-white font-semibold text-center w-[36px]" />
               <th className="border border-[#2e5a72] px-2 py-1 text-white font-semibold text-center w-[80px]">CC Code</th>
               <th className="border border-[#2e5a72] px-2 py-1 text-white font-semibold text-left">CC Name / Description</th>
               <th className="border border-[#2e5a72] px-2 py-1 text-white font-semibold text-center w-[120px]">Docket No</th>
-              <th className="border border-[#2e5a72] px-2 py-1 text-white font-semibold text-right w-[110px]">Amount</th>
+              <th className="border border-[#2e5a72] px-2 py-1 text-white font-semibold text-right w-[110px] min-w-[120px]">Amount</th>
             </tr>
           </thead>
           <tbody>
@@ -235,14 +236,14 @@ function BankPanel({ dockets, selectedDocketSid, onSelect }) {
 
   return (
     <div className="overflow-x-auto">
-      <table className="w-full border-collapse text-sm min-w-[500px]">
+      <table ref={tableRef2} className="w-full border-collapse text-sm min-w-[500px]">
         <thead className="bg-[#144664]">
           <tr>
             <th className="border border-[#2e5a72] px-2 py-1 text-white font-semibold text-center w-[36px]" />
             <th className="border border-[#2e5a72] px-2 py-1 text-white font-semibold text-center w-[130px]">Voucher No</th>
             <th className="border border-[#2e5a72] px-2 py-1 text-white font-semibold text-center w-[90px]">Date</th>
             <th className="border border-[#2e5a72] px-2 py-1 text-white font-semibold text-left">CC Names</th>
-            <th className="border border-[#2e5a72] px-2 py-1 text-white font-semibold text-right w-[120px]">Total Amount</th>
+            <th className="border border-[#2e5a72] px-2 py-1 text-white font-semibold text-right w-[120px] min-w-[130px]">Total Amount</th>
           </tr>
         </thead>
         <tbody>
@@ -318,14 +319,14 @@ function BankPanel({ dockets, selectedDocketSid, onSelect }) {
 function LinesTable({ lines = [], totalAmount }) {
   return (
     <div className="overflow-x-auto">
-      <table className="w-full border-collapse text-sm min-w-[460px]">
+      <table ref={tableRef3} className="w-full border-collapse text-sm min-w-[460px]">
         <thead className="bg-[#144664]">
           <tr>
             <th className="border border-[#2e5a72] px-2 py-1 text-white font-semibold text-center w-[44px]">SL no</th>
             <th className="border border-[#2e5a72] px-2 py-1 text-white font-semibold text-center w-[80px]">CC Code</th>
             <th className="border border-[#2e5a72] px-2 py-1 text-white font-semibold text-center w-[100px]">Docket No</th>
             <th className="border border-[#2e5a72] px-2 py-1 text-white font-semibold text-left">CC Name &amp; Short Description</th>
-            <th className="border border-[#2e5a72] px-2 py-1 text-white font-semibold text-right w-[120px]">Amount</th>
+            <th className="border border-[#2e5a72] px-2 py-1 text-white font-semibold text-right w-[120px] min-w-[120px]">Amount</th>
           </tr>
         </thead>
         <tbody>
@@ -373,6 +374,9 @@ function LinesTable({ lines = [], totalAmount }) {
 
 // ─── Main form component ──────────────────────────────────────────────────────
 export default function JournalVoucherForm({ mode = "create", voucherId, onUuid, onAfterSubmit }) {
+  const { tableRef: tableRef1 } = useColumnResize();
+  const { tableRef: tableRef2 } = useColumnResize();
+  const { tableRef: tableRef3 } = useColumnResize();
   const isViewMode  = mode === "view" || mode === "approver";
   const router      = useRouter();
   const projectCode = getLocalStorage("projectInfo")?.projectCode || "";

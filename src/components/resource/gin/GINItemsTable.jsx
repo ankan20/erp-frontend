@@ -4,6 +4,7 @@ import { Input } from "@/components/ui/input";
 import ExpandableTextField from "@/components/common/ExpandableTextField";
 import SearchableSelect from "@/components/common/SearchableSelect";
 import { getInputClass } from "@/lib/formStyles";
+import { useColumnResize } from "@/hooks/useColumnResize";
 
 // ── HEADER CELL ───────────────────────────────────────────────────────────────
 const TH = ({ children, w = "auto", center = false }) => (
@@ -56,6 +57,7 @@ const ReadCell = ({ value, disabled = true }) => (
 
 // ── COMPONENT ─────────────────────────────────────────────────────────────────
 export default function GINItemsTable({ items, onItemChange, disabled, storeLocations = [] }) {
+  const { tableRef } = useColumnResize();
   if (!items?.length) {
     return (
       <div className="border rounded-sm p-4 text-center text-[13px] text-gray-400 italic">
@@ -67,7 +69,7 @@ export default function GINItemsTable({ items, onItemChange, disabled, storeLoca
   return (
     <div className="border border-[#b7bcc5] overflow-hidden">
       <div className="overflow-x-auto overflow-y-auto max-h-[840px] w-full">
-        <table className="border-collapse text-[12px] min-w-[1100px] w-full">
+        <table ref={tableRef} className="border-collapse text-[12px] min-w-[1100px] w-full">
           <thead>
             <tr>
               <TH w="50px"  center>SL no</TH>

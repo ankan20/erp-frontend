@@ -13,6 +13,7 @@ import { usePageActions } from "@/components/common/PageActionButtons";
 import { getPageAccess }  from "@/helper/getPageAccess";
 import { apiRequest }     from "@/lib/apiClient";
 import { API_ENDPOINTS }  from "@/config/api.config";
+import { useColumnResize } from "@/hooks/useColumnResize";
 
 // ── helpers ──────────────────────────────────────────────────────────────────
 
@@ -69,6 +70,7 @@ function SummaryBox({ totalDebit, totalCredit, closingBalance, balanceType }) {
 }
 
 function LedgerTable({ entries, showVendor = false }) {
+  const { tableRef } = useColumnResize();
   if (!entries || entries.length === 0) {
     return (
       <div className="border border-[#9e9e9e] text-center py-8 text-sm text-gray-400">
@@ -79,7 +81,7 @@ function LedgerTable({ entries, showVendor = false }) {
 
   return (
     <div className="border border-[#9e9e9e] overflow-x-auto">
-      <table className="w-full min-w-max border-collapse text-[12px]">
+      <table ref={tableRef} className="w-full min-w-max border-collapse text-[12px]">
         <thead className="bg-[#b7cfa5] sticky top-0 z-10">
           <tr>
             <th className="border border-[#9e9e9e] px-2 py-1.5 font-semibold text-left whitespace-nowrap w-[45px]">Sl.</th>

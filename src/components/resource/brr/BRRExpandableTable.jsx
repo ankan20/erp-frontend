@@ -8,6 +8,7 @@ import {
 import {
   Tooltip, TooltipTrigger, TooltipContent, TooltipProvider,
 } from "@/components/ui/tooltip";
+import { useColumnResize } from "@/hooks/useColumnResize";
 
 function TruncatedCell({ value, maxW }) {
   const ref = useRef(null);
@@ -106,6 +107,7 @@ const CHILD_COLS = [
 
 // ─── Child billing table ────────────────────────────────────────────────────
 function ChildTable({ billings, onChildRowClick, search, orderCategory }) {
+  const { tableRef } = useColumnResize();
   const [sortConfig, setSortConfig]         = useState({ key: null, direction: null });
   const [filterConfig, setFilterConfig]     = useState({});
   const [activeFilterCol, setActiveFilterCol] = useState(null);
@@ -322,7 +324,7 @@ function ChildTable({ billings, onChildRowClick, search, orderCategory }) {
         <span className="text-[11px] text-gray-500">{billings.length} billing record{billings.length !== 1 ? "s" : ""}</span>
       </div>
 
-      <table className="w-full border-collapse text-xs">
+      <table ref={tableRef} className="w-full border-collapse text-xs">
         <thead>
           <tr className={theme.header}>
             <th className="border border-[#9e9e9e] px-2 py-1.5 font-semibold text-center w-[42px]">Sl.</th>
@@ -422,6 +424,7 @@ export default function BRRExpandableTable({
   const [filterSearch, setFilterSearch]       = useState("");
   const [expandedRows, setExpandedRows]       = useState(new Set());
   const dropdownRef = useRef(null);
+  const { tableRef } = useColumnResize();
 
   useEffect(() => {
     if (!activeFilterCol) return;
@@ -620,7 +623,7 @@ export default function BRRExpandableTable({
     <TooltipProvider>
     <div className="border border-[#9e9e9e] overflow-x-auto relative">
       <div className="max-h-[608px] overflow-y-auto">
-        <table className="w-full min-w-max border-collapse text-sm">
+        <table ref={tableRef} className="w-full min-w-max border-collapse text-sm">
           <thead className="bg-[#144664] sticky top-0 z-10 text-white">
             <tr>
               <th className="border border-[#9e9e9e] px-2 py-1 font-semibold whitespace-nowrap w-[65px] text-sm">Sl. no</th>

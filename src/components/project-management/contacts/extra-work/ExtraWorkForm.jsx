@@ -24,6 +24,7 @@ import { apiRequest }      from "@/lib/apiClient";
 import { API_ENDPOINTS }   from "@/config/api.config";
 import { getLocalStorage } from "@/lib/localStorage";
 import { getInputClass }   from "@/lib/formStyles";
+import { useColumnResize } from "@/hooks/useColumnResize";
 
 // ── SCHEMA ────────────────────────────────────────────────────────────────────
 const itemSchema = z.object({
@@ -515,9 +516,9 @@ export default function ExtraWorkForm({ mode = "create", extraWorkId, onAfterSub
                     <th className="border border-[#2a5080] w-[110px] text-left px-2 text-[12px] py-1.5">Item Code</th>
                     <th className="border border-[#2a5080] text-left px-2 text-[12px] py-1.5">Item Name &amp; Description</th>
                     <th className="border border-[#2a5080] w-[70px] text-center text-[12px] py-1.5">Unit</th>
-                    <th className="border border-[#2a5080] w-[90px] text-right px-2 text-[12px] py-1.5">Order Qty</th>
-                    <th className="border border-[#2a5080] w-[100px] text-right px-2 text-[12px] py-1.5">Rate</th>
-                    <th className="border border-[#2a5080] w-[110px] text-right px-2 text-[12px] py-1.5">Amount</th>
+                    <th className="border border-[#2a5080] w-[90px] text-right px-2 text-[12px] py-1.5 min-w-[110px]">Order Qty</th>
+                    <th className="border border-[#2a5080] w-[100px] text-right px-2 text-[12px] py-1.5 min-w-[110px]">Rate</th>
+                    <th className="border border-[#2a5080] w-[110px] text-right px-2 text-[12px] py-1.5 min-w-[120px]">Amount</th>
                     {!disabled && (
                       <th className="border border-[#2a5080] w-[40px] text-center text-[12px] py-1.5">Del</th>
                     )}
@@ -644,7 +645,7 @@ export default function ExtraWorkForm({ mode = "create", extraWorkId, onAfterSub
                         </td>
 
                         {/* AMOUNT (computed) */}
-                        <td className="border border-[#ccc] bg-[#edf8ed] px-2 text-[13px] font-medium text-right align-middle">
+                        <td className="border border-[#ccc] bg-[#edf8ed] px-2 text-[13px] font-medium text-right align-middle whitespace-nowrap">
                           {fmt(amount)}
                         </td>
 
@@ -675,8 +676,8 @@ export default function ExtraWorkForm({ mode = "create", extraWorkId, onAfterSub
                     <td className="border border-[#9ec5e0]" />
                     <td className="border border-[#9ec5e0]" />
                     <td className="border border-[#9ec5e0]" />
-                    <td className="border border-[#9ec5e0] px-2 text-right text-[13px]">TOTAL=</td>
-                    <td className="border border-[#9ec5e0] px-2 text-right text-[13px]">
+                    <td className="border border-[#9ec5e0] px-2 text-right text-[13px] whitespace-nowrap">TOTAL=</td>
+                    <td className="border border-[#9ec5e0] px-2 text-right text-[13px] whitespace-nowrap">
                       {fmt(basicAmount)}
                     </td>
                     {!disabled && <td className="border border-[#9ec5e0]" />}

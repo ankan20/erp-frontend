@@ -16,6 +16,7 @@ import { API_ENDPOINTS } from "@/config/api.config";
 import ExpandableTextArea from "@/components/common/ExpandableTextArea";
 import { POINT_STYLES } from "@/config/terms.config";
 import { fmtUnderscore, groupsMatch, pointPrefix } from "@/helper/termsHelpers";
+import { useColumnResize } from "@/hooks/useColumnResize";
 
 
 const fmt = fmtUnderscore;
@@ -283,6 +284,7 @@ export default function TermsSelectionModal({
   subModule     = "",
   disabled      = false,
 }) {
+  const { tableRef } = useColumnResize();
   const [loading,         setLoading]         = useState(false);
   const [search,          setSearch]          = useState("");
   const [allTerms,        setAllTerms]        = useState([]);
@@ -549,7 +551,7 @@ export default function TermsSelectionModal({
 
                     {/* Section table */}
                     {!collapsed && (
-                      <table className="w-full border-collapse text-[13px]">
+                      <table ref={tableRef} className="w-full border-collapse text-[13px]">
                         <thead className="bg-gray-100">
                           <tr>
                             <th className="border px-2 py-1 w-[52px]"></th>

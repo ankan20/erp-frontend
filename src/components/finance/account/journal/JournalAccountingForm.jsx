@@ -20,6 +20,7 @@ import { API_ENDPOINTS } from "@/config/api.config";
 import { getLocalStorage } from "@/lib/localStorage";
 import { formatAmount }    from "@/helper/numberFormatter";
 import { getfmtDisplaydate } from "@/helper/getfmtDisplayDate";
+import { useColumnResize } from "@/hooks/useColumnResize";
 
 const LABEL_W = "sm:w-[160px] sm:min-w-[160px]";
 
@@ -28,6 +29,7 @@ function today() {
 }
 
 export default function JournalAccountingForm({ mode = "create", accountingId, onUuid, onAfterSubmit }) {
+  const { tableRef } = useColumnResize();
   const router     = useRouter();
   const isViewMode = mode === "view" || mode === "approver";
 
@@ -335,14 +337,14 @@ export default function JournalAccountingForm({ mode = "create", accountingId, o
 
             {/* Desktop (≥ md): full table */}
             <div className="hidden md:block overflow-x-auto">
-              <table className="w-full border-collapse text-sm min-w-[520px]">
+              <table ref={tableRef} className="w-full border-collapse text-sm min-w-[520px]">
                 <thead className="bg-[#144664]">
                   <tr>
                     <th className="border border-[#2e5a72] px-2 py-1.5 text-white font-semibold text-center w-[44px]">SL no</th>
                     <th className="border border-[#2e5a72] px-2 py-1.5 text-white font-semibold text-center w-[80px]">CC Code</th>
                     <th className="border border-[#2e5a72] px-2 py-1.5 text-white font-semibold text-left">CC Name &amp; Short Description</th>
                     <th className="border border-[#2e5a72] px-2 py-1.5 text-white font-semibold text-right w-[120px]">Orig. Amount</th>
-                    <th className="border border-[#2e5a72] px-2 py-1.5 text-white font-semibold text-right w-[130px]">Amount</th>
+                    <th className="border border-[#2e5a72] px-2 py-1.5 text-white font-semibold text-right w-[130px] min-w-[120px]">Amount</th>
                   </tr>
                 </thead>
                 <tbody>

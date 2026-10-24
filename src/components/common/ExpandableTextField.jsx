@@ -101,7 +101,7 @@ export default function ExpandableTextField({
   ${disabled ? "text-[#6f7b6f]" : "text-black"}
             `}
           >
-            {showExpand ? `${currentValue.slice(0, 40)}...` : currentValue}
+            {currentValue}
           </p>
         ) : (
           <p

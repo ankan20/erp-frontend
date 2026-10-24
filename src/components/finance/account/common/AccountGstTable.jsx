@@ -21,6 +21,7 @@ import { useEffect }  from "react";
 import { Controller } from "react-hook-form";
 import { ACC }        from "./accountTheme";
 import ExpandableTextCell from "@/components/project-management/common/ExpandableTextCell";
+import { useColumnResize } from "@/hooks/useColumnResize";
 
 export const DEFAULT_GST_LINES = [
   { gstType: "IGST", ccCode: "IGST", ccName: "Output-IGST", description: "", percent: 18, gstAmount: 0, isSelected: true  },
@@ -102,6 +103,7 @@ export default function AccountGstTable({
   showDescription  = true,
   showPercent      = true,
 }) {
+  const { tableRef } = useColumnResize();
   const gstLines = watch(fieldName) || DEFAULT_GST_LINES;
 
   // ── Derived checked state ─────────────────────────────────────────────────
@@ -170,7 +172,7 @@ export default function AccountGstTable({
 
       {/* Table */}
       <div className="overflow-x-auto">
-        <table className="w-full min-w-[460px] border-collapse text-[12px]">
+        <table ref={tableRef} className="w-full min-w-[460px] border-collapse text-[12px]">
           <thead>
             <tr className={ACC.tableHead}>
               <th className="border border-gray-300 px-2 py-1.5 text-center font-semibold w-[72px]">Select</th>
@@ -178,7 +180,7 @@ export default function AccountGstTable({
               <th className="border border-gray-300 px-2 py-1.5 text-left  font-semibold w-[132px]">CC Name</th>
               {showDescription && <th className="border border-gray-300 px-2 py-1.5 text-left  font-semibold">Description</th>}
               {showPercent     && <th className="border border-gray-300 px-2 py-1.5 text-center font-semibold w-[52px]">%</th>}
-              <th className="border border-gray-300 px-2 py-1.5 text-right font-semibold w-[115px]">GST Amount</th>
+              <th className="border border-gray-300 px-2 py-1.5 text-right font-semibold w-[115px] min-w-[120px]">GST Amount</th>
             </tr>
           </thead>
           <tbody>

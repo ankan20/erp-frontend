@@ -15,6 +15,7 @@ import { getInputClass } from "@/lib/formStyles";
 import AmountInput from "@/components/common/AmountInput";
 import QtyInput from "@/components/common/QtyInput";
 import { formatAmount, formatQtyDisplay } from "@/helper/numberFormatter";
+import { useColumnResize } from "@/hooks/useColumnResize";
 
 export default function OrderItemsTab({
   form,
@@ -45,6 +46,7 @@ export default function OrderItemsTab({
 
     name: "items",
   });
+  const { tableRef } = useColumnResize();
 
   const items = watch("items") || [];
 
@@ -136,7 +138,7 @@ export default function OrderItemsTab({
               max-h-[680px]
             "
           >
-            <table className="w-full border-collapse min-w-[900px]">
+            <table ref={tableRef} className="w-full border-collapse min-w-[1100px]">
               <thead
                 className="
                   sticky
@@ -152,14 +154,14 @@ export default function OrderItemsTab({
                   <th className="border px-2 py-1 text-sm min-w-[44px]">Sl no</th>
                   <th className="border px-2 py-1 text-sm min-w-[90px]">Item Code</th>
                   <th className="border px-2 py-1 text-sm min-w-[150px]">Item Name</th>
-                  <th className="border px-2 py-1 text-sm min-w-[70px]">Note</th>
+                  <th className="border px-2 py-1 text-sm min-w-[140px]">Note</th>
                   <th className="border px-2 py-1 text-sm min-w-[70px]">Unit</th>
-                  <th className="border px-2 py-1 text-sm min-w-[90px]">Qty</th>
-                  <th className="border px-2 py-1 text-sm min-w-[100px]">Rate</th>
-                  <th className="border px-2 py-1 text-sm min-w-[90px]">Amount</th>
-                  <th className="border px-2 py-1 text-sm min-w-[80px]">GST %</th>
-                  <th className="border px-2 py-1 text-sm min-w-[90px]">GST Amount</th>
-                  <th className="border px-2 py-1 text-sm min-w-[90px]">Location</th>
+                  <th className="border px-2 py-1 text-sm min-w-[100px]">Qty</th>
+                  <th className="border px-2 py-1 text-sm min-w-[120px]">Rate</th>
+                  <th className="border px-2 py-1 text-sm min-w-[120px]">Amount</th>
+                  <th className="border px-2 py-1 text-sm min-w-[90px]">GST %</th>
+                  <th className="border px-2 py-1 text-sm min-w-[120px]">GST Amount</th>
+                  <th className="border px-2 py-1 text-sm min-w-[120px]">Location</th>
                   {!disabled && (
                     <th className="border px-2 py-1 text-sm min-w-[50px]">Action</th>
                   )}
@@ -210,7 +212,7 @@ export default function OrderItemsTab({
                       {/* NOTE */}
 
                       <td className="border p-0 align-top">
-                        <div className="w-[70px] overflow-hidden">
+                        <div className="overflow-hidden">
                           <Controller
                             control={control}
                             name={`items.${index}.note`}
@@ -245,13 +247,13 @@ export default function OrderItemsTab({
                       </td>
 
                       {/* QTY */}
-                      <td className="border px-2 py-[2px] text-sm bg-[#edf8ed] text-center">
+                      <td className="border px-2 py-[2px] text-sm bg-[#edf8ed] text-center whitespace-nowrap">
                         {formatQtyDisplay(items[index]?.qty) || ""}
                       </td>
 
                       {/* RATE */}
                       {disabled ? (
-                        <td className="border px-2 py-[2px] text-sm bg-[#edf8ed] text-right">
+                        <td className="border px-2 py-[2px] text-sm bg-[#edf8ed] text-right whitespace-nowrap">
                           {formatAmount(items[index]?.rate) || ""}
                         </td>
                       ) : (
@@ -281,12 +283,12 @@ export default function OrderItemsTab({
                       )}
 
                       {/* AMOUNT */}
-                      <td className="border px-2 py-[2px] text-sm bg-[#edf8ed] text-right">
+                      <td className="border px-2 py-[2px] text-sm bg-[#edf8ed] text-right whitespace-nowrap">
                         {formatAmount(items[index]?.amount) || "0.00"}
                       </td>
                       {/* GST % */}
                       {disabled ? (
-                        <td className="border px-2 py-[2px] text-sm bg-[#edf8ed] text-right">
+                        <td className="border px-2 py-[2px] text-sm bg-[#edf8ed] text-right whitespace-nowrap">
                           {formatAmount(items[index]?.gstPercent) || ""}
                         </td>
                       ) : (
@@ -316,14 +318,14 @@ export default function OrderItemsTab({
                       )}
 
                       {/* GST AMOUNT */}
-                      <td className="border px-2 py-[2px] text-sm bg-[#edf8ed] text-right">
+                      <td className="border px-2 py-[2px] text-sm bg-[#edf8ed] text-right whitespace-nowrap">
                         {formatAmount(items[index]?.gstAmount) || "0.00"}
                       </td>
 
                       {/* LOCATION */}
 
                       <td className="border p-0 align-top">
-                        <div className="w-[90px] overflow-hidden">
+                        <div className="overflow-hidden">
                           <Controller
                             control={control}
                             name={`items.${index}.location`}
