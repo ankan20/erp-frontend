@@ -23,6 +23,26 @@ const TYPE_COLOR = {
 
 const DEPT_COLORS = ["bg-blue-500","bg-indigo-500","bg-violet-500","bg-fuchsia-500","bg-pink-500","bg-rose-500","bg-orange-500","bg-amber-500","bg-teal-500","bg-cyan-500"];
 
+const RATING_BANDS = [
+  { label: "Outstanding",          range: "4.5 – 5.0", min: 4.5, max: 5.0, color: "bg-emerald-500", stars: 5 },
+  { label: "Exceeds Expectations", range: "4.0 – 4.4", min: 4.0, max: 4.49, color: "bg-blue-500",   stars: 4 },
+  { label: "Meets Expectations",   range: "3.0 – 3.9", min: 3.0, max: 3.99, color: "bg-amber-400",  stars: 3 },
+  { label: "Needs Improvement",    range: "2.0 – 2.9", min: 2.0, max: 2.99, color: "bg-orange-400", stars: 2 },
+  { label: "Unsatisfactory",       range: "< 2.0",     min: 0,   max: 1.99, color: "bg-red-400",    stars: 1 },
+];
+
+function Stars({ count, size = "w-3 h-3" }) {
+  return (
+    <span className="flex gap-0.5">
+      {[1,2,3,4,5].map((i) => (
+        <svg key={i} className={`${size} ${i <= count ? "text-amber-400" : "text-gray-200"}`} fill="currentColor" viewBox="0 0 20 20">
+          <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+        </svg>
+      ))}
+    </span>
+  );
+}
+
 function DistBar({ label, count, total, colorClass, badge }) {
   const pct = total ? Math.round((count / total) * 100) : 0;
   return (
@@ -46,6 +66,7 @@ export default function EmployeeMasterPage() {
   const [deptFilter, setDeptFilter] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
   const [departments, setDepartments] = useState([]);
+  const [reviews, setReviews] = useState([]);
 
   const fetchEmployees = useCallback(async () => {
     setLoading(true);
@@ -63,6 +84,8 @@ export default function EmployeeMasterPage() {
   useEffect(() => {
     apiRequest({ url: API_ENDPOINTS.HR.EMPLOYEE.DEPARTMENTS, method: "GET" })
       .then((r) => r?.data && setDepartments(r.data));
+    apiRequest({ url: API_ENDPOINTS.HR.PERFORMANCE.REVIEWS_LIST, method: "GET" })
+      .then((r) => r?.data && setReviews(r.data));
   }, []);
 
   const actions = getPageActions([
@@ -74,6 +97,18 @@ export default function EmployeeMasterPage() {
   const onNotice = employees.filter((e) => e.employee_status === "On Notice").length;
   const inactive = employees.filter((e) => e.employee_status === "Inactive").length;
   const fullTime = employees.filter((e) => e.employment_type === "Full-time").length;
+
+  // Rating distribution from performance reviews
+  const ratingBandCounts = RATING_BANDS.map((b) => ({
+    ...b,
+    count: reviews.filter((r) => {
+      const v = parseFloat(r.rating);
+      return !isNaN(v) && v >= b.min && v <= b.max;
+    }).length,
+  }));
+  const avgRating = reviews.length
+    ? (reviews.reduce((s, r) => s + (parseFloat(r.rating) || 0), 0) / reviews.length).toFixed(1)
+    : null;
 
   // Dept distribution (unfiltered for sidebar)
   const deptCounts = departments.map((d) => ({
@@ -220,6 +255,51 @@ export default function EmployeeMasterPage() {
 
           {/* Right Sidebar */}
           <div className="w-full xl:w-72 flex-shrink-0 space-y-4">
+
+            {/* Rating Distribution */}
+            <div className="bg-white rounded-xl border border-gray-200 p-4">
+              <div className="flex items-center justify-between mb-1">
+                <span className="text-sm font-semibold text-gray-700">⭐ Rating Distribution</span>
+                {avgRating && (
+                  <span className="flex items-center gap-1 text-xs font-bold text-amber-500">
+                    <svg className="w-3.5 h-3.5 text-amber-400" fill="currentColor" viewBox="0 0 20 20">
+                      <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                    </svg>
+                    {avgRating} avg
+                  </span>
+                )}
+              </div>
+              <p className="text-xs text-gray-400 mb-4">{reviews.length} performance review{reviews.length !== 1 ? "s" : ""}</p>
+              {reviews.length === 0 ? (
+                <p className="text-xs text-gray-400 text-center py-4">No reviews yet</p>
+              ) : (
+                <div className="space-y-3">
+                  {ratingBandCounts.map((b) => (
+                    <div key={b.label} className="space-y-1">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-1.5 min-w-0">
+                          <Stars count={b.stars} />
+                          <div className="min-w-0">
+                            <p className="text-xs font-medium text-gray-700 leading-tight truncate">{b.label}</p>
+                            <p className="text-[10px] text-gray-400">{b.range}</p>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-1.5 flex-shrink-0 ml-2">
+                          <span className="text-sm font-bold text-gray-700">{b.count}</span>
+                          <span className="text-xs text-gray-400 w-7 text-right">
+                            {reviews.length ? Math.round((b.count / reviews.length) * 100) : 0}%
+                          </span>
+                        </div>
+                      </div>
+                      <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
+                        <div className={`h-full rounded-full ${b.color} transition-all`}
+                          style={{ width: `${reviews.length ? (b.count / reviews.length) * 100 : 0}%` }} />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
 
             {/* Department Distribution */}
             <div className="bg-white rounded-xl border border-gray-200 p-4">
