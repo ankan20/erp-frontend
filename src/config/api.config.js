@@ -739,6 +739,17 @@ export const API_ENDPOINTS = {
       DISCIPLINE_UPDATE: "/hr/performance/discipline/",       // /:id PUT
       DISCIPLINE_STATS:  "/hr/performance/discipline/stats",  // GET
     },
+    OFFER_LETTER: {
+      GET_CANDIDATE_DATA: "/hr/recruitment/offer-letter/",   // /:candidateId GET
+    },
+    ONBOARDING: {
+      LIST:        "/hr/onboarding",              // GET ?search
+      STATS:       "/hr/onboarding/stats",        // GET
+      GET_BY_EMP:  "/hr/onboarding/",             // /:empId GET
+      INIT:        "/hr/onboarding/",             // /:empId/init POST
+      ADD_TASK:    "/hr/onboarding/",             // /:empId/tasks POST
+      UPDATE_TASK: "/hr/onboarding/task/",        // /:taskId PUT
+    },
   },
 };
 

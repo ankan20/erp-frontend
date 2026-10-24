@@ -756,6 +756,19 @@ export const routeMetaConfig = [
     basePath: "/finance-management/account/petty-cash/docket-voucher/[id]",
     breadcrumbs: ["Finance Management", "Accounts", "Petty Cash", "Voucher Docket", "Details"],
   },
+  // HR Management — Offer Letter & Onboarding
+  {
+    basePath: "/hr-management/employee/offer-letter",
+    breadcrumbs: ["HR Management", "Employee", "Offer Letter"],
+  },
+  {
+    basePath: "/hr-management/employee/onboarding",
+    breadcrumbs: ["HR Management", "Employee", "Onboarding"],
+  },
+  {
+    basePath: "/hr-management/employee/onboarding/[empId]",
+    breadcrumbs: ["HR Management", "Employee", "Onboarding", "Checklist"],
+  },
   // HR Management — Employee
   {
     basePath: "/hr-management/employee",
