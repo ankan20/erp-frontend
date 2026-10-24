@@ -61,13 +61,22 @@ function numberToWords(n) {
 export default function AppointmentLetterPage() {
   const [form, setForm] = useState(DEFAULT_FORM);
   const [employees, setEmployees] = useState([]);
+  const [candidates, setCandidates] = useState([]);
   const [selectedEmpId, setSelectedEmpId] = useState("");
+  const [selectedCandId, setSelectedCandId] = useState("");
+  const [selectedCand, setSelectedCand] = useState(null);
+  const [marking, setMarking] = useState(false);
+  const [mode, setMode] = useState("candidate"); // "candidate" | "employee"
   const letterRef = useRef(null);
 
   useEffect(() => {
-    apiRequest({ url: API_ENDPOINTS.HR.EMPLOYEE.LIST, method: "GET" }).then(
-      (r) => r?.data && setEmployees(r.data)
-    );
+    Promise.all([
+      apiRequest({ url: API_ENDPOINTS.HR.EMPLOYEE.LIST, method: "GET" }),
+      apiRequest({ url: API_ENDPOINTS.HR.RECRUITMENT.CANDIDATES_LIST, method: "GET", params: { stage: "Offer" } }),
+    ]).then(([er, cr]) => {
+      if (er?.data) setEmployees(er.data);
+      if (cr?.data) setCandidates(cr.data);
+    });
   }, []);
 
   const loadEmployee = async (id) => {
@@ -92,6 +101,38 @@ export default function AppointmentLetterPage() {
     }
   };
 
+  const loadCandidate = async (id) => {
+    setSelectedCandId(id);
+    if (!id) { setSelectedCand(null); return; }
+    const res = await apiRequest({ url: `${API_ENDPOINTS.HR.OFFER_LETTER.GET_CANDIDATE_DATA}${id}`, method: "GET" });
+    if (res?.data) {
+      const c = res.data;
+      setSelectedCand(c);
+      setForm((f) => ({
+        ...f,
+        employee_name: c.name || "",
+        position: c.job_title || "",
+        department: c.department || "",
+        work_location: c.location || "",
+      }));
+    }
+  };
+
+  const markGenerated = async () => {
+    if (!selectedCandId) return;
+    setMarking(true);
+    const res = await apiRequest({
+      url: `${API_ENDPOINTS.HR.RECRUITMENT.MARK_APPOINTMENT_LETTER}${selectedCandId}/mark-appointment-letter`,
+      method: "PUT",
+      data: {},
+    });
+    setMarking(false);
+    if (res?.data) {
+      toast.success("Appointment letter marked as generated");
+      setSelectedCand((p) => p ? { ...p, appointment_letter_generated: true } : p);
+    }
+  };
+
   const set = (k) => (e) => setForm((f) => ({ ...f, [k]: e.target.value }));
 
   const copyText = () => {
@@ -112,17 +153,35 @@ export default function AppointmentLetterPage() {
           {/* Left: Form */}
           <div className="w-full lg:w-96 flex-shrink-0 space-y-4">
             <div className="bg-white rounded-xl border border-gray-200 p-4 space-y-3">
-              <h3 className="text-sm font-semibold text-gray-700 border-b pb-2">Load Employee</h3>
-              <select
-                value={selectedEmpId}
-                onChange={(e) => loadEmployee(e.target.value)}
-                className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-              >
-                <option value="">Select Employee...</option>
-                {employees.map((emp) => (
-                  <option key={emp.id} value={emp.id}>{emp.emp_code} – {emp.full_name}</option>
+              {/* Mode toggle */}
+              <div className="flex rounded-lg border border-gray-200 overflow-hidden text-xs font-medium">
+                {[["candidate", "From Candidate (Pre-joining)"], ["employee", "From Employee (Post-joining)"]].map(([m, label]) => (
+                  <button key={m} onClick={() => setMode(m)} className={`flex-1 py-2 transition-colors ${mode === m ? "bg-blue-700 text-white" : "bg-white text-gray-600 hover:bg-gray-50"}`}>{label}</button>
                 ))}
-              </select>
+              </div>
+              {mode === "candidate" ? (
+                <>
+                  <select value={selectedCandId} onChange={(e) => loadCandidate(e.target.value)}
+                    className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    <option value="">Select Candidate (Offer stage)...</option>
+                    {candidates.map((c) => <option key={c.id} value={c.id}>{c.name} — {c.job_title}</option>)}
+                  </select>
+                  {selectedCand && (
+                    <div className={`flex items-center justify-between p-2 rounded-lg border text-xs ${selectedCand.appointment_letter_generated ? "bg-emerald-50 border-emerald-200 text-emerald-700" : "bg-orange-50 border-orange-200 text-orange-700"}`}>
+                      <span>{selectedCand.appointment_letter_generated ? "✅ Already marked generated" : "⚠️ Not yet marked as generated"}</span>
+                      {!selectedCand.appointment_letter_generated && (
+                        <button onClick={markGenerated} disabled={marking} className="ml-2 px-3 py-1 rounded bg-blue-700 text-white hover:bg-blue-800 disabled:opacity-60 text-xs">{marking ? "..." : "Mark Generated"}</button>
+                      )}
+                    </div>
+                  )}
+                </>
+              ) : (
+                <select value={selectedEmpId} onChange={(e) => loadEmployee(e.target.value)}
+                  className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                  <option value="">Select Employee...</option>
+                  {employees.map((emp) => <option key={emp.id} value={emp.id}>{emp.emp_code} – {emp.full_name}</option>)}
+                </select>
+              )}
             </div>
 
             {[

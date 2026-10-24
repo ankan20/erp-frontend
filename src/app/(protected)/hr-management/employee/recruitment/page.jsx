@@ -84,17 +84,22 @@ export default function RecruitmentPage() {
   const [candForm, setCandForm] = useState(EMPTY_CANDIDATE);
   const [selectedCand, setSelectedCand] = useState(null);
   const [updatingStage, setUpdatingStage] = useState(false);
+  const [interviews, setInterviews] = useState([]);
+  const [showIvModal, setShowIvModal] = useState(false);
+  const [ivForm, setIvForm] = useState({ candidate_id: "", scheduled_date: "", scheduled_time: "", round_name: "", mode: "Video Call", interviewer: "" });
 
   const fetchAll = useCallback(async () => {
     setLoading(true);
-    const [jr, cr, sr] = await Promise.all([
+    const [jr, cr, sr, ivr] = await Promise.all([
       apiRequest({ url: API_ENDPOINTS.HR.RECRUITMENT.JOBS_LIST, method: "GET", params: { search: jobSearch, status: jobStatus } }),
       apiRequest({ url: API_ENDPOINTS.HR.RECRUITMENT.CANDIDATES_LIST, method: "GET", params: { search: candSearch, stage: stageFilter } }),
       apiRequest({ url: API_ENDPOINTS.HR.RECRUITMENT.PIPELINE_STATS, method: "GET" }),
+      apiRequest({ url: API_ENDPOINTS.HR.RECRUITMENT.INTERVIEWS_LIST, method: "GET" }),
     ]);
     if (jr?.data) setJobs(jr.data);
     if (cr?.data) setCandidates(cr.data);
     if (sr?.data) setStats(sr.data);
+    if (ivr?.data) setInterviews(ivr.data);
     setLoading(false);
   }, [jobSearch, jobStatus, candSearch, stageFilter]);
 
@@ -110,15 +115,28 @@ export default function RecruitmentPage() {
     if (res?.data) { toast.success("Candidate added"); setShowCandModal(false); setCandForm(EMPTY_CANDIDATE); fetchAll(); }
   };
 
-  const updateCandStage = async (candId, stage) => {
+  const updateCandStage = async (candId, stage, cand) => {
+    // Client-side lock check
+    if (stage === "Joined") {
+      if (!cand.offer_letter_generated) { toast.error("Generate Offer Letter first before marking as Joined"); return; }
+      if (!cand.appointment_letter_generated) { toast.error("Generate Appointment Letter first before marking as Joined"); return; }
+    }
     setUpdatingStage(true);
-    const res = await apiRequest({ url: `${API_ENDPOINTS.HR.RECRUITMENT.CANDIDATES_UPDATE}${candId}`, method: "PUT", data: { stage } });
+    const r = await apiRequest({ url: `${API_ENDPOINTS.HR.RECRUITMENT.CANDIDATES_UPDATE}${candId}`, method: "PUT", data: { stage } });
     setUpdatingStage(false);
-    if (res?.data) {
-      toast.success(`Stage → ${stage}`);
+    if (r?.data) {
+      toast.success(`Stage → ${stage}${stage === "Joined" ? " 🎉 Onboarding auto-initiated!" : ""}`);
       setSelectedCand((p) => p ? { ...p, stage } : p);
       fetchAll();
+    } else if (r?.message) {
+      toast.error(r.message);
     }
+  };
+
+  const scheduleInterview = async () => {
+    if (!ivForm.candidate_id || !ivForm.scheduled_date) { toast.error("Select candidate and date"); return; }
+    const r = await apiRequest({ url: API_ENDPOINTS.HR.RECRUITMENT.INTERVIEWS_CREATE, method: "POST", data: { ...ivForm, candidate_id: Number(ivForm.candidate_id) } });
+    if (r?.data) { toast.success("Interview scheduled"); setShowIvModal(false); setIvForm({ candidate_id: "", scheduled_date: "", scheduled_time: "", round_name: "", mode: "Video Call", interviewer: "" }); fetchAll(); }
   };
 
   const pipeline = stats.pipeline || {};
@@ -380,13 +398,13 @@ export default function RecruitmentPage() {
 
             {/* ══ INTERVIEWS ══ */}
             {tab === "interviews" && (
-              <div className="space-y-3">
+              <div className="space-y-4">
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                   {[
-                    { label: "In Interview", value: pipeline.Interview ?? 0, color: "text-purple-700" },
-                    { label: "In Screening", value: pipeline.Screening ?? 0, color: "text-blue-700" },
-                    { label: "Offer Extended", value: pipeline.Offer ?? 0, color: "text-yellow-600" },
-                    { label: "Total Pipeline", value: totalActive, color: "text-gray-700" },
+                    { label: "Scheduled", value: interviews.filter(i => i.status === "Scheduled").length, color: "text-blue-700" },
+                    { label: "Completed", value: interviews.filter(i => i.status === "Completed").length, color: "text-emerald-600" },
+                    { label: "In Interview Stage", value: pipeline.Interview ?? 0, color: "text-purple-700" },
+                    { label: "Cancelled", value: interviews.filter(i => i.status === "Cancelled").length, color: "text-red-500" },
                   ].map((k) => (
                     <div key={k.label} className="bg-white rounded-xl border border-gray-200 p-4">
                       <p className="text-xs font-medium uppercase tracking-wide text-gray-500">{k.label}</p>
@@ -397,40 +415,49 @@ export default function RecruitmentPage() {
 
                 <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
                   <div className="flex items-center justify-between px-4 py-3 border-b border-gray-200">
-                    <h3 className="text-sm font-semibold text-gray-700">Candidates in Interview Stage</h3>
-                    <button onClick={() => setShowCandModal(true)} className="px-3 py-1.5 text-xs rounded-lg bg-blue-700 text-white hover:bg-blue-800">+ Add Candidate</button>
+                    <h3 className="text-sm font-semibold text-gray-700">Interview Schedule</h3>
+                    <button onClick={() => setShowIvModal(true)} className="px-4 py-2 text-xs rounded-lg bg-blue-700 text-white hover:bg-blue-800 font-medium">+ Schedule Interview</button>
                   </div>
-                  {interviewCandidates.length === 0 ? (
-                    <div className="py-16 text-center text-gray-400 text-sm">No candidates currently in interview stage</div>
+                  {interviews.length === 0 ? (
+                    <div className="py-16 text-center text-gray-400">
+                      <p className="text-base mb-1">No interviews scheduled yet</p>
+                      <button onClick={() => setShowIvModal(true)} className="text-sm text-blue-600 hover:underline">Schedule one →</button>
+                    </div>
                   ) : (
                     <table className="w-full text-sm">
                       <thead>
                         <tr className="bg-gray-50 border-b border-gray-200 text-left">
-                          {["Candidate", "Role", "Source", "Mobile", "Expected CTC", "Notice Period", "Stage", ""].map((h) => (
-                            <th key={h} className="px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">{h}</th>
+                          {["Date & Time", "Candidate", "Role", "Round", "Mode", "Interviewer", "Status", "Score / Decision"].map((h) => (
+                            <th key={h} className="px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide whitespace-nowrap">{h}</th>
                           ))}
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-gray-100">
-                        {interviewCandidates.map((c) => (
-                          <tr key={c.id} className="hover:bg-gray-50 cursor-pointer" onClick={() => setSelectedCand(c)}>
+                        {interviews.map((iv) => (
+                          <tr key={iv.id} className="hover:bg-gray-50">
                             <td className="px-4 py-3">
-                              <div className="flex items-center gap-2">
-                                <div className="w-7 h-7 rounded-full bg-purple-600 text-white flex items-center justify-center text-xs font-bold flex-shrink-0">
-                                  {c.name?.charAt(0)}
-                                </div>
-                                <p className="font-semibold text-gray-800">{c.name}</p>
-                              </div>
+                              <p className="font-semibold text-gray-800 text-xs">{iv.scheduled_time || "—"}</p>
+                              <p className="text-xs text-gray-400">{iv.scheduled_date || "—"}</p>
                             </td>
-                            <td className="px-4 py-3 text-xs text-gray-600">{c.job_title || "—"}</td>
-                            <td className="px-4 py-3"><SourceBadge source={c.source} /></td>
-                            <td className="px-4 py-3 text-xs text-gray-500">{c.mobile || "—"}</td>
-                            <td className="px-4 py-3 text-xs font-medium text-blue-700">{c.expected_ctc || "—"}</td>
-                            <td className="px-4 py-3 text-xs text-gray-500">{c.notice_period || "—"}</td>
-                            <td className="px-4 py-3"><StageBadge stage={c.stage} /></td>
+                            <td className="px-4 py-3 font-medium text-gray-800">{iv.candidate_name}</td>
+                            <td className="px-4 py-3 text-xs text-gray-600">{iv.job_title || "—"}</td>
                             <td className="px-4 py-3">
-                              <button onClick={(e) => { e.stopPropagation(); setSelectedCand(c); }}
-                                className="text-xs text-blue-600 hover:underline">View →</button>
+                              <span className="text-xs px-2 py-0.5 rounded-full bg-blue-100 text-blue-700 font-medium">{iv.round_name || "—"}</span>
+                            </td>
+                            <td className="px-4 py-3 text-xs text-gray-600">
+                              {iv.mode === "Video Call" ? "📹" : iv.mode === "In-Person" ? "🏢" : "📞"} {iv.mode}
+                            </td>
+                            <td className="px-4 py-3 text-xs text-gray-500">{iv.interviewer || "—"}</td>
+                            <td className="px-4 py-3">
+                              <span className={`text-xs px-2 py-0.5 rounded-full font-semibold ${
+                                iv.status === "Completed" ? "bg-emerald-100 text-emerald-700" :
+                                iv.status === "Cancelled" ? "bg-red-100 text-red-600" :
+                                "bg-yellow-100 text-yellow-700"
+                              }`}>{iv.status}</span>
+                            </td>
+                            <td className="px-4 py-3 text-xs">
+                              {iv.score ? <span className={`font-bold ${iv.score >= 75 ? "text-emerald-600" : iv.score >= 50 ? "text-yellow-600" : "text-red-500"}`}>{iv.score}%</span> : <span className="text-gray-400">—</span>}
+                              {iv.decision && <span className={`ml-2 px-1.5 py-0.5 rounded text-xs font-medium ${iv.decision === "Advance" ? "bg-emerald-100 text-emerald-700" : iv.decision === "Reject" ? "bg-red-100 text-red-600" : "bg-gray-100 text-gray-500"}`}>{iv.decision}</span>}
                             </td>
                           </tr>
                         ))}
@@ -534,6 +561,66 @@ export default function RecruitmentPage() {
         </div>
       )}
 
+      {/* ══ SCHEDULE INTERVIEW MODAL ══ */}
+      {showIvModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={() => setShowIvModal(false)}>
+          <div className="bg-white rounded-xl shadow-xl w-full max-w-md p-6 space-y-4" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between">
+              <h2 className="text-base font-semibold text-gray-900">Schedule Interview</h2>
+              <button onClick={() => setShowIvModal(false)} className="text-gray-400 hover:text-gray-600 text-lg">✕</button>
+            </div>
+            <div className="space-y-3">
+              <div>
+                <label className="text-xs text-gray-500 mb-1 block">Candidate *</label>
+                <select value={ivForm.candidate_id} onChange={(e) => setIvForm(f => ({ ...f, candidate_id: e.target.value }))}
+                  className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                  <option value="">Select candidate...</option>
+                  {candidates.map(c => <option key={c.id} value={c.id}>{c.name} — {c.job_title}</option>)}
+                </select>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-xs text-gray-500 mb-1 block">Date *</label>
+                  <input type="date" value={ivForm.scheduled_date} onChange={(e) => setIvForm(f => ({ ...f, scheduled_date: e.target.value }))}
+                    className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                </div>
+                <div>
+                  <label className="text-xs text-gray-500 mb-1 block">Time</label>
+                  <input type="time" value={ivForm.scheduled_time} onChange={(e) => setIvForm(f => ({ ...f, scheduled_time: e.target.value }))}
+                    className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-xs text-gray-500 mb-1 block">Round</label>
+                  <select value={ivForm.round_name} onChange={(e) => setIvForm(f => ({ ...f, round_name: e.target.value }))}
+                    className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    <option value="">Select round...</option>
+                    {["Screening Call", "Technical R1", "Technical R2", "HR Round", "Panel Interview", "Final Round"].map(r => <option key={r}>{r}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label className="text-xs text-gray-500 mb-1 block">Mode</label>
+                  <select value={ivForm.mode} onChange={(e) => setIvForm(f => ({ ...f, mode: e.target.value }))}
+                    className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    <option>Video Call</option><option>In-Person</option><option>Phone</option>
+                  </select>
+                </div>
+              </div>
+              <div>
+                <label className="text-xs text-gray-500 mb-1 block">Interviewer(s)</label>
+                <input type="text" placeholder="e.g. Anika Mehta" value={ivForm.interviewer} onChange={(e) => setIvForm(f => ({ ...f, interviewer: e.target.value }))}
+                  className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+              </div>
+            </div>
+            <div className="flex justify-end gap-2 pt-1">
+              <button onClick={() => setShowIvModal(false)} className="px-4 py-2 text-sm rounded-lg border border-gray-300 text-gray-600 hover:bg-gray-50">Cancel</button>
+              <button onClick={scheduleInterview} className="px-4 py-2 text-sm rounded-lg bg-blue-700 text-white hover:bg-blue-800">Schedule</button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* ══ CANDIDATE DETAIL MODAL ══ */}
       {selectedCand && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={() => setSelectedCand(null)}>
@@ -580,24 +667,46 @@ export default function RecruitmentPage() {
                 </div>
               )}
 
+              {/* Letter status */}
+              <div className="flex gap-3">
+                <div className={`flex-1 rounded-lg p-3 border ${selectedCand.offer_letter_generated ? "border-emerald-200 bg-emerald-50" : "border-orange-200 bg-orange-50"}`}>
+                  <p className="text-xs font-semibold">{selectedCand.offer_letter_generated ? "✅" : "🔒"} Offer Letter</p>
+                  <p className={`text-xs mt-0.5 ${selectedCand.offer_letter_generated ? "text-emerald-700" : "text-orange-700"}`}>
+                    {selectedCand.offer_letter_generated ? "Generated" : "Not yet generated"}
+                  </p>
+                </div>
+                <div className={`flex-1 rounded-lg p-3 border ${selectedCand.appointment_letter_generated ? "border-emerald-200 bg-emerald-50" : "border-orange-200 bg-orange-50"}`}>
+                  <p className="text-xs font-semibold">{selectedCand.appointment_letter_generated ? "✅" : "🔒"} Appointment Letter</p>
+                  <p className={`text-xs mt-0.5 ${selectedCand.appointment_letter_generated ? "text-emerald-700" : "text-orange-700"}`}>
+                    {selectedCand.appointment_letter_generated ? "Generated" : "Not yet generated"}
+                  </p>
+                </div>
+              </div>
+
               {/* Stage update */}
               <div>
                 <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Move to Stage</p>
                 <div className="flex flex-wrap gap-2">
-                  {STAGES.map((s) => (
-                    <button
-                      key={s}
-                      disabled={s === selectedCand.stage || updatingStage}
-                      onClick={() => updateCandStage(selectedCand.id, s)}
-                      className={`text-xs px-3 py-1.5 rounded-full border font-medium transition-colors ${
-                        s === selectedCand.stage
-                          ? "bg-blue-700 text-white border-blue-700 cursor-default"
-                          : "border-gray-300 text-gray-600 hover:bg-gray-100 disabled:opacity-50"
-                      }`}
-                    >
-                      {s}
-                    </button>
-                  ))}
+                  {STAGES.map((s) => {
+                    const isJoinedLocked = s === "Joined" && (!selectedCand.offer_letter_generated || !selectedCand.appointment_letter_generated);
+                    return (
+                      <button
+                        key={s}
+                        disabled={s === selectedCand.stage || updatingStage}
+                        onClick={() => updateCandStage(selectedCand.id, s, selectedCand)}
+                        title={isJoinedLocked ? "Generate both letters first" : ""}
+                        className={`text-xs px-3 py-1.5 rounded-full border font-medium transition-colors ${
+                          s === selectedCand.stage
+                            ? "bg-blue-700 text-white border-blue-700 cursor-default"
+                            : isJoinedLocked
+                            ? "border-orange-300 text-orange-500 cursor-pointer hover:bg-orange-50"
+                            : "border-gray-300 text-gray-600 hover:bg-gray-100 disabled:opacity-50"
+                        }`}
+                      >
+                        {isJoinedLocked ? "🔒 " : ""}{s}
+                      </button>
+                    );
+                  })}
                 </div>
               </div>
             </div>

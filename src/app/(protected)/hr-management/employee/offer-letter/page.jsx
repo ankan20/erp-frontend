@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import HeaderWrapper from "@/components/layout/HeaderWrapper";
 import PageHeader from "@/components/layout/PageHeader";
 import { apiRequest } from "@/lib/apiClient";
@@ -30,6 +30,8 @@ export default function OfferLetterPage() {
   const [form, setForm] = useState(DEFAULT_FORM);
   const [candidates, setCandidates] = useState([]);
   const [selectedCandId, setSelectedCandId] = useState("");
+  const [selectedCand, setSelectedCand] = useState(null);
+  const [marking, setMarking] = useState(false);
   const letterRef = useRef(null);
 
   useEffect(() => {
@@ -42,13 +44,14 @@ export default function OfferLetterPage() {
 
   const loadCandidate = async (id) => {
     setSelectedCandId(id);
-    if (!id) return;
+    if (!id) { setSelectedCand(null); return; }
     const res = await apiRequest({
       url: `${API_ENDPOINTS.HR.OFFER_LETTER.GET_CANDIDATE_DATA}${id}`,
       method: "GET",
     });
     if (res?.data) {
       const c = res.data;
+      setSelectedCand(c);
       setForm((f) => ({
         ...f,
         candidate_name: c.name || "",
@@ -59,6 +62,21 @@ export default function OfferLetterPage() {
         ctc_offered: c.expected_ctc || "",
         employment_type: c.job_type || "Full-time",
       }));
+    }
+  };
+
+  const markGenerated = async () => {
+    if (!selectedCandId) return;
+    setMarking(true);
+    const res = await apiRequest({
+      url: `${API_ENDPOINTS.HR.RECRUITMENT.MARK_OFFER_LETTER}${selectedCandId}/mark-offer-letter`,
+      method: "PUT",
+      data: {},
+    });
+    setMarking(false);
+    if (res?.data) {
+      toast.success("Offer letter marked as generated for this candidate");
+      setSelectedCand((p) => p ? { ...p, offer_letter_generated: true } : p);
     }
   };
 
@@ -158,6 +176,27 @@ export default function OfferLetterPage() {
 
           {/* Right: Letter Preview */}
           <div className="flex-1 space-y-2">
+            {/* Status + actions bar */}
+            {selectedCand && (
+              <div className={`flex items-center justify-between px-4 py-3 rounded-xl border ${selectedCand.offer_letter_generated ? "bg-emerald-50 border-emerald-200" : "bg-orange-50 border-orange-200"}`}>
+                <div>
+                  <p className={`text-sm font-semibold ${selectedCand.offer_letter_generated ? "text-emerald-700" : "text-orange-700"}`}>
+                    {selectedCand.offer_letter_generated ? "✅ Offer letter already generated" : "⚠️ Offer letter not yet marked as generated"}
+                  </p>
+                  <p className="text-xs text-gray-500 mt-0.5">
+                    {selectedCand.offer_letter_generated
+                      ? "This candidate can now be moved to Joined stage after appointment letter is also generated."
+                      : "Fill the letter below, then click 'Mark as Generated' to unlock stage progression."}
+                  </p>
+                </div>
+                {!selectedCand.offer_letter_generated && (
+                  <button onClick={markGenerated} disabled={marking}
+                    className="ml-4 px-4 py-2 text-sm rounded-lg bg-blue-700 text-white hover:bg-blue-800 disabled:opacity-60 whitespace-nowrap flex-shrink-0">
+                    {marking ? "Marking..." : "Mark as Generated"}
+                  </button>
+                )}
+              </div>
+            )}
             <div className="flex justify-end gap-2">
               <button
                 onClick={copyText}

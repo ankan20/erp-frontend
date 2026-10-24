@@ -720,6 +720,11 @@ export const API_ENDPOINTS = {
       CANDIDATES_CREATE: "/hr/recruitment/candidates",      // POST
       CANDIDATES_UPDATE: "/hr/recruitment/candidates/",     // /:id PUT
       PIPELINE_STATS:    "/hr/recruitment/stats",           // GET
+      MARK_OFFER_LETTER:       "/hr/recruitment/candidates/",  // /:id/mark-offer-letter PUT
+      MARK_APPOINTMENT_LETTER: "/hr/recruitment/candidates/",  // /:id/mark-appointment-letter PUT
+      INTERVIEWS_LIST:   "/hr/recruitment/interviews",      // GET ?candidate_id&status
+      INTERVIEWS_CREATE: "/hr/recruitment/interviews",      // POST
+      INTERVIEWS_UPDATE: "/hr/recruitment/interviews/",     // /:id PUT
     },
     PAYROLL: {
       LIST:              "/hr/payroll",                    // GET ?month&year&status&search
