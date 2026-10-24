@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Controller, useFieldArray, useWatch } from "react-hook-form";
 import { useFormWithToast as useForm } from "@/hooks/useFormWithToast";
 import { z }           from "zod";
@@ -26,6 +26,10 @@ import { getLocalStorage }   from "@/lib/localStorage";
 import { formatAmount, formatQtyDisplay } from "@/helper/numberFormatter";
 
 const BUDGET = API_ENDPOINTS.PROJECT.BUDGET_MASTER;
+
+// CC codes auto-added as columns on every new budget — matched by code string so
+// environment-specific IDs don't matter; missing codes are silently skipped
+const DEFAULT_CC_CODES = ["DRCW", "DRMC", "DRFD", "DRMH", "DRUS", "DRMR", "DRLC", "DRLS", "DRMS"];
 
 // ─── Schema ───────────────────────────────────────────────────────────────────
 
@@ -120,6 +124,10 @@ export default function BudgetMasterForm({ mode = "create", budgetId, onAfterSub
   const [ccOptions,  setCcOptions]  = useState([]);
   const [orderInfo,  setOrderInfo]  = useState({ no: "", title: "" });
   const [initialData, setInitialData] = useState(null);
+
+  // Always-current ref so loadOrderItems can read ccOptions without being
+  // re-created every time the options list loads (avoids stale-closure issues)
+  const ccOptionsRef = useRef([]);
 
   const {
     control, register, handleSubmit, reset, setValue, watch, getValues,
@@ -219,13 +227,13 @@ export default function BudgetMasterForm({ mode = "create", budgetId, onAfterSub
     apiRequest({ url: BUDGET.CC_CODES, method: "GET" })
       .then((res) => {
         const list = Array.isArray(res.data) ? res.data : (res.data?.list || []);
-        setCcOptions(
-          list.map((c) => ({
+        const mapped = list.map((c) => ({
             ...c,
             id: c.id ?? c.ccId ?? c.ccCodeId,
             displayLabel: [c.ccCode, c.ccName].filter(Boolean).join(" — "),
-          })),
-        );
+          }));
+        ccOptionsRef.current = mapped;
+        setCcOptions(mapped);
       })
       .catch(() => toast.error("Failed to load CC codes"));
   }, [projectCode]);
@@ -237,6 +245,13 @@ export default function BudgetMasterForm({ mode = "create", budgetId, onAfterSub
     try {
       const res  = await apiRequest({ url: `${BUDGET.SALE_ORDER_ITEMS}${soId}`, method: "GET" });
       const list = Array.isArray(res.data) ? res.data : (res.data?.items || []);
+
+      // Build default CC columns from already-loaded options (ref is always current)
+      const defaultCcCols = DEFAULT_CC_CODES
+        .map((code) => ccOptionsRef.current.find((o) => o.ccCode === code))
+        .filter(Boolean)
+        .map((o) => ({ ccCodeId: o.id, ccCode: o.ccCode, ccName: o.ccName || o.displayLabel || "", ccValue: "", entries: [] }));
+
       replaceItems(
         list.map((it, i) => ({
           ogSaleOrderItemId: it.id ?? it.ogSaleOrderItemId ?? null,
@@ -248,7 +263,7 @@ export default function BudgetMasterForm({ mode = "create", budgetId, onAfterSub
           unitItem:          it.unitItem        || it.unit || "",
           orderQty:          Number(it.orderQty ?? it.qty ?? 0),
           rate:              Number(it.rate     ?? 0),
-          ccCodes:           [],
+          ccCodes:           defaultCcCols,
         })),
       );
       setOrderInfo({
