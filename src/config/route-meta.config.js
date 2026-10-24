@@ -656,6 +656,10 @@ export const routeMetaConfig = [
     basePath: "/finance-management/report/pnl",
     breadcrumbs: ["Finance Management", "Finance", "Profit & Loss"],
   },
+  {
+    basePath: "/finance-management/report/balance-sheet",
+    breadcrumbs: ["Finance Management", "Finance", "Balance Sheet"],
+  },
   // Finance Management — Contra Entry
   {
     basePath: "/finance-management/account/contra",

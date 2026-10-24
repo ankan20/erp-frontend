@@ -659,6 +659,11 @@ export const API_ENDPOINTS = {
       // any *Percent the API sends overrides the derived value for that cell.
       GET: "/finance/profit-loss",
     },
+    BALANCE_SHEET: {
+      // GET ?projectCode[&fromDate&toDate] (JWT) — view only.
+      // Returns { data: { equityAndLiabilities, assets, difference, filters } }
+      GET: "/finance/balance-sheet",
+    },
     PETTY_CASH: {
       LEDGER: {
         PROJECT_ACCOUNTS: "/finance/petty-cash/ledger/project-accounts", // GET ?projectCode
