@@ -52,8 +52,8 @@ export default function OrderItemSelectionModal({
 
   const projectCode = projectInfo?.projectCode;
 
-  // CHANGED: costHead determines assetOnly — Fixed Asset = true, else false
   const costHead = form.watch("costHead");
+  const subCategoryCode = form.watch("subCategoryCode") || "MAT_001";
   const existingItems = form.watch("items") || [];
 
   // LOAD ITEMS
@@ -69,11 +69,10 @@ export default function OrderItemSelectionModal({
       try {
         setLoading(true);
 
-        // CHANGED: costHead determines assetOnly; subCategoryCode always MAT_001
         const assetOnly = costHead === "Fixed_Asset";
 
         const res = await apiRequest({
-          url: `${API_ENDPOINTS.RESOURCE.PROCUREMENT.ORDER.GET_INDENT_LIST}?projectCode=${projectCode}&subCategoryCode=MAT_001&assetOnly=${assetOnly}`,
+          url: `${API_ENDPOINTS.RESOURCE.PROCUREMENT.ORDER.GET_INDENT_LIST}?projectCode=${projectCode}&subCategoryCode=${subCategoryCode}&assetOnly=${assetOnly}`,
           method: "GET",
         });
 

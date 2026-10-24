@@ -83,6 +83,7 @@ export default function OrderForm({ mode = "create", orderId, onUuid, onAfterSub
   } = form;
 
   const costHead = watch("costHead");
+  const subCategoryCode = watch("subCategoryCode") || "MAT_001";
 
   const disabled =
     mode === "view" ||
@@ -91,17 +92,17 @@ export default function OrderForm({ mode = "create", orderId, onUuid, onAfterSub
     isSubmitted ||
     isSubmitting;
 
-  // ─── LOAD WITHOUT-INDENT ITEM OPTIONS — re-fetch when costHead changes (assetOnly flag)
+  // ─── LOAD WITHOUT-INDENT ITEM OPTIONS — re-fetch when costHead/subCategoryCode changes
   useEffect(() => {
     if (withIndent) return;
     const url =
       costHead === "Fixed_Asset"
         ? `${API_ENDPOINTS.RESOURCE.PROCUREMENT.INDENT.GET_ITEMS_BY_CATEGORY}?categoryCode=MAT_001&assetOnly=true`
-        : `${API_ENDPOINTS.RESOURCE.PROCUREMENT.INDENT.GET_ITEMS_BY_CATEGORY}?categoryCode=MAT_001`;
+        : `${API_ENDPOINTS.RESOURCE.PROCUREMENT.INDENT.GET_ITEMS_BY_CATEGORY}?categoryCode=${subCategoryCode}`;
     apiRequest({ url, method: "GET" })
       .then((res) => setWithoutIndentItemOptions(res.data || []))
       .catch(() => {});
-  }, [withIndent, costHead]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [withIndent, costHead, subCategoryCode]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ─── LOAD ORDER
   useEffect(() => {
@@ -221,7 +222,7 @@ export default function OrderForm({ mode = "create", orderId, onUuid, onAfterSub
 
     formData.append("projectCode", projectCode);
     formData.append("categoryCode", values.categoryCode);
-    formData.append("subCategoryCode", "MAT_001");
+    formData.append("subCategoryCode", values.subCategoryCode || "MAT_001");
     formData.append("costHead", values.costHead);
     formData.append("assetOnly", values.costHead === "Fixed_Asset" ? "true" : "false");
 

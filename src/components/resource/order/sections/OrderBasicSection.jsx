@@ -253,6 +253,7 @@ export default function OrderBasicSection({
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="MAT_001">Material</SelectItem>
+                      <SelectItem value="EXP_001">Expense</SelectItem>
                     </SelectContent>
                   </Select>
                 )}
