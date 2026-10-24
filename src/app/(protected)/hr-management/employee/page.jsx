@@ -121,8 +121,6 @@ export default function EmployeeMasterPage() {
       .then((r) => r?.data && setReviews(r.data));
   }, []);
 
-  if (!access.allowed) return <PageNotAvailable />;
-
   const actions = getPageActions([
     ...(access.canAdd ? [{ label: "+ Add Employee", onClick: () => router.push("/hr-management/employee/new"), variant: "primary" }] : []),
   ]);
@@ -156,6 +154,8 @@ export default function EmployeeMasterPage() {
     type: t,
     count: employees.filter((e) => e.employment_type === t).length,
   })).filter((x) => x.count > 0);
+
+  if (!access.allowed) return <PageNotAvailable />;
 
   return (
     <HeaderWrapper>

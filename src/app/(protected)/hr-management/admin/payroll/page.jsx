@@ -87,11 +87,11 @@ export default function PayrollPage() {
 
   const maxDept = Math.max(...deptData.map((d) => d.gross), 1);
 
-  if (!access.allowed) return <PageNotAvailable />;
-
   const actions = getPageActions([
     ...(access.canAdd ? [{ label: "Run Payroll", onClick: () => setShowRunModal(true), variant: "primary" }] : []),
   ]);
+
+  if (!access.allowed) return <PageNotAvailable />;
 
   return (
     <HeaderWrapper>

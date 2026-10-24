@@ -83,8 +83,6 @@ export default function OnboardingPage() {
     }
   };
 
-  if (!access.allowed) return <PageNotAvailable />;
-
   const actions = getPageActions([
     ...(access.canAdd ? [{ label: "Start Onboarding", onClick: () => setShowInitModal(true), variant: "primary" }] : []),
   ]);
@@ -92,6 +90,8 @@ export default function OnboardingPage() {
   const pendingJoined = joinedCandidates.filter(c =>
     !list.some(e => e.full_name?.toLowerCase() === c.name?.toLowerCase())
   );
+
+  if (!access.allowed) return <PageNotAvailable />;
 
   return (
     <HeaderWrapper>

@@ -102,8 +102,6 @@ export default function PerformancePage() {
     return "bg-gray-100 text-gray-600";
   };
 
-  if (!access.allowed) return <PageNotAvailable />;
-
   const actions = getPageActions(
     access.canAdd
       ? tab === 0
@@ -113,6 +111,8 @@ export default function PerformancePage() {
         : []
       : []
   );
+
+  if (!access.allowed) return <PageNotAvailable />;
 
   return (
     <HeaderWrapper>
