@@ -8,6 +8,8 @@ import { apiRequest } from "@/lib/apiClient";
 import { API_ENDPOINTS } from "@/config/api.config";
 import { getPageActions } from "@/components/common/PageActionButtons";
 import { toast } from "sonner";
+import { getPageAccess } from "@/helper/getPageAccess";
+import PageNotAvailable from "@/components/common/PageNotAvailable";
 
 const REVIEW_COLS = [
   { key: "emp_code", label: "Emp Code" },
@@ -45,6 +47,7 @@ function StarRating({ value }) {
 }
 
 export default function PerformancePage() {
+  const access = getPageAccess({ pageCode: "performance", pageType: "LIST" });
   const [tab, setTab] = useState(0); // 0=Reviews, 1=Discipline, 2=PIP
   const [reviews, setReviews] = useState([]);
   const [discipline, setDiscipline] = useState([]);
@@ -99,11 +102,15 @@ export default function PerformancePage() {
     return "bg-gray-100 text-gray-600";
   };
 
+  if (!access.allowed) return <PageNotAvailable />;
+
   const actions = getPageActions(
-    tab === 0
-      ? [{ label: "Add Review", onClick: () => setShowReviewModal(true), variant: "primary" }]
-      : tab === 1
-      ? [{ label: "Add Case", onClick: () => setShowDiscModal(true), variant: "primary" }]
+    access.canAdd
+      ? tab === 0
+        ? [{ label: "Add Review", onClick: () => setShowReviewModal(true), variant: "primary" }]
+        : tab === 1
+        ? [{ label: "Add Case", onClick: () => setShowDiscModal(true), variant: "primary" }]
+        : []
       : []
   );
 

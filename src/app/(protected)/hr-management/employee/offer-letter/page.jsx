@@ -6,6 +6,8 @@ import PageHeader from "@/components/layout/PageHeader";
 import { apiRequest } from "@/lib/apiClient";
 import { API_ENDPOINTS } from "@/config/api.config";
 import { toast } from "sonner";
+import { getPageAccess } from "@/helper/getPageAccess";
+import PageNotAvailable from "@/components/common/PageNotAvailable";
 
 const DEFAULT_FORM = {
   company_name: "",
@@ -27,6 +29,7 @@ const DEFAULT_FORM = {
 };
 
 export default function OfferLetterPage() {
+  const access = getPageAccess({ pageCode: "offer_letter", pageType: "LIST" });
   const [form, setForm] = useState(DEFAULT_FORM);
   const [candidates, setCandidates] = useState([]);
   const [selectedCandId, setSelectedCandId] = useState("");
@@ -88,6 +91,8 @@ export default function OfferLetterPage() {
 
   const generated = candidates.filter((c) => c.offer_letter_generated);
   const pending = candidates.filter((c) => !c.offer_letter_generated);
+
+  if (!access.allowed) return <PageNotAvailable />;
 
   return (
     <HeaderWrapper>
@@ -168,7 +173,7 @@ export default function OfferLetterPage() {
                     {selectedCand.offer_letter_generated ? "Letter is marked. Candidate can now receive appointment letter." : "Fill the letter, then mark as generated."}
                   </p>
                 </div>
-                {!selectedCand.offer_letter_generated && (
+                {!selectedCand.offer_letter_generated && access.canAdd && (
                   <button onClick={markGenerated} disabled={marking}
                     className="ml-3 px-3 py-1.5 text-xs rounded-lg bg-blue-700 text-white hover:bg-blue-800 disabled:opacity-60 whitespace-nowrap flex-shrink-0 font-medium">
                     {marking ? "..." : "Mark Generated"}

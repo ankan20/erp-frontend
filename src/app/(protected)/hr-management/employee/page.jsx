@@ -7,6 +7,8 @@ import PageHeader from "@/components/layout/PageHeader";
 import { apiRequest } from "@/lib/apiClient";
 import { API_ENDPOINTS } from "@/config/api.config";
 import { getPageActions } from "@/components/common/PageActionButtons";
+import { getPageAccess } from "@/helper/getPageAccess";
+import PageNotAvailable from "@/components/common/PageNotAvailable";
 
 const STATUS_STYLE = {
   Active:      "bg-emerald-100 text-emerald-700 border-emerald-200",
@@ -15,21 +17,51 @@ const STATUS_STYLE = {
 };
 
 const TYPE_COLOR = {
-  "Full-time": { bar: "bg-blue-500",   badge: "bg-blue-50 text-blue-700" },
-  Contract:    { bar: "bg-purple-500", badge: "bg-purple-50 text-purple-700" },
-  Intern:      { bar: "bg-pink-500",   badge: "bg-pink-50 text-pink-700" },
-  "Part-time": { bar: "bg-gray-400",   badge: "bg-gray-100 text-gray-600" },
+  "Full-time": { bar: "bg-blue-500",   hex: "#3b82f6", badge: "bg-blue-50 text-blue-700" },
+  Contract:    { bar: "bg-purple-500", hex: "#a855f7", badge: "bg-purple-50 text-purple-700" },
+  Intern:      { bar: "bg-pink-500",   hex: "#ec4899", badge: "bg-pink-50 text-pink-700" },
+  "Part-time": { bar: "bg-gray-400",   hex: "#9ca3af", badge: "bg-gray-100 text-gray-600" },
 };
 
 const DEPT_COLORS = ["bg-blue-500","bg-indigo-500","bg-violet-500","bg-fuchsia-500","bg-pink-500","bg-rose-500","bg-orange-500","bg-amber-500","bg-teal-500","bg-cyan-500"];
 
 const RATING_BANDS = [
-  { label: "Outstanding",          range: "4.5 – 5.0", min: 4.5, max: 5.0, color: "bg-emerald-500", stars: 5 },
-  { label: "Exceeds Expectations", range: "4.0 – 4.4", min: 4.0, max: 4.49, color: "bg-blue-500",   stars: 4 },
-  { label: "Meets Expectations",   range: "3.0 – 3.9", min: 3.0, max: 3.99, color: "bg-amber-400",  stars: 3 },
-  { label: "Needs Improvement",    range: "2.0 – 2.9", min: 2.0, max: 2.99, color: "bg-orange-400", stars: 2 },
-  { label: "Unsatisfactory",       range: "< 2.0",     min: 0,   max: 1.99, color: "bg-red-400",    stars: 1 },
+  { label: "Outstanding",          range: "4.5 – 5.0", min: 4.5, max: 5.0,  barColor: "bg-emerald-500", hex: "#10b981", stars: 5 },
+  { label: "Exceeds Expectations", range: "4.0 – 4.4", min: 4.0, max: 4.49, barColor: "bg-blue-500",    hex: "#3b82f6", stars: 4 },
+  { label: "Meets Expectations",   range: "3.0 – 3.9", min: 3.0, max: 3.99, barColor: "bg-amber-400",   hex: "#fbbf24", stars: 3 },
+  { label: "Needs Improvement",    range: "2.0 – 2.9", min: 2.0, max: 2.99, barColor: "bg-orange-400",  hex: "#fb923c", stars: 2 },
+  { label: "Unsatisfactory",       range: "< 2.0",     min: 0,   max: 1.99, barColor: "bg-red-400",     hex: "#f87171", stars: 1 },
 ];
+
+// Donut chart built from SVG — no library needed
+function DonutChart({ segments, size = 130, hole = 0.62 }) {
+  const total = segments.reduce((s, d) => s + d.value, 0);
+  if (!total) return null;
+  const cx = size / 2, cy = size / 2;
+  const R = size / 2 - 6, r = R * hole;
+  let start = -Math.PI / 2;
+  return (
+    <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
+      {segments.map((seg, i) => {
+        if (!seg.value) return null;
+        const sweep = (seg.value / total) * 2 * Math.PI;
+        const end = start + sweep;
+        const large = sweep > Math.PI ? 1 : 0;
+        const cos = (a) => Math.cos(a), sin = (a) => Math.sin(a);
+        const path = [
+          `M ${cx + R * cos(start)} ${cy + R * sin(start)}`,
+          `A ${R} ${R} 0 ${large} 1 ${cx + R * cos(end)} ${cy + R * sin(end)}`,
+          `L ${cx + r * cos(end)} ${cy + r * sin(end)}`,
+          `A ${r} ${r} 0 ${large} 0 ${cx + r * cos(start)} ${cy + r * sin(start)}`,
+          "Z",
+        ].join(" ");
+        const el = <path key={i} d={path} fill={seg.color} className="transition-all" />;
+        start = end;
+        return el;
+      })}
+    </svg>
+  );
+}
 
 function Stars({ count, size = "w-3 h-3" }) {
   return (
@@ -59,6 +91,7 @@ function DistBar({ label, count, total, colorClass, badge }) {
 }
 
 export default function EmployeeMasterPage() {
+  const access = getPageAccess({ pageCode: "employee_management", pageType: "LIST" });
   const router = useRouter();
   const [employees, setEmployees] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -88,8 +121,10 @@ export default function EmployeeMasterPage() {
       .then((r) => r?.data && setReviews(r.data));
   }, []);
 
+  if (!access.allowed) return <PageNotAvailable />;
+
   const actions = getPageActions([
-    { label: "+ Add Employee", onClick: () => router.push("/hr-management/employee/new"), variant: "primary" },
+    ...(access.canAdd ? [{ label: "+ Add Employee", onClick: () => router.push("/hr-management/employee/new"), variant: "primary" }] : []),
   ]);
 
   // KPI counts
@@ -186,9 +221,11 @@ export default function EmployeeMasterPage() {
             ) : employees.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-20 text-gray-400 gap-2">
                 <p className="text-base font-medium">No employees found</p>
-                <button onClick={() => router.push("/hr-management/employee/new")} className="text-sm text-blue-600 hover:underline">
-                  Add first employee →
-                </button>
+                {access.canAdd && (
+                  <button onClick={() => router.push("/hr-management/employee/new")} className="text-sm text-blue-600 hover:underline">
+                    Add first employee →
+                  </button>
+                )}
               </div>
             ) : (
               <>
@@ -256,100 +293,135 @@ export default function EmployeeMasterPage() {
           {/* Right Sidebar */}
           <div className="w-full xl:w-72 flex-shrink-0 space-y-4">
 
-            {/* Rating Distribution */}
+            {/* Rating Distribution — donut + bars */}
             <div className="bg-white rounded-xl border border-gray-200 p-4">
-              <div className="flex items-center justify-between mb-1">
-                <span className="text-sm font-semibold text-gray-700">⭐ Rating Distribution</span>
-                {avgRating && (
-                  <span className="flex items-center gap-1 text-xs font-bold text-amber-500">
-                    <svg className="w-3.5 h-3.5 text-amber-400" fill="currentColor" viewBox="0 0 20 20">
-                      <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
-                    </svg>
-                    {avgRating} avg
-                  </span>
-                )}
-              </div>
-              <p className="text-xs text-gray-400 mb-4">{reviews.length} performance review{reviews.length !== 1 ? "s" : ""}</p>
+              <p className="text-sm font-semibold text-gray-700 mb-0.5">⭐ Rating Distribution</p>
+              <p className="text-xs text-gray-400 mb-3">{reviews.length} performance review{reviews.length !== 1 ? "s" : ""}</p>
               {reviews.length === 0 ? (
-                <p className="text-xs text-gray-400 text-center py-4">No reviews yet</p>
+                <p className="text-xs text-gray-400 text-center py-6">No reviews yet</p>
               ) : (
-                <div className="space-y-3">
-                  {ratingBandCounts.map((b) => (
-                    <div key={b.label} className="space-y-1">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-1.5 min-w-0">
-                          <Stars count={b.stars} />
-                          <div className="min-w-0">
-                            <p className="text-xs font-medium text-gray-700 leading-tight truncate">{b.label}</p>
-                            <p className="text-[10px] text-gray-400">{b.range}</p>
+                <>
+                  {/* Donut chart */}
+                  <div className="flex items-center justify-center mb-4 relative">
+                    <DonutChart
+                      size={130}
+                      segments={ratingBandCounts.map((b) => ({ value: b.count, color: b.hex }))}
+                    />
+                    <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
+                      <span className="text-2xl font-bold text-gray-800">{avgRating ?? "—"}</span>
+                      <span className="text-[10px] text-gray-400">avg rating</span>
+                    </div>
+                  </div>
+                  {/* Legend rows */}
+                  <div className="space-y-2">
+                    {ratingBandCounts.map((b) => (
+                      <div key={b.label} className="flex items-center gap-2">
+                        <Stars count={b.stars} size="w-2.5 h-2.5" />
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center justify-between mb-0.5">
+                            <span className="text-[11px] text-gray-600 truncate">{b.label}</span>
+                            <span className="text-[11px] font-bold text-gray-700 ml-1 flex-shrink-0">{b.count}</span>
+                          </div>
+                          <div className="h-1.5 bg-gray-100 rounded-full overflow-hidden">
+                            <div className="h-full rounded-full transition-all"
+                              style={{ width: `${reviews.length ? (b.count / reviews.length) * 100 : 0}%`, backgroundColor: b.hex }} />
                           </div>
                         </div>
-                        <div className="flex items-center gap-1.5 flex-shrink-0 ml-2">
-                          <span className="text-sm font-bold text-gray-700">{b.count}</span>
-                          <span className="text-xs text-gray-400 w-7 text-right">
-                            {reviews.length ? Math.round((b.count / reviews.length) * 100) : 0}%
-                          </span>
+                        <span className="text-[10px] text-gray-400 w-7 text-right flex-shrink-0">
+                          {reviews.length ? Math.round((b.count / reviews.length) * 100) : 0}%
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </>
+              )}
+            </div>
+
+            {/* Employment Type — donut + legend */}
+            <div className="bg-white rounded-xl border border-gray-200 p-4">
+              <p className="text-sm font-semibold text-gray-700 mb-3">📊 Employment Type</p>
+              {typeCounts.length === 0 ? (
+                <p className="text-xs text-gray-400 text-center py-4">No data yet</p>
+              ) : (
+                <>
+                  <div className="flex items-center gap-4">
+                    <div className="flex-shrink-0 relative">
+                      <DonutChart size={100}
+                        segments={typeCounts.map((t) => ({ value: t.count, color: TYPE_COLOR[t.type]?.hex || "#9ca3af" }))}
+                      />
+                      <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                        <span className="text-lg font-bold text-gray-700">{employees.length}</span>
+                      </div>
+                    </div>
+                    <div className="flex-1 space-y-2">
+                      {typeCounts.map((t) => (
+                        <div key={t.type} className="flex items-center gap-1.5">
+                          <div className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ backgroundColor: TYPE_COLOR[t.type]?.hex || "#9ca3af" }} />
+                          <span className="text-xs text-gray-600 flex-1 truncate">{t.type}</span>
+                          <span className="text-xs font-bold text-gray-700">{t.count}</span>
                         </div>
+                      ))}
+                    </div>
+                  </div>
+                </>
+              )}
+            </div>
+
+            {/* Department Distribution — bar chart */}
+            <div className="bg-white rounded-xl border border-gray-200 p-4">
+              <p className="text-sm font-semibold text-gray-700 mb-3">🏬 Department Distribution</p>
+              {deptCounts.length === 0 ? (
+                <p className="text-xs text-gray-400 text-center py-4">No data yet</p>
+              ) : (
+                <div className="space-y-2">
+                  {deptCounts.map((d, i) => (
+                    <div key={d.dept} className="flex items-center gap-2">
+                      <span className="text-[11px] text-gray-500 w-24 truncate flex-shrink-0">{d.dept}</span>
+                      <div className="flex-1 h-4 bg-gray-100 rounded overflow-hidden">
+                        <div className={`h-full ${DEPT_COLORS[i % DEPT_COLORS.length]} rounded transition-all`}
+                          style={{ width: `${employees.length ? (d.count / employees.length) * 100 : 0}%` }} />
                       </div>
-                      <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
-                        <div className={`h-full rounded-full ${b.color} transition-all`}
-                          style={{ width: `${reviews.length ? (b.count / reviews.length) * 100 : 0}%` }} />
-                      </div>
+                      <span className="text-[11px] font-bold text-gray-600 w-5 text-right flex-shrink-0">{d.count}</span>
                     </div>
                   ))}
                 </div>
               )}
             </div>
 
-            {/* Department Distribution */}
+            {/* Status — donut + legend */}
             <div className="bg-white rounded-xl border border-gray-200 p-4">
-              <div className="flex items-center gap-2 mb-4">
-                <span className="text-sm font-semibold text-gray-700">🏬 Department Distribution</span>
-              </div>
-              {deptCounts.length === 0 ? (
+              <p className="text-sm font-semibold text-gray-700 mb-3">🔵 Status Overview</p>
+              {employees.length === 0 ? (
                 <p className="text-xs text-gray-400 text-center py-4">No data yet</p>
               ) : (
-                <div className="space-y-3">
-                  {deptCounts.map((d, i) => (
-                    <DistBar key={d.dept} label={d.dept} count={d.count} total={employees.length}
-                      colorClass={DEPT_COLORS[i % DEPT_COLORS.length]} />
-                  ))}
+                <div className="flex items-center gap-4">
+                  <div className="flex-shrink-0 relative">
+                    <DonutChart size={100}
+                      segments={[
+                        { value: active,   color: "#10b981" },
+                        { value: onNotice, color: "#fbbf24" },
+                        { value: inactive, color: "#f87171" },
+                      ]}
+                    />
+                    <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                      <span className="text-lg font-bold text-gray-700">{employees.length}</span>
+                    </div>
+                  </div>
+                  <div className="flex-1 space-y-2">
+                    {[
+                      { label: "Active",    count: active,   hex: "#10b981" },
+                      { label: "On Notice", count: onNotice, hex: "#fbbf24" },
+                      { label: "Inactive",  count: inactive, hex: "#f87171" },
+                    ].map((s) => (
+                      <div key={s.label} className="flex items-center gap-1.5">
+                        <div className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ backgroundColor: s.hex }} />
+                        <span className="text-xs text-gray-600 flex-1">{s.label}</span>
+                        <span className="text-xs font-bold text-gray-700">{s.count}</span>
+                      </div>
+                    ))}
+                  </div>
                 </div>
               )}
-            </div>
-
-            {/* Employment Type Breakdown */}
-            <div className="bg-white rounded-xl border border-gray-200 p-4">
-              <div className="flex items-center gap-2 mb-4">
-                <span className="text-sm font-semibold text-gray-700">📊 Employment Type</span>
-              </div>
-              {typeCounts.length === 0 ? (
-                <p className="text-xs text-gray-400 text-center py-4">No data yet</p>
-              ) : (
-                <div className="space-y-3">
-                  {typeCounts.map((t) => (
-                    <DistBar key={t.type} label={t.type} count={t.count} total={employees.length}
-                      colorClass={TYPE_COLOR[t.type]?.bar || "bg-gray-400"} />
-                  ))}
-                </div>
-              )}
-            </div>
-
-            {/* Status Breakdown */}
-            <div className="bg-white rounded-xl border border-gray-200 p-4">
-              <div className="flex items-center gap-2 mb-4">
-                <span className="text-sm font-semibold text-gray-700">🔵 Status Overview</span>
-              </div>
-              <div className="space-y-3">
-                {[
-                  { label: "Active",    count: active,   colorClass: "bg-emerald-500" },
-                  { label: "On Notice", count: onNotice, colorClass: "bg-yellow-400" },
-                  { label: "Inactive",  count: inactive, colorClass: "bg-red-400" },
-                ].filter((s) => employees.length > 0).map((s) => (
-                  <DistBar key={s.label} label={s.label} count={s.count} total={employees.length} colorClass={s.colorClass} />
-                ))}
-                {employees.length === 0 && <p className="text-xs text-gray-400 text-center py-4">No data yet</p>}
-              </div>
             </div>
 
           </div>

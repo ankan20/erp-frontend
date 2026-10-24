@@ -8,6 +8,8 @@ import { apiRequest } from "@/lib/apiClient";
 import { API_ENDPOINTS } from "@/config/api.config";
 import { getPageActions } from "@/components/common/PageActionButtons";
 import { toast } from "sonner";
+import { getPageAccess } from "@/helper/getPageAccess";
+import PageNotAvailable from "@/components/common/PageNotAvailable";
 
 const STATUS_COLOR = {
   Completed:   "bg-emerald-100 text-emerald-700 border-emerald-200",
@@ -30,6 +32,7 @@ function ProgressRing({ pct, size = 48 }) {
 }
 
 export default function OnboardingPage() {
+  const access = getPageAccess({ pageCode: "onboarding", pageType: "LIST" });
   const router = useRouter();
   const [list, setList] = useState([]);
   const [stats, setStats] = useState({});
@@ -80,8 +83,10 @@ export default function OnboardingPage() {
     }
   };
 
+  if (!access.allowed) return <PageNotAvailable />;
+
   const actions = getPageActions([
-    { label: "Start Onboarding", onClick: () => setShowInitModal(true), variant: "primary" },
+    ...(access.canAdd ? [{ label: "Start Onboarding", onClick: () => setShowInitModal(true), variant: "primary" }] : []),
   ]);
 
   const pendingJoined = joinedCandidates.filter(c =>
@@ -139,7 +144,7 @@ export default function OnboardingPage() {
           list.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-20 text-gray-400 gap-2">
               <p className="text-lg">No onboarding records found</p>
-              <button onClick={() => setShowInitModal(true)} className="text-sm text-blue-600 hover:underline">Start onboarding for an employee →</button>
+              {access.canAdd && <button onClick={() => setShowInitModal(true)} className="text-sm text-blue-600 hover:underline">Start onboarding for an employee →</button>}
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
@@ -221,10 +226,12 @@ export default function OnboardingPage() {
                         <span className="text-xs px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700 font-semibold">Joined</span>
                       </td>
                       <td className="px-4 py-3">
-                        <button onClick={() => { setShowInitModal(true); }}
-                          className="text-xs px-3 py-1.5 rounded-lg bg-blue-700 text-white hover:bg-blue-800">
-                          Start Onboarding
-                        </button>
+                        {access.canAdd && (
+                          <button onClick={() => { setShowInitModal(true); }}
+                            className="text-xs px-3 py-1.5 rounded-lg bg-blue-700 text-white hover:bg-blue-800">
+                            Start Onboarding
+                          </button>
+                        )}
                       </td>
                     </tr>
                   ))}

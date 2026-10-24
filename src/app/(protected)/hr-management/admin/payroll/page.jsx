@@ -8,6 +8,8 @@ import { apiRequest } from "@/lib/apiClient";
 import { API_ENDPOINTS } from "@/config/api.config";
 import { getPageActions } from "@/components/common/PageActionButtons";
 import { toast } from "sonner";
+import { getPageAccess } from "@/helper/getPageAccess";
+import PageNotAvailable from "@/components/common/PageNotAvailable";
 
 const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
@@ -28,6 +30,7 @@ function fmt(n) {
 }
 
 export default function PayrollPage() {
+  const access = getPageAccess({ pageCode: "payroll", pageType: "LIST" });
   const now = new Date();
   const [month, setMonth] = useState(String(now.getMonth() + 1));
   const [year, setYear] = useState(String(now.getFullYear()));
@@ -84,8 +87,10 @@ export default function PayrollPage() {
 
   const maxDept = Math.max(...deptData.map((d) => d.gross), 1);
 
+  if (!access.allowed) return <PageNotAvailable />;
+
   const actions = getPageActions([
-    { label: "Run Payroll", onClick: () => setShowRunModal(true), variant: "primary" },
+    ...(access.canAdd ? [{ label: "Run Payroll", onClick: () => setShowRunModal(true), variant: "primary" }] : []),
   ]);
 
   return (

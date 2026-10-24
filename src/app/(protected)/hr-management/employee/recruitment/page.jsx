@@ -6,6 +6,8 @@ import PageHeader from "@/components/layout/PageHeader";
 import { apiRequest } from "@/lib/apiClient";
 import { API_ENDPOINTS } from "@/config/api.config";
 import { toast } from "sonner";
+import { getPageAccess } from "@/helper/getPageAccess";
+import PageNotAvailable from "@/components/common/PageNotAvailable";
 
 /* ─── Stage config ─────────────────────────────────────────── */
 const STAGES = ["Applied", "Screening", "Interview", "Offer", "Joined", "Rejected"];
@@ -65,6 +67,7 @@ const TABS = [
 
 /* ═══════════════════════════════════════════════════════════ */
 export default function RecruitmentPage() {
+  const access = getPageAccess({ pageCode: "recruitment", pageType: "LIST" });
   const [tab, setTab] = useState("overview");
   const [jobs, setJobs] = useState([]);
   const [candidates, setCandidates] = useState([]);
@@ -154,6 +157,8 @@ export default function RecruitmentPage() {
   const totalActive = STAGES.filter(s => s !== "Joined" && s !== "Rejected").reduce((a, s) => a + (pipeline[s] || 0), 0);
   const interviewCandidates = candidates.filter((c) => c.stage === "Interview");
   const recentJoins = candidates.filter((c) => c.stage === "Joined" || c.stage === "Offer");
+
+  if (!access.allowed) return <PageNotAvailable />;
 
   return (
     <HeaderWrapper>
@@ -288,10 +293,12 @@ export default function RecruitmentPage() {
                       <option>Open</option><option>On Hold</option><option>Closed</option>
                     </select>
                   </div>
-                  <button onClick={() => setShowJobModal(true)}
-                    className="px-4 py-2 text-sm rounded-lg bg-blue-700 text-white hover:bg-blue-800 font-medium">
-                    + Post Vacancy
-                  </button>
+                  {access.canAdd && (
+                    <button onClick={() => setShowJobModal(true)}
+                      className="px-4 py-2 text-sm rounded-lg bg-blue-700 text-white hover:bg-blue-800 font-medium">
+                      + Post Vacancy
+                    </button>
+                  )}
                 </div>
 
                 {jobs.length === 0 ? (
@@ -364,10 +371,12 @@ export default function RecruitmentPage() {
                       {STAGES.map((s) => <option key={s}>{s}</option>)}
                     </select>
                   </div>
-                  <button onClick={() => setShowCandModal(true)}
-                    className="px-4 py-2 text-sm rounded-lg bg-blue-700 text-white hover:bg-blue-800 font-medium">
-                    + Add Candidate
-                  </button>
+                  {access.canAdd && (
+                    <button onClick={() => setShowCandModal(true)}
+                      className="px-4 py-2 text-sm rounded-lg bg-blue-700 text-white hover:bg-blue-800 font-medium">
+                      + Add Candidate
+                    </button>
+                  )}
                 </div>
 
                 {candidates.length === 0 ? (
@@ -439,7 +448,7 @@ export default function RecruitmentPage() {
                 <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
                   <div className="flex items-center justify-between px-4 py-3 border-b border-gray-200">
                     <h3 className="text-sm font-semibold text-gray-700">Interview Schedule</h3>
-                    <button onClick={() => setShowIvModal(true)} className="px-4 py-2 text-xs rounded-lg bg-blue-700 text-white hover:bg-blue-800 font-medium">+ Schedule Interview</button>
+                    {access.canAdd && <button onClick={() => setShowIvModal(true)} className="px-4 py-2 text-xs rounded-lg bg-blue-700 text-white hover:bg-blue-800 font-medium">+ Schedule Interview</button>}
                   </div>
                   {interviews.length === 0 ? (
                     <div className="py-16 text-center text-gray-400">
