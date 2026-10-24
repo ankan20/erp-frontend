@@ -210,6 +210,17 @@ export default function EmployeeDetailPage() {
                 <Field label="Confirmation Date" value={form.confirmation_date} edit={editing} onChange={set("confirmation_date")} type="date" />
                 <Field label="Work Email" value={form.work_email} edit={editing} onChange={set("work_email")} />
                 <Field label="Desk / Seat No." value={form.desk_seat_number} edit={editing} onChange={set("desk_seat_number")} />
+                <div className="flex flex-col gap-1">
+                  <label className="text-xs font-medium text-gray-500 uppercase tracking-wide">Reporting Manager</label>
+                  {editing ? (
+                    <input type="text" placeholder="Manager name or ID"
+                      value={form.reporting_manager ?? ""}
+                      onChange={(e) => setForm((f) => ({ ...f, reporting_manager: e.target.value }))}
+                      className="border border-gray-300 rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                  ) : (
+                    <span className="text-sm text-gray-800">{emp.reporting_manager || "—"}</span>
+                  )}
+                </div>
               </div>
             )}
 
@@ -262,24 +273,76 @@ export default function EmployeeDetailPage() {
 
             {/* Documents Tab */}
             {activeTab === 4 && (
-              <div className="space-y-3">
-                {[
-                  "Offer Letter",
-                  "Appointment Letter",
-                  "ID Proof",
-                  "Address Proof",
-                  "Education Certificates",
-                  "PAN Card",
-                  "Aadhaar Card",
-                  "Bank Details",
-                  "Previous Employment Letter",
-                  "Passport (if applicable)",
-                ].map((doc) => (
-                  <div key={doc} className="flex items-center justify-between bg-gray-50 rounded-lg px-4 py-3 border border-gray-200">
-                    <span className="text-sm text-gray-700">{doc}</span>
-                    <span className="text-xs px-2 py-0.5 rounded-full bg-gray-200 text-gray-600">Not Uploaded</span>
+              <div className="space-y-5">
+                {/* CV / Resume */}
+                <div>
+                  <p className="text-xs font-semibold text-blue-700 uppercase tracking-widest mb-3 border-b pb-2">Resume / CV</p>
+                  {editing ? (
+                    <div className="flex flex-col gap-1 max-w-lg">
+                      <label className="text-xs text-gray-500 font-medium uppercase">CV URL (Google Drive, OneDrive, etc.)</label>
+                      <input type="url" value={form.cv_url ?? ""} onChange={(e) => setForm((f) => ({ ...f, cv_url: e.target.value }))}
+                        placeholder="https://drive.google.com/..."
+                        className="border border-gray-300 rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                    </div>
+                  ) : (
+                    <div className="flex items-center gap-4 p-4 bg-gray-50 rounded-xl border border-gray-200">
+                      <span className="text-2xl">📄</span>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium text-gray-700">Resume / CV</p>
+                        {form.cv_url ? (
+                          <a href={form.cv_url} target="_blank" rel="noreferrer"
+                            className="text-xs text-blue-600 hover:underline break-all">{form.cv_url}</a>
+                        ) : (
+                          <p className="text-xs text-gray-400">Not uploaded — click Edit to add a CV link</p>
+                        )}
+                      </div>
+                      {form.cv_url && (
+                        <a href={form.cv_url} target="_blank" rel="noreferrer"
+                          className="px-3 py-1.5 text-xs rounded-lg bg-blue-700 text-white hover:bg-blue-800 flex-shrink-0">
+                          View CV
+                        </a>
+                      )}
+                    </div>
+                  )}
+                </div>
+
+                {/* Identity Documents with values from profile */}
+                <div>
+                  <p className="text-xs font-semibold text-blue-700 uppercase tracking-widest mb-3 border-b pb-2">Identity & KYC</p>
+                  <div className="space-y-2">
+                    {[
+                      { label: "PAN Card", value: emp.pan_number, icon: "🪪" },
+                      { label: "Aadhaar Card", value: emp.aadhaar_masked, icon: "🪪" },
+                      { label: "Passport", value: emp.passport_number ? `${emp.passport_number}${emp.passport_expiry ? ` (exp: ${emp.passport_expiry})` : ""}` : null, icon: "📘" },
+                    ].map(({ label, value, icon }) => (
+                      <div key={label} className="flex items-center justify-between bg-gray-50 rounded-lg px-4 py-3 border border-gray-200">
+                        <div className="flex items-center gap-3">
+                          <span>{icon}</span>
+                          <div>
+                            <p className="text-sm font-medium text-gray-700">{label}</p>
+                            {value && <p className="text-xs text-gray-500 font-mono">{value}</p>}
+                          </div>
+                        </div>
+                        <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${value ? "bg-emerald-100 text-emerald-700" : "bg-gray-200 text-gray-500"}`}>
+                          {value ? "On File" : "Not Provided"}
+                        </span>
+                      </div>
+                    ))}
                   </div>
-                ))}
+                </div>
+
+                {/* Other Documents */}
+                <div>
+                  <p className="text-xs font-semibold text-blue-700 uppercase tracking-widest mb-3 border-b pb-2">Other Documents</p>
+                  <div className="space-y-2">
+                    {["Offer Letter", "Appointment Letter", "Education Certificates", "Previous Employment Letter", "Bank Details", "Address Proof"].map((doc) => (
+                      <div key={doc} className="flex items-center justify-between bg-gray-50 rounded-lg px-4 py-3 border border-gray-200">
+                        <span className="text-sm text-gray-700">📎 {doc}</span>
+                        <span className="text-xs px-2 py-0.5 rounded-full bg-gray-200 text-gray-500">Not Uploaded</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
               </div>
             )}
 
