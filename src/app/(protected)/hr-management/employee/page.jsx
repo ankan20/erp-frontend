@@ -7,7 +7,7 @@ import PageHeader from "@/components/layout/PageHeader";
 import DataTable from "@/components/common/DataTable";
 import { apiRequest } from "@/lib/apiClient";
 import { API_ENDPOINTS } from "@/config/api.config";
-import { getPageActions } from "@/components/layout/PageHeader";
+import { getPageActions } from "@/components/common/PageActionButtons";
 
 const COLUMNS = [
   { key: "emp_code", label: "Emp Code" },

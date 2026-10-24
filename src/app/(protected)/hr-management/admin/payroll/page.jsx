@@ -6,7 +6,7 @@ import PageHeader from "@/components/layout/PageHeader";
 import DataTable from "@/components/common/DataTable";
 import { apiRequest } from "@/lib/apiClient";
 import { API_ENDPOINTS } from "@/config/api.config";
-import { getPageActions } from "@/components/layout/PageHeader";
+import { getPageActions } from "@/components/common/PageActionButtons";
 import { toast } from "sonner";
 
 const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];

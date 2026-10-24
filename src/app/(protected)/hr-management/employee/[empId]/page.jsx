@@ -6,7 +6,7 @@ import HeaderWrapper from "@/components/layout/HeaderWrapper";
 import PageHeader from "@/components/layout/PageHeader";
 import { apiRequest } from "@/lib/apiClient";
 import { API_ENDPOINTS } from "@/config/api.config";
-import { getPageActions } from "@/components/layout/PageHeader";
+import { getPageActions } from "@/components/common/PageActionButtons";
 import { toast } from "sonner";
 
 const TABS = [
