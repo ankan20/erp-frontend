@@ -704,6 +704,42 @@ export const API_ENDPOINTS = {
       },
     },
   },
+  HR: {
+    EMPLOYEE: {
+      LIST:        "/hr/employee",         // GET ?search&department&status
+      CREATE:      "/hr/employee",         // POST
+      GET_BY_ID:   "/hr/employee/",        // /:id GET
+      UPDATE:      "/hr/employee/",        // /:id PUT
+      DEPARTMENTS: "/hr/employee/departments", // GET
+    },
+    RECRUITMENT: {
+      JOBS_LIST:   "/hr/recruitment/jobs",           // GET ?search&status&department
+      JOBS_CREATE: "/hr/recruitment/jobs",           // POST
+      JOBS_UPDATE: "/hr/recruitment/jobs/",          // /:id PUT
+      CANDIDATES_LIST:   "/hr/recruitment/candidates",      // GET ?jobId&stage&search
+      CANDIDATES_CREATE: "/hr/recruitment/candidates",      // POST
+      CANDIDATES_UPDATE: "/hr/recruitment/candidates/",     // /:id PUT
+      PIPELINE_STATS:    "/hr/recruitment/stats",           // GET
+    },
+    PAYROLL: {
+      LIST:              "/hr/payroll",                    // GET ?month&year&status&search
+      PAYSLIP:           "/hr/payroll/payslip/",          // /:id GET
+      RUN:               "/hr/payroll/run",               // POST
+      UPDATE_STATUS:     "/hr/payroll/",                  // /:id/status PUT
+      DEPARTMENT_SUMMARY: "/hr/payroll/department-summary", // GET ?month&year
+    },
+    PERFORMANCE: {
+      REVIEWS_LIST:      "/hr/performance/reviews",           // GET ?search&status&department
+      REVIEWS_GET:       "/hr/performance/reviews/",          // /:id GET
+      REVIEWS_CREATE:    "/hr/performance/reviews",           // POST
+      REVIEWS_UPDATE:    "/hr/performance/reviews/",          // /:id PUT
+      REVIEWS_STATS:     "/hr/performance/reviews/stats",     // GET
+      DISCIPLINE_LIST:   "/hr/performance/discipline",        // GET ?search&severity&status
+      DISCIPLINE_CREATE: "/hr/performance/discipline",        // POST
+      DISCIPLINE_UPDATE: "/hr/performance/discipline/",       // /:id PUT
+      DISCIPLINE_STATS:  "/hr/performance/discipline/stats",  // GET
+    },
+  },
 };
 
 export default API_BASE_URL;
