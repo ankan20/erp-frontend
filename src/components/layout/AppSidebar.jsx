@@ -102,7 +102,7 @@ export default function AppSidebar({ collapsed, setCollapsed }) {
       const hasChildren = item.children && Array.isArray(item.children);
       const open = isMenuOpen(key, item);
       const isParentActive = hasActiveChild(item);
-      const isChildActive = isActive(item.path) ||
+      const isChildActive = (item.path && pathname === item.path) ||
         (item.activePaths?.some((p) => pathname.startsWith(p)) ?? false);
       const isLastLevel = !item.children || item.children.length === 0;
 
