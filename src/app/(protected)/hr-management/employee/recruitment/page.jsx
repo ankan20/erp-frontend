@@ -6,8 +6,6 @@ import PageHeader from "@/components/layout/PageHeader";
 import { apiRequest } from "@/lib/apiClient";
 import { API_ENDPOINTS } from "@/config/api.config";
 import { toast } from "sonner";
-import { getPageAccess } from "@/helper/getPageAccess";
-import PageNotAvailable from "@/components/common/PageNotAvailable";
 
 /* ─── Stage config ─────────────────────────────────────────── */
 const STAGES = ["Applied", "Screening", "Interview", "Offer", "Joined", "Rejected"];
@@ -67,7 +65,6 @@ const TABS = [
 
 /* ═══════════════════════════════════════════════════════════ */
 export default function RecruitmentPage() {
-  const access = getPageAccess({ pageCode: "recruitment", pageType: "LIST" });
   const [tab, setTab] = useState("overview");
   const [jobs, setJobs] = useState([]);
   const [candidates, setCandidates] = useState([]);
@@ -113,16 +110,6 @@ export default function RecruitmentPage() {
     if (res?.data) { toast.success("Job posted"); setShowJobModal(false); setJobForm(EMPTY_JOB); fetchAll(); }
   };
 
-  const closeVacancy = async (jobId) => {
-    const r = await apiRequest({ url: `${API_ENDPOINTS.HR.RECRUITMENT.JOBS_UPDATE}${jobId}`, method: "PUT", data: { status: "Closed" } });
-    if (r?.data) { toast.success("Vacancy closed"); fetchAll(); }
-  };
-
-  const reopenVacancy = async (jobId) => {
-    const r = await apiRequest({ url: `${API_ENDPOINTS.HR.RECRUITMENT.JOBS_UPDATE}${jobId}`, method: "PUT", data: { status: "Open" } });
-    if (r?.data) { toast.success("Vacancy reopened"); fetchAll(); }
-  };
-
   const createCandidate = async () => {
     const res = await apiRequest({ url: API_ENDPOINTS.HR.RECRUITMENT.CANDIDATES_CREATE, method: "POST", data: { ...candForm, job_opening_id: Number(candForm.job_opening_id) } });
     if (res?.data) { toast.success("Candidate added"); setShowCandModal(false); setCandForm(EMPTY_CANDIDATE); fetchAll(); }
@@ -157,8 +144,6 @@ export default function RecruitmentPage() {
   const totalActive = STAGES.filter(s => s !== "Joined" && s !== "Rejected").reduce((a, s) => a + (pipeline[s] || 0), 0);
   const interviewCandidates = candidates.filter((c) => c.stage === "Interview");
   const recentJoins = candidates.filter((c) => c.stage === "Joined" || c.stage === "Offer");
-
-  if (!access.allowed) return <PageNotAvailable />;
 
   return (
     <HeaderWrapper>
@@ -293,12 +278,10 @@ export default function RecruitmentPage() {
                       <option>Open</option><option>On Hold</option><option>Closed</option>
                     </select>
                   </div>
-                  {access.canAdd && (
-                    <button onClick={() => setShowJobModal(true)}
-                      className="px-4 py-2 text-sm rounded-lg bg-blue-700 text-white hover:bg-blue-800 font-medium">
-                      + Post Vacancy
-                    </button>
-                  )}
+                  <button onClick={() => setShowJobModal(true)}
+                    className="px-4 py-2 text-sm rounded-lg bg-blue-700 text-white hover:bg-blue-800 font-medium">
+                    + Post Vacancy
+                  </button>
                 </div>
 
                 {jobs.length === 0 ? (
@@ -311,7 +294,7 @@ export default function RecruitmentPage() {
                     <table className="w-full text-sm">
                       <thead>
                         <tr className="bg-gray-50 border-b border-gray-200 text-left">
-                          {["Role", "Department", "Openings", "Applied", "In Progress", "Salary Band", "Deadline", "Status", ""].map((h) => (
+                          {["Role", "Department", "Openings", "Applied", "In Progress", "Salary Band", "Deadline", "Status"].map((h) => (
                             <th key={h} className="px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide whitespace-nowrap">{h}</th>
                           ))}
                         </tr>
@@ -336,19 +319,6 @@ export default function RecruitmentPage() {
                                 "bg-red-100 text-red-600"
                               }`}>{j.status}</span>
                             </td>
-                            <td className="px-4 py-3">
-                              {j.status !== "Closed" ? (
-                                <button onClick={() => closeVacancy(j.id)}
-                                  className="text-xs px-2.5 py-1 rounded-md bg-red-50 text-red-600 hover:bg-red-100 font-medium whitespace-nowrap">
-                                  Close
-                                </button>
-                              ) : (
-                                <button onClick={() => reopenVacancy(j.id)}
-                                  className="text-xs px-2.5 py-1 rounded-md bg-emerald-50 text-emerald-600 hover:bg-emerald-100 font-medium whitespace-nowrap">
-                                  Reopen
-                                </button>
-                              )}
-                            </td>
                           </tr>
                         ))}
                       </tbody>
@@ -371,12 +341,10 @@ export default function RecruitmentPage() {
                       {STAGES.map((s) => <option key={s}>{s}</option>)}
                     </select>
                   </div>
-                  {access.canAdd && (
-                    <button onClick={() => setShowCandModal(true)}
-                      className="px-4 py-2 text-sm rounded-lg bg-blue-700 text-white hover:bg-blue-800 font-medium">
-                      + Add Candidate
-                    </button>
-                  )}
+                  <button onClick={() => setShowCandModal(true)}
+                    className="px-4 py-2 text-sm rounded-lg bg-blue-700 text-white hover:bg-blue-800 font-medium">
+                    + Add Candidate
+                  </button>
                 </div>
 
                 {candidates.length === 0 ? (
@@ -448,7 +416,7 @@ export default function RecruitmentPage() {
                 <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
                   <div className="flex items-center justify-between px-4 py-3 border-b border-gray-200">
                     <h3 className="text-sm font-semibold text-gray-700">Interview Schedule</h3>
-                    {access.canAdd && <button onClick={() => setShowIvModal(true)} className="px-4 py-2 text-xs rounded-lg bg-blue-700 text-white hover:bg-blue-800 font-medium">+ Schedule Interview</button>}
+                    <button onClick={() => setShowIvModal(true)} className="px-4 py-2 text-xs rounded-lg bg-blue-700 text-white hover:bg-blue-800 font-medium">+ Schedule Interview</button>
                   </div>
                   {interviews.length === 0 ? (
                     <div className="py-16 text-center text-gray-400">
