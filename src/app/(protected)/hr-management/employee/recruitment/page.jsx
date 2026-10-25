@@ -110,6 +110,16 @@ export default function RecruitmentPage() {
     if (res?.data) { toast.success("Job posted"); setShowJobModal(false); setJobForm(EMPTY_JOB); fetchAll(); }
   };
 
+  const closeVacancy = async (jobId) => {
+    const r = await apiRequest({ url: `${API_ENDPOINTS.HR.RECRUITMENT.JOBS_UPDATE}${jobId}`, method: "PUT", data: { status: "Closed" } });
+    if (r?.data) { toast.success("Vacancy closed"); fetchAll(); }
+  };
+
+  const reopenVacancy = async (jobId) => {
+    const r = await apiRequest({ url: `${API_ENDPOINTS.HR.RECRUITMENT.JOBS_UPDATE}${jobId}`, method: "PUT", data: { status: "Open" } });
+    if (r?.data) { toast.success("Vacancy reopened"); fetchAll(); }
+  };
+
   const createCandidate = async () => {
     const res = await apiRequest({ url: API_ENDPOINTS.HR.RECRUITMENT.CANDIDATES_CREATE, method: "POST", data: { ...candForm, job_opening_id: Number(candForm.job_opening_id) } });
     if (res?.data) { toast.success("Candidate added"); setShowCandModal(false); setCandForm(EMPTY_CANDIDATE); fetchAll(); }
@@ -294,7 +304,7 @@ export default function RecruitmentPage() {
                     <table className="w-full text-sm">
                       <thead>
                         <tr className="bg-gray-50 border-b border-gray-200 text-left">
-                          {["Role", "Department", "Openings", "Applied", "In Progress", "Salary Band", "Deadline", "Status"].map((h) => (
+                          {["Role", "Department", "Openings", "Applied", "In Progress", "Salary Band", "Deadline", "Status", ""].map((h) => (
                             <th key={h} className="px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide whitespace-nowrap">{h}</th>
                           ))}
                         </tr>
@@ -318,6 +328,19 @@ export default function RecruitmentPage() {
                                 j.status === "On Hold" ? "bg-yellow-100 text-yellow-700" :
                                 "bg-red-100 text-red-600"
                               }`}>{j.status}</span>
+                            </td>
+                            <td className="px-4 py-3">
+                              {j.status !== "Closed" ? (
+                                <button onClick={() => closeVacancy(j.id)}
+                                  className="text-xs px-2.5 py-1 rounded-md bg-red-50 text-red-600 hover:bg-red-100 font-medium whitespace-nowrap">
+                                  Close
+                                </button>
+                              ) : (
+                                <button onClick={() => reopenVacancy(j.id)}
+                                  className="text-xs px-2.5 py-1 rounded-md bg-emerald-50 text-emerald-600 hover:bg-emerald-100 font-medium whitespace-nowrap">
+                                  Reopen
+                                </button>
+                              )}
                             </td>
                           </tr>
                         ))}
