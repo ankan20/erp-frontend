@@ -207,6 +207,7 @@ export default function ApproverSection({ projectCode, projectData, refetchKey =
   const [creatorPopover, setCreatorPopover] = useState(null);
   const [collapsed, setCollapsed] = useState(false);
   const [confirmSave, setConfirmSave] = useState(false);
+  const { tableRef } = useColumnResize();
 
   // Max levels across all rows — drives column count
   const maxLevels = useMemo(() => {
@@ -280,7 +281,6 @@ export default function ApproverSection({ projectCode, projectData, refetchKey =
         const editUsersData = creatorRes?.data || {};
         Object.entries(editUsersData).forEach(([key, users]) => {
           const [moduleCode, permission] = key.split(".");
-  const { tableRef } = useColumnResize();
           if (permission !== "EDIT") return;
           const rowId = MODULE_ROW_MAP[moduleCode];
           if (!rowId) return;
