@@ -18,6 +18,7 @@ import { apiRequest } from "@/lib/apiClient";
 import { API_ENDPOINTS } from "@/config/api.config";
 import { getInputClass, labelClass } from "@/lib/formStyles";
 import { getLocalStorage } from "@/lib/localStorage";
+import { CATEGORY_OPTIONS } from "@/config/categoryOptions.config";
 
 // ── GRN CATEGORY CONFIG — underscore keys (URL-safe), label for display ──────
 const GRN_CATEGORY_CONFIG = {
@@ -59,11 +60,13 @@ const GRN_CATEGORY_CONFIG = {
   },
 };
 
-// Item category — value sent to API, label shown in UI
-const ITEM_CATEGORY = {
-  label: "Material",
-  value: "MAT_001",
-};
+// Sub-category options when Purchases Order is selected
+const PURCHASE_SUBCATEGORY_OPTIONS = CATEGORY_OPTIONS.itemCategory.filter(
+  (o) => o.value === "MAT_001" || o.value === "EXP_001"
+);
+
+// Default item category (used for all non-Purchases-Order categories)
+const ITEM_CATEGORY = { label: "Material", value: "MAT_001" };
 
 export const RECEIVED_CATEGORY_OPTIONS = Object.entries(
   GRN_CATEGORY_CONFIG,
@@ -328,16 +331,46 @@ export default function GRNLeftPanel({
             </div>
           </div>
 
-          {/* Item Category — always Material (auto) */}
+          {/* Item Category — dropdown for Purchases Order, locked to Material otherwise */}
           <div className="flex items-center">
             <div className={LABEL}>Item Category</div>
-            <Input
-              value={receivedCategory ? ITEM_CATEGORY.label : ""}
-              readOnly
-              disabled
-              placeholder="Material"
-              className={`${getInputClass(false, true)} w-[220px] h-[30px]`}
-            />
+            <div className="w-[220px]">
+              {receivedCategory === "Purchases_Order" ? (
+                <Controller
+                  control={control}
+                  name="itemCategory"
+                  render={({ field }) => (
+                    <Select
+                      value={field.value || "MAT_001"}
+                      onValueChange={(v) => {
+                        userChangedRef.current = true;
+                        field.onChange(v);
+                      }}
+                      disabled={disabled}
+                    >
+                      <SelectTrigger className={`${getInputClass(false, disabled)} w-full h-[30px]`}>
+                        <SelectValue placeholder="Select Category" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {PURCHASE_SUBCATEGORY_OPTIONS.map((o) => (
+                          <SelectItem key={o.value} value={o.value}>
+                            {o.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  )}
+                />
+              ) : (
+                <Input
+                  value={receivedCategory ? ITEM_CATEGORY.label : ""}
+                  readOnly
+                  disabled
+                  placeholder="Material"
+                  className={`${getInputClass(false, true)} w-full h-[30px]`}
+                />
+              )}
+            </div>
           </div>
 
           {/* Cost Head */}
