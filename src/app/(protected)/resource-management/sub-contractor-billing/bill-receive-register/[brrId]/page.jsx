@@ -26,6 +26,7 @@ export default function Page() {
   // Populated by BRRForm's onDataLoaded — no separate fetch needed here
   const [brrStatus, setBrrStatus]         = useState("");
   const [orderCategory, setOrderCategory] = useState("");
+  const [uuid, setUuid]                   = useState("");
 
   const access = getPageAccess({ pageCode: "bill_receive_register", pageType: "EDIT" });
   const { isPendingForMe, myLevel, refresh, dismiss } = useMyApprovalStatus(
@@ -41,6 +42,7 @@ export default function Page() {
     onTimeLine: () => setOpenTimeline(true),
     onApprove: access.canApprove ? () => setOpenApproval(true) : undefined,
     isPendingApproval: isPendingForMe,
+    onDownload: uuid ? () => window.open(`/print/brr/${uuid}`, "_blank") : undefined,
   });
 
   const isApproved  = brrStatus.toLowerCase() === "approved";
@@ -62,9 +64,10 @@ export default function Page() {
       <BRRForm
         mode={access.mode}
         brrId={brrId}
-        onDataLoaded={({ workflowStatus, orderCategory: cat }) => {
+        onDataLoaded={({ workflowStatus, orderCategory: cat, uuid: u }) => {
           setBrrStatus(workflowStatus);
           setOrderCategory(cat);
+          if (u) setUuid(u);
         }}
         onAfterSubmit={refresh}
       />

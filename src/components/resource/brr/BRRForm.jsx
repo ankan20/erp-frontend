@@ -211,7 +211,7 @@ export default function BRRForm({ mode = "create", brrId, onDataLoaded, onAfterS
         };
         reset(data);
         setInitialData(data);
-        onDataLoaded?.({ workflowStatus: d.workflowStatus || "", orderCategory: d.orderCategory || "" });
+        onDataLoaded?.({ workflowStatus: d.workflowStatus || "", orderCategory: d.orderCategory || "", uuid: d.uuid || "" });
         if (d.attachedDoc) {
           setExistingFileUrl(d.attachedDoc);
           setInitialFileUrl(d.attachedDoc);

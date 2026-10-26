@@ -136,6 +136,7 @@ export const API_ENDPOINTS = {
       CREATE:            "/billing/brr/create",         // POST FormData
       LIST:              "/billing/brr/list",            // GET projectCode
       DETAILS:           "/billing/brr/details",         // /:brrId GET
+      GET_BY_UUID:       "/billing/brr/uuid",            // /:uuid GET — no auth required
       EDIT:              "/billing/brr/edit",            // /:brrId PUT FormData
       SUBMIT:            "/billing/brr/submit",          // /:brrId POST
       APPROVE:           "/billing/brr/approve",         // /:brrId POST
