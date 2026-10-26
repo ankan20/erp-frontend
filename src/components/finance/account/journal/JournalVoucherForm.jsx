@@ -60,6 +60,7 @@ function snapshotFromLines(lines = []) {
 
 // ─── CC-wise grouped Cash panel ──────────────────────────────────────────────
 function CashPanel({ dockets, selectedItems, onToggleItem, onToggleCc }) {
+  const { tableRef } = useColumnResize();
   const [expanded, setExpanded] = useState({});
 
   const ccGroups = useMemo(() => {
@@ -111,7 +112,7 @@ function CashPanel({ dockets, selectedItems, onToggleItem, onToggleCc }) {
         </div>
       )}
       <div className="overflow-x-auto">
-        <table ref={tableRef1} className="w-full border-collapse text-sm min-w-[500px]">
+        <table ref={tableRef} className="w-full border-collapse text-sm min-w-[500px]">
           <thead className="bg-[#144664]">
             <tr>
               <th className="border border-[#2e5a72] px-2 py-1 text-white font-semibold text-center w-[36px]" />
@@ -226,6 +227,7 @@ function CashPanel({ dockets, selectedItems, onToggleItem, onToggleCc }) {
 
 // ─── Bank single-select panel ─────────────────────────────────────────────────
 function BankPanel({ dockets, selectedDocketSid, onSelect }) {
+  const { tableRef } = useColumnResize();
   if (!dockets.length) {
     return (
       <div className="flex items-center justify-center h-[160px] text-gray-400 text-[13px]">
@@ -236,7 +238,7 @@ function BankPanel({ dockets, selectedDocketSid, onSelect }) {
 
   return (
     <div className="overflow-x-auto">
-      <table ref={tableRef2} className="w-full border-collapse text-sm min-w-[500px]">
+      <table ref={tableRef} className="w-full border-collapse text-sm min-w-[500px]">
         <thead className="bg-[#144664]">
           <tr>
             <th className="border border-[#2e5a72] px-2 py-1 text-white font-semibold text-center w-[36px]" />
@@ -317,9 +319,10 @@ function BankPanel({ dockets, selectedDocketSid, onSelect }) {
 
 // ─── Read-only lines table (view mode right panel) ────────────────────────────
 function LinesTable({ lines = [], totalAmount }) {
+  const { tableRef } = useColumnResize();
   return (
     <div className="overflow-x-auto">
-      <table ref={tableRef3} className="w-full border-collapse text-sm min-w-[460px]">
+      <table ref={tableRef} className="w-full border-collapse text-sm min-w-[460px]">
         <thead className="bg-[#144664]">
           <tr>
             <th className="border border-[#2e5a72] px-2 py-1 text-white font-semibold text-center w-[44px]">SL no</th>
@@ -374,9 +377,6 @@ function LinesTable({ lines = [], totalAmount }) {
 
 // ─── Main form component ──────────────────────────────────────────────────────
 export default function JournalVoucherForm({ mode = "create", voucherId, onUuid, onAfterSubmit }) {
-  const { tableRef: tableRef1 } = useColumnResize();
-  const { tableRef: tableRef2 } = useColumnResize();
-  const { tableRef: tableRef3 } = useColumnResize();
   const isViewMode  = mode === "view" || mode === "approver";
   const router      = useRouter();
   const projectCode = getLocalStorage("projectInfo")?.projectCode || "";
