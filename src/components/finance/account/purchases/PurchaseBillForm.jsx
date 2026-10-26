@@ -268,6 +268,13 @@ export default function PurchaseBillForm({
 
   // ── Save Draft ───────────────────────────────────────────────────────────────
   const onSave = async (v) => {
+    const igstSelected    = !!v.gstLines?.[0]?.isSelected;
+    const cgstSgstSelected = !!v.gstLines?.[1]?.isSelected;
+    if (!igstSelected && !cgstSgstSelected) {
+      toast.error("Please select a GST type — either IGST or CGST + SGST — before saving.");
+      return;
+    }
+
     const url    = mode === "create"
       ? API_ENDPOINTS.FINANCE.PURCHASE_BILL.CREATE
       : `${API_ENDPOINTS.FINANCE.PURCHASE_BILL.EDIT}${billId}`;
