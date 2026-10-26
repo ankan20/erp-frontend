@@ -55,7 +55,7 @@ const defaultValues = {
   basicAmount: 0, gstAmount: 0, totalAmount: 0,
 };
 
-export default function BRRBillingForm({ mode = "create", billingType, brrId, billingId, onAfterSubmit }) {
+export default function BRRBillingForm({ mode = "create", billingType, brrId, billingId, onAfterSubmit, onDataLoaded }) {
   const [activeTab, setActiveTab]     = useState("details");
   const [loading, setLoading]         = useState(!!(brrId || billingId));
   const [isEditing, setIsEditing]     = useState(mode === "create");
@@ -184,6 +184,7 @@ export default function BRRBillingForm({ mode = "create", billingType, brrId, bi
 
         reset(formattedData);
         setInitialData(formattedData);
+        onDataLoaded?.({ workflowStatus: d.workflowStatus || "", uuid: d.uuid || "" });
 
         const st = (d.workflowStatus || "").toLowerCase();
         if (["draft", "reback"].includes(st)) {

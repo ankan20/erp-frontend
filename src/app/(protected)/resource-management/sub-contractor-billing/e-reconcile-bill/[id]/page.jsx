@@ -30,6 +30,7 @@ export default function Page() {
 
   const [openApproval, setOpenApproval] = useState(false);
   const [openTimeline, setOpenTimeline] = useState(false);
+  const [uuid, setUuid] = useState("");
 
   const access = getPageAccess({ pageCode, pageType });
   const { isPendingForMe, myLevel, refresh, dismiss } = useMyApprovalStatus(
@@ -51,6 +52,7 @@ export default function Page() {
           onTimeLine: () => setOpenTimeline(true),
           onApprove: access.canApprove ? () => setOpenApproval(true) : undefined,
           isPendingApproval: isPendingForMe,
+          onDownload: uuid ? () => window.open(`/print/brb/${uuid}`, "_blank") : undefined,
         }),
   });
 
@@ -80,6 +82,7 @@ export default function Page() {
         brrId={isNew ? brrId : undefined}
         billingId={isNew ? undefined : id}
         onAfterSubmit={refresh}
+        onDataLoaded={({ uuid: u }) => { if (u) setUuid(u); }}
       />
 
       {!isNew && (
