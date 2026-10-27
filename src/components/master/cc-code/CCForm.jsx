@@ -208,28 +208,6 @@ export default function CCForm({
         </div>
       </div>
 
-      {/* GROUP */}
-      <div className="flex flex-col">
-        <div className="flex gap-2">
-          <div className="w-[220px] bg-[#d6e6f2] px-3 py-1 border rounded-md">
-            Group
-          </div>
-
-          <select
-            {...register("groupId")}
-            disabled={fieldDisabled}
-            className={`flex-1 ${getInputClass(errors.groupId, fieldDisabled)}  disabled:cursor-not-allowed rounded-md`}
-          >
-            <option value="">Select</option>
-            {groups.map((g) => (
-              <option key={g.groupId} value={g.groupId}>
-                {g.groupName}
-              </option>
-            ))}
-          </select>
-        </div>
-      </div>
-
       {/* CATEGORY */}
       <div className="flex flex-col">
         <div className="flex gap-2">
@@ -246,6 +224,28 @@ export default function CCForm({
             {categories.map((c) => (
               <option key={c.value} value={c.value}>
                 {c.label}
+              </option>
+            ))}
+          </select>
+        </div>
+      </div>
+
+      {/* GROUP */}
+      <div className="flex flex-col">
+        <div className="flex gap-2">
+          <div className="w-[220px] bg-[#d6e6f2] px-3 py-1 border rounded-md">
+            Group
+          </div>
+
+          <select
+            {...register("groupId")}
+            disabled={fieldDisabled}
+            className={`flex-1 ${getInputClass(errors.groupId, fieldDisabled)}  disabled:cursor-not-allowed rounded-md`}
+          >
+            <option value="">Select</option>
+            {groups.map((g) => (
+              <option key={g.groupId} value={g.groupId}>
+                {g.groupName}
               </option>
             ))}
           </select>

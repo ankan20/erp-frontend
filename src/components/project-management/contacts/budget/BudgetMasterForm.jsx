@@ -29,7 +29,7 @@ const BUDGET = API_ENDPOINTS.PROJECT.BUDGET_MASTER;
 
 // CC codes auto-added as columns on every new budget — matched by code string so
 // environment-specific IDs don't matter; missing codes are silently skipped
-const DEFAULT_CC_CODES = ["DRCW", "DRMC", "DRFD", "DRMH", "DRUS", "DRMR", "DRLC", "DRLS", "DRMS"];
+const DEFAULT_CC_CODES = ["DRCW", "DRMC", "DRFD", "DRMH", "DRUS", "DRMR",  "DRMS","DRLC"];
 
 // ─── Schema ───────────────────────────────────────────────────────────────────
 
