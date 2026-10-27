@@ -19,5 +19,6 @@ jobs:
             cd /srv/frontend
             git pull origin master
             npm install --production=false
+            rm -rf .next
             npm run build
             sudo systemctl restart frontend.service
