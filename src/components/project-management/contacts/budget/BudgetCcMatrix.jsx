@@ -14,7 +14,7 @@ import { useColumnResize } from "@/hooks/useColumnResize";
 /**
  * Budget allocation matrix.
  *
- * Every CC code is a COLUMN across the whole table. `items[i].ccCodes` is
+ * Every CC code is a COLUMN across the whole table. `items[i].ccCodes` iS
  * kept index-aligned with the column list so cell (i, c) is always
  * `items.<i>.ccCodes.<c>.ccValue`.
  *
