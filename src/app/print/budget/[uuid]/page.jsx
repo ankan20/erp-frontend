@@ -39,80 +39,188 @@ function SigRow({ label, name, dateStr }) {
 
 function printAsPDF() { window.print(); }
 
-/**
- * Normalise one budget item: prefer the values the API stored, fall back to the
- * same arithmetic the form uses — order_qty × rate, and order_qty × cc_value.
- */
-function normalise(item) {
-  const qty  = Number(item.orderQty || 0);
-  const rate = Number(item.rate || 0);
+function normalise(item, poPercent, eoPercent) {
+  const qty    = Number(item.orderQty  || 0);
+  const rate   = Number(item.rate      || 0);
+  const amount = item.initialAmount !== undefined && item.initialAmount !== null
+    ? Number(item.initialAmount)
+    : qty * rate;
+
   const ccCodes = (item.ccCodes || []).map((c) => ({
-    ccCode:  c.ccCode || "",
-    ccName:  c.ccName || "",
+    ccCode:  c.ccCode  || "",
+    ccName:  c.ccName  || "",
     ccValue: Number(c.ccValue || 0),
     ccTotal: c.ccTotal !== undefined && c.ccTotal !== null
       ? Number(c.ccTotal)
       : qty * Number(c.ccValue || 0),
   }));
-  const initialAmount = item.initialAmount !== undefined && item.initialAmount !== null
-    ? Number(item.initialAmount)
-    : qty * rate;
-  const totalCcCost = item.totalCcCost !== undefined && item.totalCcCost !== null
+
+  // DRCW = sum of all stored DE CC code totals (DRCW col itself is not stored)
+  const drcwAmount = item.totalCcCost !== undefined && item.totalCcCost !== null
     ? Number(item.totalCcCost)
     : ccCodes.reduce((s, c) => s + c.ccTotal, 0);
-  const totalCost = item.totalCost !== undefined && item.totalCost !== null
-    ? Number(item.totalCost)
-    : initialAmount + totalCcCost;
-  return { ...item, orderQty: qty, rate, ccCodes, initialAmount, totalCcCost, totalCost };
+
+  const poAmount  = amount * poPercent / 100;
+  const eoAmount  = amount * eoPercent / 100;
+  const tec       = drcwAmount + poAmount + eoAmount;
+  const profit    = amount - tec;
+  const profitPct = amount > 0 ? profit / amount * 100 : 0;
+
+  return { ...item, orderQty: qty, rate, ccCodes, initialAmount: amount, drcwAmount, poAmount, eoAmount, tec, profit, profitPct };
 }
 
-async function downloadExcel(data, items, totals) {
+async function downloadExcel(data, items, totals, poPercent, eoPercent) {
   const XLSX = await import("xlsx");
 
-  const aoa = [
-    ["Budget Master"],
-    [`Budget No: ${data.budgetNo || "—"}    Date: ${fmt.date(data.budgetDate)}    Project: ${data.projectCode || "—"}`],
-    [`Sale Order: ${data.saleOrderNo || "—"}    ${data.saleOrderTitle || ""}`],
-    [],
-    ["Sl.", "Item Code", "Item Name", "Description", "Unit", "Order Qty", "Rate", "Initial Amt", "CC Code", "CC Name", "CC Value/unit", "CC Total", "Item CC Cost", "Total Cost"],
-  ];
-
-  items.forEach((it, i) => {
-    const base = [
-      it.slNo || i + 1, it.itemCode || "", it.itemName || "", it.itemDescription || "",
-      it.unitItem || it.unit || "", it.orderQty, it.rate, it.initialAmount,
-    ];
-    if (!it.ccCodes.length) {
-      aoa.push([...base, "", "", "", "", it.totalCcCost, it.totalCost]);
-      return;
-    }
-    it.ccCodes.forEach((c, ci) => {
-      aoa.push([
-        ...(ci === 0 ? base : ["", "", "", "", "", "", "", ""]),
-        c.ccCode, c.ccName, c.ccValue, c.ccTotal,
-        ci === 0 ? it.totalCcCost : "",
-        ci === 0 ? it.totalCost   : "",
-      ]);
+  // Collect unique sibling DE CC codes in encounter order (across all items)
+  const allDeCcCols = [];
+  const seenCodes = new Set();
+  items.forEach((it) => {
+    (it.ccCodes || []).forEach((c) => {
+      if (!seenCodes.has(c.ccCode)) {
+        seenCodes.add(c.ccCode);
+        allDeCcCols.push({ ccCode: c.ccCode, ccName: c.ccName });
+      }
     });
   });
 
-  aoa.push([]);
-  aoa.push(["", "", "", "", "", "", "", totals.initial, "", "", "", "", totals.cc, totals.grand]);
+  // Fixed col count: Sl, Item Name, Unit, Qty, Rate, Amount → 6
+  // Then: DRCW, [DE cols...], PO, EO, TEC, Profit, Profit% → variable
+  const fixedCount = 6;
+  const drcwColIdx = fixedCount;               // col G (0-indexed = 6)
+  const deStartIdx = drcwColIdx + 1;           // col H+
+  const deEndIdx   = deStartIdx + allDeCcCols.length - 1;
+  const poIdx      = deEndIdx + 1;
+  const eoIdx      = poIdx + 1;
+  const totalCols  = eoIdx + 3 + 1;            // +TEC, Profit, Profit%
 
-  const ws = XLSX.utils.aoa_to_sheet(aoa);
-  ws["!cols"] = [
-    { wch: 6 }, { wch: 12 }, { wch: 26 }, { wch: 26 }, { wch: 8 }, { wch: 12 },
-    { wch: 12 }, { wch: 14 }, { wch: 12 }, { wch: 24 }, { wch: 14 }, { wch: 14 },
-    { wch: 14 }, { wch: 14 },
+  // Helper: col index → Excel letter (A, B, ... Z, AA...)
+  const colLetter = (i) => {
+    let s = "";
+    let n = i + 1;
+    while (n > 0) { const r = (n - 1) % 26; s = String.fromCharCode(65 + r) + s; n = Math.floor((n - 1) / 26); }
+    return s;
+  };
+  const poLetter = colLetter(poIdx);
+  const eoLetter = colLetter(eoIdx);
+
+  // ── Header info rows ──────────────────────────────────────────────────────
+  const aoa = [];
+  aoa.push(["DISHAANHI TECH IT SOLUTIONS PVT. LTD."]);
+  aoa.push([]);
+  aoa.push(["Budget No", data.budgetNo || "—", "", "Budget Date", fmt.date(data.budgetDate)]);
+  aoa.push(["Sale Order", data.saleOrderNo || "—", "", "Sale Order Title", data.saleOrderTitle || "—"]);
+  aoa.push(["Project", data.projectCode || "—", "", "Status", (data.workflowStatus || "").replace(/_/g, " ")]);
+  aoa.push(["Order Value (excl. GST)", totals.orderValue, "", "Remarks", data.remarks || "—"]);
+  aoa.push([]);
+
+  // ── Overhead % row (matches reference: just values in PO and EO columns) ──
+  const pctRow = new Array(totalCols).fill(null);
+  pctRow[poIdx] = poPercent / 100;
+  pctRow[eoIdx] = eoPercent / 100;
+  aoa.push(pctRow);
+
+  // ── Column header row ─────────────────────────────────────────────────────
+  const headers = [
+    "Sl No", "Details Description", "Unit", "BOQ", "Rate", "Amount",
+    "Composite Work Charges (DRCW)",
+    ...allDeCcCols.map((c) => c.ccName || c.ccCode),
+    "Project Overhead",
+    "Employee Overhead",
+    "Total Execution Cost",
+    "Profit",
+    "Profit %",
   ];
-  ws["!merges"] = [
-    { s: { r: 0, c: 0 }, e: { r: 0, c: 13 } },
-    { s: { r: 1, c: 0 }, e: { r: 1, c: 13 } },
-    { s: { r: 2, c: 0 }, e: { r: 2, c: 13 } },
+  aoa.push(headers);
+
+  // ── Data rows ─────────────────────────────────────────────────────────────
+  const dataStartRow = aoa.length + 1; // 1-indexed for XLSX formulas
+  items.forEach((it, i) => {
+    const r = dataStartRow + i; // 1-indexed row for formulas
+    const deVals = allDeCcCols.map((col) => {
+      const match = (it.ccCodes || []).find((c) => c.ccCode === col.ccCode);
+      return match ? Number(match.ccValue || 0) : 0;
+    });
+    const drcwPerUnit = deVals.reduce((s, v) => s + v, 0);
+    const poPerUnit   = Number(it.rate) * poPercent / 100;
+    const eoPerUnit   = Number(it.rate) * eoPercent / 100;
+    const tecPerUnit  = drcwPerUnit + poPerUnit + eoPerUnit;
+    const profitPerUnit = Number(it.rate) - tecPerUnit;
+    const profitPct   = Number(it.rate) > 0 ? profitPerUnit / Number(it.rate) * 100 : 0;
+    aoa.push([
+      it.slNo || i + 1,
+      it.itemName || "",
+      it.unitItem || it.unit || "",
+      Number(it.orderQty),
+      Number(it.rate),
+      Number(it.initialAmount),
+      drcwPerUnit,
+      ...deVals,
+      poPerUnit,
+      eoPerUnit,
+      tecPerUnit,
+      profitPerUnit,
+      Number(profitPct.toFixed(2)),
+    ]);
+  });
+
+  // ── Total row ─────────────────────────────────────────────────────────────
+  const totalRow = new Array(totalCols).fill(null);
+  totalRow[0] = "TOTAL";
+  totalRow[5] = totals.amount;
+  totalRow[drcwColIdx] = totals.drcw;
+  allDeCcCols.forEach((col, ci) => {
+    totalRow[deStartIdx + ci] = items.reduce((s, it) => {
+      const match = (it.ccCodes || []).find((c) => c.ccCode === col.ccCode);
+      return s + (match ? Number(match.ccValue || 0) : 0);
+    }, 0);
+  });
+  totalRow[poIdx]      = totals.po;
+  totalRow[eoIdx]      = totals.eo;
+  totalRow[eoIdx + 1]  = totals.tec;
+  totalRow[eoIdx + 2]  = totals.profit;
+  totalRow[eoIdx + 3]  = Number(totals.profitPct.toFixed(2));
+  aoa.push(totalRow);
+
+  // ── Overhead CC sheet ─────────────────────────────────────────────────────
+  const poRows = (data.projectOverhead || []).map((c) => {
+    const est = Number(c.estimatedCost || 0);
+    return [c.ccCode, c.ccName, est, totals.orderValue,
+      totals.orderValue > 0 ? Number((est / totals.orderValue * 100).toFixed(2)) : 0];
+  });
+  const eoRows = (data.employeeOverhead || []).map((c) => {
+    const est = Number(c.estimatedCost || 0);
+    return [c.ccCode, c.ccName, est, totals.orderValue,
+      totals.orderValue > 0 ? Number((est / totals.orderValue * 100).toFixed(2)) : 0];
+  });
+  const ohHeader = ["CC Code", "CC Name", "Estimated Cost (₹)", "Order Value excl. GST (₹)", "%"];
+  const aoaOH = [
+    ["Overhead CC Code Breakdown"],
+    [],
+    [`Project Overhead — ${poPercent.toFixed(2)}%`],
+    ohHeader, ...poRows,
+    [],
+    [`Employee Overhead — ${eoPercent.toFixed(2)}%`],
+    ohHeader, ...eoRows,
   ];
+
+  // ── Build workbook ────────────────────────────────────────────────────────
+  const ws  = XLSX.utils.aoa_to_sheet(aoa);
+  const wsO = XLSX.utils.aoa_to_sheet(aoaOH);
+
+  // Column widths for main sheet
+  const wCols = [
+    { wch: 6 }, { wch: 40 }, { wch: 7 }, { wch: 10 }, { wch: 12 }, { wch: 14 },
+    { wch: 16 }, // DRCW
+    ...allDeCcCols.map(() => ({ wch: 18 })),
+    { wch: 14 }, { wch: 14 }, { wch: 16 }, { wch: 14 }, { wch: 9 },
+  ];
+  ws["!cols"] = wCols;
+  wsO["!cols"] = [{ wch: 14 }, { wch: 30 }, { wch: 18 }, { wch: 20 }, { wch: 8 }];
 
   const wb = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(wb, ws, "Budget");
+  XLSX.utils.book_append_sheet(wb, ws,  "Budget Items");
+  XLSX.utils.book_append_sheet(wb, wsO, "Overhead CCs");
   XLSX.writeFile(wb, `Budget_${data.budgetNo || "master"}.xlsx`);
 }
 
@@ -146,39 +254,59 @@ export default function BudgetPrintPage() {
 
   if (error || !data) return <PrintErrorPage status={error?.status} message={error?.message} />;
 
+  // ── Overhead percent (budget-level) ───────────────────────────────────────
+  const orderValue       = Number(data.orderValueExclGst || 0);
+  const poTotalEstimated = (data.projectOverhead  || []).reduce((s, c) => s + Number(c.estimatedCost || 0), 0);
+  const eoTotalEstimated = (data.employeeOverhead || []).reduce((s, c) => s + Number(c.estimatedCost || 0), 0);
+  const poPercent        = orderValue > 0 ? poTotalEstimated / orderValue * 100 : 0;
+  const eoPercent        = orderValue > 0 ? eoTotalEstimated / orderValue * 100 : 0;
+
+  // ── Items ─────────────────────────────────────────────────────────────────
   const items = (data.items || [])
     .slice()
     .sort((a, b) => (a.slNo || 0) - (b.slNo || 0))
-    .map(normalise);
+    .map((it) => normalise(it, poPercent, eoPercent));
+
+  // ── Budget-level totals ───────────────────────────────────────────────────
+  const totalAmount = data.totalInitialCost !== undefined && data.totalInitialCost !== null
+    ? Number(data.totalInitialCost) : items.reduce((s, it) => s + it.initialAmount, 0);
+  const totalDrcw   = data.totalCcCost !== undefined && data.totalCcCost !== null
+    ? Number(data.totalCcCost) : items.reduce((s, it) => s + it.drcwAmount, 0);
+  const totalPo     = totalAmount * poPercent / 100;
+  const totalEo     = totalAmount * eoPercent / 100;
+  const totalTec    = totalDrcw + totalPo + totalEo;
+  const totalProfit = totalAmount - totalTec;
+  const totalProfitPct = totalAmount > 0 ? totalProfit / totalAmount * 100 : 0;
 
   const totals = {
-    initial: data.totalInitialCost !== undefined && data.totalInitialCost !== null
-      ? Number(data.totalInitialCost)
-      : items.reduce((s, it) => s + it.initialAmount, 0),
-    cc: data.totalCcCost !== undefined && data.totalCcCost !== null
-      ? Number(data.totalCcCost)
-      : items.reduce((s, it) => s + it.totalCcCost, 0),
+    orderValue,
+    amount: totalAmount, drcw: totalDrcw,
+    po: totalPo, eo: totalEo, tec: totalTec,
+    profit: totalProfit, profitPct: totalProfitPct,
   };
-  totals.grand = data.grandTotal !== undefined && data.grandTotal !== null
-    ? Number(data.grandTotal)
-    : totals.initial + totals.cc;
 
+  // ─── Column headers ────────────────────────────────────────────────────────
   const HEADS = [
-    "Sl.", "Item Code", "Item Name & Description", "Unit",
-    "Order Qty", "Rate (₹)", "Initial Amt (₹)", "CC Cost (₹)", "Total Cost (₹)",
+    "Sl.", "Code", "Item Name & Description", "Unit",
+    "Qty", "Rate (₹)", "Amount (₹)",
+    "Direct Exp. (₹)", "Proj. OH (₹)", "Emp. OH (₹)",
+    "TEC (₹)", "Profit (₹)", "Profit %",
   ];
+
+  const poHasData = (data.projectOverhead  || []).length > 0;
+  const eoHasData = (data.employeeOverhead || []).length > 0;
 
   return (
     <>
       <PrintTopBar
         title={`Budget Master — ${data.budgetNo || ""}`}
         onDownloadPDF={printAsPDF}
-        onDownloadExcel={() => downloadExcel(data, items, totals)}
+        onDownloadExcel={() => downloadExcel(data, items, totals, poPercent, eoPercent)}
       />
 
       <div className="bg-gray-100 py-6 px-3 print:p-0 print:bg-white">
         <div
-          className="bg-white max-w-[860px] mx-auto shadow-md print:shadow-none print:max-w-none"
+          className="bg-white max-w-[1160px] mx-auto shadow-md print:shadow-none print:max-w-none"
           style={{ fontFamily: "var(--font-print), sans-serif" }}
         >
           {/* ── HEADER ── */}
@@ -207,39 +335,94 @@ export default function BudgetPrintPage() {
           </div>
 
           {/* ── INFO ── */}
-          <div className="grid px-6 pb-3" style={{ gridTemplateColumns: "50% 50%" }}>
+          <div className="grid px-6 pb-3" style={{ gridTemplateColumns: "1fr 1fr 1fr" }}>
             <div className="space-y-0.5">
               <InfoRow label="Budget No"   value={data.budgetNo} />
               <InfoRow label="Budget Date" value={fmt.date(data.budgetDate)} />
+              <InfoRow label="Status"      value={(data.workflowStatus || "").replace(/_/g, " ")} />
+            </div>
+            <div className="space-y-0.5 pl-4">
               <InfoRow label="Sale Order"  value={data.saleOrderNo} />
               <InfoRow label="Order Title" value={data.saleOrderTitle} />
+              <InfoRow label="Project"     value={data.projectCode} />
             </div>
-            <div className="space-y-0.5 pl-6">
-              <InfoRow label="Project"      value={data.projectCode} />
-              <InfoRow label="Status"       value={(data.workflowStatus || "").replace(/_/g, " ")} />
-              <InfoRow label="Initial Cost" value={`₹ ${fmt.number(totals.initial)}`} />
-              <InfoRow label="CC Code Cost" value={`₹ ${fmt.number(totals.cc)}`} />
+            <div className="space-y-0.5 pl-4">
+              <InfoRow label="Order Value (excl. GST)" value={`₹ ${fmt.number(orderValue)}`} />
+              <InfoRow label="Proj. Overhead %"  value={`${poPercent.toFixed(2)}%  (₹ ${fmt.number(poTotalEstimated)})`} />
+              <InfoRow label="Emp. Overhead %"   value={`${eoPercent.toFixed(2)}%  (₹ ${fmt.number(eoTotalEstimated)})`} />
             </div>
           </div>
 
-          {/* ── ITEMS + CC ALLOCATION ── */}
+          {/* ── COST SUMMARY STRIP ── */}
+          <div className="px-6 pb-3">
+            <div className="grid border border-[#b0b0b0] text-center" style={{ gridTemplateColumns: "repeat(7, 1fr)" }}>
+              {[
+                { label: "Sale Order Amount",     value: fmt.number(totalAmount) },
+                { label: "Direct Expenses",        value: fmt.number(totalDrcw),   bg: "#e0f2fe" },
+                { label: `Proj. Overhead (${poPercent.toFixed(1)}%)`, value: fmt.number(totalPo), bg: "#ede9fe" },
+                { label: `Emp. Overhead (${eoPercent.toFixed(1)}%)`,  value: fmt.number(totalEo), bg: "#ede9fe" },
+                { label: "Total Execution Cost",   value: fmt.number(totalTec),    bg: "#fff1f2" },
+                { label: "Profit",                 value: fmt.number(totalProfit), bg: totalProfit >= 0 ? "#dcfce7" : "#fef2f2" },
+                { label: "Profit %",               value: `${totalProfitPct.toFixed(2)}%`, bg: totalProfit >= 0 ? "#dcfce7" : "#fef2f2" },
+              ].map(({ label, value, bg }) => (
+                <div
+                  key={label}
+                  className="border-r border-[#b0b0b0] last:border-r-0 px-1.5 py-1.5"
+                  style={bg ? { backgroundColor: bg } : {}}
+                >
+                  <div className={`${SIZE.subText} text-gray-500`}>{label}</div>
+                  <div className={`${SIZE.tableHead} ${WEIGHT.bold} text-gray-900 tabular-nums mt-0.5`}>₹ {value}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* ── ITEMS TABLE ── */}
           <div className="px-6 pb-3">
             <table className="w-full border-collapse" style={{ tableLayout: "fixed" }}>
               <colgroup>
-                <col style={{ width: "5%"  }} />
-                <col style={{ width: "10%" }} />
-                <col style={{ width: "25%" }} />
-                <col style={{ width: "7%"  }} />
-                <col style={{ width: "11%" }} />
-                <col style={{ width: "11%" }} />
-                <col style={{ width: "11%" }} />
-                <col style={{ width: "10%" }} />
-                <col style={{ width: "10%" }} />
+                <col style={{ width: "3.5%" }} />
+                <col style={{ width: "7%"   }} />
+                <col style={{ width: "17%"  }} />
+                <col style={{ width: "5%"   }} />
+                <col style={{ width: "6%"   }} />
+                <col style={{ width: "7%"   }} />
+                <col style={{ width: "8%"   }} />
+                <col style={{ width: "8%"   }} />
+                <col style={{ width: "7%"   }} />
+                <col style={{ width: "7%"   }} />
+                <col style={{ width: "8%"   }} />
+                <col style={{ width: "8%"   }} />
+                <col style={{ width: "8%"   }} />
               </colgroup>
               <thead>
+                {/* Group header */}
+                <tr>
+                  <th colSpan={7} className={`border border-[#b0b0b0] px-2 py-1 text-center ${SIZE.subText} ${WEIGHT.bold}`}
+                    style={{ backgroundColor: "#dbeafe", color: "#1e3a5f" }}>
+                    Sale Order Items
+                  </th>
+                  <th className={`border border-[#b0b0b0] px-2 py-1 text-center ${SIZE.subText} ${WEIGHT.bold}`}
+                    style={{ backgroundColor: "#cffafe", color: "#0e4f6c" }}>
+                    Direct Exp.
+                  </th>
+                  <th colSpan={2} className={`border border-[#b0b0b0] px-2 py-1 text-center ${SIZE.subText} ${WEIGHT.bold}`}
+                    style={{ backgroundColor: "#ede9fe", color: "#3b0764" }}>
+                    Overhead
+                  </th>
+                  <th className={`border border-[#b0b0b0] px-2 py-1 text-center ${SIZE.subText} ${WEIGHT.bold}`}
+                    style={{ backgroundColor: "#fff1f2", color: "#7f1d1d" }}>
+                    Cost
+                  </th>
+                  <th colSpan={2} className={`border border-[#b0b0b0] px-2 py-1 text-center ${SIZE.subText} ${WEIGHT.bold}`}
+                    style={{ backgroundColor: "#dcfce7", color: "#14532d" }}>
+                    Margin
+                  </th>
+                </tr>
+                {/* Column header */}
                 <tr className={COLOR.tableHeadBg}>
                   {HEADS.map((h) => (
-                    <th key={h} className={`${B} px-2 py-1.5 text-center ${SIZE.tableHead} ${WEIGHT.bold} text-gray-900`}>
+                    <th key={h} className={`${B} px-1.5 py-1.5 text-center ${SIZE.tableHead} ${WEIGHT.bold} text-gray-900`}>
                       {h}
                     </th>
                   ))}
@@ -248,7 +431,7 @@ export default function BudgetPrintPage() {
               <tbody>
                 {items.length === 0 && (
                   <tr>
-                    <td colSpan={9} className={`${B} px-2 py-4 text-center ${SIZE.tableCell} text-gray-400 italic`}>
+                    <td colSpan={13} className={`${B} px-2 py-4 text-center ${SIZE.tableCell} text-gray-400 italic`}>
                       No items on this budget
                     </td>
                   </tr>
@@ -258,37 +441,82 @@ export default function BudgetPrintPage() {
                   <ItemBlock key={idx} item={it} idx={idx} />
                 ))}
 
-                {/* TOTAL */}
+                {/* TOTAL ROW */}
                 <tr className={`${COLOR.tableHeadBg} ${WEIGHT.bold}`}>
                   <td colSpan={6} className={`${B} px-3 py-1.5 ${SIZE.tableCell} text-right`}>TOTAL</td>
-                  <td className={`${B} px-2 py-1.5 ${SIZE.tableCell} text-right tabular-nums`} style={{ whiteSpace: "nowrap" }}>
-                    <FmtNum value={totals.initial} />
+                  <td className={`${B} px-1.5 py-1.5 ${SIZE.tableCell} text-right tabular-nums`} style={{ whiteSpace: "nowrap" }}>
+                    <FmtNum value={totalAmount} />
                   </td>
-                  <td className={`${B} px-2 py-1.5 ${SIZE.tableCell} text-right tabular-nums`} style={{ whiteSpace: "nowrap" }}>
-                    <FmtNum value={totals.cc} />
+                  <td className={`${B} px-1.5 py-1.5 ${SIZE.tableCell} text-right tabular-nums`}
+                    style={{ whiteSpace: "nowrap", backgroundColor: "#e0f2fe" }}>
+                    <FmtNum value={totalDrcw} />
                   </td>
-                  <td className={`${B} px-2 py-1.5 ${SIZE.tableCell} text-right tabular-nums`} style={{ whiteSpace: "nowrap" }}>
-                    <FmtNum value={totals.grand} />
+                  <td className={`${B} px-1.5 py-1.5 ${SIZE.tableCell} text-right tabular-nums`}
+                    style={{ whiteSpace: "nowrap", backgroundColor: "#ede9fe" }}>
+                    <FmtNum value={totalPo} />
+                  </td>
+                  <td className={`${B} px-1.5 py-1.5 ${SIZE.tableCell} text-right tabular-nums`}
+                    style={{ whiteSpace: "nowrap", backgroundColor: "#ede9fe" }}>
+                    <FmtNum value={totalEo} />
+                  </td>
+                  <td className={`${B} px-1.5 py-1.5 ${SIZE.tableCell} text-right tabular-nums`}
+                    style={{ whiteSpace: "nowrap", backgroundColor: "#fff1f2" }}>
+                    <FmtNum value={totalTec} />
+                  </td>
+                  <td className={`${B} px-1.5 py-1.5 ${SIZE.tableCell} text-right tabular-nums`}
+                    style={{ whiteSpace: "nowrap", backgroundColor: totalProfit >= 0 ? "#dcfce7" : "#fef2f2" }}>
+                    <FmtNum value={totalProfit} />
+                  </td>
+                  <td className={`${B} px-1.5 py-1.5 ${SIZE.tableCell} text-right tabular-nums`}
+                    style={{ whiteSpace: "nowrap", backgroundColor: totalProfit >= 0 ? "#dcfce7" : "#fef2f2" }}>
+                    {totalProfitPct.toFixed(2)}%
                   </td>
                 </tr>
 
-                {/* GRAND TOTAL in words */}
+                {/* Grand total in words */}
                 <tr>
                   <td
-                    colSpan={9}
+                    colSpan={13}
                     style={{
                       borderLeft: "1px solid #b0b0b0", borderRight: "1px solid #b0b0b0",
                       borderBottom: "1px solid #b0b0b0", borderTop: "none", padding: "5px 10px",
                     }}
                     className={SIZE.labelText}
                   >
-                    <span className={WEIGHT.bold}>Grand Total in Words: </span>
-                    {totals.grand > 0 ? amountToWordsIN(totals.grand) : "—"}
+                    <span className={WEIGHT.bold}>Sale Order Amount in Words: </span>
+                    {totalAmount > 0 ? amountToWordsIN(totalAmount) : "—"}
                   </td>
                 </tr>
               </tbody>
             </table>
           </div>
+
+          {/* ── OVERHEAD CC BREAKDOWN ── */}
+          {(poHasData || eoHasData) && (
+            <div className="px-6 pb-3">
+              <div className={`${SIZE.labelText} ${WEIGHT.bold} text-gray-700 mb-1`}>Overhead CC Code Breakdown</div>
+              <div className="grid gap-4" style={{ gridTemplateColumns: poHasData && eoHasData ? "1fr 1fr" : "1fr" }}>
+                {poHasData && (
+                  <OverheadTable
+                    title={`Project Overhead — ${poPercent.toFixed(2)}%`}
+                    rows={data.projectOverhead}
+                    orderValue={orderValue}
+                    bgHead="#ede9fe"
+                    colorHead="#3b0764"
+                  />
+                )}
+                {eoHasData && (
+                  <OverheadTable
+                    title={`Employee Overhead — ${eoPercent.toFixed(2)}%`}
+                    rows={data.employeeOverhead}
+                    orderValue={orderValue}
+                    bgHead="#ede9fe"
+                    colorHead="#3b0764"
+                  />
+                )}
+              </div>
+            </div>
+          )}
 
           {/* ── REMARKS ── */}
           {data.remarks && (
@@ -300,10 +528,34 @@ export default function BudgetPrintPage() {
           )}
 
           {/* ── SIGNATURES ── */}
-          <div className="px-6 pb-6 pt-2 border-t border-gray-200 mt-2">
-            <SigRow label="Created By"   name={data.createdBy}   dateStr={fmt.dateTime(data.createdAt)} />
-            <SigRow label="Submitted By" name={data.submittedBy} dateStr={fmt.dateTime(data.submittedAt)} />
-            <SigRow label="Approved By"  name={data.approvedBy}  dateStr={fmt.dateTime(data.finalApprovedAt)} />
+          <div className="px-6 pt-3 pb-4 border-t border-gray-200 mt-2">
+            <div className="grid" style={{ gridTemplateColumns: "1fr 1fr 1fr" }}>
+              <div>
+                <SigRow label="Created By"   name={data.createdBy}   dateStr={fmt.dateTime(data.createdAt)} />
+              </div>
+              <div>
+                <SigRow label="Submitted By" name={data.submittedBy} dateStr={fmt.dateTime(data.submittedAt)} />
+              </div>
+              <div>
+                <SigRow label="Approved By"  name={data.approvedBy}  dateStr={fmt.dateTime(data.finalApprovedAt)} />
+              </div>
+            </div>
+          </div>
+
+          {/* ── PRINT FOOTER ── */}
+          <div
+            className="px-6 py-2 border-t border-[#b0b0b0] flex items-center justify-between"
+            style={{ backgroundColor: "#f5f5f5" }}
+          >
+            <span className={`${SIZE.subText} text-gray-500`}>
+              {data.budgetNo || "—"} | {fmt.date(data.budgetDate)} | {data.projectCode || "—"}
+            </span>
+            <span className={`${SIZE.subText} text-gray-500`}>
+              www.dishaanhitech.com
+            </span>
+            <span className={`${SIZE.subText} text-gray-500 print-page-num`}>
+              Page 1 / 1
+            </span>
           </div>
         </div>
       </div>
@@ -313,7 +565,7 @@ export default function BudgetPrintPage() {
       </div>
 
       <style>{`
-        @page { size: A4; margin: 8mm 8mm 12mm 8mm; }
+        @page { size: A4 landscape; margin: 8mm 8mm 14mm 8mm; }
         @media print {
           * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
           html, body, body > * { background: white !important; margin: 0 !important; }
@@ -324,62 +576,156 @@ export default function BudgetPrintPage() {
           .print\\:bg-white { background: white !important; }
           .print\\:shadow-none { box-shadow: none !important; }
           .print\\:max-w-none { max-width: none !important; }
+          .print-page-num { display: none; }
+          @page {
+            @bottom-right {
+              content: "Page " counter(page) " / " counter(pages);
+              font-size: 10px;
+              color: #6b7280;
+            }
+            @bottom-left {
+              content: attr(data-budget-no);
+              font-size: 10px;
+              color: #6b7280;
+            }
+          }
         }
       `}</style>
     </>
   );
 }
 
-/* One item row plus an indented row per CC code allocated to it */
 function ItemBlock({ item, idx }) {
   const zebra = idx % 2 === 0 ? "bg-white" : "bg-gray-50";
   return (
     <>
       <tr className={zebra}>
-        <td className={`${B} px-2 py-2 ${SIZE.tableCell} text-center text-gray-500`}>{item.slNo || idx + 1}</td>
-        <td className={`${B} px-2 py-2 ${SIZE.tableCell} text-center ${WEIGHT.medium}`}>{item.itemCode || "—"}</td>
-        <td className={`${B} px-2 py-2 ${SIZE.tableCell}`} style={{ wordBreak: "break-word" }}>
+        <td className={`${B} px-1.5 py-1.5 ${SIZE.tableCell} text-center text-gray-500`}>{item.slNo || idx + 1}</td>
+        <td className={`${B} px-1.5 py-1.5 ${SIZE.tableCell} text-center`} style={{ wordBreak: "break-word" }}>{item.itemCode || "—"}</td>
+        <td className={`${B} px-1.5 py-1.5 ${SIZE.tableCell}`} style={{ wordBreak: "break-word" }}>
           {item.itemName || "—"}
           {item.itemDescription && (
             <div className="text-[11px] text-gray-500">{item.itemDescription}</div>
           )}
         </td>
-        <td className={`${B} px-2 py-2 ${SIZE.tableCell} text-center text-gray-600`}>{item.unitItem || item.unit || "—"}</td>
-        <td className={`${B} px-2 py-2 ${SIZE.tableCell} text-right tabular-nums`} style={{ whiteSpace: "nowrap" }}>
+        <td className={`${B} px-1.5 py-1.5 ${SIZE.tableCell} text-center text-gray-600`}>{item.unitItem || item.unit || "—"}</td>
+        <td className={`${B} px-1.5 py-1.5 ${SIZE.tableCell} text-right tabular-nums`} style={{ whiteSpace: "nowrap" }}>
           <FmtNum value={item.orderQty} decimals={3} />
         </td>
-        <td className={`${B} px-2 py-2 ${SIZE.tableCell} text-right tabular-nums`} style={{ whiteSpace: "nowrap" }}>
+        <td className={`${B} px-1.5 py-1.5 ${SIZE.tableCell} text-right tabular-nums`} style={{ whiteSpace: "nowrap" }}>
           <FmtNum value={item.rate} />
         </td>
-        <td className={`${B} px-2 py-2 ${SIZE.tableCell} text-right tabular-nums`} style={{ whiteSpace: "nowrap" }}>
+        <td className={`${B} px-1.5 py-1.5 ${SIZE.tableCell} text-right tabular-nums`} style={{ whiteSpace: "nowrap" }}>
           <FmtNum value={item.initialAmount} />
         </td>
-        <td className={`${B} px-2 py-2 ${SIZE.tableCell} text-right tabular-nums`} style={{ whiteSpace: "nowrap" }}>
-          <FmtNum value={item.totalCcCost} />
+        <td className={`${B} px-1.5 py-1.5 ${SIZE.tableCell} text-right tabular-nums`}
+          style={{ whiteSpace: "nowrap", backgroundColor: "#e0f2fe" }}>
+          <FmtNum value={item.drcwAmount} />
         </td>
-        <td className={`${B} px-2 py-2 ${SIZE.tableCell} text-right tabular-nums ${WEIGHT.semibold}`} style={{ whiteSpace: "nowrap" }}>
-          <FmtNum value={item.totalCost} />
+        <td className={`${B} px-1.5 py-1.5 ${SIZE.tableCell} text-right tabular-nums`}
+          style={{ whiteSpace: "nowrap", backgroundColor: "#ede9fe" }}>
+          <FmtNum value={item.poAmount} />
+        </td>
+        <td className={`${B} px-1.5 py-1.5 ${SIZE.tableCell} text-right tabular-nums`}
+          style={{ whiteSpace: "nowrap", backgroundColor: "#ede9fe" }}>
+          <FmtNum value={item.eoAmount} />
+        </td>
+        <td className={`${B} px-1.5 py-1.5 ${SIZE.tableCell} text-right tabular-nums`}
+          style={{ whiteSpace: "nowrap", backgroundColor: "#fff1f2" }}>
+          <FmtNum value={item.tec} />
+        </td>
+        <td className={`${B} px-1.5 py-1.5 ${SIZE.tableCell} text-right tabular-nums`}
+          style={{ whiteSpace: "nowrap", backgroundColor: item.profit >= 0 ? "#dcfce7" : "#fef2f2" }}>
+          <FmtNum value={item.profit} />
+        </td>
+        <td className={`${B} px-1.5 py-1.5 ${SIZE.tableCell} text-right tabular-nums`}
+          style={{ whiteSpace: "nowrap", backgroundColor: item.profit >= 0 ? "#dcfce7" : "#fef2f2" }}>
+          {item.profitPct.toFixed(2)}%
         </td>
       </tr>
 
       {item.ccCodes.map((c, ci) => (
-        <tr key={ci} className="cc-row bg-[#fbfbfb]">
-          <td className={`${B} px-2 py-1`} />
-          <td className={`${B} px-2 py-1 ${SIZE.tableCell} text-center text-gray-600`}>{c.ccCode || "—"}</td>
-          <td className={`${B} px-2 py-1 ${SIZE.tableCell} text-gray-600`} style={{ wordBreak: "break-word" }}>
+        <tr key={ci} className="cc-row" style={{ backgroundColor: "#f0fafa" }}>
+          <td className={`${B} px-1.5 py-0.5`} />
+          <td className={`${B} px-1.5 py-0.5 ${SIZE.tableCell} text-center text-gray-500`}>{c.ccCode || "—"}</td>
+          <td className={`${B} px-1.5 py-0.5 ${SIZE.tableCell} text-gray-500`} style={{ wordBreak: "break-word" }}>
             <span className="text-gray-400 mr-1">↳</span>{c.ccName || "—"}
           </td>
-          <td className={`${B} px-2 py-1`} colSpan={2} />
-          <td className={`${B} px-2 py-1 ${SIZE.tableCell} text-right tabular-nums text-gray-600`} style={{ whiteSpace: "nowrap" }}>
+          <td className={`${B} px-1.5 py-0.5`} colSpan={3} />
+          <td className={`${B} px-1.5 py-0.5 ${SIZE.tableCell} text-right tabular-nums text-gray-500`} style={{ whiteSpace: "nowrap" }}>
             <FmtNum value={c.ccValue} />
           </td>
-          <td className={`${B} px-2 py-1 ${SIZE.tableCell} text-center text-gray-400`}>—</td>
-          <td className={`${B} px-2 py-1 ${SIZE.tableCell} text-right tabular-nums text-gray-600`} style={{ whiteSpace: "nowrap" }}>
+          <td className={`${B} px-1.5 py-0.5 ${SIZE.tableCell} text-right tabular-nums text-gray-500`}
+            style={{ whiteSpace: "nowrap", backgroundColor: "#e0f2fe" }}>
             <FmtNum value={c.ccTotal} />
           </td>
-          <td className={`${B} px-2 py-1`} />
+          <td colSpan={5} className={`${B} px-1.5 py-0.5`} />
         </tr>
       ))}
     </>
+  );
+}
+
+function OverheadTable({ title, rows = [], orderValue, bgHead, colorHead }) {
+  const total = rows.reduce((s, c) => s + Number(c.estimatedCost || 0), 0);
+  return (
+    <table className="w-full border-collapse" style={{ tableLayout: "fixed" }}>
+      <colgroup>
+        <col style={{ width: "15%" }} />
+        <col style={{ width: "35%" }} />
+        <col style={{ width: "20%" }} />
+        <col style={{ width: "20%" }} />
+        <col style={{ width: "10%" }} />
+      </colgroup>
+      <thead>
+        <tr>
+          <th
+            colSpan={5}
+            className={`border border-[#b0b0b0] px-2 py-1 text-left ${SIZE.tableHead} ${WEIGHT.bold}`}
+            style={{ backgroundColor: bgHead, color: colorHead }}
+          >
+            {title}
+          </th>
+        </tr>
+        <tr className={COLOR.tableHeadBg}>
+          {["CC Code", "CC Name", "Estimated Cost (₹)", "Order Value (₹)", "%"].map((h) => (
+            <th key={h} className={`${B} px-1.5 py-1 text-center ${SIZE.tableHead} ${WEIGHT.bold} text-gray-900`}>{h}</th>
+          ))}
+        </tr>
+      </thead>
+      <tbody>
+        {rows.length === 0 && (
+          <tr>
+            <td colSpan={5} className={`${B} px-2 py-2 text-center ${SIZE.tableCell} text-gray-400 italic`}>No data</td>
+          </tr>
+        )}
+        {rows.map((c, i) => {
+          const pct = orderValue > 0 ? Number(c.estimatedCost || 0) / orderValue * 100 : 0;
+          return (
+            <tr key={i} className={i % 2 === 0 ? "bg-white" : "bg-gray-50"}>
+              <td className={`${B} px-1.5 py-1 ${SIZE.tableCell} text-center`}>{c.ccCode || "—"}</td>
+              <td className={`${B} px-1.5 py-1 ${SIZE.tableCell}`}>{c.ccName || "—"}</td>
+              <td className={`${B} px-1.5 py-1 ${SIZE.tableCell} text-right tabular-nums`} style={{ whiteSpace: "nowrap" }}>
+                <FmtNum value={Number(c.estimatedCost || 0)} />
+              </td>
+              <td className={`${B} px-1.5 py-1 ${SIZE.tableCell} text-right tabular-nums text-gray-500`} style={{ whiteSpace: "nowrap" }}>
+                <FmtNum value={orderValue} />
+              </td>
+              <td className={`${B} px-1.5 py-1 ${SIZE.tableCell} text-right tabular-nums`}>{pct.toFixed(2)}%</td>
+            </tr>
+          );
+        })}
+        <tr className={`${COLOR.tableHeadBg} ${WEIGHT.bold}`}>
+          <td colSpan={2} className={`${B} px-2 py-1 ${SIZE.tableCell} text-right`}>Total</td>
+          <td className={`${B} px-1.5 py-1 ${SIZE.tableCell} text-right tabular-nums`} style={{ whiteSpace: "nowrap" }}>
+            <FmtNum value={total} />
+          </td>
+          <td className={`${B} px-1.5 py-1`} />
+          <td className={`${B} px-1.5 py-1 ${SIZE.tableCell} text-right tabular-nums`}>
+            {orderValue > 0 ? (total / orderValue * 100).toFixed(2) : "0.00"}%
+          </td>
+        </tr>
+      </tbody>
+    </table>
   );
 }
