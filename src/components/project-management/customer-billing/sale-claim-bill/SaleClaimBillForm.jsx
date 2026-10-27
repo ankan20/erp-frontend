@@ -282,6 +282,7 @@ export default function SaleClaimBillForm({ mode = "create", billId, onAfterSubm
         list.map((it, i) => ({
           slNo:              i + 1,
           ogSaleOrderItemId: it.ogSaleOrderItemId || null,
+          orderQty:          Number(it.orderQty   || 0),
           claimQty:          Number(it.claimQty   || 0),
           rate:              Number(it.rate        || 0),
           gstPercent:        Number(it.gstPercent  || 0),
@@ -607,7 +608,7 @@ export default function SaleClaimBillForm({ mode = "create", billId, onAfterSubm
                           <input {...register(`items.${index}.orderQty`)} type="hidden" />
                         </td>
 
-                        {/* CLAIM QTY — editable, capped at orderQty */}
+                        {/* CLAIM QTY — editable; red highlight when above orderQty */}
                         <td className="border border-[#ccc] p-0 align-middle">
                           <Controller
                             control={control}
@@ -615,15 +616,11 @@ export default function SaleClaimBillForm({ mode = "create", billId, onAfterSubm
                             render={({ field: f }) => (
                               <QtyInput
                                 {...f}
-                                onChange={(e) => {
-                                  const v = Number(e.target.value || 0);
-                                  const max = orderQty;
-                                  f.onChange(max > 0 && v > max ? String(max) : e.target.value);
-                                }}
+                                onChange={(e) => f.onChange(e.target.value)}
                                 disabled={disabled}
                                 placeholder="0"
-                                title={overQty ? `Cannot exceed order qty (${orderQty})` : undefined}
-                                className={`${overQty ? "border-red-400 bg-red-50 text-red-700" : getInputClass(errors?.items?.[index]?.claimQty, disabled)} border-0 rounded-none w-full h-[30px] text-[13px] text-right pr-2`}
+                                title={overQty ? `Above order qty (${orderQty})` : undefined}
+                                className={`${overQty ? "border-orange-400 bg-orange-50 text-orange-700" : getInputClass(errors?.items?.[index]?.claimQty, disabled)} border-0 rounded-none w-full h-[30px] text-[13px] text-right pr-2`}
                               />
                             )}
                           />

@@ -42,6 +42,7 @@ const itemSchema = z.object({
   itemDescription:   z.string().optional(),
   unit:              z.string().optional(),
   orderQty:          z.coerce.number().min(0).optional(),
+  claimQty:          z.coerce.number().min(0).optional(),
   certifiedQty:      z.coerce.number().min(0).optional(),
   rate:              z.coerce.number().min(0).optional(),
   gstPercent:        z.coerce.number().min(0).optional(),
@@ -66,6 +67,7 @@ const DEFAULT_ITEM = {
   itemDescription:   "",
   unit:              "",
   orderQty:          "",
+  claimQty:          "",
   certifiedQty:      "",
   rate:              "",
   gstPercent:        "",
@@ -197,18 +199,16 @@ export default function SaleCertifiedBillForm({ mode = "create", billId, onAfter
       if (d.preCertifiedAmount !== undefined) {
         setValue("preCertifiedAmount", d.preCertifiedAmount, { shouldDirty: true });
       }
-      // order-lookup sends no order qty — claimQty IS the quantity available to
-      // certify. It fills the read-only Order Qty column (which caps the entry)
-      // and seeds Certified Qty in full, so the user only ever reduces it.
       const mapLookupItem = (it, type) => ({
         type,
         ogSaleOrderItemId: it.id || it.ogSaleOrderItemId || null,
-        itemDisplayCode:   it.itemDisplayCode || it.itemCode   || "",
+        itemDisplayCode:   it.itemDisplayCode || it.itemCode    || "",
         itemCode:          it.itemCode        || "",
         itemName:          it.itemName        || "",
         itemDescription:   it.itemDescription || it.description || "",
         unit:              it.unit            || "",
-        orderQty:          it.claimQty        ?? "",
+        orderQty:          it.orderQty        ?? "",
+        claimQty:          it.claimQty        ?? "",
         certifiedQty:      it.claimQty        ?? "",
         rate:              it.rate            || "",
         gstPercent:        it.gstPercent      || it.gst  || "",
@@ -245,7 +245,8 @@ export default function SaleCertifiedBillForm({ mode = "create", billId, onAfter
           itemDescription:   it.itemDescription   || "",
           unit:              it.unit               || "",
           orderQty:          it.orderQty           || "",
-          certifiedQty:      it.claimQty           || it.certifiedQty || "",
+          claimQty:          it.claimQty           || "",
+          certifiedQty:      it.certifiedQty       || "",
           rate:              it.rate               || "",
           gstPercent:        it.gstPercent         || "",
         });
@@ -318,6 +319,7 @@ export default function SaleCertifiedBillForm({ mode = "create", billId, onAfter
         list.map((it, i) => ({
           slNo:              i + 1,
           ogSaleOrderItemId: it.ogSaleOrderItemId || null,
+          orderQty:          Number(it.orderQty    || 0),
           claimQty:          Number(it.certifiedQty || 0),
           rate:              Number(it.rate          || 0),
           gstPercent:        Number(it.gstPercent    || 0),
@@ -565,7 +567,8 @@ export default function SaleCertifiedBillForm({ mode = "create", billId, onAfter
                     <th className="border border-[#2a5080] w-[110px] text-left px-2 text-[13px] py-1.5">Item Code</th>
                     <th className="border border-[#2a5080] text-left px-2 text-[13px] py-1.5">Item Name &amp; Description</th>
                     <th className="border border-[#2a5080] w-[60px] text-center text-[13px] py-1.5">Unit</th>
-                    <th className="border border-[#2a5080] w-[85px] text-right px-2 text-[13px] py-1.5 min-w-[110px]">Order Qty</th>
+                    <th className="border border-[#2a5080] w-[85px] text-right px-2 text-[13px] py-1.5 min-w-[100px]">Order Qty</th>
+                    <th className="border border-[#2a5080] w-[85px] text-right px-2 text-[13px] py-1.5 min-w-[100px]">Claim Qty</th>
                     <th className="border border-[#2a5080] w-[90px] text-right px-2 text-[13px] py-1.5">Certified Qty</th>
                     <th className="border border-[#2a5080] w-[90px] text-right px-2 text-[13px] py-1.5 min-w-[110px]">Rate</th>
                     <th className="border border-[#2a5080] w-[100px] text-right px-2 text-[13px] py-1.5">Basic Amt</th>
@@ -589,12 +592,13 @@ export default function SaleCertifiedBillForm({ mode = "create", billId, onAfter
                   {fields.map((field, index) => {
                     const item         = watchedItems[index] || {};
                     const orderQty     = Number(item.orderQty     || 0);
+                    const claimQty     = Number(item.claimQty     || 0);
                     const certifiedQty = Number(item.certifiedQty || 0);
                     const rate         = Number(item.rate         || 0);
                     const gstPct       = Number(item.gstPercent   || 0);
                     const amount       = certifiedQty * rate;
                     const gstAmt       = amount * gstPct / 100;
-                    const overQty      = !disabled && certifiedQty > orderQty && orderQty > 0;
+                    const overQty      = !disabled && certifiedQty > claimQty && claimQty > 0;
 
                     return (
                       <tr key={field.id} className={index % 2 === 0 ? "bg-white" : "bg-[#f5f8fc]"}>
@@ -667,7 +671,13 @@ export default function SaleCertifiedBillForm({ mode = "create", billId, onAfter
                           <input {...register(`items.${index}.orderQty`)} type="hidden" />
                         </td>
 
-                        {/* CERTIFIED QTY — editable, capped at orderQty */}
+                        {/* CLAIM QTY — read-only reference from claim bill */}
+                        <td className="border border-[#ccc] bg-[#f0f4f8] px-2 text-[13px] text-right align-middle text-[#555] whitespace-nowrap">
+                          {claimQty > 0 ? formatQtyDisplay(claimQty) : "—"}
+                          <input {...register(`items.${index}.claimQty`)} type="hidden" />
+                        </td>
+
+                        {/* CERTIFIED QTY — editable; orange highlight when above claimQty */}
                         <td className="border border-[#ccc] p-0 align-middle">
                           <Controller
                             control={control}
@@ -675,21 +685,14 @@ export default function SaleCertifiedBillForm({ mode = "create", billId, onAfter
                             render={({ field: f }) => (
                               <QtyInput
                                 {...f}
-                                onChange={(e) => {
-                                  const v = Number(e.target.value || 0);
-                                  const max = orderQty;
-                                  f.onChange(max > 0 && v > max ? String(max) : e.target.value);
-                                }}
+                                onChange={(e) => f.onChange(e.target.value)}
                                 disabled={disabled}
                                 placeholder="0"
-                                title={overQty ? `Cannot exceed order qty (${orderQty})` : undefined}
-                                className={`${overQty ? "border-red-400 bg-red-50 text-red-700" : getInputClass(errors?.items?.[index]?.certifiedQty, disabled)} border-0 rounded-none w-full h-[30px] text-[13px] text-right pr-2`}
+                                title={overQty ? `Above claim qty (${claimQty})` : undefined}
+                                className={`${overQty ? "border-orange-400 bg-orange-50 text-orange-700" : getInputClass(errors?.items?.[index]?.certifiedQty, disabled)} border-0 rounded-none w-full h-[30px] text-[13px] text-right pr-2`}
                               />
                             )}
                           />
-                          {overQty && (
-                            <p className="text-[10px] text-red-500 px-1">Max: {formatQtyDisplay(orderQty)}</p>
-                          )}
                         </td>
 
                         {/* RATE — editable */}
