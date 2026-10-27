@@ -192,7 +192,7 @@ async function downloadDocx(data, qrCanvasRef) {
       }),
     ]});
 
-  const billedAmount = Number(data.billedAmount || data.thisBillClaim || 0);
+  const billedAmount = Number(data.thisBillClaim || 0);
   const gstAmount    = Number(data.gstAmount    || 0);
   const totalAmount  = billedAmount + gstAmount;
 
@@ -296,7 +296,7 @@ export default function SaleClaimBillPrintPage() {
     ...printItems.map((it)    => ({ ...it, rowType: "Non-BOQ" })),
     ...printBoqItems.map((it) => ({ ...it, rowType: "BOQ" })),
   ];
-  const billedAmount = Number(data.billedAmount || data.thisBillClaim || 0);
+  const billedAmount = Number(data.thisBillClaim || 0);
   const gstAmount    = Number(data.gstAmount    || 0);
   const totalAmount  = billedAmount + gstAmount;
   const borderSide   = "1px solid #b0b0b0";
