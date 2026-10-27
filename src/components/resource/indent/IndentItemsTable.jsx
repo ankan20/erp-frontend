@@ -98,7 +98,7 @@ export default function IndentItemsTable({
                 <th className="border border-[#b5b5b5] px-2 py-1 text-sm min-w-[100px] text-left">Note</th>
                 <th className="border border-[#b5b5b5] px-2 py-1 text-sm min-w-[70px] text-center">Unit</th>
                 <th className="border border-[#b5b5b5] px-2 py-1 text-sm min-w-[90px] text-center">Qty</th>
-                <th className="border border-[#b5b5b5] px-2 py-1 text-sm min-w-[140px] text-center">Ammenmend Qty</th>
+                {/* <th className="border border-[#b5b5b5] px-2 py-1 text-sm min-w-[140px] text-center">Ammenmend Qty</th> */}
                 <th className="border border-[#b5b5b5] px-2 py-1 text-sm min-w-[130px] text-left">Use To</th>
                 {isEditing && (
                   <th className="border border-[#b5b5b5] px-2 py-1 text-sm min-w-[50px] text-center">Action</th>
@@ -187,13 +187,13 @@ export default function IndentItemsTable({
                     </td>
 
                     {/* AMMENDMENT */}
-                    <td className="border border-[#b5b5b5] px-2 py-[2px] text-center">
+                    {/* <td className="border border-[#b5b5b5] px-2 py-[2px] text-center">
                       <Input
                         value={watch(`items.${index}.ammenmendQty`) || ""}
                         disabled
                         className={getInputClass(false, true)}
                       />
-                    </td>
+                    </td> */}
 
                     {/* USE TO (LOCATION) */}
                     <td className="border border-[#b5b5b5] p-0">
@@ -235,9 +235,9 @@ export default function IndentItemsTable({
                 <td className="border border-[#b5b5b5] px-2 py-1 text-sm text-center">
                   {formatQtyDisplay(totalQty)}
                 </td>
-                <td className="border border-[#b5b5b5] px-2 py-1 text-sm text-center">
+                {/* <td className="border border-[#b5b5b5] px-2 py-1 text-sm text-center">
                   {formatQtyDisplay(totalAmmenmendQty)}
-                </td>
+                </td> */}
                 <td className="border border-[#b5b5b5]" />
                 {isEditing && <td className="border border-[#b5b5b5]" />}
               </tr>
