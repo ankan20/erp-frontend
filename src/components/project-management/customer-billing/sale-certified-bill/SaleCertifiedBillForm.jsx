@@ -746,6 +746,7 @@ export default function SaleCertifiedBillForm({ mode = "create", billId, onAfter
                     <td className="border border-[#9ec5e0]" />
                     <td className="border border-[#9ec5e0]" />
                     <td className="border border-[#9ec5e0]" />
+                    <td className="border border-[#9ec5e0]" />
                     <td className="border border-[#9ec5e0] px-2 text-right text-[13px] whitespace-nowrap">TOTAL=</td>
                     <td className="border border-[#9ec5e0] px-2 text-right text-[13px] whitespace-nowrap">{formatAmount(thisBillAmount)}</td>
                     <td className="border border-[#9ec5e0]" />
