@@ -42,7 +42,7 @@ const EMPTY_LINE = {
 };
 
 // ── COMPONENT ─────────────────────────────────────────────────────────────────
-export default function UncertainAllocationForm({ mode = "create", uaId, onAfterSubmit }) {
+export default function UncertainAllocationForm({ mode = "create", uaId, onAfterSubmit, onUuid }) {
   const { tableRef }  = useColumnResize();
   const isViewMode    = mode === "view" || mode === "approver";
   const router        = useRouter();
@@ -52,6 +52,7 @@ export default function UncertainAllocationForm({ mode = "create", uaId, onAfter
   const [isLoading,   setIsLoading]   = useState(false);
   const [isSubmitting,setIsSubmitting]= useState(false);
   const [isSubmitted, setIsSubmitted] = useState(false);
+  const [uaUuid,      setUaUuid]      = useState(null);
 
   // header fields
   const [uaDate,   setUaDate]   = useState(today());
@@ -100,6 +101,7 @@ export default function UncertainAllocationForm({ mode = "create", uaId, onAfter
       setRemarks(d.remarks || "");
       setStatus(d.workflowStatus || "Draft");
       setLocked(!!d.locked);
+      if (d.uaUuid) { setUaUuid(d.uaUuid); onUuid?.(d.uaUuid); }
       setIsSubmitted(d.workflowStatus !== "Draft" && d.workflowStatus !== "Reback");
       setLines(
         (d.lines || []).map((l) => ({

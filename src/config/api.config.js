@@ -409,6 +409,7 @@ export const API_ENDPOINTS = {
       CREATE:             "/project-mgmt/uncertain-allocation/create",              // POST JSON
       LIST:               "/project-mgmt/uncertain-allocation/list",                // GET ?projectCode
       GET_BY_ID:          "/project-mgmt/uncertain-allocation/",                    // /:id GET
+      GET_BY_UUID:        "/project-mgmt/uncertain-allocation/uuid/",               // /:uuid GET no-auth
       UPDATE:             "/project-mgmt/uncertain-allocation/edit/",               // /:id PUT
       SUBMIT:             "/project-mgmt/uncertain-allocation/submit/",             // /:id POST
       APPROVE:            "/project-mgmt/uncertain-allocation/approve/",            // /:id POST

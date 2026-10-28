@@ -20,6 +20,7 @@ export default function Page() {
 
   const [openApproval, setOpenApproval] = useState(false);
   const [openTimeline, setOpenTimeline] = useState(false);
+  const [uuid,         setUuid]         = useState(null);
 
   const access = getPageAccess({ pageCode: "uncertified_statement", pageType: "EDIT" });
   const { isPendingForMe, myLevel, refresh, dismiss } = useMyApprovalStatus(
@@ -32,8 +33,9 @@ export default function Page() {
 
   const actions = getPageActions({
     router,
-    onTimeLine: () => setOpenTimeline(true),
-    onApprove:  access.canApprove ? () => setOpenApproval(true) : undefined,
+    onTimeLine:  () => setOpenTimeline(true),
+    onApprove:   access.canApprove ? () => setOpenApproval(true) : undefined,
+    onDownload:  uuid ? () => window.open(`/print/uncertified-statement/${uuid}`, "_blank") : undefined,
     isPendingApproval: isPendingForMe,
   });
 
@@ -47,7 +49,7 @@ export default function Page() {
       }
       onDismissApproval={isPendingForMe ? dismiss : undefined}
     >
-      <UncertainAllocationForm mode={access.mode} uaId={id} onAfterSubmit={refresh} />
+      <UncertainAllocationForm mode={access.mode} uaId={id} onAfterSubmit={refresh} onUuid={setUuid} />
 
       <ApprovalActionModal
         open={openApproval}
