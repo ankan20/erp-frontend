@@ -125,12 +125,14 @@ export default function DLRForm({
   const fieldDisabled =
     disabledProp || !isEditing || submitting || saving || isSubmitting;
 
-  // ── Load supplier list ────────────────────────────────────────────────────
+  // ── Load supplier list filtered to current project + only linked vendors ──
   useEffect(() => {
-    apiRequest({ url: API_ENDPOINTS.SUPPLIER.LIST, method: "GET" })
+    if (!projectCode) return;
+    const params = `?projectCode=${encodeURIComponent(projectCode)}&hasLedger=true`;
+    apiRequest({ url: `${API_ENDPOINTS.SUPPLIER.LIST}${params}`, method: "GET" })
       .then((res) => setSupplierList(Array.isArray(res?.data) ? res.data : []))
       .catch(() => toast.error("Failed to load supplier list"));
-  }, []);
+  }, [projectCode]);
 
   // ── Load project locations once ───────────────────────────────────────────
   useEffect(() => {
@@ -152,8 +154,9 @@ export default function DLRForm({
       setVendorOrders([]);
       return;
     }
+    const params = projectCode ? `?projectCode=${encodeURIComponent(projectCode)}` : "";
     apiRequest({
-      url: `${API_ENDPOINTS.RESOURCE.MANPOWER.DLR.VENDOR_ORDERS}/${vendorId}`,
+      url: `${API_ENDPOINTS.RESOURCE.MANPOWER.DLR.VENDOR_ORDERS}/${vendorId}${params}`,
       method: "GET",
     })
       .then((res) => {
@@ -161,7 +164,7 @@ export default function DLRForm({
         setVendorOrders(list);
       })
       .catch(() => setVendorOrders([]));
-  }, [vendorId]);
+  }, [vendorId, projectCode]);
 
   // ── Load labour by supplier when supplier changes ─────────────────────────
   useEffect(() => {
