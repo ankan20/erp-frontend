@@ -404,6 +404,19 @@ export const API_ENDPOINTS = {
       MY_APPROVAL_STATUS: "/project-mgmt/billing/my-approval-status/",              // /:id GET
       ORDER_LOOKUP:       "/project-mgmt/billing/order-lookup",                     // GET ?ogSaleOrderNo&projectCode&mode
     },
+    UNCERTAIN_ALLOCATION: {
+      SALE_ORDER_LOOKUP:  "/project-mgmt/uncertain-allocation/sale-order-lookup",   // GET ?projectCode&search
+      CREATE:             "/project-mgmt/uncertain-allocation/create",              // POST JSON
+      LIST:               "/project-mgmt/uncertain-allocation/list",                // GET ?projectCode
+      GET_BY_ID:          "/project-mgmt/uncertain-allocation/",                    // /:id GET
+      UPDATE:             "/project-mgmt/uncertain-allocation/edit/",               // /:id PUT
+      SUBMIT:             "/project-mgmt/uncertain-allocation/submit/",             // /:id POST
+      APPROVE:            "/project-mgmt/uncertain-allocation/approve/",            // /:id POST
+      REBACK:             "/project-mgmt/uncertain-allocation/reback/",             // /:id POST
+      REJECT:             "/project-mgmt/uncertain-allocation/reject/",             // /:id POST
+      HISTORY:            "/project-mgmt/uncertain-allocation/history/",            // /:id GET
+      MY_APPROVAL_STATUS: "/project-mgmt/uncertain-allocation/my-approval-status/", // /:id GET
+    },
     REGISTER: {
       CONCRETE: {
         CREATE: "/project-mgmt/register/concrete-registry/create", //post
