@@ -140,15 +140,27 @@ export default function FileUploadInput({
 
       {/* Existing file download */}
       {showDownload && (
-        <a
-          href={existingFileUrl}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="flex items-center gap-1 text-[12px] text-blue-600 hover:underline"
-        >
-          <Download className="w-3.5 h-3.5 shrink-0" />
-          <span>Download Attachment</span>
-        </a>
+        <span className="flex items-center gap-1.5">
+          <a
+            href={existingFileUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center gap-1 text-[12px] text-blue-600 hover:underline"
+          >
+            <Download className="w-3.5 h-3.5 shrink-0" />
+            <span>Download Attachment</span>
+          </a>
+          {!disabled && (
+            <button
+              type="button"
+              onClick={onClearExisting}
+              className="shrink-0 text-gray-400 hover:text-red-500 transition"
+              title="Remove attachment"
+            >
+              <X className="w-3 h-3" />
+            </button>
+          )}
+        </span>
       )}
 
       {/* No file in locked / view state */}

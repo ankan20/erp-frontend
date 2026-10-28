@@ -209,22 +209,36 @@ export default function FileUploadInline({
         </div>
       )}
 
-      {/* ── Existing file — download link */}
+      {/* ── Existing file — download link + remove */}
       {showExisting && (
-        <a
-          href={existingUrl}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="inline-flex items-center gap-1 h-[28px] px-2
-                     rounded border border-blue-200 bg-blue-50
-                     text-[11.5px] text-blue-700 font-medium
-                     hover:bg-blue-100 transition-colors max-w-[180px]"
-          title={existingName}
-        >
-          <ExIcon className={`w-3 h-3 shrink-0 ${exCls}`} />
-          <span className="truncate">{existingName || "Download"}</span>
-          <Download className="w-3 h-3 shrink-0 ml-0.5 text-blue-500" />
-        </a>
+        <div className="inline-flex items-center gap-1">
+          <a
+            href={existingUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-1 h-[28px] px-2
+                       rounded border border-blue-200 bg-blue-50
+                       text-[11.5px] text-blue-700 font-medium
+                       hover:bg-blue-100 transition-colors max-w-[180px]"
+            title={existingName}
+          >
+            <ExIcon className={`w-3 h-3 shrink-0 ${exCls}`} />
+            <span className="truncate">{existingName || "Download"}</span>
+            <Download className="w-3 h-3 shrink-0 ml-0.5 text-blue-500" />
+          </a>
+          {!disabled && (
+            <button
+              type="button"
+              onClick={onClearExisting}
+              className="shrink-0 p-0.5 rounded text-gray-400
+                         hover:text-red-500 hover:bg-red-50 transition-colors"
+              aria-label="Remove file"
+              title="Remove attachment"
+            >
+              <X className="w-3 h-3" />
+            </button>
+          )}
+        </div>
       )}
 
       {/* ── No file */}
