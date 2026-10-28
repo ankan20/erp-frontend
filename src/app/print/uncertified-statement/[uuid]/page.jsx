@@ -120,9 +120,10 @@ async function downloadDocx(data, qrCanvasRef) {
     }),
   });
 
-  // Items table columns: Sl | Sale Order No | Title | Claim | Certified | Diff | Over Billing | Cert Hold | Non BOQ | Hold Work | Remarks
-  const cols = [0.04, 0.10, 0.14, 0.08, 0.08, 0.08, 0.10, 0.10, 0.09, 0.09, 0.10].map((p) => Math.round(PAGE_W * p));
-  cols[10] = PAGE_W - cols.slice(0, 10).reduce((a, b) => a + b, 0);
+  // Item-level columns: Sl | BOQ Sl | Description | BOQ Qty | Unit | Unit Rate | Claim | Certified | Diff | Over Billing | Cert Hold | Non BOQ | Hold Unsat | Hold Full | Remarks
+  const cols = [0.03, 0.04, 0.14, 0.05, 0.04, 0.07, 0.07, 0.07, 0.07, 0.08, 0.08, 0.07, 0.08, 0.08, 0.07].map((p) => Math.round(PAGE_W * p));
+  cols[14] = PAGE_W - cols.slice(0, 14).reduce((a, b) => a + b, 0);
+  const NC = cols.length;
 
   const tCell = (text, w, bold = false, shading, align = AlignmentType.LEFT) =>
     new TableCell({
@@ -131,35 +132,66 @@ async function downloadDocx(data, qrCanvasRef) {
       margins: { top: 50, bottom: 50, left: 60, right: 60 },
     });
 
-  const hdrs = ["Sl", "Sale Order No", "Title", "Claim", "Certified", "Difference", "Over Billing / Calc Mistake", "Cert Hold Amnd Pending", "Non BOQ Items Rate", "Hold Work Unsatisfactory", "Remarks"];
+  const navyShading = { type: ShadingType.CLEAR, color: "1E3A5F", fill: "1E3A5F" };
+
+  const hdrs = ["Sl", "BOQ Sl", "Description", "BOQ Qty", "Unit", "Unit Rate", "Claim", "Certified", "Difference",
+    "Over Billing / Calc Mistake", "Cert Hold Amnd Pending", "Non BOQ Items Rate", "Hold Unsatisfactory Work", "Hold Full Work Not Done", "Remarks"];
+
+  // Group lines by ogSaleOrderId
+  const lineGroups = (data.lines || []).reduce((acc, l, idx) => {
+    const k = l.ogSaleOrderId;
+    if (!acc[k]) acc[k] = { soNo: l.ogSaleOrderNo, title: l.orderTitle, rows: [] };
+    acc[k].rows.push({ ...l, _idx: idx });
+    return acc;
+  }, {});
+
+  const dataRows = [];
+  Object.values(lineGroups).forEach((g) => {
+    // Sale order group header row
+    const soLabel = `${g.soNo}  |  ${g.title}`;
+    dataRows.push(new TableRow({ children: [
+      new TableCell({
+        children: [new Paragraph({ children: [run(soLabel, { bold: true, size: 18, color: "FFFFFF" })] })],
+        columnSpan: NC,
+        width: { size: PAGE_W, type: WidthType.DXA }, shading: navyShading, borders: tblBorders,
+        margins: { top: 50, bottom: 50, left: 80, right: 80 },
+      }),
+    ]}));
+    g.rows.forEach((l, rowNum) => dataRows.push(new TableRow({ children: [
+      tCell(l._idx + 1,                                         cols[0],  false, undefined, AlignmentType.CENTER),
+      tCell(l.boqSlNo ?? "",                                    cols[1],  false, undefined, AlignmentType.CENTER),
+      tCell(l.itemName || "",                                   cols[2]),
+      tCell(l.boqQty != null ? Number(l.boqQty).toLocaleString() : "", cols[3], false, undefined, AlignmentType.RIGHT),
+      tCell(l.unit || "",                                       cols[4],  false, undefined, AlignmentType.CENTER),
+      tCell(fmt.number(l.unitRate),                             cols[5],  false, undefined, AlignmentType.RIGHT),
+      tCell(fmt.number(l.claimAmount),                          cols[6],  false, undefined, AlignmentType.RIGHT),
+      tCell(fmt.number(l.certifiedAmount),                      cols[7],  false, undefined, AlignmentType.RIGHT),
+      tCell(fmt.number(l.difference),                           cols[8],  false, undefined, AlignmentType.RIGHT),
+      tCell(fmt.number(l.overBillingCalculationMistake),        cols[9],  false, redShading,  AlignmentType.RIGHT),
+      tCell(fmt.number(l.certifiedHoldAmendmentPending),        cols[10], false, blueShading, AlignmentType.RIGHT),
+      tCell(fmt.number(l.nonBoqItemsRate),                      cols[11], false, blueShading, AlignmentType.RIGHT),
+      tCell(fmt.number(l.holdWork),                             cols[12], false, blueShading, AlignmentType.RIGHT),
+      tCell(fmt.number(l.holdForFullWorkNotCompleted),          cols[13], false, blueShading, AlignmentType.RIGHT),
+      tCell(l.remarks || "",                                    cols[14], false, blueShading),
+    ]}) ));
+  });
 
   const itemsTable = new Table({
     columnWidths: cols, width: { size: PAGE_W, type: WidthType.DXA }, borders: tblBorders,
     rows: [
       new TableRow({ tableHeader: true, children: hdrs.map((h, i) => tCell(h, cols[i], true, headShading, AlignmentType.CENTER)) }),
-      ...(data.lines || []).map((l, idx) => new TableRow({ children: [
-        tCell(idx + 1,                                        cols[0],  false, undefined, AlignmentType.CENTER),
-        tCell(l.ogSaleOrderNo,                                cols[1]),
-        tCell(l.orderTitle,                                   cols[2]),
-        tCell(fmt.number(l.claimAmount),                      cols[3],  false, undefined, AlignmentType.RIGHT),
-        tCell(fmt.number(l.certifiedAmount),                  cols[4],  false, undefined, AlignmentType.RIGHT),
-        tCell(fmt.number(l.difference),                       cols[5],  false, undefined, AlignmentType.RIGHT),
-        tCell(fmt.number(l.overBillingCalculationMistake),    cols[6],  false, redShading,  AlignmentType.RIGHT),
-        tCell(fmt.number(l.certifiedHoldAmendmentPending),    cols[7],  false, blueShading, AlignmentType.RIGHT),
-        tCell(fmt.number(l.nonBoqItemsRate),                  cols[8],  false, blueShading, AlignmentType.RIGHT),
-        tCell(fmt.number(l.holdWork),                         cols[9],  false, blueShading, AlignmentType.RIGHT),
-        tCell(l.remarks || "",                                cols[10], false, blueShading),
-      ]}) ),
+      ...dataRows,
       // Totals row
       new TableRow({ children: [
         tCell("", cols[0], false, grayShading), tCell("", cols[1], false, grayShading),
         tCell("Total", cols[2], true, grayShading, AlignmentType.RIGHT),
-        tCell(fmt.number(data.totalClaim),      cols[3], true, grayShading, AlignmentType.RIGHT),
-        tCell(fmt.number(data.totalCertified),  cols[4], true, grayShading, AlignmentType.RIGHT),
-        tCell(fmt.number(data.totalDifference), cols[5], true, grayShading, AlignmentType.RIGHT),
-        tCell("", cols[6], false, grayShading), tCell("", cols[7], false, grayShading),
-        tCell("", cols[8], false, grayShading), tCell("", cols[9], false, grayShading),
-        tCell("", cols[10], false, grayShading),
+        tCell("", cols[3], false, grayShading), tCell("", cols[4], false, grayShading), tCell("", cols[5], false, grayShading),
+        tCell(fmt.number(data.totalClaim),      cols[6], true, grayShading, AlignmentType.RIGHT),
+        tCell(fmt.number(data.totalCertified),  cols[7], true, grayShading, AlignmentType.RIGHT),
+        tCell(fmt.number(data.totalDifference), cols[8], true, grayShading, AlignmentType.RIGHT),
+        tCell("", cols[9],  false, grayShading), tCell("", cols[10], false, grayShading),
+        tCell("", cols[11], false, grayShading), tCell("", cols[12], false, grayShading),
+        tCell("", cols[13], false, grayShading), tCell("", cols[14], false, grayShading),
       ]}),
     ],
   });
@@ -285,91 +317,105 @@ export default function UncertifiedStatementPrintPage() {
 
           {/* ── LINES TABLE ─────────────────────────────────────────────── */}
           <div className="px-4 pb-3 overflow-x-auto">
-            <table className="w-full border-collapse" style={{ tableLayout: "fixed", minWidth: "1100px" }}>
+            <table className="w-full border-collapse" style={{ tableLayout: "fixed", minWidth: "1350px" }}>
               <thead>
                 {/* Group header row */}
                 <tr className={COLOR.tableHeadBg}>
-                  <th rowSpan={2} className={`border ${COLOR.tableBorder} px-1 py-1.5 ${SIZE.tableHead} ${WEIGHT.bold} text-center w-[4%]`}>Sl</th>
-                  <th rowSpan={2} className={`border ${COLOR.tableBorder} px-1 py-1.5 ${SIZE.tableHead} ${WEIGHT.bold} text-left w-[10%]`}>Sale Order No</th>
-                  <th rowSpan={2} className={`border ${COLOR.tableBorder} px-1 py-1.5 ${SIZE.tableHead} ${WEIGHT.bold} text-left w-[14%]`}>Title</th>
-                  <th colSpan={3} className={`border ${COLOR.tableBorder} px-1 py-1.5 ${SIZE.tableHead} ${WEIGHT.bold} text-center`}>
-                    Certification Statement
-                  </th>
-                  <th
-                    colSpan={5}
-                    className={`border ${COLOR.tableBorder} px-1 py-1.5 ${SIZE.tableHead} ${WEIGHT.bold} text-center`}
-                    style={{ background: "rgba(59,130,246,0.15)" }}
-                  >
-                    Uncertified Statement
-                  </th>
+                  <th colSpan={6} className={`border ${COLOR.tableBorder} px-1 py-1.5 ${SIZE.tableHead} ${WEIGHT.bold} text-center`}>BOQ Details</th>
+                  <th colSpan={3} className={`border ${COLOR.tableBorder} px-1 py-1.5 ${SIZE.tableHead} ${WEIGHT.bold} text-center`}>Certification Statement</th>
+                  <th colSpan={1} className={`border ${COLOR.tableBorder} px-1 py-1 ${SIZE.tableHead} ${WEIGHT.bold} text-center`} style={{ background: "rgba(239,68,68,0.15)" }}>Over Billing</th>
+                  <th colSpan={5} className={`border ${COLOR.tableBorder} px-1 py-1 ${SIZE.tableHead} ${WEIGHT.bold} text-center`} style={{ background: "rgba(59,130,246,0.15)" }}>Uncertified Statement</th>
                 </tr>
                 {/* Sub-header row */}
-                <tr>
-                  <th className={`border ${COLOR.tableBorder} px-1 py-1 ${SIZE.tableHead} ${WEIGHT.bold} text-right w-[8%] bg-[#e5e7eb]`}>Claim</th>
-                  <th className={`border ${COLOR.tableBorder} px-1 py-1 ${SIZE.tableHead} ${WEIGHT.bold} text-right w-[8%] bg-[#e5e7eb]`}>Certified</th>
-                  <th className={`border ${COLOR.tableBorder} px-1 py-1 ${SIZE.tableHead} ${WEIGHT.bold} text-right w-[8%] bg-[#e5e7eb]`}>Difference</th>
-                  {/* light red */}
-                  <th className={`border ${COLOR.tableBorder} px-1 py-1 ${SIZE.tableHead} ${WEIGHT.bold} text-center w-[10%]`}
-                    style={{ background: "rgba(239,68,68,0.15)" }}>
+                <tr className={COLOR.tableHeadBg}>
+                  <th className={`border ${COLOR.tableBorder} px-1 py-1 ${SIZE.tableHead} ${WEIGHT.bold} text-center w-[3%]`}>Sl</th>
+                  <th className={`border ${COLOR.tableBorder} px-1 py-1 ${SIZE.tableHead} ${WEIGHT.bold} text-center w-[4%]`}>BOQ Sl</th>
+                  <th className={`border ${COLOR.tableBorder} px-1 py-1 ${SIZE.tableHead} ${WEIGHT.bold} text-left w-[14%]`}>Description</th>
+                  <th className={`border ${COLOR.tableBorder} px-1 py-1 ${SIZE.tableHead} ${WEIGHT.bold} text-right w-[5%]`}>BOQ Qty</th>
+                  <th className={`border ${COLOR.tableBorder} px-1 py-1 ${SIZE.tableHead} ${WEIGHT.bold} text-center w-[4%]`}>Unit</th>
+                  <th className={`border ${COLOR.tableBorder} px-1 py-1 ${SIZE.tableHead} ${WEIGHT.bold} text-right w-[7%]`}>Unit Rate</th>
+                  <th className={`border ${COLOR.tableBorder} px-1 py-1 ${SIZE.tableHead} ${WEIGHT.bold} text-right w-[7%] bg-[#e5e7eb]`}>Claim</th>
+                  <th className={`border ${COLOR.tableBorder} px-1 py-1 ${SIZE.tableHead} ${WEIGHT.bold} text-right w-[7%] bg-[#e5e7eb]`}>Certified</th>
+                  <th className={`border ${COLOR.tableBorder} px-1 py-1 ${SIZE.tableHead} ${WEIGHT.bold} text-right w-[7%] bg-[#e5e7eb]`}>Difference</th>
+                  <th className={`border ${COLOR.tableBorder} px-1 py-1 ${SIZE.tableHead} ${WEIGHT.bold} text-center w-[8%]`} style={{ background: "rgba(239,68,68,0.15)" }}>
                     Over Billing / Calc Mistake
                   </th>
-                  {/* light blue */}
-                  <th className={`border ${COLOR.tableBorder} px-1 py-1 ${SIZE.tableHead} ${WEIGHT.bold} text-center w-[10%]`}
-                    style={{ background: "rgba(59,130,246,0.12)" }}>
+                  <th className={`border ${COLOR.tableBorder} px-1 py-1 ${SIZE.tableHead} ${WEIGHT.bold} text-center w-[8%]`} style={{ background: "rgba(59,130,246,0.12)" }}>
                     Cert Hold Amnd Pending
                   </th>
-                  <th className={`border ${COLOR.tableBorder} px-1 py-1 ${SIZE.tableHead} ${WEIGHT.bold} text-center w-[9%]`}
-                    style={{ background: "rgba(59,130,246,0.12)" }}>
+                  <th className={`border ${COLOR.tableBorder} px-1 py-1 ${SIZE.tableHead} ${WEIGHT.bold} text-center w-[7%]`} style={{ background: "rgba(59,130,246,0.12)" }}>
                     Non BOQ Items Rate
                   </th>
-                  <th className={`border ${COLOR.tableBorder} px-1 py-1 ${SIZE.tableHead} ${WEIGHT.bold} text-center w-[9%]`}
-                    style={{ background: "rgba(59,130,246,0.12)" }}>
-                    Hold Work Unsatisfactory
+                  <th className={`border ${COLOR.tableBorder} px-1 py-1 ${SIZE.tableHead} ${WEIGHT.bold} text-center w-[8%]`} style={{ background: "rgba(59,130,246,0.12)" }}>
+                    Hold Unsatisfactory Work
                   </th>
-                  <th className={`border ${COLOR.tableBorder} px-1 py-1 ${SIZE.tableHead} ${WEIGHT.bold} text-left w-[10%]`}
-                    style={{ background: "rgba(59,130,246,0.12)" }}>
+                  <th className={`border ${COLOR.tableBorder} px-1 py-1 ${SIZE.tableHead} ${WEIGHT.bold} text-center w-[8%]`} style={{ background: "rgba(59,130,246,0.12)" }}>
+                    Hold Full Work Not Done
+                  </th>
+                  <th className={`border ${COLOR.tableBorder} px-1 py-1 ${SIZE.tableHead} ${WEIGHT.bold} text-left w-[7%]`} style={{ background: "rgba(59,130,246,0.12)" }}>
                     Remarks
                   </th>
                 </tr>
               </thead>
               <tbody>
-                {lines.map((l, idx) => (
-                  <tr key={l.id ?? idx} style={{ breakInside: "avoid" }}>
-                    <td className={`border ${COLOR.tableBorder} px-1 py-1.5 ${SIZE.tableCell} text-center`}>{idx + 1}</td>
-                    <td className={`border ${COLOR.tableBorder} px-1 py-1.5 ${SIZE.tableCell}`}>{l.ogSaleOrderNo || "-"}</td>
-                    <td className={`border ${COLOR.tableBorder} px-1 py-1.5 ${SIZE.tableCell}`}>{l.orderTitle || "-"}</td>
-                    {/* Certification */}
-                    <td className={`border ${COLOR.tableBorder} px-1 py-1.5 ${SIZE.tableCell} text-right bg-gray-50`}><FmtNum value={l.claimAmount} /></td>
-                    <td className={`border ${COLOR.tableBorder} px-1 py-1.5 ${SIZE.tableCell} text-right bg-gray-50`}><FmtNum value={l.certifiedAmount} /></td>
-                    <td className={`border ${COLOR.tableBorder} px-1 py-1.5 ${SIZE.tableCell} text-right bg-gray-50`}><FmtNum value={l.difference} /></td>
-                    {/* Over Billing — light red */}
-                    <td className={`border ${COLOR.tableBorder} px-1 py-1.5 ${SIZE.tableCell} text-right`} style={{ background: "rgba(239,68,68,0.08)" }}>
-                      <FmtNum value={l.overBillingCalculationMistake} />
-                    </td>
-                    {/* light blue */}
-                    <td className={`border ${COLOR.tableBorder} px-1 py-1.5 ${SIZE.tableCell} text-right`} style={{ background: "rgba(59,130,246,0.07)" }}>
-                      <FmtNum value={l.certifiedHoldAmendmentPending} />
-                    </td>
-                    <td className={`border ${COLOR.tableBorder} px-1 py-1.5 ${SIZE.tableCell} text-right`} style={{ background: "rgba(59,130,246,0.07)" }}>
-                      <FmtNum value={l.nonBoqItemsRate} />
-                    </td>
-                    <td className={`border ${COLOR.tableBorder} px-1 py-1.5 ${SIZE.tableCell} text-right`} style={{ background: "rgba(59,130,246,0.07)" }}>
-                      <FmtNum value={l.holdWork} />
-                    </td>
-                    <td className={`border ${COLOR.tableBorder} px-1 py-1.5 ${SIZE.tableCell}`} style={{ background: "rgba(59,130,246,0.07)" }}>
-                      {l.remarks || "-"}
-                    </td>
-                  </tr>
-                ))}
+                {(() => {
+                  // group by sale order
+                  const grps = lines.reduce((acc, l, idx) => {
+                    const k = l.ogSaleOrderId;
+                    if (!acc[k]) acc[k] = { soNo: l.ogSaleOrderNo, title: l.orderTitle, rows: [] };
+                    acc[k].rows.push({ ...l, _idx: idx });
+                    return acc;
+                  }, {});
+                  return Object.values(grps).map((g) => [
+                    <tr key={`grp-${g.soNo}`} style={{ background: "#1e3a5f" }}>
+                      <td colSpan={15} className={`border ${COLOR.tableBorder} px-2 py-[5px] ${SIZE.tableCell} font-semibold text-white`}>
+                        SO: {g.soNo}&nbsp;&nbsp;|&nbsp;&nbsp;{g.title}
+                      </td>
+                    </tr>,
+                    ...g.rows.map((l) => (
+                      <tr key={l.id ?? l._idx} style={{ breakInside: "avoid" }}>
+                        <td className={`border ${COLOR.tableBorder} px-1 py-1 ${SIZE.tableCell} text-center`}>{l._idx + 1}</td>
+                        <td className={`border ${COLOR.tableBorder} px-1 py-1 ${SIZE.tableCell} text-center`}>{l.boqSlNo}</td>
+                        <td className={`border ${COLOR.tableBorder} px-1 py-1 ${SIZE.tableCell}`}>{l.itemName || "-"}</td>
+                        <td className={`border ${COLOR.tableBorder} px-1 py-1 ${SIZE.tableCell} text-right`}>
+                          {l.boqQty != null ? Number(l.boqQty).toLocaleString() : "-"}
+                        </td>
+                        <td className={`border ${COLOR.tableBorder} px-1 py-1 ${SIZE.tableCell} text-center`}>{l.unit || "-"}</td>
+                        <td className={`border ${COLOR.tableBorder} px-1 py-1 ${SIZE.tableCell} text-right`}><FmtNum value={l.unitRate} /></td>
+                        <td className={`border ${COLOR.tableBorder} px-1 py-1 ${SIZE.tableCell} text-right bg-gray-50`}><FmtNum value={l.claimAmount} /></td>
+                        <td className={`border ${COLOR.tableBorder} px-1 py-1 ${SIZE.tableCell} text-right bg-gray-50`}><FmtNum value={l.certifiedAmount} /></td>
+                        <td className={`border ${COLOR.tableBorder} px-1 py-1 ${SIZE.tableCell} text-right bg-gray-50`}><FmtNum value={l.difference} /></td>
+                        <td className={`border ${COLOR.tableBorder} px-1 py-1 ${SIZE.tableCell} text-right`} style={{ background: "rgba(239,68,68,0.08)" }}>
+                          <FmtNum value={l.overBillingCalculationMistake} />
+                        </td>
+                        <td className={`border ${COLOR.tableBorder} px-1 py-1 ${SIZE.tableCell} text-right`} style={{ background: "rgba(59,130,246,0.07)" }}>
+                          <FmtNum value={l.certifiedHoldAmendmentPending} />
+                        </td>
+                        <td className={`border ${COLOR.tableBorder} px-1 py-1 ${SIZE.tableCell} text-right`} style={{ background: "rgba(59,130,246,0.07)" }}>
+                          <FmtNum value={l.nonBoqItemsRate} />
+                        </td>
+                        <td className={`border ${COLOR.tableBorder} px-1 py-1 ${SIZE.tableCell} text-right`} style={{ background: "rgba(59,130,246,0.07)" }}>
+                          <FmtNum value={l.holdWork} />
+                        </td>
+                        <td className={`border ${COLOR.tableBorder} px-1 py-1 ${SIZE.tableCell} text-right`} style={{ background: "rgba(59,130,246,0.07)" }}>
+                          <FmtNum value={l.holdForFullWorkNotCompleted} />
+                        </td>
+                        <td className={`border ${COLOR.tableBorder} px-1 py-1 ${SIZE.tableCell}`} style={{ background: "rgba(59,130,246,0.07)" }}>
+                          {l.remarks || "-"}
+                        </td>
+                      </tr>
+                    )),
+                  ]);
+                })()}
 
                 {/* Totals row */}
                 {lines.length > 0 && (
                   <tr className={`${COLOR.tableHeadBg} ${WEIGHT.bold}`}>
-                    <td colSpan={3} className={`border ${COLOR.tableBorder} px-2 py-1.5 ${SIZE.tableCell} ${WEIGHT.bold} text-right`}>Total</td>
+                    <td colSpan={6} className={`border ${COLOR.tableBorder} px-2 py-1.5 ${SIZE.tableCell} ${WEIGHT.bold} text-right`}>Total</td>
                     <td className={`border ${COLOR.tableBorder} px-1 py-1.5 ${SIZE.tableCell} ${WEIGHT.bold} text-right`}><FmtNum value={data.totalClaim} /></td>
                     <td className={`border ${COLOR.tableBorder} px-1 py-1.5 ${SIZE.tableCell} ${WEIGHT.bold} text-right`}><FmtNum value={data.totalCertified} /></td>
                     <td className={`border ${COLOR.tableBorder} px-1 py-1.5 ${SIZE.tableCell} ${WEIGHT.bold} text-right`}><FmtNum value={data.totalDifference} /></td>
-                    <td colSpan={5} className={`border ${COLOR.tableBorder} px-1 py-1.5`}></td>
+                    <td colSpan={6} className={`border ${COLOR.tableBorder} px-1 py-1.5`}></td>
                   </tr>
                 )}
               </tbody>
