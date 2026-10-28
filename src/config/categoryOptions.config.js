@@ -44,9 +44,14 @@ export const CATEGORY_OPTIONS = {
       value: "GST_001",
     },
     {
-      label: "Revenue",
+      label: "Certified Sale",
       value: "REV_001",
     },
+    {
+      label: "Uncertified Sale",
+      value: "REV_002",
+    },
+
   ],
 
   ledgerCategory: [
