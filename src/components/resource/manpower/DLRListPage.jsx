@@ -14,7 +14,7 @@ const columns = [
   { header: "Sl. No",        accessor: "sl" },
   { header: "DLR No",        accessor: "dlrNo" },
   { header: "DLR Date",      accessor: "dlrDate" },
-  { header: "Supplier Name", accessor: "vendorName" },
+  { header: "Supplier Name", accessor: "supplierDisplay" },
   { header: "Report By",     accessor: "reportBy" },
   { header: "Status",        accessor: "status" },
 ];
@@ -32,8 +32,10 @@ export default function DLRListPage({ canAdd = false }) {
         const list = Array.isArray(res?.data) ? res.data : [];
         const formatted = list.map((w, i) => ({
           ...w,
-          sl:         i + 1,
-          vendorName: w.vendorName || "—",
+          sl:             i + 1,
+          supplierDisplay: w.supplierName
+            ? `${w.supplierName} (${w.supplierCode || ""})`
+            : (w.vendorName || "—"),
           reportBy:   w.reportBy  || "—",
           status:     w.workflowStatus || "—",
         }));
@@ -54,7 +56,7 @@ export default function DLRListPage({ canAdd = false }) {
     if (search) {
       const q = search.toLowerCase();
       result = result.filter((r) =>
-        [r.dlrNo, r.vendorName, r.reportBy, r.status]
+        [r.dlrNo, r.supplierDisplay, r.reportBy, r.status]
           .some((v) => String(v || "").toLowerCase().includes(q))
       );
     }
