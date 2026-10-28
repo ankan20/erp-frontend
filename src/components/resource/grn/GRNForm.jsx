@@ -144,9 +144,9 @@ export default function GRNForm({ mode = "create", grnId, onUuid, onAfterSubmit 
           billingAddress: d.billingAddress || "",
           shippingAddress: d.shippingAddress || "",
           challanNo: d.challanNo || "",
-          challanDate: d.challanDate || "",
+          challanDate: d.challanDate ? String(d.challanDate).slice(0, 10) : "",
           partyBillNo: d.partyBillNo || "",
-          partyBillDate: (d.partyBillDate),
+          partyBillDate: d.partyBillDate ? String(d.partyBillDate).slice(0, 10) : "",
           deliverVehicleNo: d.deliverVehicleNo || "",
           deliveredConcern: d.deliveredConcern || "",
           unloadingDatetime: d.unloadingDatetime
