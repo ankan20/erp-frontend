@@ -302,7 +302,11 @@ export default function GRNForm({ mode = "create", grnId, onUuid, onAfterSubmit 
       }));
     fd.append("items", JSON.stringify(itemsPayload));
 
-    if (attachedFile) fd.append("attachedDoc", attachedFile);
+    if (attachedFile) {
+      fd.append("attachedDoc", attachedFile);
+    } else if (!existingFileUrl && mode === "edit") {
+      fd.append("clearAttachedDoc", "true");
+    }
     return fd;
   };
 
@@ -336,8 +340,8 @@ export default function GRNForm({ mode = "create", grnId, onUuid, onAfterSubmit 
       if (res?.data?.grnNo) form.setValue("grnNo", res.data.grnNo);
       if (res?.data?.uuid && onUuid) onUuid(res.data.uuid);
 
-      if (res?.data?.attachedDoc) {
-        const url = res.data.attachedDoc;
+      {
+        const url = res?.data?.attachedDoc || "";
         setExistingFileUrl(url);
         setInitialFileUrl(url);
         setAttachedFile(null);
