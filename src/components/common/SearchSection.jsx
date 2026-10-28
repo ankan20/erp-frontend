@@ -1,25 +1,45 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { usePathname } from "next/navigation";
 import { X } from "lucide-react";
 import NavigationButton from "./NavigationButton";
 import Image from "next/image";
+
+function readSession(key) {
+  try { return JSON.parse(sessionStorage.getItem(key) || "null"); } catch { return null; }
+}
+function writeSession(key, val) {
+  try { sessionStorage.setItem(key, JSON.stringify(val)); } catch {}
+}
 
 export default function SearchSection({
   onSearch,
   showDateRange = false,
   actions = [],
+  storageKey,          // optional override; defaults to current pathname
 }) {
-  const [search, setSearch] = useState("");
-  const [from, setFrom] = useState("");
-  const [to, setTo] = useState("");
+  const pathname = usePathname();
+  const key = `search-filters:${storageKey ?? pathname}`;
+
+  const saved = readSession(key);
+  const [search, setSearch] = useState(saved?.search ?? "");
+  const [from,   setFrom]   = useState(saved?.from   ?? "");
+  const [to,     setTo]     = useState(saved?.to     ?? "");
+
+  // Restore filter on mount so parent list reruns with saved values
+  useEffect(() => {
+    if (saved) onSearch({ search: saved.search ?? "", from: saved.from ?? "", to: saved.to ?? "" });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const persist = (s, f, t) => writeSession(key, { search: s, from: f, to: t });
 
   const hasAnyValue = search || from || to;
 
   const handleClear = () => {
-    setSearch("");
-    setFrom("");
-    setTo("");
+    setSearch(""); setFrom(""); setTo("");
+    writeSession(key, null);
     onSearch({ search: "", from: "", to: "" });
   };
 
@@ -37,8 +57,8 @@ export default function SearchSection({
             </div>
             <input
               value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              onKeyDown={(e) => e.key === "Enter" && onSearch({ search, from, to })}
+              onChange={(e) => { setSearch(e.target.value); persist(e.target.value, from, to); }}
+              onKeyDown={(e) => { if (e.key === "Enter") { persist(search, from, to); onSearch({ search, from, to }); } }}
               className="h-6.5 w-65 sm:w-71 border border-[#8f8f8f] px-2 text-sm outline-none rounded-sm"
             />
           </div>
@@ -53,7 +73,7 @@ export default function SearchSection({
                 <input
                   type="date"
                   value={from}
-                  onChange={(e) => setFrom(e.target.value)}
+                  onChange={(e) => { setFrom(e.target.value); persist(search, e.target.value, to); }}
                   className="h-6.5 w-35 border border-[#8f8f8f] px-2 text-sm rounded-sm"
                 />
               </div>
@@ -64,7 +84,7 @@ export default function SearchSection({
                 <input
                   type="date"
                   value={to}
-                  onChange={(e) => setTo(e.target.value)}
+                  onChange={(e) => { setTo(e.target.value); persist(search, from, e.target.value); }}
                   className="h-6.5 w-35 border border-[#8f8f8f] px-2 text-sm rounded-sm"
                 />
               </div>
@@ -74,7 +94,7 @@ export default function SearchSection({
 
         {/* Search icon button */}
         <button
-          onClick={() => onSearch({ search, from, to })}
+          onClick={() => { persist(search, from, to); onSearch({ search, from, to }); }}
           className={`cursor-pointer ml-2 shrink-0 ${showDateRange ? "mt-2" : ""}`}
         >
           <Image

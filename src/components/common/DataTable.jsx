@@ -1,9 +1,17 @@
 "use client";
 
 import { useState, useEffect, useRef, useCallback } from "react";
+import { usePathname } from "next/navigation";
 import { useColumnResize } from "@/hooks/useColumnResize";
 import { ArrowUp, ArrowDown, ArrowUpDown, ChevronDown, Search } from "lucide-react";
 import { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider } from "@/components/ui/tooltip";
+
+function readSession(key) {
+  try { return JSON.parse(sessionStorage.getItem(key) || "null"); } catch { return null; }
+}
+function writeSession(key, val) {
+  try { sessionStorage.setItem(key, JSON.stringify(val)); } catch {}
+}
 
 // Workflow sort order — statuses not listed here rank 999 and sort alphabetically among themselves
 const STATUS_RANK = { draft: 0, ongoing: 2, approved: 3, completed: 4, reback: 5, rejected: 6, reject: 6 };
@@ -45,24 +53,33 @@ export default function DataTable({
   columns = [],
   data = [],
   onRowClick,
+  storageKey,          // optional override; defaults to current pathname
 }) {
+  const pathname = usePathname();
+  const tableKey = `table-state:${storageKey ?? pathname}`;
 
-  // ─── SORT 
-  const [sortConfig, setSortConfig] = useState({ key: null, direction: null });
+  const saved = readSession(tableKey);
+
+  // ─── SORT
+  const [sortConfig, setSortConfig] = useState(saved?.sortConfig ?? { key: null, direction: null });
 
   // 3-state cycle: asc → desc → reset (null)
   const handleSort = (accessor) => {
     setSortConfig((prev) => {
-      if (prev.key !== accessor) return { key: accessor, direction: "asc" };
-      if (prev.direction === "asc") return { key: accessor, direction: "desc" };
-      return { key: null, direction: null }; // FIXED: reset on third click
+      const next = prev.key !== accessor
+        ? { key: accessor, direction: "asc" }
+        : prev.direction === "asc"
+          ? { key: accessor, direction: "desc" }
+          : { key: null, direction: null };
+      writeSession(tableKey, { ...readSession(tableKey), sortConfig: next });
+      return next;
     });
   };
 
-  // ─── FILTER 
+  // ─── FILTER
   // filterConfig: { [accessor]: string[] } — selected values per column
   // Empty array or missing key = no filter on that column (show all)
-  const [filterConfig, setFilterConfig] = useState({});
+  const [filterConfig, setFilterConfig] = useState(saved?.filterConfig ?? {});
 
   // Which column's dropdown is open + its screen position
   const [activeFilterCol, setActiveFilterCol] = useState(null);
@@ -117,8 +134,16 @@ export default function DataTable({
     return [...seen].sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
   }, [data]);
 
-  const toggleFilterValue = (accessor, value) => {
+  const updateFilterConfig = (updater) => {
     setFilterConfig((prev) => {
+      const next = typeof updater === "function" ? updater(prev) : updater;
+      writeSession(tableKey, { ...readSession(tableKey), filterConfig: next });
+      return next;
+    });
+  };
+
+  const toggleFilterValue = (accessor, value) => {
+    updateFilterConfig((prev) => {
       const current = prev[accessor] || [];
       const exists = current.includes(value);
       const updated = exists
@@ -131,10 +156,8 @@ export default function DataTable({
   const toggleSelectAll = (accessor) => {
     const unique = getUniqueValues(accessor);
     const current = filterConfig[accessor] || [];
-    // If all selected (or none selected = showing all), deselect all → show nothing
-    // If some/none explicitly selected, select all → clear filter
     const allSelected = current.length === 0 || current.length === unique.length;
-    setFilterConfig((prev) => ({
+    updateFilterConfig((prev) => ({
       ...prev,
       [accessor]: allSelected ? [] : unique,
     }));
@@ -146,7 +169,7 @@ export default function DataTable({
   };
 
   const clearFilter = (accessor) => {
-    setFilterConfig((prev) => ({ ...prev, [accessor]: [] }));
+    updateFilterConfig((prev) => ({ ...prev, [accessor]: [] }));
   };
 
   // ─── DATA PIPELINE: filter first, then sort 
