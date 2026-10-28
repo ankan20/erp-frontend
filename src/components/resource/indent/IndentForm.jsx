@@ -323,6 +323,8 @@ export default function IndentForm({
 
     if (attachedFile) {
       formData.append("indentFile", attachedFile);
+    } else if (mode === "edit" && !existingFileUrl) {
+      formData.append("clearIndentFile", "true");
     }
 
     return formData;
@@ -356,9 +358,10 @@ export default function IndentForm({
         setValue("indentNo", res.data.indentNo);
       }
       if (res?.data?.uuid && onUuid) onUuid(res.data.uuid);
-      if (res?.data?.indentFile) {
-        setExistingFileUrl(res.data.indentFile);
-        setInitialFileUrl(res.data.indentFile);
+      {
+        const url = res?.data?.indentFile ?? existingFileUrl;
+        setExistingFileUrl(url);
+        setInitialFileUrl(url);
         setAttachedFile(null);
         setFileResetKey((k) => k + 1);
       }

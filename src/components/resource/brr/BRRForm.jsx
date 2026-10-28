@@ -254,6 +254,7 @@ export default function BRRForm({ mode = "create", brrId, onDataLoaded, onAfterS
     fd.append("basicAmount",       String(Number(v.basicAmount) || 0));
     fd.append("gstAmount",         String(Number(v.gstAmount)   || 0));
     if (attachedFile) fd.append("attachedDoc", attachedFile);
+    else if (mode === "edit" && !existingFileUrl) fd.append("clearAttachedDoc", "true");
     return fd;
   };
 
@@ -277,9 +278,10 @@ export default function BRRForm({ mode = "create", brrId, onDataLoaded, onAfterS
       });
       if (res?.data?.brrNo) setValue("brrNo", res.data.brrNo);
       setInitialData(getValues());
-      if (res?.data?.attachedDoc) {
-        setExistingFileUrl(res.data.attachedDoc);
-        setInitialFileUrl(res.data.attachedDoc);
+      {
+        const url = res?.data?.attachedDoc ?? existingFileUrl;
+        setExistingFileUrl(url);
+        setInitialFileUrl(url);
       }
       setAttachedFile(null);
       setFileResetKey((k) => k + 1);

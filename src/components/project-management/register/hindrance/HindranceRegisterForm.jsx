@@ -194,6 +194,7 @@ export default function HindranceRegisterForm({ mode = "create", hindranceId, on
     fd.append("intimationTo",          v.intimationTo          ?? "");
     fd.append("intimationVia",         v.intimationVia         ?? "");
     if (attachedFile) fd.append("attachment", attachedFile);
+    else if (mode === "edit" && !existingFileUrl) fd.append("clearAttachment", "true");
     return fd;
   };
 
@@ -213,8 +214,8 @@ export default function HindranceRegisterForm({ mode = "create", hindranceId, on
 
       if (res?.data?.hindranceNo) setValue("hindranceNo", res.data.hindranceNo);
 
-      if (attachedFile && res?.data?.attachment) {
-        const url = res.data.attachment;
+      {
+        const url = res?.data?.attachment ?? existingFileUrl;
         setExistingFileUrl(url);
         setInitialFileUrl(url);
         setAttachedFile(null);

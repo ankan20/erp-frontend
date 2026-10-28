@@ -301,6 +301,7 @@ export default function SRNForm({ mode = "create", srnId, onUuid, onAfterSubmit 
     fd.append("items", JSON.stringify(itemsPayload));
 
     if (attachedFile) fd.append("attachedDoc", attachedFile);
+    else if (mode === "edit" && !existingFileUrl) fd.append("clearAttachedDoc", "true");
     return fd;
   };
 
@@ -334,8 +335,8 @@ export default function SRNForm({ mode = "create", srnId, onUuid, onAfterSubmit 
       if (res?.data?.srnNo) form.setValue("srnNo", res.data.srnNo);
       if (res?.data?.uuid && onUuid) onUuid(res.data.uuid);
 
-      if (res?.data?.attachedDoc) {
-        const url = res.data.attachedDoc;
+      {
+        const url = res?.data?.attachedDoc ?? existingFileUrl;
         setExistingFileUrl(url);
         setInitialFileUrl(url);
         setAttachedFile(null);

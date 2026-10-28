@@ -172,6 +172,7 @@ export default function ConcreteForm({ mode = "create", registryId, onAfterSubmi
     fd.append("vehicleNumber",      v.vehicleNumber      ?? "");
     fd.append("batchNo",            v.batchNo            ?? "");
     if (attachedFile) fd.append("attachBatchFile", attachedFile);
+    else if (mode === "edit" && !existingFileUrl) fd.append("clearAttachBatchFile", "true");
     return fd;
   };
 
@@ -194,10 +195,10 @@ export default function ConcreteForm({ mode = "create", registryId, onAfterSubmi
       const refNo  = record?.referenceOrderNo;
       if (refNo) setValue("referenceOrderNo", refNo);
 
-      if (attachedFile) {
-        const updatedUrl = record?.attachBatchFile || existingFileUrl;
-        setExistingFileUrl(updatedUrl);
-        setInitialFileUrl(updatedUrl);
+      {
+        const url = record?.attachBatchFile ?? existingFileUrl;
+        setExistingFileUrl(url);
+        setInitialFileUrl(url);
         setAttachedFile(null);
         setFileResetKey((k) => k + 1);
       }

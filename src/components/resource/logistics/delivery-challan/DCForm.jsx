@@ -257,6 +257,7 @@ export default function DCForm({ mode = "create", dcId, onAfterSubmit }) {
     fd.append("items", JSON.stringify(itemsPayload));
 
     if (attachedFile) fd.append("attachedDoc", attachedFile);
+    else if (mode === "edit" && !existingFileUrl) fd.append("clearAttachedDoc", "true");
     return fd;
   };
 

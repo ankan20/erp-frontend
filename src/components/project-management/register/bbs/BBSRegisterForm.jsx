@@ -180,6 +180,7 @@ export default function BBSRegisterForm({ mode = "create", bbsId, onAfterSubmit 
     fd.append("deliveryMode",       v.deliveryMode       ?? "");
     fd.append("deliveryReference",  v.deliveryReference  ?? "");
     if (attachedFile) fd.append("attachment", attachedFile);
+    else if (mode === "edit" && !existingFileUrl) fd.append("clearAttachment", "true");
     return fd;
   };
 
@@ -197,8 +198,8 @@ export default function BBSRegisterForm({ mode = "create", bbsId, onAfterSubmit 
         data:   buildPayload(),
       });
       if (res?.data?.bbsNo) setValue("bbsNo", res.data.bbsNo);
-      if (res?.data?.attachment) {
-        const url = res.data.attachment;
+      {
+        const url = res?.data?.attachment ?? existingFileUrl;
         setExistingFileUrl(url);
         setInitialFileUrl(url);
         setAttachedFile(null);

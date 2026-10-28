@@ -252,8 +252,11 @@ export default function ExtraWorkForm({ mode = "create", extraWorkId, onAfterSub
     );
 
     if (files.att1) fd.append("attachment_1", files.att1);
+    else if (mode === "edit" && !existingUrls.att1) fd.append("clearAttachment_1", "true");
     if (files.att2) fd.append("attachment_2", files.att2);
+    else if (mode === "edit" && !existingUrls.att2) fd.append("clearAttachment_2", "true");
     if (files.att3) fd.append("attachment_3", files.att3);
+    else if (mode === "edit" && !existingUrls.att3) fd.append("clearAttachment_3", "true");
 
     return fd;
   };
@@ -275,9 +278,9 @@ export default function ExtraWorkForm({ mode = "create", extraWorkId, onAfterSub
       if (res?.data?.extraWorkNo) setValue("extraWorkNo", res.data.extraWorkNo);
 
       const urls = {
-        att1: res.data?.attachment_1 || existingUrls.att1,
-        att2: res.data?.attachment_2 || existingUrls.att2,
-        att3: res.data?.attachment_3 || existingUrls.att3,
+        att1: res.data?.attachment_1 ?? existingUrls.att1,
+        att2: res.data?.attachment_2 ?? existingUrls.att2,
+        att3: res.data?.attachment_3 ?? existingUrls.att3,
       };
       setExistingUrls(urls);
       setInitialUrls(urls);

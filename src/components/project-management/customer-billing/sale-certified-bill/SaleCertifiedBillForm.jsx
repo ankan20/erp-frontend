@@ -330,6 +330,7 @@ export default function SaleCertifiedBillForm({ mode = "create", billId, onAfter
     fd.append("items",    serializeItems(nonBoqItems));
     fd.append("boqItems", serializeItems(boqItems));
     if (file) fd.append("attachment", file);
+    else if (mode === "edit" && !existingUrl) fd.append("clearAttachment", "true");
     return fd;
   };
 
@@ -346,8 +347,8 @@ export default function SaleCertifiedBillForm({ mode = "create", billId, onAfter
         method: mode === "create" ? "POST" : "PUT",
         data:   buildPayload(),
       });
-      setExistingUrl(res.data?.attachment || existingUrl);
-      setInitialUrl(res.data?.attachment  || existingUrl);
+      setExistingUrl(res.data?.attachment ?? existingUrl);
+      setInitialUrl(res.data?.attachment  ?? existingUrl);
       setFile(null);
       setFileResetKey((k) => k + 1);
       setInitialData(getValues());
