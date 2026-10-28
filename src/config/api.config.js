@@ -2,6 +2,7 @@ const API_BASE_URL = "http://132.154.156.82/api"; //change here later
 
 export const API_ENDPOINTS = {
   LOGIN: "/auth/login",
+  LOGOUT: "/auth/logout",
   GET_COMPANIES: "/compny/my-companies", //only for super admin
   GET_PROJECT_PERMISSION: "/project/enter", //projectcode
   SETTINGS: {
