@@ -22,6 +22,7 @@ import { API_ENDPOINTS }   from "@/config/api.config";
 import { getLocalStorage } from "@/lib/localStorage";
 import { formatAmount }    from "@/helper/numberFormatter";
 import AmountInput         from "@/components/common/AmountInput";
+import ExpandableTextField  from "@/components/common/ExpandableTextField";
 import { useColumnResize } from "@/hooks/useColumnResize";
 
 const UA = API_ENDPOINTS.PROJECT.UNCERTAIN_ALLOCATION;
@@ -126,16 +127,18 @@ export default function UncertainAllocationForm({ mode = "create", uaId, onAfter
         itemName:                        l.itemName        || "",
         itemNameDesc:                    l.itemNameDesc    || "",
         unit:                            l.unit            || "",
-        boqQty:                          l.boqQty          ?? 0,
+        ogBOQQty:                        l.ogBOQQty        ?? 0,   // original sale order ordered qty
+        boqQty:                          l.boqQty          ?? 0,   // claim qty
+        certifiedQty:                    l.certifiedQty    ?? 0,   // certified qty (computed)
         unitRate:                        l.unitRate        ?? 0,
-        claimAmount:                     l.claimAmount     ?? 0,
-        certifiedAmount:                 l.certifiedAmount ?? 0,
-        difference:                      l.difference      ?? 0,
-        overBillingCalculationMistake:   l.overBillingCalculationMistake  ?? "",
-        certifiedHoldAmendmentPending:   l.certifiedHoldAmendmentPending  ?? "",
-        nonBoqItemsRate:                 l.nonBoqItemsRate                ?? "",
-        holdWork:                        l.holdWork                       ?? "",
-        holdForFullWorkNotCompleted:     l.holdForFullWorkNotCompleted     ?? "",
+        claimAmount:                     l.claimAmount     ?? 0,   // for total row
+        certifiedAmount:                 l.certifiedAmount ?? 0,   // for total row
+        difference:                      l.difference      ?? 0,   // for total row
+        overBillingCalculationMistake:   l.overBillingCalculationMistake  ?? "",  // QTY
+        certifiedHoldAmendmentPending:   l.certifiedHoldAmendmentPending  ?? "",  // QTY
+        nonBoqItemsRate:                 l.nonBoqItemsRate                ?? "",  // QTY
+        holdWork:                        l.holdWork                       ?? "",  // QTY
+        holdForFullWorkNotCompleted:     l.holdForFullWorkNotCompleted     ?? "",  // QTY
         remarks:                         l.remarks || "",
       }));
       setLines(loadedLines);
@@ -218,11 +221,13 @@ export default function UncertainAllocationForm({ mode = "create", uaId, onAfter
         itemName:                       (item.itemName      || "").trim(),
         itemNameDesc:                   (item.itemNameDesc  || "").trim(),
         unit:                           item.unit          || "",
+        ogBOQQty:                       item.orderQty      ?? 0,
         boqQty:                         item.claimQty      ?? 0,
-        unitRate:                       item.unitRate       ?? 0,
-        claimAmount:                    item.claimAmount    ?? 0,
+        certifiedQty:                   item.certifiedQty  ?? 0,
+        unitRate:                       item.unitRate      ?? 0,
+        claimAmount:                    item.claimAmount   ?? 0,
         certifiedAmount:                item.certifiedAmount ?? 0,
-        difference:                     item.difference     ?? 0,
+        difference:                     item.difference    ?? 0,
         overBillingCalculationMistake:  "",
         certifiedHoldAmendmentPending:  "",
         nonBoqItemsRate:                "",
@@ -244,13 +249,14 @@ export default function UncertainAllocationForm({ mode = "create", uaId, onAfter
 
   // ── balance check per line ─────────────────────────────────────────────────
   const lineBalance = (l) => {
-    const sum =
-      Number(l.overBillingCalculationMistake  || 0) +
-      Number(l.certifiedHoldAmendmentPending  || 0) +
-      Number(l.nonBoqItemsRate                || 0) +
-      Number(l.holdWork                       || 0) +
-      Number(l.holdForFullWorkNotCompleted     || 0);
-    return { sum, ok: Math.abs(sum - Number(l.difference)) < 0.01 };
+    const rate = Number(l.unitRate || 0);
+    const sumAmt =
+      (Number(l.overBillingCalculationMistake || 0) +
+       Number(l.certifiedHoldAmendmentPending || 0) +
+       Number(l.nonBoqItemsRate               || 0) +
+       Number(l.holdWork                      || 0) +
+       Number(l.holdForFullWorkNotCompleted   || 0)) * rate;
+    return { sum: sumAmt, ok: Math.abs(sumAmt - Number(l.difference)) < 0.01 };
   };
 
   // ── totals ─────────────────────────────────────────────────────────────────
@@ -293,15 +299,16 @@ export default function UncertainAllocationForm({ mode = "create", uaId, onAfter
       itemName:                       l.itemName,
       itemNameDesc:                   l.itemNameDesc,
       unit:                           l.unit,
-      boqQty:                         Number(l.boqQty)   || 0,
+      ogBOQQty:                       Number(l.ogBOQQty)  || 0,  // original order qty
+      boqQty:                         Number(l.boqQty)    || 0,  // claim qty
       unitRate:                       Number(l.unitRate)  || 0,
-      claimAmount:                    Number(l.claimAmount)     || 0,
-      certifiedAmount:                Number(l.certifiedAmount) || 0,
-      overBillingCalculationMistake:  Number(l.overBillingCalculationMistake)  || 0,
-      certifiedHoldAmendmentPending:  Number(l.certifiedHoldAmendmentPending)  || 0,
-      nonBoqItemsRate:                Number(l.nonBoqItemsRate)                || 0,
-      holdWork:                       Number(l.holdWork)                       || 0,
-      holdForFullWorkNotCompleted:    Number(l.holdForFullWorkNotCompleted)     || 0,
+      certifiedAmount:                Number(l.certifiedAmount) || 0,  // for fallback when no billing_id
+      // Justification as QTY — backend computes amounts
+      overBillingCalculationMistake:  Number(l.overBillingCalculationMistake) || 0,
+      certifiedHoldAmendmentPending:  Number(l.certifiedHoldAmendmentPending) || 0,
+      nonBoqItemsRate:                Number(l.nonBoqItemsRate)               || 0,
+      holdWork:                       Number(l.holdWork)                      || 0,
+      holdForFullWorkNotCompleted:    Number(l.holdForFullWorkNotCompleted)    || 0,
       remarks:                        l.remarks || null,
     })),
   });
@@ -365,7 +372,7 @@ export default function UncertainAllocationForm({ mode = "create", uaId, onAfter
     );
   }
 
-  const TOTAL_COLS = 15; // BOQ Sl + Item Code + Item Name + BOQ Qty + Unit + Unit Rate + Claim + Certified + Diff + 5 just + Remarks
+  const TOTAL_COLS = 15; // BOQ Sl + Item Code + Item Name + BOQ Qty + Claim Qty + Unit + Rate + Cert Qty + Diff Qty + 5 just (qty) + Remarks
 
   return (
     <div className="p-3">
@@ -487,7 +494,7 @@ export default function UncertainAllocationForm({ mode = "create", uaId, onAfter
               <table
                 ref={tableRef}
                 className="w-full table-fixed border-collapse text-[12px]"
-                style={{ minWidth: 1480 }}
+                style={{ minWidth: 1600 }}
               >
                 <thead className="sticky top-0 z-30">
                   {/* Group header row */}
@@ -496,10 +503,10 @@ export default function UncertainAllocationForm({ mode = "create", uaId, onAfter
                       BOQ Details
                     </th>
                     <th colSpan={3} className={`${CERT_HDR} border border-[#4b5563] px-2 py-1 text-center text-[11px] font-semibold`}>
-                      Certification Statement
+                      Certification Statement (Qty)
                     </th>
                     <th colSpan={6} className={`${US_HDR} border border-[#1e3a8a] px-2 py-1 text-center text-[11px] font-semibold`}>
-                      Uncertified Statement
+                      Uncertified Statement (Qty)
                     </th>
                   </tr>
                   {/* Leaf column header row */}
@@ -510,23 +517,23 @@ export default function UncertainAllocationForm({ mode = "create", uaId, onAfter
                     <th className={`${HDR} border border-[#2e5a72] px-2 py-1.5 text-right text-[11px] w-[80px] min-w-[70px]`}>BOQ Qty</th>
                     <th className={`${HDR} border border-[#2e5a72] px-2 py-1.5 text-center text-[11px] w-[60px] min-w-[55px]`}>Unit</th>
                     <th className={`${HDR} border border-[#2e5a72] px-2 py-1.5 text-right text-[11px] w-[90px] min-w-[80px]`}>Unit Rate</th>
-                    <th className={`${CERT_HDR} border border-[#4b5563] px-2 py-1.5 text-right text-[11px] w-[110px] min-w-[100px]`}>Claim</th>
-                    <th className={`${CERT_HDR} border border-[#4b5563] px-2 py-1.5 text-right text-[11px] w-[110px] min-w-[100px]`}>Certified</th>
-                    <th className={`${CERT_HDR} border border-[#4b5563] px-2 py-1.5 text-right text-[11px] w-[110px] min-w-[100px]`}>Difference</th>
-                    <th className={`${OB_HDR} border border-[#7f1d1d] px-2 py-1.5 text-center text-[11px] w-[120px] min-w-[110px]`}>
-                      Over Billing / Calc Mistake
-                    </th>
-                    <th className={`${UC_HDR} border border-[#1e40af] px-2 py-1.5 text-center text-[11px] w-[120px] min-w-[110px]`}>
-                      Certified Hold Amnd Pending
+                    <th className={`${CERT_HDR} border border-[#4b5563] px-2 py-1.5 text-right text-[11px] w-[100px] min-w-[90px]`}>Claim Qty</th>
+                    <th className={`${CERT_HDR} border border-[#4b5563] px-2 py-1.5 text-right text-[11px] w-[100px] min-w-[90px]`}>Certified Qty</th>
+                    <th className={`${CERT_HDR} border border-[#4b5563] px-2 py-1.5 text-right text-[11px] w-[100px] min-w-[90px]`}>Difference Qty</th>
+                    <th className={`${OB_HDR} border border-[#7f1d1d] px-2 py-1.5 text-center text-[11px] w-[110px] min-w-[100px]`}>
+                      Over Bill / Calc Mistake
                     </th>
                     <th className={`${UC_HDR} border border-[#1e40af] px-2 py-1.5 text-center text-[11px] w-[110px] min-w-[100px]`}>
-                      Non BOQ Items Rate
+                      Cert. Hold Amnd Pending
                     </th>
-                    <th className={`${UC_HDR} border border-[#1e40af] px-2 py-1.5 text-center text-[11px] w-[110px] min-w-[100px]`}>
-                      Hold Unsatisfactory Work
+                    <th className={`${UC_HDR} border border-[#1e40af] px-2 py-1.5 text-center text-[11px] w-[100px] min-w-[90px]`}>
+                      Non BOQ Rate
                     </th>
-                    <th className={`${UC_HDR} border border-[#1e40af] px-2 py-1.5 text-center text-[11px] w-[110px] min-w-[100px]`}>
-                      Hold Full Work Not Done
+                    <th className={`${UC_HDR} border border-[#1e40af] px-2 py-1.5 text-center text-[11px] w-[100px] min-w-[90px]`}>
+                      Hold Unsatisfactory
+                    </th>
+                    <th className={`${UC_HDR} border border-[#1e40af] px-2 py-1.5 text-center text-[11px] w-[100px] min-w-[90px]`}>
+                      Hold Not Completed
                     </th>
                     <th className={`${UC_HDR} border border-[#1e40af] px-2 py-1.5 text-center text-[11px] w-[100px] min-w-[90px]`}>
                       Remarks
@@ -597,23 +604,25 @@ export default function UncertainAllocationForm({ mode = "create", uaId, onAfter
                                   </TooltipContent>
                                 </Tooltip>
                               </td>
+                              {/* BOQ ordered qty (original sale order) */}
                               <td className="border border-gray-200 px-1.5 py-[3px] text-right tabular-nums text-[11px]">
-                                {l.boqQty != null ? Number(l.boqQty).toLocaleString() : ""}
+                                {l.ogBOQQty != null && Number(l.ogBOQQty) !== 0 ? Number(l.ogBOQQty).toLocaleString(undefined, { maximumFractionDigits: 4 }) : ""}
                               </td>
                               <td className="border border-gray-200 px-1.5 py-[3px] text-center text-[11px] text-gray-600">{l.unit}</td>
                               <td className="border border-gray-200 px-1.5 py-[3px] text-right tabular-nums text-[11px]">
                                 {l.unitRate != null ? formatAmount(l.unitRate) : ""}
                               </td>
 
-                              {/* Certification Statement — read-only */}
+                              {/* Claim qty — under Certification Statement */}
                               <td className={`border border-gray-200 px-1.5 py-[3px] text-right tabular-nums text-[11px] ${CERT_CELL}`}>
-                                {formatAmount(l.claimAmount)}
+                                {l.boqQty != null ? Number(l.boqQty).toLocaleString(undefined, { maximumFractionDigits: 4 }) : ""}
                               </td>
+                              {/* Cert. Qty and Diff. Qty — read-only */}
                               <td className={`border border-gray-200 px-1.5 py-[3px] text-right tabular-nums text-[11px] ${CERT_CELL}`}>
-                                {formatAmount(l.certifiedAmount)}
+                                {Number(l.certifiedQty).toLocaleString(undefined, { maximumFractionDigits: 4 })}
                               </td>
                               <td className={`border border-gray-200 px-1.5 py-[3px] text-right tabular-nums text-[11px] font-medium ${CERT_CELL}`}>
-                                {formatAmount(l.difference)}
+                                {(Number(l.boqQty || 0) - Number(l.certifiedQty || 0)).toLocaleString(undefined, { maximumFractionDigits: 4 })}
                               </td>
 
                               {/* Over Billing */}
@@ -642,12 +651,16 @@ export default function UncertainAllocationForm({ mode = "create", uaId, onAfter
 
                               {/* Remarks */}
                               <td className={`border border-gray-200 p-0.5 ${UC_CELL}`}>
-                                <input
-                                  type="text"
-                                  value={l.remarks}
+                                <ExpandableTextField
+                                  value={l.remarks || ""}
                                   disabled={!isEditing}
-                                  onChange={(e) => updateLine(idx, "remarks", e.target.value)}
-                                  className={`w-full h-[24px] text-[11px] px-1.5 rounded-sm border-0 outline-none focus-visible:ring-0 ${isEditing ? "bg-white/80 focus:bg-white" : "bg-transparent"} disabled:cursor-default`}
+                                  onChange={(val) => updateLine(idx, "remarks", val)}
+                                  placeholder="Remarks..."
+                                  title="Remarks"
+                                  subHeader=""
+                                  minHeight="min-h-[24px]"
+                                  modalHeight="min-h-[120px]"
+                                  className="text-[11px] px-1.5 py-0 rounded-sm border-0 shadow-none"
                                 />
                               </td>
                             </tr>
@@ -659,14 +672,15 @@ export default function UncertainAllocationForm({ mode = "create", uaId, onAfter
 
                   {/* Totals row */}
                   {lines.length > 0 && (() => {
-                    const totalOB   = lines.reduce((s, l) => s + Number(l.overBillingCalculationMistake  || 0), 0);
-                    const totalCH   = lines.reduce((s, l) => s + Number(l.certifiedHoldAmendmentPending  || 0), 0);
-                    const totalNB   = lines.reduce((s, l) => s + Number(l.nonBoqItemsRate                || 0), 0);
-                    const totalHW   = lines.reduce((s, l) => s + Number(l.holdWork                       || 0), 0);
-                    const totalHF   = lines.reduce((s, l) => s + Number(l.holdForFullWorkNotCompleted     || 0), 0);
+                    // Justification totals = sum(qty × rate) per column
+                    const totalOB = lines.reduce((s, l) => s + Number(l.overBillingCalculationMistake || 0) * Number(l.unitRate || 0), 0);
+                    const totalCH = lines.reduce((s, l) => s + Number(l.certifiedHoldAmendmentPending || 0) * Number(l.unitRate || 0), 0);
+                    const totalNB = lines.reduce((s, l) => s + Number(l.nonBoqItemsRate               || 0) * Number(l.unitRate || 0), 0);
+                    const totalHW = lines.reduce((s, l) => s + Number(l.holdWork                      || 0) * Number(l.unitRate || 0), 0);
+                    const totalHF = lines.reduce((s, l) => s + Number(l.holdForFullWorkNotCompleted   || 0) * Number(l.unitRate || 0), 0);
                     return (
                       <tr className="bg-[#0f2744] text-white font-semibold text-[11px]">
-                        <td colSpan={6} className="border border-[#1e3a5f] px-2 py-1.5 text-right tracking-wide">TOTAL</td>
+                        <td colSpan={6} className="border border-[#1e3a5f] px-2 py-1.5 text-right tracking-wide text-[10px] opacity-80">TOTAL AMOUNT (BASIC)</td>
                         <td className="border border-[#1e3a5f] px-2 py-1.5 text-right tabular-nums">{formatAmount(totalClaim)}</td>
                         <td className="border border-[#1e3a5f] px-2 py-1.5 text-right tabular-nums">{formatAmount(totalCertified)}</td>
                         <td className="border border-[#1e3a5f] px-2 py-1.5 text-right tabular-nums">{formatAmount(totalDifference)}</td>
