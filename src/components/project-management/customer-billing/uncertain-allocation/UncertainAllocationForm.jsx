@@ -59,15 +59,19 @@ export default function UncertainAllocationForm({ mode = "create", uaId, onAfter
   const [locked,  setLocked]  = useState(false);
   const [uaNo,    setUaNo]    = useState("");
 
-  // lines: array of item-level rows, each with ogSaleOrderId to group by
-  const [lines,         setLines]         = useState([]);
-  // saleOrders: lookup list (order-level)
-  const [saleOrders,    setSaleOrders]    = useState([]);
-  const [lookupLoading, setLookupLoading] = useState(false);
-  const [selectedSoId,  setSelectedSoId]  = useState("");
-  // addedSoIds: set of ogSaleOrderId already in lines (to prevent duplicate adds)
-  const [addedSoIds,    setAddedSoIds]    = useState(new Set());
-  const [itemsLoading,  setItemsLoading]  = useState(false);
+  // lines: array of item-level rows grouped by billingId
+  const [lines,            setLines]           = useState([]);
+  // sale order lookup
+  const [saleOrders,       setSaleOrders]       = useState([]);
+  const [lookupLoading,    setLookupLoading]    = useState(false);
+  const [selectedSoId,     setSelectedSoId]     = useState("");
+  // claim bill lookup (filtered by selected SO)
+  const [claimBills,       setClaimBills]       = useState([]);
+  const [billsLoading,     setBillsLoading]     = useState(false);
+  const [selectedBillId,   setSelectedBillId]   = useState("");
+  // addedBillIds: set of billingId already in lines (prevent duplicate adds)
+  const [addedBillIds,     setAddedBillIds]     = useState(new Set());
+  const [itemsLoading,     setItemsLoading]     = useState(false);
 
   // ── load sale order lookup ─────────────────────────────────────────────────
   const loadSaleOrders = useCallback(async () => {
@@ -109,6 +113,8 @@ export default function UncertainAllocationForm({ mode = "create", uaId, onAfter
       setIsSubmitted(d.workflowStatus !== "Draft" && d.workflowStatus !== "Reback");
 
       const loadedLines = (d.lines || []).map((l) => ({
+        billingId:                       l.billingId,
+        billingNo:                       l.billingNo       || "",
         ogSaleOrderId:                   l.ogSaleOrderId,
         ogSaleOrderNo:                   l.ogSaleOrderNo   || "",
         orderTitle:                      l.orderTitle      || "",
@@ -133,7 +139,7 @@ export default function UncertainAllocationForm({ mode = "create", uaId, onAfter
         remarks:                         l.remarks || "",
       }));
       setLines(loadedLines);
-      setAddedSoIds(new Set(loadedLines.map((l) => l.ogSaleOrderId)));
+      setAddedBillIds(new Set(loadedLines.map((l) => l.billingId).filter(Boolean)));
     } catch {
       toast.error("Failed to load details");
     } finally {
@@ -150,44 +156,73 @@ export default function UncertainAllocationForm({ mode = "create", uaId, onAfter
     }
   }, [mode]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // ── add items from a selected sale order ──────────────────────────────────
+  // ── Step 1: SO selected → load its claim bills ────────────────────────────
   const handleSoSelect = async (soId) => {
     if (!soId) return;
-    const soIdNum = Number(soId);
-    if (addedSoIds.has(soIdNum)) {
-      toast.warning("This sale order is already added");
-      setSelectedSoId(String(soIdNum));
+    setSelectedSoId(String(soId));
+    setSelectedBillId("");
+    setClaimBills([]);
+    setBillsLoading(true);
+    try {
+      const result = await apiRequest({
+        url: `${UA.CLAIM_BILLS}${soId}`,
+        method: "GET",
+      });
+      const list = Array.isArray(result.data) ? result.data : [];
+      if (!list.length) {
+        toast.warning("No approved claim bills found for this sale order");
+      }
+      setClaimBills(list.map((b) => ({
+        ...b,
+        displayLabel: b.title ? `${b.billingNo} — ${b.title}` : b.billingNo,
+      })));
+    } catch {
+      toast.error("Failed to load claim bills");
+    } finally {
+      setBillsLoading(false);
+    }
+  };
+
+  // ── Step 2: Claim bill selected → populate table rows ─────────────────────
+  const handleBillSelect = async (billId) => {
+    if (!billId) return;
+    const billIdNum = Number(billId);
+    if (addedBillIds.has(billIdNum)) {
+      toast.warning("This claim bill is already added");
+      setSelectedBillId(String(billIdNum));
       return;
     }
     setItemsLoading(true);
-    setSelectedSoId(String(soIdNum));
+    setSelectedBillId(String(billIdNum));
     try {
-      const res = await apiRequest({
-        url: `${UA.SALE_ORDER_ITEMS}${soIdNum}?projectCode=${projectCode}`,
+      const result = await apiRequest({
+        url: `${UA.CLAIM_BILL_ITEMS}${billIdNum}`,
         method: "GET",
       });
-      const d = res.data;
+      const d = result.data;
       if (!d || !d.items?.length) {
-        toast.warning("No items found for this sale order");
+        toast.warning("No items found in this claim bill");
         return;
       }
       const newRows = d.items.map((item) => ({
-        ogSaleOrderId:                  soIdNum,
-        ogSaleOrderNo:                  d.ogSaleOrderNo   || "",
-        orderTitle:                     d.orderTitle      || "",
-        orderNo:                        d.orderNo         || "",
-        ogSaleOrderItemId:              item.ogSaleOrderItemId,
+        billingId:                      billIdNum,
+        billingNo:                      d.billingNo        || "",
+        ogSaleOrderId:                  d.ogSaleOrderId,
+        ogSaleOrderNo:                  d.ogSaleOrderNo    || "",
+        orderTitle:                     d.orderTitle       || "",
+        orderNo:                        d.orderNo          || "",
+        ogSaleOrderItemId:              item.billingItemId,
         itemType:                       item.itemType,
         boqSlNo:                        item.boqSlNo,
-        itemCode:                       item.itemCode     || "",
-        itemName:                       (item.itemName     || "").trim(),
-        itemNameDesc:                   (item.itemNameDesc || "").trim(),
-        unit:                           item.unit         || "",
-        boqQty:                         item.boqQty       ?? 0,
-        unitRate:                       item.unitRate      ?? 0,
-        claimAmount:                    item.claimAmount   ?? 0,
+        itemCode:                       item.itemCode      || "",
+        itemName:                       (item.itemName      || "").trim(),
+        itemNameDesc:                   (item.itemNameDesc  || "").trim(),
+        unit:                           item.unit          || "",
+        boqQty:                         item.claimQty      ?? 0,
+        unitRate:                       item.unitRate       ?? 0,
+        claimAmount:                    item.claimAmount    ?? 0,
         certifiedAmount:                item.certifiedAmount ?? 0,
-        difference:                     item.difference    ?? 0,
+        difference:                     item.difference     ?? 0,
         overBillingCalculationMistake:  "",
         certifiedHoldAmendmentPending:  "",
         nonBoqItemsRate:                "",
@@ -196,9 +231,9 @@ export default function UncertainAllocationForm({ mode = "create", uaId, onAfter
         remarks:                        "",
       }));
       setLines((prev) => [...prev, ...newRows]);
-      setAddedSoIds((prev) => new Set([...prev, soIdNum]));
+      setAddedBillIds((prev) => new Set([...prev, billIdNum]));
     } catch {
-      toast.error("Failed to load sale order items");
+      toast.error("Failed to load claim bill items");
     } finally {
       setItemsLoading(false);
     }
@@ -223,11 +258,17 @@ export default function UncertainAllocationForm({ mode = "create", uaId, onAfter
   const totalCertified  = lines.reduce((s, l) => s + Number(l.certifiedAmount || 0), 0);
   const totalDifference = lines.reduce((s, l) => s + Number(l.difference      || 0), 0);
 
-  // ── group lines by sale order for display ─────────────────────────────────
+  // ── group lines by billing for display ────────────────────────────────────
   const groupedLines = lines.reduce((acc, line, idx) => {
-    const key = line.ogSaleOrderId;
+    const key = line.billingId ?? `so-${line.ogSaleOrderId}`;
     if (!acc[key]) {
-      acc[key] = { soId: key, soNo: line.ogSaleOrderNo, title: line.orderTitle, rows: [] };
+      acc[key] = {
+        billingId: line.billingId,
+        billingNo: line.billingNo,
+        soNo:      line.ogSaleOrderNo,
+        title:     line.orderTitle,
+        rows:      [],
+      };
     }
     acc[key].rows.push({ ...line, _idx: idx });
     return acc;
@@ -240,6 +281,8 @@ export default function UncertainAllocationForm({ mode = "create", uaId, onAfter
     uaDate,
     remarks,
     lines: lines.map((l) => ({
+      billingId:                      l.billingId,
+      billingNo:                      l.billingNo,
       ogSaleOrderId:                  l.ogSaleOrderId,
       ogSaleOrderNo:                  l.ogSaleOrderNo,
       orderTitle:                     l.orderTitle,
@@ -268,7 +311,7 @@ export default function UncertainAllocationForm({ mode = "create", uaId, onAfter
     if (lines.length < 1) { toast.error("Add at least one sale order"); return; }
     const unbalanced = lines.filter((l) => !lineBalance(l).ok);
     if (unbalanced.length > 0) {
-      toast.warning(`${unbalanced.length} line(s) have justification totals that don’t match the difference.`);
+      toast.warning(`${unbalanced.length} line(s) have justification totals that don't match the difference.`);
     }
     setIsLoading(true);
     try {
@@ -359,10 +402,8 @@ export default function UncertainAllocationForm({ mode = "create", uaId, onAfter
               </PMFormRow>
             )}
             {isEditing && (
-              <PMFormRow label="Sale Order" labelWidth="sm:w-[130px] sm:min-w-[130px]">
-                {lookupLoading ? (
-                  <Loader2 className="animate-spin w-4 h-4" />
-                ) : (
+              <>
+                <PMFormRow label="Sale Order" labelWidth="sm:w-[130px] sm:min-w-[130px]">
                   <SearchableSelect
                     options={saleOrders}
                     value={selectedSoId}
@@ -371,10 +412,28 @@ export default function UncertainAllocationForm({ mode = "create", uaId, onAfter
                     labelKey="displayLabel"
                     valueKey="ogSaleOrderId"
                     searchKeys={["displayLabel", "ogSaleOrderNo", "orderTitle", "orderNo"]}
+                    loading={lookupLoading}
+                    disabled={lookupLoading}
                   />
-                )}
-                {itemsLoading && <Loader2 className="animate-spin w-4 h-4 mt-1" />}
-              </PMFormRow>
+                </PMFormRow>
+
+                <PMFormRow label="Claim Bill" labelWidth="sm:w-[130px] sm:min-w-[130px]">
+                  <SearchableSelect
+                    options={claimBills}
+                    value={selectedBillId}
+                    onChange={(val) => { if (val) handleBillSelect(val); }}
+                    placeholder={selectedSoId ? (itemsLoading ? "Loading items…" : "Select claim bill…") : "Select a sale order first"}
+                    labelKey="displayLabel"
+                    valueKey="billingId"
+                    searchKeys={["displayLabel", "billingNo", "title"]}
+                    disabled={!selectedSoId || itemsLoading}
+                    loading={billsLoading}
+                  />
+                  {selectedSoId && !billsLoading && claimBills.length === 0 && (
+                    <span className="text-[12px] text-orange-500 italic mt-1">No approved claim bills for this sale order</span>
+                  )}
+                </PMFormRow>
+              </>
             )}
           </PMSection>
 
@@ -480,7 +539,7 @@ export default function UncertainAllocationForm({ mode = "create", uaId, onAfter
                     <tr>
                       <td colSpan={TOTAL_COLS} className="border border-gray-200 py-8 text-center text-[#bbb] italic text-[12px]">
                         {isEditing
-                          ? "Use the “Sale Order” selector on the left to add items"
+                          ? "Select a Sale Order then a Claim Bill on the left to add items"
                           : "No items added"}
                       </td>
                     </tr>
@@ -492,12 +551,15 @@ export default function UncertainAllocationForm({ mode = "create", uaId, onAfter
                         difference: group.rows.reduce((s, r) => s + Number(r.difference      || 0), 0),
                       };
                       return [
-                        /* Sale order group header */
-                        <tr key={`grp-${group.soId}`} className="bg-[#1e3a5f]">
+                        /* Bill group header */
+                        <tr key={`grp-${group.billingId ?? group.soNo}`} className="bg-[#1e3a5f]">
                           <td colSpan={TOTAL_COLS} className="px-3 py-[5px] text-white text-[11px] font-semibold">
-                            <span className="opacity-70 mr-2">SO:</span>
-                            <span className="mr-3">{group.soNo}</span>
-                            <span className="opacity-70 mr-2">|</span>
+                            <span className="opacity-70 mr-1">Bill:</span>
+                            <span className="mr-3 text-yellow-300">{group.billingNo}</span>
+                            <span className="opacity-50 mr-2">|</span>
+                            <span className="opacity-70 mr-1">SO:</span>
+                            <span className="mr-2">{group.soNo}</span>
+                            <span className="opacity-50 mr-2">|</span>
                             <span>{group.title}</span>
                             <span className="ml-4 opacity-70 text-[10px]">
                               Claim: {formatAmount(groupTotal.claim)} &nbsp;|&nbsp;
@@ -660,7 +722,19 @@ export default function UncertainAllocationForm({ mode = "create", uaId, onAfter
 
               {mode === "edit" && !isSubmitted && canEdit && (
                 <EditButton
-                  onClick={isEditing ? () => { setIsEditing(false); loadDetails(); } : () => { setIsEditing(true); loadSaleOrders(); }}
+                  onClick={isEditing
+                    ? () => {
+                        setIsEditing(false);
+                        setSelectedSoId("");
+                        setSelectedBillId("");
+                        setClaimBills([]);
+                        loadDetails();
+                      }
+                    : () => {
+                        setIsEditing(true);
+                        loadSaleOrders();
+                      }
+                  }
                   disabled={isSubmitting}
                 >
                   {isEditing ? "Cancel" : "Edit"}

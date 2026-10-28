@@ -407,6 +407,8 @@ export const API_ENDPOINTS = {
     UNCERTAIN_ALLOCATION: {
       SALE_ORDER_LOOKUP:  "/project-mgmt/uncertain-allocation/sale-order-lookup",   // GET ?projectCode&search
       SALE_ORDER_ITEMS:   "/project-mgmt/uncertain-allocation/sale-order-items/",   // /:ogSaleOrderId GET ?projectCode
+      CLAIM_BILLS:        "/project-mgmt/uncertain-allocation/claim-bills/",        // /:ogSaleOrderId GET
+      CLAIM_BILL_ITEMS:   "/project-mgmt/uncertain-allocation/claim-bill-items/",   // /:billingId GET
       CREATE:             "/project-mgmt/uncertain-allocation/create",              // POST JSON
       LIST:               "/project-mgmt/uncertain-allocation/list",                // GET ?projectCode
       GET_BY_ID:          "/project-mgmt/uncertain-allocation/",                    // /:id GET
