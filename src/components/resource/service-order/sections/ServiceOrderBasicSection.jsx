@@ -97,7 +97,13 @@ export default function ServiceOrderBasicSection({
     const fetchLedgers = async () => {
       try {
         const res = await apiRequest({ url: API_ENDPOINTS.MASTER.GET_ALL_LEDGER, method: "GET" });
-        setLedgerList((res.data || []).slice().sort((a, b) => (a.ledgerName || "").localeCompare(b.ledgerName || "")));
+        const list = (res.data || []).map((v) => ({
+          ...v,
+          displayName: v.supplierCode
+            ? `${v.ledgerName} (${v.supplierCode})`
+            : v.ledgerName,
+        }));
+        setLedgerList(list.slice().sort((a, b) => (a.ledgerName || "").localeCompare(b.ledgerName || "")));
       } catch {
         toast.error("Failed to load vendors");
       }
@@ -338,9 +344,9 @@ export default function ServiceOrderBasicSection({
                   }}
                   disabled={disabled}
                   placeholder="Filter from Vendor List"
-                  labelKey="ledgerName"
+                  labelKey="displayName"
                   valueKey="ledgerId"
-                  searchKeys={["ledgerName"]}
+                  searchKeys={["ledgerName", "supplierCode"]}
                   className={errors.vendorId ? "border-red-500" : ""}
                 />
               )}

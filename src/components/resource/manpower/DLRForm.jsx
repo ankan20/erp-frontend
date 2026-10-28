@@ -130,7 +130,15 @@ export default function DLRForm({
     if (!projectCode) return;
     const params = `?projectCode=${encodeURIComponent(projectCode)}&hasLedger=true`;
     apiRequest({ url: `${API_ENDPOINTS.SUPPLIER.LIST}${params}`, method: "GET" })
-      .then((res) => setSupplierList(Array.isArray(res?.data) ? res.data : []))
+      .then((res) => {
+        const list = (Array.isArray(res?.data) ? res.data : []).map((s) => ({
+          ...s,
+          displayName: s.supplierCode
+            ? `${s.supplierName} (${s.supplierCode})`
+            : s.supplierName,
+        }));
+        setSupplierList(list);
+      })
       .catch(() => toast.error("Failed to load supplier list"));
   }, [projectCode]);
 
@@ -450,7 +458,7 @@ export default function DLRForm({
                         }}
                         disabled={fieldDisabled}
                         placeholder="Select Supplier"
-                        labelKey="supplierName"
+                        labelKey="displayName"
                         valueKey="supplierId"
                         searchKeys={["supplierName", "supplierCode"]}
                       />
