@@ -447,6 +447,19 @@ export const routeMetaConfig = [
     basePath: "/project-management/customer-billing/sale-bill-certified/[id]",
     breadcrumbs: ["Project Management", "Customer Billing", "Sale Bill-Certified", "Details"],
   },
+  // Uncertified Statement
+  {
+    basePath: "/project-management/customer-billing/uncertified-statement",
+    breadcrumbs: ["Project Management", "Customer Billing", "Uncertified Statement", "List"],
+  },
+  {
+    basePath: "/project-management/customer-billing/uncertified-statement/new",
+    breadcrumbs: ["Project Management", "Customer Billing", "Uncertified Statement", "New"],
+  },
+  {
+    basePath: "/project-management/customer-billing/uncertified-statement/[id]",
+    breadcrumbs: ["Project Management", "Customer Billing", "Uncertified Statement", "Details"],
+  },
   // Sale Claim Bill
   {
     basePath: "/project-management/customer-billing/sale-bill-claim",
