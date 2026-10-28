@@ -490,7 +490,7 @@ export default function UncertainAllocationForm({ mode = "create", uaId, onAfter
             </div>
 
             <TooltipProvider>
-            <div className="overflow-x-auto">
+            <div className="overflow-x-auto overflow-y-auto" style={{ maxHeight: "60vh" }}>
               <table
                 ref={tableRef}
                 className="w-full table-fixed border-collapse text-[12px]"
@@ -670,15 +670,17 @@ export default function UncertainAllocationForm({ mode = "create", uaId, onAfter
                     })
                   )}
 
-                  {/* Totals row */}
-                  {lines.length > 0 && (() => {
-                    // Justification totals = sum(qty × rate) per column
-                    const totalOB = lines.reduce((s, l) => s + Number(l.overBillingCalculationMistake || 0) * Number(l.unitRate || 0), 0);
-                    const totalCH = lines.reduce((s, l) => s + Number(l.certifiedHoldAmendmentPending || 0) * Number(l.unitRate || 0), 0);
-                    const totalNB = lines.reduce((s, l) => s + Number(l.nonBoqItemsRate               || 0) * Number(l.unitRate || 0), 0);
-                    const totalHW = lines.reduce((s, l) => s + Number(l.holdWork                      || 0) * Number(l.unitRate || 0), 0);
-                    const totalHF = lines.reduce((s, l) => s + Number(l.holdForFullWorkNotCompleted   || 0) * Number(l.unitRate || 0), 0);
-                    return (
+                </tbody>
+
+                {/* Sticky totals footer */}
+                {lines.length > 0 && (() => {
+                  const totalOB = lines.reduce((s, l) => s + Number(l.overBillingCalculationMistake || 0) * Number(l.unitRate || 0), 0);
+                  const totalCH = lines.reduce((s, l) => s + Number(l.certifiedHoldAmendmentPending || 0) * Number(l.unitRate || 0), 0);
+                  const totalNB = lines.reduce((s, l) => s + Number(l.nonBoqItemsRate               || 0) * Number(l.unitRate || 0), 0);
+                  const totalHW = lines.reduce((s, l) => s + Number(l.holdWork                      || 0) * Number(l.unitRate || 0), 0);
+                  const totalHF = lines.reduce((s, l) => s + Number(l.holdForFullWorkNotCompleted   || 0) * Number(l.unitRate || 0), 0);
+                  return (
+                    <tfoot className="sticky bottom-0 z-20">
                       <tr className="bg-[#0f2744] text-white font-semibold text-[11px]">
                         <td colSpan={6} className="border border-[#1e3a5f] px-2 py-1.5 text-right tracking-wide text-[10px] opacity-80">TOTAL AMOUNT (BASIC)</td>
                         <td className="border border-[#1e3a5f] px-2 py-1.5 text-right tabular-nums">{formatAmount(totalClaim)}</td>
@@ -691,9 +693,9 @@ export default function UncertainAllocationForm({ mode = "create", uaId, onAfter
                         <td className="border border-[#1e3a5f] px-2 py-1.5 text-right tabular-nums">{formatAmount(totalHF)}</td>
                         <td className="border border-[#1e3a5f]" />
                       </tr>
-                    );
-                  })()}
-                </tbody>
+                    </tfoot>
+                  );
+                })()}
               </table>
             </div>
             </TooltipProvider>

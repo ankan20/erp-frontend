@@ -82,7 +82,7 @@ export default function BudgetCcMatrix({
           </span>
         </div>
 
-        <div className="overflow-x-auto">
+        <div className="overflow-x-auto overflow-y-auto" style={{ maxHeight: "60vh" }}>
           <table
             ref={tableRef}
             className="w-full table-fixed border-collapse text-[12px]"
@@ -315,8 +315,11 @@ export default function BudgetCcMatrix({
                 })
               )}
 
-              {/* Totals row */}
-              {items.length > 0 && (
+            </tbody>
+
+            {/* Sticky totals footer */}
+            {items.length > 0 && (
+              <tfoot className="sticky bottom-0 z-20">
                 <tr className="bg-[#d6e6f2] font-semibold text-[11px]">
                   <td className={`${STICKY.sl} bg-[#d6e6f2] border border-gray-300`} />
                   <td className={`${STICKY.code} bg-[#d6e6f2] border border-gray-300`} />
@@ -345,8 +348,8 @@ export default function BudgetCcMatrix({
                     {totals.totalProfitPct.toFixed(2)}%
                   </td>
                 </tr>
-              )}
-            </tbody>
+              </tfoot>
+            )}
           </table>
         </div>
       </div>
