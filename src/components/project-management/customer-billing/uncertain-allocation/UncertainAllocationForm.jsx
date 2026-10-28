@@ -15,6 +15,8 @@ import PMInput         from "@/components/project-management/common/PMInput";
 import PMDateInput     from "@/components/project-management/common/PMDateInput";
 import PMTextarea      from "@/components/project-management/common/PMTextarea";
 
+import { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider } from "@/components/ui/tooltip";
+
 import { apiRequest }      from "@/lib/apiClient";
 import { API_ENDPOINTS }   from "@/config/api.config";
 import { getLocalStorage } from "@/lib/localStorage";
@@ -178,8 +180,8 @@ export default function UncertainAllocationForm({ mode = "create", uaId, onAfter
         itemType:                       item.itemType,
         boqSlNo:                        item.boqSlNo,
         itemCode:                       item.itemCode     || "",
-        itemName:                       item.itemName     || "",
-        itemNameDesc:                   item.itemNameDesc || "",
+        itemName:                       (item.itemName     || "").trim(),
+        itemNameDesc:                   (item.itemNameDesc || "").trim(),
         unit:                           item.unit         || "",
         boqQty:                         item.boqQty       ?? 0,
         unitRate:                       item.unitRate      ?? 0,
@@ -320,7 +322,7 @@ export default function UncertainAllocationForm({ mode = "create", uaId, onAfter
     );
   }
 
-  const TOTAL_COLS = 15; // Sl + BOQ Sl + Description + BOQ Qty + Unit + Unit Rate + Claim + Certified + Diff + 5 just + Remarks
+  const TOTAL_COLS = 15; // BOQ Sl + Item Code + Item Name + BOQ Qty + Unit + Unit Rate + Claim + Certified + Diff + 5 just + Remarks
 
   return (
     <div className="p-3">
@@ -421,6 +423,7 @@ export default function UncertainAllocationForm({ mode = "create", uaId, onAfter
               </span>
             </div>
 
+            <TooltipProvider>
             <div className="overflow-x-auto">
               <table
                 ref={tableRef}
@@ -442,9 +445,9 @@ export default function UncertainAllocationForm({ mode = "create", uaId, onAfter
                   </tr>
                   {/* Leaf column header row */}
                   <tr>
-                    <th className={`${HDR} border border-[#2e5a72] px-1 py-1.5 text-center text-[11px] w-[36px] min-w-[36px]`}>Sl</th>
                     <th className={`${HDR} border border-[#2e5a72] px-1 py-1.5 text-center text-[11px] w-[50px] min-w-[50px]`}>BOQ Sl</th>
-                    <th className={`${HDR} border border-[#2e5a72] px-2 py-1.5 text-left text-[11px] w-[220px] min-w-[160px]`}>Description</th>
+                    <th className={`${HDR} border border-[#2e5a72] px-2 py-1.5 text-left text-[11px] w-[80px] min-w-[70px]`}>Item Code</th>
+                    <th className={`${HDR} border border-[#2e5a72] px-2 py-1.5 text-left text-[11px] w-[200px] min-w-[150px]`}>Item Name</th>
                     <th className={`${HDR} border border-[#2e5a72] px-2 py-1.5 text-right text-[11px] w-[80px] min-w-[70px]`}>BOQ Qty</th>
                     <th className={`${HDR} border border-[#2e5a72] px-2 py-1.5 text-center text-[11px] w-[60px] min-w-[55px]`}>Unit</th>
                     <th className={`${HDR} border border-[#2e5a72] px-2 py-1.5 text-right text-[11px] w-[90px] min-w-[80px]`}>Unit Rate</th>
@@ -512,13 +515,25 @@ export default function UncertainAllocationForm({ mode = "create", uaId, onAfter
                             <tr key={`${l.ogSaleOrderId}-${l.ogSaleOrderItemId ?? idx}`}
                                 className={!ok && isEditing ? "bg-yellow-50/60" : zebra}>
 
-                              <td className="border border-gray-200 px-1 py-[3px] text-center text-gray-500">{idx + 1}</td>
                               <td className="border border-gray-200 px-1 py-[3px] text-center text-[11px] text-gray-600">{l.boqSlNo}</td>
-                              <td className="border border-gray-200 px-1.5 py-[3px] text-[11px]" title={l.itemNameDesc || l.itemName}>
-                                <div className="truncate">{l.itemName}</div>
-                                {l.itemNameDesc && (
-                                  <div className="truncate text-gray-400 text-[10px]">{l.itemNameDesc}</div>
-                                )}
+                              <td className="border border-gray-200 px-1.5 py-[3px] text-[11px] text-gray-600">{l.itemCode}</td>
+                              <td className="border border-gray-200 px-1.5 py-[3px] text-[11px]">
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <div>
+                                      <div className="truncate">{l.itemName?.trim()}</div>
+                                      {l.itemNameDesc?.trim() && l.itemNameDesc?.trim() !== l.itemName?.trim() && (
+                                        <div className="truncate text-gray-400 text-[10px]">{l.itemNameDesc?.trim()}</div>
+                                      )}
+                                    </div>
+                                  </TooltipTrigger>
+                                  <TooltipContent variant="text" side="top">
+                                    <div className="font-semibold">{l.itemName?.trim()}</div>
+                                    {l.itemNameDesc?.trim() && l.itemNameDesc?.trim() !== l.itemName?.trim() && (
+                                      <div className="mt-0.5 text-gray-300">{l.itemNameDesc?.trim()}</div>
+                                    )}
+                                  </TooltipContent>
+                                </Tooltip>
                               </td>
                               <td className="border border-gray-200 px-1.5 py-[3px] text-right tabular-nums text-[11px]">
                                 {l.boqQty != null ? Number(l.boqQty).toLocaleString() : ""}
@@ -605,6 +620,7 @@ export default function UncertainAllocationForm({ mode = "create", uaId, onAfter
                 </tbody>
               </table>
             </div>
+            </TooltipProvider>
           </div>
 
           {/* Balance warnings */}
