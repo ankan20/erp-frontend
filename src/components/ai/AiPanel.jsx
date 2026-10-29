@@ -83,7 +83,7 @@ export default function AiPanel({
         data: { query, module: "finance" },
       });
       setChatResult(
-        res?.data?.answer || res?.data?.suggestion || "No answer returned."
+        res?.answer || res?.suggestion || "No answer returned."
       );
     } catch (err) {
       setChatResultError(err?.message || "Request failed");

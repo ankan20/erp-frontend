@@ -58,9 +58,9 @@ export default function useAiSuggest({
           params: method === "GET" ? body : undefined,
         });
         const text =
-          res?.data?.suggestion ||
-          res?.data?.answer ||
-          res?.data?.insight ||
+          res?.suggestion ||
+          res?.answer ||
+          res?.insight ||
           "No suggestion returned.";
         setSuggestion(text);
       } catch (err) {
