@@ -781,6 +781,14 @@ export const API_ENDPOINTS = {
       UPDATE_TASK: "/hr/onboarding/task/",        // /:taskId PUT
     },
   },
+
+  AI: {
+    SUGGEST_SALE_BILL:     "/ai/suggest/sale-bill",     // POST { project_code, query? }
+    SUGGEST_PURCHASE_BILL: "/ai/suggest/purchase-bill", // POST { project_code, vendor_id?, query? }
+    INSIGHTS_FINANCE:      "/ai/insights/finance",      // GET  ?project_code
+    INSIGHTS_PROJECT:      "/ai/insights/project",      // POST { project_code }
+    CHAT:                  "/ai/chat",                  // POST { query, module? }
+  },
 };
 
 export default API_BASE_URL;

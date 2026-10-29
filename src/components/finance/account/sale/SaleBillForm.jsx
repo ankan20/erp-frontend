@@ -29,6 +29,7 @@ import { apiRequest } from "@/lib/apiClient";
 import { API_ENDPOINTS } from "@/config/api.config";
 import { getLocalStorage } from "@/lib/localStorage";
 import { zodDate } from "@/lib/dateUtils";
+import AiPanel from "@/components/ai/AiPanel";
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -496,6 +497,13 @@ export default function SaleBillForm({
     }
   };
 
+  // ── AI: apply suggestion → show as toast (items table is CC-code driven, user fills manually) ──
+  const handleAiApply = (suggestion) => {
+    toast.info("AI suggestion copied — see the AI panel for item details.", {
+      duration: 4000,
+    });
+  };
+
   if (isLoading) {
     return (
       <div className="flex justify-center items-center h-[300px]">
@@ -853,6 +861,16 @@ export default function SaleBillForm({
           )}
         </div>
       </div>
+
+      {/* ── AI Assistant Panel ── */}
+      <AiPanel
+        projectCode={projectCode}
+        endpoint={API_ENDPOINTS.AI.SUGGEST_SALE_BILL}
+        method="POST"
+        onApply={handleAiApply}
+        applyLabel="Use this suggestion"
+        title="Sale Bill AI"
+      />
     </div>
   );
 }

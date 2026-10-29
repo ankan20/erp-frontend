@@ -27,6 +27,7 @@ import SaleBillRightPanel, {
 
 import { apiRequest }        from "@/lib/apiClient";
 import { API_ENDPOINTS }     from "@/config/api.config";
+import AiPanel               from "@/components/ai/AiPanel";
 import { getLocalStorage }   from "@/lib/localStorage";
 import { zodDate } from "@/lib/dateUtils";
 
@@ -519,6 +520,18 @@ export default function PurchaseBillForm({
           )}
         </div>
       </div>
+
+      {/* ── AI Assistant Panel ── */}
+      <AiPanel
+        projectCode={projectCode}
+        endpoint={API_ENDPOINTS.AI.SUGGEST_PURCHASE_BILL}
+        method="POST"
+        onApply={(suggestion) =>
+          toast.info("AI suggestion ready — check the AI panel for vendor & item details.", { duration: 4000 })
+        }
+        applyLabel="Use this suggestion"
+        title="Purchase Bill AI"
+      />
     </div>
   );
 }
