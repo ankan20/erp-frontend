@@ -1,6 +1,7 @@
 "use client";
 
 import Image from "next/image";
+import Link from "next/link";
 import { useEffect, useState } from "react";
 import { Eye, EyeOff } from "lucide-react";
 import { toast } from "sonner";
@@ -191,7 +192,13 @@ useEffect(()=>{
               <p className="text-red-500 text-sm mt-3">{errorMessage}</p>
             )}
 
-            <div className="flex justify-end pt-8">
+            <div className="flex items-center justify-between pt-8">
+              <Link
+                href="/forgot-password"
+                className="text-[16px] text-[#6d98c9] hover:underline"
+              >
+                Forgot Password?
+              </Link>
               <Button
                 type="submit"
                 disabled={loading}
