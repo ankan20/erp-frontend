@@ -493,22 +493,21 @@ export default function SaleCertifiedBillForm({ mode = "create", billId, onAfter
               </div>
             </PMFormRow>
 
-            {prevCertBillOpts.length > 0 && (
-              <PMFormRow label="Prev Cert Bills" labelWidth="sm:w-[140px] sm:min-w-[140px]">
-                <div className="flex-1">
-                  <SearchableSelect
-                    options={prevCertBillOpts}
-                    value=""
-                    disabled={true}
-                    onChange={() => {}}
-                    placeholder={`${prevCertBillOpts.length} approved bill(s)`}
-                    labelKey="displayLabel"
-                    valueKey="id"
-                    searchKeys={["billingNo", "displayLabel"]}
-                  />
-                </div>
-              </PMFormRow>
-            )}
+            {prevCertBillOpts.length > 0 && (() => {
+              const latest = prevCertBillOpts[prevCertBillOpts.length - 1];
+              return (
+                <PMFormRow label="Latest Cert Bill" labelWidth="sm:w-[140px] sm:min-w-[140px]">
+                  <a
+                    href={`/project-management/customer-billing/sale-bill-certified/${latest.id}`}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="text-[13px] text-blue-600 underline hover:text-blue-800 font-medium"
+                  >
+                    {latest.billingNo}
+                  </a>
+                </PMFormRow>
+              );
+            })()}
 
             <PMFormRow label="Bill Date" required={!disabled} labelWidth="sm:w-[140px] sm:min-w-[140px]">
               <PMDateInput
