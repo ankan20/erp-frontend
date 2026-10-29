@@ -139,7 +139,7 @@ function MassModal({ open, onClose, mode, labourList, alreadyInTableIds, checked
 
   if (!open) return null;
 
-  const title       = mode === "change" ? "Mass Change" : "Mass Entry";
+  const title       = mode === "change" ? "Bulk Change" : "Bulk Entry";
   const listLabel   = mode === "change" ? "Workers to Update" : "Select Workers to Add";
   const saveLabel   = mode === "change" ? "Apply Changes" : "Add to Table";
   const emptyLabel  = mode === "change"
@@ -355,7 +355,7 @@ export default function DLRDetailsTable({
   };
 
   const showMassBtn = labourList.length > 0;
-  const massLabel   = anyChecked ? "Mass Change" : "Mass Entry";
+  const massLabel   = anyChecked ? "Bulk Change" : "Bulk Entry";
   // Add Row only when no supplier loaded (manual free-text entry)
   const showAddRow  = labourList.length === 0;
 
