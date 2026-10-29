@@ -34,12 +34,15 @@ export default function useAiSuggest({
       setSuggestion("");
       try {
         const raw = overridePayload ?? payloadRef.current;
-        // Strip any non-primitive values — prevents circular JSON errors from React refs/DOM nodes
+        // Strip non-primitives AND empty strings — prevents circular JSON + missing-field 400s
         const body = Object.fromEntries(
-          Object.entries(raw).filter(
-            ([, v]) => typeof v === "string" || typeof v === "number" || typeof v === "boolean"
+          Object.entries(raw).filter(([, v]) =>
+            (typeof v === "string" && v !== "") ||
+            typeof v === "number" ||
+            typeof v === "boolean"
           )
         );
+        if (Object.keys(body).length === 0) return; // nothing useful to send
         const res = await apiRequest({
           url,
           method,
