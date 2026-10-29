@@ -123,14 +123,19 @@ export default function AppNavbar() {
   //   toast.success("Project Selected");
   // };
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    try {
+      await apiRequest({
+        url: API_ENDPOINTS.LOGOUT,
+        method: "POST",
+      });
+    } catch {
+      // Proceed with local logout even if backend call fails
+    }
     clearAuthCookies();
-
     clearLocalStorage();
-
+    toast.success("Logged out successfully");
     router.push("/login");
-
-    toast.success("Logged out");
   };
 
   return (

@@ -2,6 +2,7 @@ const API_BASE_URL = "http://132.154.156.82/api"; //change here later
 
 export const API_ENDPOINTS = {
   LOGIN: "/auth/login",
+  LOGOUT: "/auth/logout",
   FORGOT_PASSWORD: "/auth/forgot-password",
   VERIFY_OTP: "/auth/verify-otp",
   RESET_PASSWORD: "/auth/reset-password",
@@ -410,6 +411,8 @@ export const API_ENDPOINTS = {
     UNCERTAIN_ALLOCATION: {
       SALE_ORDER_LOOKUP:  "/project-mgmt/uncertain-allocation/sale-order-lookup",   // GET ?projectCode&search
       SALE_ORDER_ITEMS:   "/project-mgmt/uncertain-allocation/sale-order-items/",   // /:ogSaleOrderId GET ?projectCode
+      CLAIM_BILLS:        "/project-mgmt/uncertain-allocation/claim-bills/",        // /:ogSaleOrderId GET
+      CLAIM_BILL_ITEMS:   "/project-mgmt/uncertain-allocation/claim-bill-items/",   // /:billingId GET
       CREATE:             "/project-mgmt/uncertain-allocation/create",              // POST JSON
       LIST:               "/project-mgmt/uncertain-allocation/list",                // GET ?projectCode
       GET_BY_ID:          "/project-mgmt/uncertain-allocation/",                    // /:id GET

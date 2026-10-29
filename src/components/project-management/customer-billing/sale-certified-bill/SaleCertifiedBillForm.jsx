@@ -156,7 +156,12 @@ export default function SaleCertifiedBillForm({ mode = "create", billId, onAfter
         url:    `${API_ENDPOINTS.PROJECT.SALE_CLAIM_BILL.LIST}?projectCode=${projectCode}&mode=sale_claim_bill&workflowStatus=Approved&ogSaleOrderNo=${encodeURIComponent(ogSaleOrderNo)}`,
         method: "GET",
       });
-      setClaimBillOpts(Array.isArray(res.data) ? res.data : []);
+      setClaimBillOpts(
+        (Array.isArray(res.data) ? res.data : []).map((b) => ({
+          ...b,
+          displayLabel: b.title ? `${b.billingNo} — ${b.title}` : b.billingNo,
+        }))
+      );
     } catch {
       setClaimBillOpts([]);
     } finally {
@@ -330,6 +335,7 @@ export default function SaleCertifiedBillForm({ mode = "create", billId, onAfter
     fd.append("items",    serializeItems(nonBoqItems));
     fd.append("boqItems", serializeItems(boqItems));
     if (file) fd.append("attachment", file);
+    else if (mode === "edit" && !existingUrl) fd.append("clearAttachment", "true");
     return fd;
   };
 
@@ -346,8 +352,8 @@ export default function SaleCertifiedBillForm({ mode = "create", billId, onAfter
         method: mode === "create" ? "POST" : "PUT",
         data:   buildPayload(),
       });
-      setExistingUrl(res.data?.attachment || existingUrl);
-      setInitialUrl(res.data?.attachment  || existingUrl);
+      setExistingUrl(res.data?.attachment ?? existingUrl);
+      setInitialUrl(res.data?.attachment  ?? existingUrl);
       setFile(null);
       setFileResetKey((k) => k + 1);
       setInitialData(getValues());
@@ -437,11 +443,12 @@ export default function SaleCertifiedBillForm({ mode = "create", billId, onAfter
                   options={claimBillOpts}
                   value={watch("claimBillId") || ""}
                   disabled={disabled || lookupLoading || claimBillLoading || !watch("ogSaleOrderNo")}
+                  loading={claimBillLoading || lookupLoading}
                   onChange={(value) => handleClaimBillSelect(value)}
-                  placeholder={claimBillLoading ? "Loading…" : lookupLoading ? "Loading…" : !watch("ogSaleOrderNo") ? "Select order first" : "Select Claim Bill"}
-                  labelKey="billingNo"
+                  placeholder={!watch("ogSaleOrderNo") ? "Select order first" : "Select Claim Bill"}
+                  labelKey="displayLabel"
                   valueKey="id"
-                  searchKeys={["billingNo", "title"]}
+                  searchKeys={["billingNo", "title", "displayLabel"]}
                 />
                 {errors.claimBillId && (
                   <p className="text-[11px] text-red-500 mt-0.5">{errors.claimBillId.message}</p>

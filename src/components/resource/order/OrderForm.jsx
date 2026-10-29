@@ -298,6 +298,7 @@ export default function OrderForm({ mode = "create", orderId, onUuid, onAfterSub
     );
 
     if (attachedFile) formData.append("orderFile", attachedFile);
+    else if (mode === "edit" && !existingFileUrl) formData.append("clearOrderFile", "true");
     return formData;
   };
 
@@ -335,9 +336,10 @@ export default function OrderForm({ mode = "create", orderId, onUuid, onAfterSub
       if (res?.data?.orderNo) setValue("orderNo", res.data.orderNo);
       if (res?.data?.uuid && onUuid) onUuid(res.data.uuid);
 
-      if (res?.data?.orderFile) {
-        setExistingFileUrl(res.data.orderFile);
-        setInitialFileUrl(res.data.orderFile);
+      {
+        const url = res?.data?.orderFile ?? existingFileUrl;
+        setExistingFileUrl(url);
+        setInitialFileUrl(url);
         setAttachedFile(null);
         setFileResetKey((k) => k + 1);
       }

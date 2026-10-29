@@ -53,9 +53,15 @@ export const apiRequest = async ({
     if (res.status === 401 && requireAuth && typeof window !== "undefined") {
       const alreadyOnLogin = window.location.pathname === "/login";
       if (!alreadyOnLogin) {
+        const msg = result?.message || result?.msg || "You have been logged out. Please sign in again.";
         clearAuthCookies();
-        window.location.href = "/login";
-        return; // stop further processing while navigating
+        import("sonner").then(({ toast }) => {
+          toast.error(msg, { duration: 4000 });
+        });
+        setTimeout(() => {
+          window.location.href = "/login";
+        }, 1500);
+        return;
       }
     }
     if (res.status === 403 && typeof window !== "undefined") {

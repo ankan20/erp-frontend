@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { ChevronDown } from "lucide-react";
+import { ChevronDown, Loader2 } from "lucide-react";
 
 export default function SearchableSelect({
   options = [],
@@ -10,6 +10,7 @@ export default function SearchableSelect({
   placeholder = "Select",
   searchPlaceholder = "Search...",
   disabled = false,
+  loading = false,
   className = "",
   searchKeys = [],
   labelKey = "label", //["name","fullname"]
@@ -78,7 +79,7 @@ export default function SearchableSelect({
       {/* SELECT BUTTON */}
       <button
         type="button"
-        disabled={disabled}
+        disabled={disabled || loading}
         onClick={(e) => {
           const rect = e.currentTarget.getBoundingClientRect();
 
@@ -151,7 +152,7 @@ export default function SearchableSelect({
             : placeholder}
         </span>
 
-        <ChevronDown size={16} />
+        {loading ? <Loader2 size={14} className="animate-spin shrink-0 text-gray-400" /> : <ChevronDown size={16} />}
       </button>
 
       {/* DROPDOWN */}

@@ -268,6 +268,7 @@ export default function GINForm({ mode = "create", ginId, onUuid, onAfterSubmit 
     fd.append("items", JSON.stringify(itemsPayload));
 
     if (attachedFile) fd.append("attachedDoc", attachedFile);
+    else if (mode === "edit" && !existingFileUrl) fd.append("clearAttachedDoc", "true");
     return fd;
   };
 
@@ -301,8 +302,8 @@ export default function GINForm({ mode = "create", ginId, onUuid, onAfterSubmit 
       if (res?.data?.ginNo) form.setValue("ginNo", res.data.ginNo);
       if (res?.data?.uuid && onUuid) onUuid(res.data.uuid);
 
-      if (res?.data?.attachedDoc) {
-        const url = res.data.attachedDoc;
+      {
+        const url = res?.data?.attachedDoc ?? existingFileUrl;
         setExistingFileUrl(url);
         setInitialFileUrl(url);
         setAttachedFile(null);

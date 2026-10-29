@@ -271,6 +271,7 @@ export default function DocketVoucherForm({
       }))
     ));
     if (attachedFile) formData.append("attachment", attachedFile);
+    else if (mode === "edit" && !existingFileUrl) formData.append("clearAttachment", "true");
     return formData;
   };
 
@@ -287,9 +288,10 @@ export default function DocketVoucherForm({
         data:   buildPayload(),
       });
       if (res?.data?.voucherNo) setVoucherNo(res.data.voucherNo);
-      if (res?.data?.attachmentUrl) {
-        setExistingFileUrl(res.data.attachmentUrl);
-        setInitialFileUrl(res.data.attachmentUrl);
+      {
+        const url = res?.data?.attachmentUrl ?? existingFileUrl;
+        setExistingFileUrl(url);
+        setInitialFileUrl(url);
         setAttachedFile(null);
         setFileResetKey((k) => k + 1);
       }

@@ -262,6 +262,7 @@ export default function BudgetForm({ mode = "create", budgetId, canApprove = fal
       }))
     ));
     if (attachedFile) formData.append("attachment", attachedFile);
+    else if (mode === "edit" && !existingFileUrl) formData.append("clearAttachment", "true");
     return formData;
   };
 
@@ -278,9 +279,10 @@ export default function BudgetForm({ mode = "create", budgetId, canApprove = fal
         data:   buildPayload(),
       });
       if (res?.data?.budgetNo) setBudgetNo(res.data.budgetNo);
-      if (res?.data?.attachmentUrl) {
-        setExistingFileUrl(res.data.attachmentUrl);
-        setInitialFileUrl(res.data.attachmentUrl);
+      {
+        const url = res?.data?.attachmentUrl ?? existingFileUrl;
+        setExistingFileUrl(url);
+        setInitialFileUrl(url);
         setAttachedFile(null);
         setFileResetKey((k) => k + 1);
       }

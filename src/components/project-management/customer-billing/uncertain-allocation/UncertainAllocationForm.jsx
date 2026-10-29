@@ -15,11 +15,14 @@ import PMInput         from "@/components/project-management/common/PMInput";
 import PMDateInput     from "@/components/project-management/common/PMDateInput";
 import PMTextarea      from "@/components/project-management/common/PMTextarea";
 
+import { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider } from "@/components/ui/tooltip";
+
 import { apiRequest }      from "@/lib/apiClient";
 import { API_ENDPOINTS }   from "@/config/api.config";
 import { getLocalStorage } from "@/lib/localStorage";
 import { formatAmount }    from "@/helper/numberFormatter";
 import AmountInput         from "@/components/common/AmountInput";
+import ExpandableTextField  from "@/components/common/ExpandableTextField";
 import { useColumnResize } from "@/hooks/useColumnResize";
 
 const UA = API_ENDPOINTS.PROJECT.UNCERTAIN_ALLOCATION;
@@ -57,15 +60,19 @@ export default function UncertainAllocationForm({ mode = "create", uaId, onAfter
   const [locked,  setLocked]  = useState(false);
   const [uaNo,    setUaNo]    = useState("");
 
-  // lines: array of item-level rows, each with ogSaleOrderId to group by
-  const [lines,         setLines]         = useState([]);
-  // saleOrders: lookup list (order-level)
-  const [saleOrders,    setSaleOrders]    = useState([]);
-  const [lookupLoading, setLookupLoading] = useState(false);
-  const [selectedSoId,  setSelectedSoId]  = useState("");
-  // addedSoIds: set of ogSaleOrderId already in lines (to prevent duplicate adds)
-  const [addedSoIds,    setAddedSoIds]    = useState(new Set());
-  const [itemsLoading,  setItemsLoading]  = useState(false);
+  // lines: array of item-level rows grouped by billingId
+  const [lines,            setLines]           = useState([]);
+  // sale order lookup
+  const [saleOrders,       setSaleOrders]       = useState([]);
+  const [lookupLoading,    setLookupLoading]    = useState(false);
+  const [selectedSoId,     setSelectedSoId]     = useState("");
+  // claim bill lookup (filtered by selected SO)
+  const [claimBills,       setClaimBills]       = useState([]);
+  const [billsLoading,     setBillsLoading]     = useState(false);
+  const [selectedBillId,   setSelectedBillId]   = useState("");
+  // addedBillIds: set of billingId already in lines (prevent duplicate adds)
+  const [addedBillIds,     setAddedBillIds]     = useState(new Set());
+  const [itemsLoading,     setItemsLoading]     = useState(false);
 
   // ── load sale order lookup ─────────────────────────────────────────────────
   const loadSaleOrders = useCallback(async () => {
@@ -107,6 +114,8 @@ export default function UncertainAllocationForm({ mode = "create", uaId, onAfter
       setIsSubmitted(d.workflowStatus !== "Draft" && d.workflowStatus !== "Reback");
 
       const loadedLines = (d.lines || []).map((l) => ({
+        billingId:                       l.billingId,
+        billingNo:                       l.billingNo       || "",
         ogSaleOrderId:                   l.ogSaleOrderId,
         ogSaleOrderNo:                   l.ogSaleOrderNo   || "",
         orderTitle:                      l.orderTitle      || "",
@@ -118,20 +127,22 @@ export default function UncertainAllocationForm({ mode = "create", uaId, onAfter
         itemName:                        l.itemName        || "",
         itemNameDesc:                    l.itemNameDesc    || "",
         unit:                            l.unit            || "",
-        boqQty:                          l.boqQty          ?? 0,
+        ogBOQQty:                        l.ogBOQQty        ?? 0,   // original sale order ordered qty
+        boqQty:                          l.boqQty          ?? 0,   // claim qty
+        certifiedQty:                    l.certifiedQty    ?? 0,   // certified qty (computed)
         unitRate:                        l.unitRate        ?? 0,
-        claimAmount:                     l.claimAmount     ?? 0,
-        certifiedAmount:                 l.certifiedAmount ?? 0,
-        difference:                      l.difference      ?? 0,
-        overBillingCalculationMistake:   l.overBillingCalculationMistake  ?? "",
-        certifiedHoldAmendmentPending:   l.certifiedHoldAmendmentPending  ?? "",
-        nonBoqItemsRate:                 l.nonBoqItemsRate                ?? "",
-        holdWork:                        l.holdWork                       ?? "",
-        holdForFullWorkNotCompleted:     l.holdForFullWorkNotCompleted     ?? "",
+        claimAmount:                     l.claimAmount     ?? 0,   // for total row
+        certifiedAmount:                 l.certifiedAmount ?? 0,   // for total row
+        difference:                      l.difference      ?? 0,   // for total row
+        overBillingCalculationMistake:   l.overBillingCalculationMistake  ?? "",  // QTY
+        certifiedHoldAmendmentPending:   l.certifiedHoldAmendmentPending  ?? "",  // QTY
+        nonBoqItemsRate:                 l.nonBoqItemsRate                ?? "",  // QTY
+        holdWork:                        l.holdWork                       ?? "",  // QTY
+        holdForFullWorkNotCompleted:     l.holdForFullWorkNotCompleted     ?? "",  // QTY
         remarks:                         l.remarks || "",
       }));
       setLines(loadedLines);
-      setAddedSoIds(new Set(loadedLines.map((l) => l.ogSaleOrderId)));
+      setAddedBillIds(new Set(loadedLines.map((l) => l.billingId).filter(Boolean)));
     } catch {
       toast.error("Failed to load details");
     } finally {
@@ -148,40 +159,71 @@ export default function UncertainAllocationForm({ mode = "create", uaId, onAfter
     }
   }, [mode]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // ── add items from a selected sale order ──────────────────────────────────
+  // ── Step 1: SO selected → load its claim bills ────────────────────────────
   const handleSoSelect = async (soId) => {
     if (!soId) return;
-    const soIdNum = Number(soId);
-    if (addedSoIds.has(soIdNum)) {
-      toast.warning("This sale order is already added");
-      setSelectedSoId(String(soIdNum));
+    setSelectedSoId(String(soId));
+    setSelectedBillId("");
+    setClaimBills([]);
+    setBillsLoading(true);
+    try {
+      const result = await apiRequest({
+        url: `${UA.CLAIM_BILLS}${soId}`,
+        method: "GET",
+      });
+      const list = Array.isArray(result.data) ? result.data : [];
+      if (!list.length) {
+        toast.warning("No approved claim bills found for this sale order");
+      }
+      setClaimBills(list.map((b) => ({
+        ...b,
+        displayLabel: b.title ? `${b.billingNo} — ${b.title}` : b.billingNo,
+      })));
+    } catch {
+      toast.error("Failed to load claim bills");
+    } finally {
+      setBillsLoading(false);
+    }
+  };
+
+  // ── Step 2: Claim bill selected → populate table rows ─────────────────────
+  const handleBillSelect = async (billId) => {
+    if (!billId) return;
+    const billIdNum = Number(billId);
+    if (addedBillIds.has(billIdNum)) {
+      toast.warning("This claim bill is already added");
+      setSelectedBillId(String(billIdNum));
       return;
     }
     setItemsLoading(true);
-    setSelectedSoId(String(soIdNum));
+    setSelectedBillId(String(billIdNum));
     try {
-      const res = await apiRequest({
-        url: `${UA.SALE_ORDER_ITEMS}${soIdNum}?projectCode=${projectCode}`,
+      const result = await apiRequest({
+        url: `${UA.CLAIM_BILL_ITEMS}${billIdNum}`,
         method: "GET",
       });
-      const d = res.data;
+      const d = result.data;
       if (!d || !d.items?.length) {
-        toast.warning("No items found for this sale order");
+        toast.warning("No items found in this claim bill");
         return;
       }
       const newRows = d.items.map((item) => ({
-        ogSaleOrderId:                  soIdNum,
-        ogSaleOrderNo:                  d.ogSaleOrderNo   || "",
-        orderTitle:                     d.orderTitle      || "",
-        orderNo:                        d.orderNo         || "",
-        ogSaleOrderItemId:              item.ogSaleOrderItemId,
+        billingId:                      billIdNum,
+        billingNo:                      d.billingNo        || "",
+        ogSaleOrderId:                  d.ogSaleOrderId,
+        ogSaleOrderNo:                  d.ogSaleOrderNo    || "",
+        orderTitle:                     d.orderTitle       || "",
+        orderNo:                        d.orderNo          || "",
+        ogSaleOrderItemId:              item.billingItemId,
         itemType:                       item.itemType,
         boqSlNo:                        item.boqSlNo,
-        itemCode:                       item.itemCode     || "",
-        itemName:                       item.itemName     || "",
-        itemNameDesc:                   item.itemNameDesc || "",
-        unit:                           item.unit         || "",
-        boqQty:                         item.boqQty       ?? 0,
+        itemCode:                       item.itemCode      || "",
+        itemName:                       (item.itemName      || "").trim(),
+        itemNameDesc:                   (item.itemNameDesc  || "").trim(),
+        unit:                           item.unit          || "",
+        ogBOQQty:                       item.orderQty      ?? 0,
+        boqQty:                         item.claimQty      ?? 0,
+        certifiedQty:                   item.certifiedQty  ?? 0,
         unitRate:                       item.unitRate      ?? 0,
         claimAmount:                    item.claimAmount   ?? 0,
         certifiedAmount:                item.certifiedAmount ?? 0,
@@ -194,9 +236,9 @@ export default function UncertainAllocationForm({ mode = "create", uaId, onAfter
         remarks:                        "",
       }));
       setLines((prev) => [...prev, ...newRows]);
-      setAddedSoIds((prev) => new Set([...prev, soIdNum]));
+      setAddedBillIds((prev) => new Set([...prev, billIdNum]));
     } catch {
-      toast.error("Failed to load sale order items");
+      toast.error("Failed to load claim bill items");
     } finally {
       setItemsLoading(false);
     }
@@ -207,13 +249,14 @@ export default function UncertainAllocationForm({ mode = "create", uaId, onAfter
 
   // ── balance check per line ─────────────────────────────────────────────────
   const lineBalance = (l) => {
-    const sum =
-      Number(l.overBillingCalculationMistake  || 0) +
-      Number(l.certifiedHoldAmendmentPending  || 0) +
-      Number(l.nonBoqItemsRate                || 0) +
-      Number(l.holdWork                       || 0) +
-      Number(l.holdForFullWorkNotCompleted     || 0);
-    return { sum, ok: Math.abs(sum - Number(l.difference)) < 0.01 };
+    const rate = Number(l.unitRate || 0);
+    const sumAmt =
+      (Number(l.overBillingCalculationMistake || 0) +
+       Number(l.certifiedHoldAmendmentPending || 0) +
+       Number(l.nonBoqItemsRate               || 0) +
+       Number(l.holdWork                      || 0) +
+       Number(l.holdForFullWorkNotCompleted   || 0)) * rate;
+    return { sum: sumAmt, ok: Math.abs(sumAmt - Number(l.difference)) < 0.01 };
   };
 
   // ── totals ─────────────────────────────────────────────────────────────────
@@ -221,11 +264,17 @@ export default function UncertainAllocationForm({ mode = "create", uaId, onAfter
   const totalCertified  = lines.reduce((s, l) => s + Number(l.certifiedAmount || 0), 0);
   const totalDifference = lines.reduce((s, l) => s + Number(l.difference      || 0), 0);
 
-  // ── group lines by sale order for display ─────────────────────────────────
+  // ── group lines by billing for display ────────────────────────────────────
   const groupedLines = lines.reduce((acc, line, idx) => {
-    const key = line.ogSaleOrderId;
+    const key = line.billingId ?? `so-${line.ogSaleOrderId}`;
     if (!acc[key]) {
-      acc[key] = { soId: key, soNo: line.ogSaleOrderNo, title: line.orderTitle, rows: [] };
+      acc[key] = {
+        billingId: line.billingId,
+        billingNo: line.billingNo,
+        soNo:      line.ogSaleOrderNo,
+        title:     line.orderTitle,
+        rows:      [],
+      };
     }
     acc[key].rows.push({ ...line, _idx: idx });
     return acc;
@@ -238,6 +287,8 @@ export default function UncertainAllocationForm({ mode = "create", uaId, onAfter
     uaDate,
     remarks,
     lines: lines.map((l) => ({
+      billingId:                      l.billingId,
+      billingNo:                      l.billingNo,
       ogSaleOrderId:                  l.ogSaleOrderId,
       ogSaleOrderNo:                  l.ogSaleOrderNo,
       orderTitle:                     l.orderTitle,
@@ -248,15 +299,16 @@ export default function UncertainAllocationForm({ mode = "create", uaId, onAfter
       itemName:                       l.itemName,
       itemNameDesc:                   l.itemNameDesc,
       unit:                           l.unit,
-      boqQty:                         Number(l.boqQty)   || 0,
+      ogBOQQty:                       Number(l.ogBOQQty)  || 0,  // original order qty
+      boqQty:                         Number(l.boqQty)    || 0,  // claim qty
       unitRate:                       Number(l.unitRate)  || 0,
-      claimAmount:                    Number(l.claimAmount)     || 0,
-      certifiedAmount:                Number(l.certifiedAmount) || 0,
-      overBillingCalculationMistake:  Number(l.overBillingCalculationMistake)  || 0,
-      certifiedHoldAmendmentPending:  Number(l.certifiedHoldAmendmentPending)  || 0,
-      nonBoqItemsRate:                Number(l.nonBoqItemsRate)                || 0,
-      holdWork:                       Number(l.holdWork)                       || 0,
-      holdForFullWorkNotCompleted:    Number(l.holdForFullWorkNotCompleted)     || 0,
+      certifiedAmount:                Number(l.certifiedAmount) || 0,  // for fallback when no billing_id
+      // Justification as QTY — backend computes amounts
+      overBillingCalculationMistake:  Number(l.overBillingCalculationMistake) || 0,
+      certifiedHoldAmendmentPending:  Number(l.certifiedHoldAmendmentPending) || 0,
+      nonBoqItemsRate:                Number(l.nonBoqItemsRate)               || 0,
+      holdWork:                       Number(l.holdWork)                      || 0,
+      holdForFullWorkNotCompleted:    Number(l.holdForFullWorkNotCompleted)    || 0,
       remarks:                        l.remarks || null,
     })),
   });
@@ -266,7 +318,7 @@ export default function UncertainAllocationForm({ mode = "create", uaId, onAfter
     if (lines.length < 1) { toast.error("Add at least one sale order"); return; }
     const unbalanced = lines.filter((l) => !lineBalance(l).ok);
     if (unbalanced.length > 0) {
-      toast.warning(`${unbalanced.length} line(s) have justification totals that don’t match the difference.`);
+      toast.warning(`${unbalanced.length} line(s) have justification totals that don't match the difference.`);
     }
     setIsLoading(true);
     try {
@@ -320,7 +372,7 @@ export default function UncertainAllocationForm({ mode = "create", uaId, onAfter
     );
   }
 
-  const TOTAL_COLS = 15; // Sl + BOQ Sl + Description + BOQ Qty + Unit + Unit Rate + Claim + Certified + Diff + 5 just + Remarks
+  const TOTAL_COLS = 15; // BOQ Sl + Item Code + Item Name + BOQ Qty + Claim Qty + Unit + Rate + Cert Qty + Diff Qty + 5 just (qty) + Remarks
 
   return (
     <div className="p-3">
@@ -357,10 +409,8 @@ export default function UncertainAllocationForm({ mode = "create", uaId, onAfter
               </PMFormRow>
             )}
             {isEditing && (
-              <PMFormRow label="Sale Order" labelWidth="sm:w-[130px] sm:min-w-[130px]">
-                {lookupLoading ? (
-                  <Loader2 className="animate-spin w-4 h-4" />
-                ) : (
+              <>
+                <PMFormRow label="Sale Order" labelWidth="sm:w-[130px] sm:min-w-[130px]">
                   <SearchableSelect
                     options={saleOrders}
                     value={selectedSoId}
@@ -369,10 +419,28 @@ export default function UncertainAllocationForm({ mode = "create", uaId, onAfter
                     labelKey="displayLabel"
                     valueKey="ogSaleOrderId"
                     searchKeys={["displayLabel", "ogSaleOrderNo", "orderTitle", "orderNo"]}
+                    loading={lookupLoading}
+                    disabled={lookupLoading}
                   />
-                )}
-                {itemsLoading && <Loader2 className="animate-spin w-4 h-4 mt-1" />}
-              </PMFormRow>
+                </PMFormRow>
+
+                <PMFormRow label="Claim Bill" labelWidth="sm:w-[130px] sm:min-w-[130px]">
+                  <SearchableSelect
+                    options={claimBills}
+                    value={selectedBillId}
+                    onChange={(val) => { if (val) handleBillSelect(val); }}
+                    placeholder={selectedSoId ? (itemsLoading ? "Loading items…" : "Select claim bill…") : "Select a sale order first"}
+                    labelKey="displayLabel"
+                    valueKey="billingId"
+                    searchKeys={["displayLabel", "billingNo", "title"]}
+                    disabled={!selectedSoId || itemsLoading}
+                    loading={billsLoading}
+                  />
+                  {selectedSoId && !billsLoading && claimBills.length === 0 && (
+                    <span className="text-[12px] text-orange-500 italic mt-1">No approved claim bills for this sale order</span>
+                  )}
+                </PMFormRow>
+              </>
             )}
           </PMSection>
 
@@ -421,11 +489,12 @@ export default function UncertainAllocationForm({ mode = "create", uaId, onAfter
               </span>
             </div>
 
-            <div className="overflow-x-auto">
+            <TooltipProvider>
+            <div className="overflow-x-auto overflow-y-auto" style={{ maxHeight: "60vh" }}>
               <table
                 ref={tableRef}
                 className="w-full table-fixed border-collapse text-[12px]"
-                style={{ minWidth: 1480 }}
+                style={{ minWidth: 1600 }}
               >
                 <thead className="sticky top-0 z-30">
                   {/* Group header row */}
@@ -434,37 +503,37 @@ export default function UncertainAllocationForm({ mode = "create", uaId, onAfter
                       BOQ Details
                     </th>
                     <th colSpan={3} className={`${CERT_HDR} border border-[#4b5563] px-2 py-1 text-center text-[11px] font-semibold`}>
-                      Certification Statement
+                      Certification Statement (Qty)
                     </th>
                     <th colSpan={6} className={`${US_HDR} border border-[#1e3a8a] px-2 py-1 text-center text-[11px] font-semibold`}>
-                      Uncertified Statement
+                      Uncertified Statement (Qty)
                     </th>
                   </tr>
                   {/* Leaf column header row */}
                   <tr>
-                    <th className={`${HDR} border border-[#2e5a72] px-1 py-1.5 text-center text-[11px] w-[36px] min-w-[36px]`}>Sl</th>
                     <th className={`${HDR} border border-[#2e5a72] px-1 py-1.5 text-center text-[11px] w-[50px] min-w-[50px]`}>BOQ Sl</th>
-                    <th className={`${HDR} border border-[#2e5a72] px-2 py-1.5 text-left text-[11px] w-[220px] min-w-[160px]`}>Description</th>
+                    <th className={`${HDR} border border-[#2e5a72] px-2 py-1.5 text-left text-[11px] w-[80px] min-w-[70px]`}>Item Code</th>
+                    <th className={`${HDR} border border-[#2e5a72] px-2 py-1.5 text-left text-[11px] w-[200px] min-w-[150px]`}>Item Name</th>
                     <th className={`${HDR} border border-[#2e5a72] px-2 py-1.5 text-right text-[11px] w-[80px] min-w-[70px]`}>BOQ Qty</th>
                     <th className={`${HDR} border border-[#2e5a72] px-2 py-1.5 text-center text-[11px] w-[60px] min-w-[55px]`}>Unit</th>
                     <th className={`${HDR} border border-[#2e5a72] px-2 py-1.5 text-right text-[11px] w-[90px] min-w-[80px]`}>Unit Rate</th>
-                    <th className={`${CERT_HDR} border border-[#4b5563] px-2 py-1.5 text-right text-[11px] w-[110px] min-w-[100px]`}>Claim</th>
-                    <th className={`${CERT_HDR} border border-[#4b5563] px-2 py-1.5 text-right text-[11px] w-[110px] min-w-[100px]`}>Certified</th>
-                    <th className={`${CERT_HDR} border border-[#4b5563] px-2 py-1.5 text-right text-[11px] w-[110px] min-w-[100px]`}>Difference</th>
-                    <th className={`${OB_HDR} border border-[#7f1d1d] px-2 py-1.5 text-center text-[11px] w-[120px] min-w-[110px]`}>
-                      Over Billing / Calc Mistake
-                    </th>
-                    <th className={`${UC_HDR} border border-[#1e40af] px-2 py-1.5 text-center text-[11px] w-[120px] min-w-[110px]`}>
-                      Certified Hold Amnd Pending
+                    <th className={`${CERT_HDR} border border-[#4b5563] px-2 py-1.5 text-right text-[11px] w-[100px] min-w-[90px]`}>Claim Qty</th>
+                    <th className={`${CERT_HDR} border border-[#4b5563] px-2 py-1.5 text-right text-[11px] w-[100px] min-w-[90px]`}>Certified Qty</th>
+                    <th className={`${CERT_HDR} border border-[#4b5563] px-2 py-1.5 text-right text-[11px] w-[100px] min-w-[90px]`}>Difference Qty</th>
+                    <th className={`${OB_HDR} border border-[#7f1d1d] px-2 py-1.5 text-center text-[11px] w-[110px] min-w-[100px]`}>
+                      Over Bill / Calc Mistake
                     </th>
                     <th className={`${UC_HDR} border border-[#1e40af] px-2 py-1.5 text-center text-[11px] w-[110px] min-w-[100px]`}>
-                      Non BOQ Items Rate
+                      Cert. Hold Amnd Pending
                     </th>
-                    <th className={`${UC_HDR} border border-[#1e40af] px-2 py-1.5 text-center text-[11px] w-[110px] min-w-[100px]`}>
-                      Hold Unsatisfactory Work
+                    <th className={`${UC_HDR} border border-[#1e40af] px-2 py-1.5 text-center text-[11px] w-[100px] min-w-[90px]`}>
+                      Non BOQ Rate
                     </th>
-                    <th className={`${UC_HDR} border border-[#1e40af] px-2 py-1.5 text-center text-[11px] w-[110px] min-w-[100px]`}>
-                      Hold Full Work Not Done
+                    <th className={`${UC_HDR} border border-[#1e40af] px-2 py-1.5 text-center text-[11px] w-[100px] min-w-[90px]`}>
+                      Hold Unsatisfactory
+                    </th>
+                    <th className={`${UC_HDR} border border-[#1e40af] px-2 py-1.5 text-center text-[11px] w-[100px] min-w-[90px]`}>
+                      Hold Not Completed
                     </th>
                     <th className={`${UC_HDR} border border-[#1e40af] px-2 py-1.5 text-center text-[11px] w-[100px] min-w-[90px]`}>
                       Remarks
@@ -477,7 +546,7 @@ export default function UncertainAllocationForm({ mode = "create", uaId, onAfter
                     <tr>
                       <td colSpan={TOTAL_COLS} className="border border-gray-200 py-8 text-center text-[#bbb] italic text-[12px]">
                         {isEditing
-                          ? "Use the “Sale Order” selector on the left to add items"
+                          ? "Select a Sale Order then a Claim Bill on the left to add items"
                           : "No items added"}
                       </td>
                     </tr>
@@ -489,12 +558,15 @@ export default function UncertainAllocationForm({ mode = "create", uaId, onAfter
                         difference: group.rows.reduce((s, r) => s + Number(r.difference      || 0), 0),
                       };
                       return [
-                        /* Sale order group header */
-                        <tr key={`grp-${group.soId}`} className="bg-[#1e3a5f]">
+                        /* Bill group header */
+                        <tr key={`grp-${group.billingId ?? group.soNo}`} className="bg-[#1e3a5f]">
                           <td colSpan={TOTAL_COLS} className="px-3 py-[5px] text-white text-[11px] font-semibold">
-                            <span className="opacity-70 mr-2">SO:</span>
-                            <span className="mr-3">{group.soNo}</span>
-                            <span className="opacity-70 mr-2">|</span>
+                            <span className="opacity-70 mr-1">Bill:</span>
+                            <span className="mr-3 text-yellow-300">{group.billingNo}</span>
+                            <span className="opacity-50 mr-2">|</span>
+                            <span className="opacity-70 mr-1">SO:</span>
+                            <span className="mr-2">{group.soNo}</span>
+                            <span className="opacity-50 mr-2">|</span>
                             <span>{group.title}</span>
                             <span className="ml-4 opacity-70 text-[10px]">
                               Claim: {formatAmount(groupTotal.claim)} &nbsp;|&nbsp;
@@ -512,31 +584,45 @@ export default function UncertainAllocationForm({ mode = "create", uaId, onAfter
                             <tr key={`${l.ogSaleOrderId}-${l.ogSaleOrderItemId ?? idx}`}
                                 className={!ok && isEditing ? "bg-yellow-50/60" : zebra}>
 
-                              <td className="border border-gray-200 px-1 py-[3px] text-center text-gray-500">{idx + 1}</td>
                               <td className="border border-gray-200 px-1 py-[3px] text-center text-[11px] text-gray-600">{l.boqSlNo}</td>
-                              <td className="border border-gray-200 px-1.5 py-[3px] text-[11px]" title={l.itemNameDesc || l.itemName}>
-                                <div className="truncate">{l.itemName}</div>
-                                {l.itemNameDesc && (
-                                  <div className="truncate text-gray-400 text-[10px]">{l.itemNameDesc}</div>
-                                )}
+                              <td className="border border-gray-200 px-1.5 py-[3px] text-[11px] text-gray-600">{l.itemCode}</td>
+                              <td className="border border-gray-200 px-1.5 py-[3px] text-[11px]">
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <div>
+                                      <div className="truncate">{l.itemName?.trim()}</div>
+                                      {l.itemNameDesc?.trim() && l.itemNameDesc?.trim() !== l.itemName?.trim() && (
+                                        <div className="truncate text-gray-400 text-[10px]">{l.itemNameDesc?.trim()}</div>
+                                      )}
+                                    </div>
+                                  </TooltipTrigger>
+                                  <TooltipContent variant="text" side="top">
+                                    <div className="font-semibold">{l.itemName?.trim()}</div>
+                                    {l.itemNameDesc?.trim() && l.itemNameDesc?.trim() !== l.itemName?.trim() && (
+                                      <div className="mt-0.5 text-gray-300">{l.itemNameDesc?.trim()}</div>
+                                    )}
+                                  </TooltipContent>
+                                </Tooltip>
                               </td>
+                              {/* BOQ ordered qty (original sale order) */}
                               <td className="border border-gray-200 px-1.5 py-[3px] text-right tabular-nums text-[11px]">
-                                {l.boqQty != null ? Number(l.boqQty).toLocaleString() : ""}
+                                {l.ogBOQQty != null && Number(l.ogBOQQty) !== 0 ? Number(l.ogBOQQty).toLocaleString(undefined, { maximumFractionDigits: 4 }) : ""}
                               </td>
                               <td className="border border-gray-200 px-1.5 py-[3px] text-center text-[11px] text-gray-600">{l.unit}</td>
                               <td className="border border-gray-200 px-1.5 py-[3px] text-right tabular-nums text-[11px]">
                                 {l.unitRate != null ? formatAmount(l.unitRate) : ""}
                               </td>
 
-                              {/* Certification Statement — read-only */}
+                              {/* Claim qty — under Certification Statement */}
                               <td className={`border border-gray-200 px-1.5 py-[3px] text-right tabular-nums text-[11px] ${CERT_CELL}`}>
-                                {formatAmount(l.claimAmount)}
+                                {l.boqQty != null ? Number(l.boqQty).toLocaleString(undefined, { maximumFractionDigits: 4 }) : ""}
                               </td>
+                              {/* Cert. Qty and Diff. Qty — read-only */}
                               <td className={`border border-gray-200 px-1.5 py-[3px] text-right tabular-nums text-[11px] ${CERT_CELL}`}>
-                                {formatAmount(l.certifiedAmount)}
+                                {Number(l.certifiedQty).toLocaleString(undefined, { maximumFractionDigits: 4 })}
                               </td>
                               <td className={`border border-gray-200 px-1.5 py-[3px] text-right tabular-nums text-[11px] font-medium ${CERT_CELL}`}>
-                                {formatAmount(l.difference)}
+                                {(Number(l.boqQty || 0) - Number(l.certifiedQty || 0)).toLocaleString(undefined, { maximumFractionDigits: 4 })}
                               </td>
 
                               {/* Over Billing */}
@@ -565,12 +651,16 @@ export default function UncertainAllocationForm({ mode = "create", uaId, onAfter
 
                               {/* Remarks */}
                               <td className={`border border-gray-200 p-0.5 ${UC_CELL}`}>
-                                <input
-                                  type="text"
-                                  value={l.remarks}
+                                <ExpandableTextField
+                                  value={l.remarks || ""}
                                   disabled={!isEditing}
-                                  onChange={(e) => updateLine(idx, "remarks", e.target.value)}
-                                  className={`w-full h-[24px] text-[11px] px-1.5 rounded-sm border-0 outline-none focus-visible:ring-0 ${isEditing ? "bg-white/80 focus:bg-white" : "bg-transparent"} disabled:cursor-default`}
+                                  onChange={(val) => updateLine(idx, "remarks", val)}
+                                  placeholder="Remarks..."
+                                  title="Remarks"
+                                  subHeader=""
+                                  minHeight="min-h-[24px]"
+                                  modalHeight="min-h-[120px]"
+                                  className="text-[11px] px-1.5 py-0 rounded-sm border-0 shadow-none"
                                 />
                               </td>
                             </tr>
@@ -580,16 +670,19 @@ export default function UncertainAllocationForm({ mode = "create", uaId, onAfter
                     })
                   )}
 
-                  {/* Totals row */}
-                  {lines.length > 0 && (() => {
-                    const totalOB   = lines.reduce((s, l) => s + Number(l.overBillingCalculationMistake  || 0), 0);
-                    const totalCH   = lines.reduce((s, l) => s + Number(l.certifiedHoldAmendmentPending  || 0), 0);
-                    const totalNB   = lines.reduce((s, l) => s + Number(l.nonBoqItemsRate                || 0), 0);
-                    const totalHW   = lines.reduce((s, l) => s + Number(l.holdWork                       || 0), 0);
-                    const totalHF   = lines.reduce((s, l) => s + Number(l.holdForFullWorkNotCompleted     || 0), 0);
-                    return (
+                </tbody>
+
+                {/* Sticky totals footer */}
+                {lines.length > 0 && (() => {
+                  const totalOB = lines.reduce((s, l) => s + Number(l.overBillingCalculationMistake || 0) * Number(l.unitRate || 0), 0);
+                  const totalCH = lines.reduce((s, l) => s + Number(l.certifiedHoldAmendmentPending || 0) * Number(l.unitRate || 0), 0);
+                  const totalNB = lines.reduce((s, l) => s + Number(l.nonBoqItemsRate               || 0) * Number(l.unitRate || 0), 0);
+                  const totalHW = lines.reduce((s, l) => s + Number(l.holdWork                      || 0) * Number(l.unitRate || 0), 0);
+                  const totalHF = lines.reduce((s, l) => s + Number(l.holdForFullWorkNotCompleted   || 0) * Number(l.unitRate || 0), 0);
+                  return (
+                    <tfoot className="sticky bottom-0 z-20">
                       <tr className="bg-[#0f2744] text-white font-semibold text-[11px]">
-                        <td colSpan={6} className="border border-[#1e3a5f] px-2 py-1.5 text-right tracking-wide">TOTAL</td>
+                        <td colSpan={6} className="border border-[#1e3a5f] px-2 py-1.5 text-right tracking-wide text-[10px] opacity-80">TOTAL AMOUNT (BASIC)</td>
                         <td className="border border-[#1e3a5f] px-2 py-1.5 text-right tabular-nums">{formatAmount(totalClaim)}</td>
                         <td className="border border-[#1e3a5f] px-2 py-1.5 text-right tabular-nums">{formatAmount(totalCertified)}</td>
                         <td className="border border-[#1e3a5f] px-2 py-1.5 text-right tabular-nums">{formatAmount(totalDifference)}</td>
@@ -600,11 +693,12 @@ export default function UncertainAllocationForm({ mode = "create", uaId, onAfter
                         <td className="border border-[#1e3a5f] px-2 py-1.5 text-right tabular-nums">{formatAmount(totalHF)}</td>
                         <td className="border border-[#1e3a5f]" />
                       </tr>
-                    );
-                  })()}
-                </tbody>
+                    </tfoot>
+                  );
+                })()}
               </table>
             </div>
+            </TooltipProvider>
           </div>
 
           {/* Balance warnings */}
@@ -644,7 +738,19 @@ export default function UncertainAllocationForm({ mode = "create", uaId, onAfter
 
               {mode === "edit" && !isSubmitted && canEdit && (
                 <EditButton
-                  onClick={isEditing ? () => { setIsEditing(false); loadDetails(); } : () => { setIsEditing(true); loadSaleOrders(); }}
+                  onClick={isEditing
+                    ? () => {
+                        setIsEditing(false);
+                        setSelectedSoId("");
+                        setSelectedBillId("");
+                        setClaimBills([]);
+                        loadDetails();
+                      }
+                    : () => {
+                        setIsEditing(true);
+                        loadSaleOrders();
+                      }
+                  }
                   disabled={isSubmitting}
                 >
                   {isEditing ? "Cancel" : "Edit"}

@@ -184,6 +184,7 @@ export default function DrawingRegisterForm({ mode = "create", drId, onAfterSubm
     fd.append("deliveryMode",       v.deliveryMode       ?? "");
     fd.append("deliveryReference",  v.deliveryReference  ?? "");
     if (attachedFile) fd.append("attachment", attachedFile);
+    else if (mode === "edit" && !existingFileUrl) fd.append("clearAttachment", "true");
     return fd;
   };
 
@@ -201,8 +202,8 @@ export default function DrawingRegisterForm({ mode = "create", drId, onAfterSubm
         data:   buildPayload(),
       });
       if (res?.data?.drNo) setValue("drNo", res.data.drNo);
-      if (res?.data?.attachment) {
-        const url = res.data.attachment;
+      {
+        const url = res?.data?.attachment ?? existingFileUrl;
         setExistingFileUrl(url);
         setInitialFileUrl(url);
         setAttachedFile(null);
