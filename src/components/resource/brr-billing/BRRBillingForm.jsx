@@ -18,19 +18,20 @@ import { API_ENDPOINTS } from "@/config/api.config";
 import { getLocalStorage } from "@/lib/localStorage";
 import { useRouter } from "next/navigation";
 import { CATEGORY_OPTIONS } from "@/config/categoryOptions.config";
+import { zodDate } from "@/lib/dateUtils";
 
 const schema = z.object({
   brrNo:           z.string().optional(),
   billingNo:       z.string().optional(),
-  billingDate:     z.string().min(1, "Required"),
+  billingDate: zodDate(z, "billingDate", true),
   partyName:       z.string().optional(),
   partyAddress:    z.string().optional(),
   partyGstn:       z.string().optional(),
   orderCategory:   z.string().optional(),
   orderNo:         z.string().optional(),
-  orderDate:       z.string().optional(),
+  orderDate: zodDate(z, "orderDate"),
   partyBillNo:     z.string().optional(),
-  partyDate:       z.string().optional(),
+  partyDate: zodDate(z, "partyDate"),
   billingAddress:  z.string().optional(),
   shippingAddress: z.string().optional(),
   itemCategory:    z.string().optional(),

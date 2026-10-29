@@ -17,11 +17,12 @@ import { apiRequest } from "@/lib/apiClient";
 import { API_ENDPOINTS } from "@/config/api.config";
 import { getInputClass, labelClass as baseLabelClass } from "@/lib/formStyles";
 import { getLocalStorage } from "@/lib/localStorage";
+import { zodDate } from "@/lib/dateUtils";
 
 const BP = API_ENDPOINTS.RESOURCE.BATCHING_PLANT;
 
 const schema = z.object({
-  productionDate:      z.string().optional(),
+  productionDate: zodDate(z, "productionDate"),
   materialType:        z.string().optional(),
   grade:               z.string().optional(),
   unitOfConcrete:      z.string().optional(),
@@ -37,7 +38,7 @@ const schema = z.object({
   pouringStartTime:    z.string().optional(),
   completionTime:      z.string().optional(),
   requisitionBy:       z.string().optional(),
-  requisitionDate:     z.string().optional(),
+  requisitionDate: zodDate(z, "requisitionDate"),
   requisitionTime:     z.string().optional(),
 });
 

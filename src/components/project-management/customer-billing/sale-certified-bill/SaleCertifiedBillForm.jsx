@@ -29,6 +29,7 @@ import { API_ENDPOINTS }   from "@/config/api.config";
 import { getLocalStorage } from "@/lib/localStorage";
 import { getInputClass }   from "@/lib/formStyles";
 import { useColumnResize } from "@/hooks/useColumnResize";
+import { zodDate } from "@/lib/dateUtils";
 
 const BILL_MODE = "sale_certified_bill";
 
@@ -51,7 +52,7 @@ const itemSchema = z.object({
 const schema = z.object({
   claimBillId:        z.coerce.number().min(1, "Claim Bill is required"),
   ogSaleOrderNo:      z.string().min(1, "Order No is required"),
-  billingDate:        z.string().min(1, "Bill Date is required"),
+  billingDate: zodDate(z, "billingDate", true),
   title:              z.string().min(1, "Title is required"),
   jobLocation:        z.string().min(1, "Job Location is required"),
   preCertifiedAmount: z.coerce.number().min(0).optional(),

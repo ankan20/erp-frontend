@@ -28,6 +28,7 @@ import SaleBillRightPanel, {
 import { apiRequest }        from "@/lib/apiClient";
 import { API_ENDPOINTS }     from "@/config/api.config";
 import { getLocalStorage }   from "@/lib/localStorage";
+import { zodDate } from "@/lib/dateUtils";
 
 const PURCHASE_BILL_MODES = [
   { label: "Purchases Invoice", value: "purchase_invoice" },
@@ -61,9 +62,9 @@ const schema = z.object({
   orderId:        z.coerce.number().nullable().optional(),
   orderType:      z.string().optional().default(""),
   brrId:          z.coerce.number().nullable().optional(),
-  processingDate: z.string().min(1, "Processing Date is required"),
+  processingDate: zodDate(z, "processingDate", true),
   vendorBillNo:   z.string().optional().default(""),
-  vendorBillDate: z.string().optional().default(""),
+  vendorBillDate: zodDate(z, "vendorBillDate"),
   remarks:        z.string().optional().default(""),
   discount:       z.coerce.number().min(0).default(0),
   roundOff:       z.coerce.number().default(0),

@@ -4,6 +4,7 @@ import { forwardRef, useCallback, useRef } from "react";
 import { cn } from "@/lib/utils";
 import PMInput from "./PMInput";
 import { PM } from "./pmTheme";
+import { validateDateString } from "@/lib/dateUtils";
 
 /**
  * PMDateInput — PM module date picker with a "Today" quick-fill button.
@@ -20,7 +21,7 @@ import { PM } from "./pmTheme";
  *   ...rest    — forwarded to the underlying <input type="date"> via PMInput
  */
 const PMDateInput = forwardRef(function PMDateInput(
-  { disabled = false, hasError = false, className = "", ...props },
+  { disabled = false, hasError = false, className = "", label = "Date", onBlur, ...props },
   ref,
 ) {
   const innerRef = useRef(null);
@@ -36,6 +37,17 @@ const PMDateInput = forwardRef(function PMDateInput(
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [],
   );
+
+  const handleBlur = useCallback((e) => {
+    const el = innerRef.current;
+    if (el) {
+      const err = validateDateString(el.value, label);
+      el.setCustomValidity(err || "");
+      // Show the browser's native validation bubble if invalid
+      if (err) el.reportValidity();
+    }
+    onBlur?.(e);
+  }, [label, onBlur]);
 
   const handleToday = () => {
     const el = innerRef.current;
@@ -69,6 +81,7 @@ const PMDateInput = forwardRef(function PMDateInput(
         hasError={hasError}
         expandable={false}
         className="flex-1"
+        onBlur={handleBlur}
         {...props}
       />
       {!disabled && (

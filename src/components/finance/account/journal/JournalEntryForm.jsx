@@ -25,6 +25,7 @@ import { API_ENDPOINTS }   from "@/config/api.config";
 import { getLocalStorage } from "@/lib/localStorage";
 import { formatAmount }    from "@/helper/numberFormatter";
 import { useColumnResize } from "@/hooks/useColumnResize";
+import { zodDate } from "@/lib/dateUtils";
 
 // ─── Schema ───────────────────────────────────────────────────────────────────
 
@@ -39,7 +40,7 @@ const lineSchema = z.object({
 });
 
 const schema = z.object({
-  entryDate: z.string().optional().default(""),
+  entryDate: zodDate(z, "entryDate"),
   remarks:   z.string().optional().default(""),
   // TODO: currently fixed at 2 lines (row 0 = Dr, row 1 = Cr). If dynamic multi-line
   // add/remove is needed in future, restore useFieldArray and make drCr a per-row selector.

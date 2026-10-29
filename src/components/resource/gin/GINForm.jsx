@@ -18,10 +18,11 @@ import { getLocalStorage } from "@/lib/localStorage";
 
 import GINLeftPanel from "./GINLeftPanel";
 import GINItemsTable from "./GINItemsTable";
+import { zodDate } from "@/lib/dateUtils";
 
 // ── ZOD SCHEMA ────────────────────────────────────────────────────────────────
 const ginSchema = z.object({
-  ginDate:          z.string().min(1, "GIN Date is required"),
+  ginDate: zodDate(z, "ginDate", true),
   vendorId:         z.string().min(1, "Party Name is required"),
   orderId:          z.string().min(1, "Order No is required"),
   ginNo:            z.string().optional(),
@@ -31,7 +32,7 @@ const ginSchema = z.object({
   costFactor:       z.string().optional(),
   partyAddress:     z.string().optional(),
   partyGstn:        z.string().optional(),
-  orderDate:        z.string().optional(),
+  orderDate: zodDate(z, "orderDate"),
   despatchFrom:     z.string().optional(),
   shippingTo:       z.string().optional(),
   recommendationBy: z.string().optional(),

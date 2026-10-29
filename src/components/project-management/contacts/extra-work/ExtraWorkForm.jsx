@@ -25,6 +25,7 @@ import { API_ENDPOINTS }   from "@/config/api.config";
 import { getLocalStorage } from "@/lib/localStorage";
 import { getInputClass }   from "@/lib/formStyles";
 import { useColumnResize } from "@/hooks/useColumnResize";
+import { zodDate } from "@/lib/dateUtils";
 
 // ── SCHEMA ────────────────────────────────────────────────────────────────────
 const itemSchema = z.object({
@@ -39,7 +40,7 @@ const itemSchema = z.object({
 
 const schema = z.object({
   extraWorkNo:     z.string().optional(),
-  extraWorkDate:   z.string().min(1, "Date is required"),
+  extraWorkDate: zodDate(z, "extraWorkDate", true),
   prefix:          z.string().optional(),
   suffix:          z.string().optional(),
   orderNo:         z.string().optional(),

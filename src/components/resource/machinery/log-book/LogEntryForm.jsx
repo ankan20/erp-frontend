@@ -19,13 +19,14 @@ import { getInputClass, labelClass as baseLabelClass } from "@/lib/formStyles";
 
 const labelClass = `${baseLabelClass} shrink-0 min-w-[180px] w-[180px]`;
 import { useRouter } from "next/navigation";
+import { zodDate } from "@/lib/dateUtils";
 
 const LE = API_ENDPOINTS.RESOURCE.MACHINERY.LOG_ENTRY;
 const LB = API_ENDPOINTS.RESOURCE.MACHINERY.LOG_BOOK;
 
 const schema = z.object({
   logBookId: z.string().min(1, "Required"),
-  runningDate: z.string().optional(),
+  runningDate: zodDate(z, "runningDate"),
   runningStartTime: z.string().optional(),
   runningFinishTime: z.string().optional(),
   projectSubLocation: z.string().optional(),

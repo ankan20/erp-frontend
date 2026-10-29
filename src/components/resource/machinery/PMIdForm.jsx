@@ -14,6 +14,7 @@ import { apiRequest } from "@/lib/apiClient";
 import { API_ENDPOINTS } from "@/config/api.config";
 import { getInputClass, labelClass } from "@/lib/formStyles";
 import FileUploadInline, { ACCEPT_DOC, TYPES_DOC } from "@/components/common/FileUploadInline";
+import { zodDate } from "@/lib/dateUtils";
 
 // ─── Schema ───────────────────────────────────────────────────────────────────
 
@@ -21,16 +22,16 @@ const schema = z.object({
   machineName:         z.string().min(1, "Machine Name is required"),
   machineryType:       z.string().optional(),
   registrationNumber:  z.string().optional(),
-  registrationDate:    z.string().optional(),
+  registrationDate: zodDate(z, "registrationDate"),
   insuranceNumber:     z.string().optional(),
-  insuranceDate:       z.string().optional(),
+  insuranceDate: zodDate(z, "insuranceDate"),
   pucCertNumber:       z.string().optional(),
-  pucDate:             z.string().optional(),
+  pucDate: zodDate(z, "pucDate"),
   roadTaxNumber:       z.string().optional(),
-  roadTaxDate:         z.string().optional(),
+  roadTaxDate: zodDate(z, "roadTaxDate"),
   fuelConsumptionUnit: z.string().optional(),
   purchasedBillAmount: z.string().optional(),
-  purchasedBillDate:   z.string().optional(),
+  purchasedBillDate: zodDate(z, "purchasedBillDate"),
 });
 
 const defaultValues = {

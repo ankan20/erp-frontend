@@ -24,6 +24,7 @@ import FileUploadInput from "@/components/project-management/common/FileUploadIn
 import { apiRequest }    from "@/lib/apiClient";
 import { API_ENDPOINTS } from "@/config/api.config";
 import { getLocalStorage } from "@/lib/localStorage";
+import { zodDate } from "@/lib/dateUtils";
 
 const DELIVERY_MODE_OPTIONS = [
   "By Hand",
@@ -41,7 +42,7 @@ const drawingSchema = z.object({
   referenceOrderNo:   z.string().optional(),
   projectSubLocation: z.string().optional(),
   segmentLayer:       z.string().optional(),
-  receivedDate:       z.string().optional(),
+  receivedDate: zodDate(z, "receivedDate"),
   receivedTime:       z.string().optional(),
   receivedBy:         z.string().optional(),
   deliveredBy:        z.string().optional(),

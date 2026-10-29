@@ -23,6 +23,7 @@ import { apiRequest } from "@/lib/apiClient";
 import { API_ENDPOINTS } from "@/config/api.config";
 import { getLocalStorage } from "@/lib/localStorage";
 import { getInputClass, labelClass } from "@/lib/formStyles";
+import { zodDate } from "@/lib/dateUtils";
 import { useRouter } from "next/navigation";
 
 // All order sub-categories from terms config
@@ -49,19 +50,19 @@ const brrSchema = z.object({
   gstn:              z.string().optional(),
   orderCategory:     z.string().optional(),
   orderId:           z.string().optional(),
-  orderDate:         z.string().optional(),
+  orderDate: zodDate(z, "orderDate"),
   partyBillNo:       z.string().min(1, "Required"),
-  partyDate:         z.string().min(1, "Required"),
+  partyDate: zodDate(z, "Party Date", true),
   receivedCategory:  z.string().optional(),
   submittedByName:   z.string().optional(),
-  submissionDate:    z.string().optional(),
+  submissionDate: zodDate(z, "Submission Date"),
   receivedThrough:   z.string().optional(),
   receivedReference: z.string().optional(),
   basicAmount:       requiredAmount,
   gstAmount:         requiredAmount,
   totalAmount:       z.coerce.number().optional(),
   brrNo:             z.string().optional(),
-  brrDate:           z.string().optional(),
+  brrDate: zodDate(z, "brrDate"),
 });
 
 const defaultValues = {

@@ -22,11 +22,12 @@ import { getInputClass, labelClass } from "@/lib/formStyles";
 import DLRDetailsTable, { emptyRow } from "./DLRDetailsTable";
 import DLRSummaryTab from "./DLRSummaryTab";
 import FileUpload, { ACCEPT_DOC, TYPES_DOC } from "@/components/common/FileUpload";
+import { zodDate } from "@/lib/dateUtils";
 
 // ── Schema ────────────────────────────────────────────────────────────────────
 
 const dlrSchema = z.object({
-  dlrDate:    z.string().min(1, "DLR Date is required"),
+  dlrDate: zodDate(z, "dlrDate", true),
   vendorId:   z.string().optional(),
   orderId:    z.string().optional(),
   reportBy:   z.string().optional(),

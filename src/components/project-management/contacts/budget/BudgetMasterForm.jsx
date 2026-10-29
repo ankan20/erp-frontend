@@ -24,6 +24,7 @@ import { apiRequest }        from "@/lib/apiClient";
 import { API_ENDPOINTS }     from "@/config/api.config";
 import { getLocalStorage }   from "@/lib/localStorage";
 import { formatAmount }      from "@/helper/numberFormatter";
+import { zodDate } from "@/lib/dateUtils";
 
 const BUDGET = API_ENDPOINTS.PROJECT.BUDGET_MASTER;
 
@@ -65,7 +66,7 @@ const itemSchema = z.object({
 
 const schema = z.object({
   saleOrderId:       z.coerce.number({ message: "Sale Order is required" }).min(1),
-  budgetDate:        z.string().min(1, "Budget date is required"),
+  budgetDate: zodDate(z, "budgetDate", true),
   remarks:           z.string().default(""),
   orderValueExclGst: z.coerce.number().default(0),
   projectOverhead:   z.array(overheadCcSchema).default([]),

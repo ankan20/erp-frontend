@@ -22,6 +22,7 @@ import FileUploadInput from "@/components/project-management/common/FileUploadIn
 import { apiRequest }      from "@/lib/apiClient";
 import { API_ENDPOINTS }   from "@/config/api.config";
 import { getLocalStorage } from "@/lib/localStorage";
+import { zodDate } from "@/lib/dateUtils";
 
 const nonNegativeAmount = z
   .string()
@@ -33,7 +34,7 @@ const nonNegativeAmount = z
 
 const hindranceSchema = z.object({
   hindranceNo:           z.string().optional(),
-  hindranceDate:         z.string().optional(),
+  hindranceDate: zodDate(z, "hindranceDate"),
   titleOfHindrance:      z.string().optional(),
   causeOfHindrance:      z.string().optional(),
   manpowerDetails:       z.string().optional(),

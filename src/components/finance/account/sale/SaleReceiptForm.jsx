@@ -26,6 +26,7 @@ import { apiRequest }      from "@/lib/apiClient";
 import { API_ENDPOINTS }   from "@/config/api.config";
 import { getLocalStorage } from "@/lib/localStorage";
 import { useColumnResize } from "@/hooks/useColumnResize";
+import { zodDate } from "@/lib/dateUtils";
 
 // ─── Schema ───────────────────────────────────────────────────────────────────
 
@@ -59,12 +60,12 @@ const DEFAULT_GST_LINES = [
 
 const schema = z.object({
   ogSaleOrderNo:   z.string().default(""),
-  saleOrderDate:   z.string().default(""),
+  saleOrderDate: zodDate(z, "saleOrderDate"),
   certifiedBillId: z.coerce.number().min(1, "Certified Bill is required"),
   billAbstractNo:  z.string().default(""),
-  billAbstractDate: z.string().default(""),
+  billAbstractDate: zodDate(z, "billAbstractDate"),
   invoiceNo:       z.string().optional().default(""),
-  invoiceDate:     z.string().optional().default(""),
+  invoiceDate: zodDate(z, "invoiceDate"),
   billToAddress:   z.string().optional().default(""),
   shipToAddress:   z.string().optional().default(""),
   paymentMode:     z.enum(["Cash", "Bank"]).default("Bank"),

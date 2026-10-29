@@ -16,12 +16,13 @@ import { API_ENDPOINTS } from "@/config/api.config";
 import { getInputClass, labelClass } from "@/lib/formStyles";
 import { getLocalStorage } from "@/lib/localStorage";
 import FileUploadInline, { ACCEPT_DOC, TYPES_DOC } from "@/components/common/FileUploadInline";
+import { zodDate } from "@/lib/dateUtils";
 
 // ─── Schema ───────────────────────────────────────────────────────────────────
 
 const schema = z.object({
   serviceType:     z.string().min(1, "Service Type is required"),
-  serviceDate:     z.string().optional(),
+  serviceDate: zodDate(z, "serviceDate"),
   billAmount:      z.string().optional(),
   partyBillNo:     z.string().optional(),
   serviceLocation: z.string().optional(),

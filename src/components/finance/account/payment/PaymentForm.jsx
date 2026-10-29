@@ -26,6 +26,7 @@ import { apiRequest }      from "@/lib/apiClient";
 import { API_ENDPOINTS }   from "@/config/api.config";
 import { getLocalStorage } from "@/lib/localStorage";
 import { useColumnResize } from "@/hooks/useColumnResize";
+import { zodDate } from "@/lib/dateUtils";
 
 const PAYMENT_MODES = ["Bank", "Cash"];
 
@@ -74,7 +75,7 @@ const pvGstLineSchema = z.object({
 );
 
 const schema = z.object({
-  paymentDate:       z.string().min(1, "Payment Date is required"),
+  paymentDate: zodDate(z, "paymentDate", true),
   purchaseBillId:    z.coerce.number().nullable().optional(),
   purchaseVoucherId: z.coerce.number().nullable().optional(),
   vendorId:          z.coerce.number().nullable().optional(),

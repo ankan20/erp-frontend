@@ -24,12 +24,13 @@ import { getLocalStorage } from "@/lib/localStorage";
 import IndentItemsTable from "@/components/resource/indent/IndentItemsTable";
 import ExpandableTextField from "@/components/common/ExpandableTextField";
 import { useRouter } from "next/navigation";
+import { zodDate } from "@/lib/dateUtils";
 
 const indentSchema = z.object({
   categoryCode: z.string().min(1),
   priority: z.string().min(1),
   requiredWithin: z.string().min(1),
-  indentDate: z.string().min(1),
+  indentDate: zodDate(z, "indentDate"),
   indentPlacedBy: z.string().min(1),
   siteRegSerialNo: z.string().min(1),
   saleOrderNo: z.string().min(1),

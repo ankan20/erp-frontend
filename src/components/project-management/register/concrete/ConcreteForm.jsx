@@ -23,14 +23,15 @@ import FileUploadInput from "@/components/project-management/common/FileUploadIn
 import { apiRequest }      from "@/lib/apiClient";
 import { API_ENDPOINTS }   from "@/config/api.config";
 import { getLocalStorage } from "@/lib/localStorage";
+import { zodDate } from "@/lib/dateUtils";
 
 const concreteSchema = z.object({
   referenceOrderNo:   z.string().optional(),
   projectSubLocation: z.string().min(1, "Project Sub Location is required"),
   segment:            z.string().min(1, "Segment is required"),
-  pouringDate:        z.string().min(1, "Pouring Date is required"),
-  pouringStartDate:   z.string().min(1, "Pouring Start Time is required"),
-  pouringEndDate:     z.string().min(1, "Pouring Finish Time is required"),
+  pouringDate: zodDate(z, "pouringDate", true),
+  pouringStartDate: zodDate(z, "pouringStartDate", true),
+  pouringEndDate: zodDate(z, "pouringEndDate", true),
   gradeConcrete:      z.string().min(1, "Grade of Concrete is required"),
   concreteVolume:     z.string().min(1, "Concrete Volume is required").refine((v) => Number(v) >= 0, { message: "Concrete Volume must be 0 or greater" }),
   requisitionNo:      z.string().min(1, "Requisition Slip No is required"),

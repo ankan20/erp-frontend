@@ -29,6 +29,7 @@ import { getInputClass }   from "@/lib/formStyles";
 import { getLocalStorage } from "@/lib/localStorage";
 import { formatAmount }    from "@/helper/numberFormatter";
 import { useColumnResize } from "@/hooks/useColumnResize";
+import { zodDate } from "@/lib/dateUtils";
 
 const PAYMENT_MODE_OPTIONS = [
   { value: "Cash",     label: "Cash"     },
@@ -40,7 +41,7 @@ const BC = API_ENDPOINTS.MASTER.BANK_CASH;
 const LABEL_W = "sm:w-[160px] sm:min-w-[160px]";
 
 const docketSchema = z.object({
-  voucherDate:   z.string().min(1, "Voucher date required"),
+  voucherDate: zodDate(z, "voucherDate", true),
   budgetId:      z.coerce.number().nullable().optional(),
   expensesBy:    z.string().min(1, "Expenses by required"),
   modeOfPayment: z.string().min(1, "Payment mode required"),

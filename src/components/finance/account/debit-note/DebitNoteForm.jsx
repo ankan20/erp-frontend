@@ -38,6 +38,7 @@ import { API_ENDPOINTS } from "@/config/api.config";
 import { getLocalStorage } from "@/lib/localStorage";
 import { DEBIT_NOTE_OPTIONS, DN_CODE_BY_NAME } from "./debitNoteOptions";
 import { useColumnResize } from "@/hooks/useColumnResize";
+import { zodDate } from "@/lib/dateUtils";
 
 // ─── helpers ──────────────────────────────────────────────────────────────────
 const fmt = (val) => {
@@ -80,15 +81,15 @@ const gstLineSchema = z.object({
 });
 
 const schema = z.object({
-  entryDate:      z.string().min(1, "Entry Date required"),
+  entryDate: zodDate(z, "entryDate", true),
   billNumber:     z.string().min(1, "Bill Number required"),
-  billDate:       z.string().optional().default(""),
+  billDate: zodDate(z, "billDate"),
   orderNumber:    z.string().optional().default(""),
-  orderDate:      z.string().optional().default(""),
+  orderDate: zodDate(z, "orderDate"),
   vendorName:     z.string().optional().default(""),
   vendorGstn:     z.string().optional().default(""),
   creditNoteNo:   z.string().optional().default(""),
-  creditNoteDate: z.string().optional().default(""),
+  creditNoteDate: zodDate(z, "creditNoteDate"),
   remarks:        z.string().optional().default(""),
   items:          z.array(itemSchema).min(1, "At least one item is required"),
   gstLines:       z.array(gstLineSchema).length(3),

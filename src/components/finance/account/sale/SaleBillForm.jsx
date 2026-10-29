@@ -28,6 +28,7 @@ import SaleBillRightPanel, {
 import { apiRequest } from "@/lib/apiClient";
 import { API_ENDPOINTS } from "@/config/api.config";
 import { getLocalStorage } from "@/lib/localStorage";
+import { zodDate } from "@/lib/dateUtils";
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -61,14 +62,14 @@ const schema = z.object({
   mode: z.string().min(1, "Mode is required"),
   certifiedBillId: z.coerce.number().min(1, "Certified Bill is required"),
   ogSaleOrderNo: z.string().min(1, "Sale Order is required"),
-  saleOrderDate: z.string().optional().default(""),
-  invoiceDate: z.string().min(1, "Invoice Date is required"),
+  saleOrderDate: zodDate(z, "saleOrderDate"),
+  invoiceDate: zodDate(z, "invoiceDate", true),
   referenceNo: z.string().optional().default(""),
-  referenceDate: z.string().optional().default(""),
+  referenceDate: zodDate(z, "referenceDate"),
   billToAddress: z.string().optional().default(""),
   shipToAddress: z.string().optional().default(""),
   billAbstractNo: z.string().optional().default(""),
-  billAbstractDate: z.string().optional().default(""),
+  billAbstractDate: zodDate(z, "billAbstractDate"),
   bankAcId: z.coerce.number().nullable().optional(),
   paymentTermsDays: z.string().optional().default(""),
   declaration: z.string().optional().default(""),

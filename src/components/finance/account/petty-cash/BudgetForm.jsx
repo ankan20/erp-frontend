@@ -29,6 +29,7 @@ import { getInputClass }   from "@/lib/formStyles";
 import { getLocalStorage } from "@/lib/localStorage";
 import { formatAmount }    from "@/helper/numberFormatter";
 import { useColumnResize } from "@/hooks/useColumnResize";
+import { zodDate } from "@/lib/dateUtils";
 
 const FREQUENCY_OPTIONS = [
   { value: "Weekly",    label: "Weekly"    },
@@ -52,12 +53,12 @@ const MONTH_OPTIONS = (() => {
 const LABEL_W = "sm:w-[160px] sm:min-w-[160px]";
 
 const budgetSchema = z.object({
-  budgetDate:      z.string().min(1, "Budget date required"),
+  budgetDate: zodDate(z, "budgetDate", true),
   budgetFrequency: z.string().min(1, "Frequency required"),
   month:           z.string().optional(),
   weekMark:        z.string().optional(),
-  fromDate:        z.string().min(1, "From date required"),
-  toDate:          z.string().min(1, "To date required"),
+  fromDate: zodDate(z, "fromDate", true),
+  toDate: zodDate(z, "toDate", true),
   items: z.array(
     z.object({
       ccCode:       z.string().min(1, "CC Code required"),

@@ -18,11 +18,12 @@ import { getLocalStorage } from "@/lib/localStorage";
 
 import DCBasicSection from "./DCBasicSection";
 import DCItemsTable from "./DCItemsTable";
+import { zodDate } from "@/lib/dateUtils";
 
 // ── ZOD SCHEMA ────────────────────────────────────────────────────────────────
 const dcSchema = z.object({
   dcNo:               z.string().optional(),
-  challanDate:        z.string().min(1, "Challan Date is required"),
+  challanDate: zodDate(z, "challanDate", true),
   orderType:          z.string().min(1, "Order Type is required"),
   orderId:            z.string().min(1, "Order No is required"),
   fromDisplayCode:    z.string().optional(),
@@ -40,8 +41,8 @@ const dcSchema = z.object({
   driverName:         z.string().optional(),
   driverContactNumber:z.string().optional(),
   ewayBillNumber:     z.string().optional(),
-  ewayBillDate:       z.string().optional(),
-  ewayBillExpiryDate: z.string().optional(),
+  ewayBillDate: zodDate(z, "ewayBillDate"),
+  ewayBillExpiryDate: zodDate(z, "ewayBillExpiryDate"),
 });
 
 const defaultValues = {

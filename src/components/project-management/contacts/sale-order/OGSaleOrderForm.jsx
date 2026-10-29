@@ -29,6 +29,7 @@ import { API_ENDPOINTS }   from "@/config/api.config";
 import { getLocalStorage } from "@/lib/localStorage";
 import { getInputClass }   from "@/lib/formStyles";
 import { useColumnResize } from "@/hooks/useColumnResize";
+import { zodDate } from "@/lib/dateUtils";
 
 // ── SCHEMA ────────────────────────────────────────────────────────────────────
 const rowSchema = z.object({
@@ -44,7 +45,7 @@ const rowSchema = z.object({
 
 const schema = z.object({
   ogSaleOrderNo:   z.string().optional(),
-  ogSaleOrderDate: z.string().min(1, "Order Date is required"),
+  ogSaleOrderDate: zodDate(z, "ogSaleOrderDate", true),
   orderNo:         z.string().optional(),
   orderValidity:   z.string().optional(),
   orderTitle:      z.string().min(1, "Order Title is required"),

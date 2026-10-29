@@ -18,10 +18,11 @@ import { getLocalStorage } from "@/lib/localStorage";
 
 import GRNLeftPanel from "./GRNLeftPanel";
 import GRNItemsTable from "./GRNItemsTable";
+import { zodDate } from "@/lib/dateUtils";
 
 // ── ZOD SCHEMA ───────────────────────────────────────────────────────────────
 const grnSchema = z.object({
-  grnDate: z.string().min(1, "GRN Date is required"),
+  grnDate: zodDate(z, "grnDate", true),
   vendorId: z.string().min(1, "Party Name is required"),
   orderId: z.string().min(1, "Order No is required"),
   grnNo: z.string().optional(),
@@ -30,16 +31,16 @@ const grnSchema = z.object({
   costHead: z.string().optional(),
   partyAddress: z.string().optional(),
   partyGstn: z.string().optional(),
-  orderDate: z.string().optional(),
+  orderDate: zodDate(z, "orderDate"),
   billingAddress: z.string().optional(),
   shippingAddress: z.string().optional(),
   challanNo: z.string().optional(),
-  challanDate: z.string().optional(),
+  challanDate: zodDate(z, "challanDate"),
   partyBillNo: z.string().optional(),
-  partyBillDate: z.string().optional(),
+  partyBillDate: zodDate(z, "partyBillDate"),
   deliverVehicleNo: z.string().optional(),
   deliveredConcern: z.string().optional(),
-  unloadingDatetime: z.string().optional(),
+  unloadingDatetime: zodDate(z, "unloadingDatetime"),
   physicallyVerifiedBy: z.string().optional(),
 });
 

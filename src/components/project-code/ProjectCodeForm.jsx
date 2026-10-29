@@ -13,6 +13,7 @@ import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { getInputClass } from "@/lib/formStyles";
 import {
+import { zodDate } from "@/lib/dateUtils";
   INDIAN_STATES,
   getStateCodeByName,
 } from "@/config/indianStates.config";
@@ -46,10 +47,10 @@ const projectSchema = z.object({
     .union([z.literal(""), z.string().regex(/^\d+(\.\d+)?$/, "Invalid number")])
     .optional(),
 
-  scheduleDate: z.string().min(1, "Required"),
-  scheduleCompletionDate: z.string().min(1, "Required"),
-  originalStartDate: z.string().optional(),
-  extendedCompleteDate: z.string().optional(),
+  scheduleDate: zodDate(z, "scheduleDate", true),
+  scheduleCompletionDate: zodDate(z, "scheduleCompletionDate", true),
+  originalStartDate: zodDate(z, "originalStartDate"),
+  extendedCompleteDate: zodDate(z, "extendedCompleteDate"),
 
   billingAddress: z.string().min(1, "Required"),
   companyBillingAddress: z.string().optional(),

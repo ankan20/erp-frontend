@@ -31,6 +31,7 @@ import { apiRequest }      from "@/lib/apiClient";
 import { API_ENDPOINTS }   from "@/config/api.config";
 import { getLocalStorage } from "@/lib/localStorage";
 import { useColumnResize } from "@/hooks/useColumnResize";
+import { zodDate } from "@/lib/dateUtils";
 
 // ─── Schema ───────────────────────────────────────────────────────────────────
 
@@ -56,9 +57,9 @@ const gstLineSchema = z.object({
 
 const schema = z.object({
   vendorId:       z.coerce.number().min(1, "Party is required"),
-  processingDate: z.string().min(1, "Processing Date is required"),
+  processingDate: zodDate(z, "processingDate", true),
   voucherNo:      z.string().optional().default(""),
-  voucherDate:    z.string().optional().default(""),
+  voucherDate: zodDate(z, "voucherDate"),
   remarks:        z.string().optional().default(""),
   discount:       z.coerce.number().min(0).default(0),
   roundOff:       z.coerce.number().default(0),
