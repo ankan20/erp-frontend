@@ -55,15 +55,24 @@ export default function useAiSuggest({
     [url, method],
   );
 
-  // Auto-fetch when payload changes (project switches etc.)
-  const payloadKey = JSON.stringify(payload);
+  // Safely serialize payload — strips any non-primitive values (React nodes, DOM refs etc.)
+  const safePayloadKey = Object.entries(payload)
+    .filter(([, v]) => v !== null && v !== undefined && typeof v !== "object" && typeof v !== "function")
+    .map(([k, v]) => `${k}=${v}`)
+    .join("&");
+
   useEffect(() => {
     if (!enabled) return;
-    // Only fire when there's a meaningful payload (e.g. project_code set)
-    const hasValue = Object.values(payload).some((v) => v !== "" && v != null);
+    const hasValue = Object.values(payload).some((v) => v !== "" && v != null && typeof v !== "object");
     if (!hasValue) return;
-    fetch();
-  }, [enabled, payloadKey]); // eslint-disable-line react-hooks/exhaustive-deps
+    // Only send plain string/number fields to the API
+    const safePayload = Object.fromEntries(
+      Object.entries(payloadRef.current).filter(
+        ([, v]) => typeof v === "string" || typeof v === "number"
+      )
+    );
+    fetch(safePayload);
+  }, [enabled, safePayloadKey]); // eslint-disable-line react-hooks/exhaustive-deps
 
   return { suggestion, loading, error, refetch: fetch };
 }

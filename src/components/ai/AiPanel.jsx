@@ -30,8 +30,12 @@ export default function AiPanel({
 }) {
   const [open, setOpen] = useState(false);
 
-  // ── Auto-suggestion ──────────────────────────────────────────────────────
-  const autoPayload = { project_code: projectCode, ...payload };
+  // ── Auto-suggestion — only plain string/number values, no React objects ──
+  const autoPayload = Object.fromEntries(
+    Object.entries({ project_code: projectCode, ...payload }).filter(
+      ([, v]) => typeof v === "string" || typeof v === "number"
+    )
+  );
   const {
     suggestion: autoSuggestion,
     loading: autoLoading,
