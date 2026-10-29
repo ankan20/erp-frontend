@@ -14,7 +14,7 @@ export function validateDateString(value, label = "Date") {
   if (value instanceof Date) {
     if (isNaN(value.getTime())) return `${label}: invalid date`;
     const year = value.getFullYear();
-    if (year < 1000 || year > 9999) return `${label}: year must be 4 digits`;
+    if (year < 1000) return `${label}: year must be 4 digits`;
     return null;
   }
 
@@ -26,11 +26,16 @@ export function validateDateString(value, label = "Date") {
   if (!match) return `${label}: expected format YYYY-MM-DD (e.g. 2025-06-15)`;
 
   const year = parseInt(match[1], 10);
-  if (year < 1000) return `${label}: year must be 4 digits`;
+  const month = parseInt(match[2], 10);
+  const day = parseInt(match[3], 10);
 
-  // Check it is a real calendar date (rejects 2024-02-30, 2024-13-01, etc.)
-  const parsed = new Date(str + "T00:00:00");
-  if (isNaN(parsed.getTime()) || parsed.toISOString().slice(0, 10) !== str) {
+  if (year < 1000) return `${label}: year must be 4 digits`;
+  if (month < 1 || month > 12) return `${label}: '${str}' has an invalid month`;
+
+  // Use local Date constructor (no timezone shift) to verify the day is real
+  // e.g. Feb 30 rolls over to Mar 1/2, so getDate() !== day
+  const parsed = new Date(year, month - 1, day);
+  if (parsed.getFullYear() !== year || parsed.getMonth() !== month - 1 || parsed.getDate() !== day) {
     return `${label}: '${str}' is not a valid calendar date`;
   }
 
