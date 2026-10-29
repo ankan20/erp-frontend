@@ -40,7 +40,7 @@ const grnSchema = z.object({
   partyBillDate: zodDate(z, "partyBillDate"),
   deliverVehicleNo: z.string().optional(),
   deliveredConcern: z.string().optional(),
-  unloadingDatetime: zodDate(z, "unloadingDatetime"),
+  unloadingDatetime: z.string().optional(),
   physicallyVerifiedBy: z.string().optional(),
 });
 
