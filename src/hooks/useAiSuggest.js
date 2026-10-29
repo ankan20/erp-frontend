@@ -19,6 +19,7 @@ export default function useAiSuggest({
   enabled = true,
 }) {
   const [suggestion, setSuggestion] = useState("");
+  const [fields, setFields]         = useState(null);
   const [loading, setLoading]       = useState(false);
   const [error, setError]           = useState(null);
 
@@ -63,6 +64,7 @@ export default function useAiSuggest({
           res?.insight ||
           "No suggestion returned.";
         setSuggestion(text);
+        if (res?.fields) setFields(res.fields);
       } catch (err) {
         setError(err?.message || "AI request failed");
       } finally {
@@ -91,5 +93,5 @@ export default function useAiSuggest({
     fetch(safePayload);
   }, [enabled, safePayloadKey]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  return { suggestion, loading, error, refetch: fetch };
+  return { suggestion, fields, loading, error, refetch: fetch };
 }

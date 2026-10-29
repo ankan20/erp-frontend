@@ -38,6 +38,7 @@ export default function AiPanel({
   );
   const {
     suggestion: autoSuggestion,
+    fields: autoFields,
     loading: autoLoading,
     error: autoError,
     refetch: autoRefetch,
@@ -143,7 +144,7 @@ export default function AiPanel({
                 suggestion={autoSuggestion}
                 loading={autoLoading}
                 error={autoError}
-                onApply={onApply ? () => onApply(autoSuggestion) : null}
+                onApply={onApply ? () => onApply(autoFields, autoSuggestion) : null}
                 onRefresh={autoRefetch}
                 applyLabel={applyLabel}
               />

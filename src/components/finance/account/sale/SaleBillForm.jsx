@@ -497,9 +497,51 @@ export default function SaleBillForm({
     }
   };
 
-  // ── AI: apply suggestion → show as toast (items table is CC-code driven, user fills manually) ──
-  const handleAiApply = (suggestion) => {
-    toast.info("AI suggestion copied — see the AI panel for item details.", {
+  // ── AI: auto-fill form fields from structured fields returned by the AI endpoint ──
+  const handleAiApply = (fields, _suggestion) => {
+    if (!fields?.cc_code) {
+      toast.info("No auto-fill data available — read the suggestion panel.", { duration: 3000 });
+      return;
+    }
+    const currentItems = getValues("items") || [];
+    // If an item with this cc_code already exists, update its amount; otherwise append
+    const existing = currentItems.findIndex((it) => it.ccCode === fields.cc_code);
+    if (existing >= 0) {
+      const updated = [...currentItems];
+      updated[existing] = { ...updated[existing], basicAmount: fields.basic_amount };
+      setValue("items", updated, { shouldValidate: true, shouldDirty: true });
+    } else {
+      setValue(
+        "items",
+        [
+          ...currentItems,
+          {
+            slNo: currentItems.length + 1,
+            ccCode: fields.cc_code,
+            ccName: fields.cc_name || fields.cc_code,
+            description: "",
+            hsnSac: "",
+            basicAmount: fields.basic_amount,
+          },
+        ],
+        { shouldValidate: true, shouldDirty: true }
+      );
+    }
+    // Set GST type
+    if (fields.gst_type === "IGST") {
+      setValue(
+        "gstLines",
+        DEFAULT_GST_LINES.map((l, i) => ({ ...l, isSelected: i === 0 })),
+        { shouldDirty: true }
+      );
+    } else if (fields.gst_type === "CGST_SGST") {
+      setValue(
+        "gstLines",
+        DEFAULT_GST_LINES.map((l, i) => ({ ...l, isSelected: i > 0 })),
+        { shouldDirty: true }
+      );
+    }
+    toast.success(`AI auto-filled: ${fields.cc_code} · ₹${fields.basic_amount.toLocaleString("en-IN")}`, {
       duration: 4000,
     });
   };
