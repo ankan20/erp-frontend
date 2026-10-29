@@ -33,7 +33,13 @@ export default function useAiSuggest({
       setError(null);
       setSuggestion("");
       try {
-        const body = overridePayload ?? payloadRef.current;
+        const raw = overridePayload ?? payloadRef.current;
+        // Strip any non-primitive values — prevents circular JSON errors from React refs/DOM nodes
+        const body = Object.fromEntries(
+          Object.entries(raw).filter(
+            ([, v]) => typeof v === "string" || typeof v === "number" || typeof v === "boolean"
+          )
+        );
         const res = await apiRequest({
           url,
           method,
