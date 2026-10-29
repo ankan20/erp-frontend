@@ -497,11 +497,11 @@ export default function SaleBillForm({
     }
   };
 
-  // ── AI: fill safe header fields; items come from Certified Bill selection ──
+  // ── AI: auto-fill all fillable header fields including Sale Order ──
   const handleAiApply = (fields, _suggestion) => {
     const filled = [];
 
-    // 1. Mode → Sale Invoice (most common; only set if blank)
+    // 1. Mode → Sale Invoice (only set if blank)
     if (!getValues("mode")) {
       setValue("mode", "Sale Invoice", { shouldDirty: true });
       filled.push("Mode");
@@ -509,12 +509,22 @@ export default function SaleBillForm({
 
     // 2. Invoice Date → today (only set if blank)
     if (!getValues("invoiceDate")) {
-      const today = new Date().toISOString().split("T")[0]; // "YYYY-MM-DD"
+      const today = new Date().toISOString().split("T")[0];
       setValue("invoiceDate", today, { shouldValidate: true, shouldDirty: true });
       filled.push("Invoice Date");
     }
 
-    // 3. GST type from history
+    // 3. Sale Order — find in loaded options and trigger the full selection handler
+    const aiOrderNo = fields?.og_sale_order_no;
+    if (aiOrderNo && !getValues("ogSaleOrderNo")) {
+      const matchedOpt = saleOrderOpts.find((o) => o.ogSaleOrderNo === aiOrderNo);
+      if (matchedOpt) {
+        handleOrderSelect(aiOrderNo, matchedOpt);
+        filled.push(`Sale Order: ${aiOrderNo}`);
+      }
+    }
+
+    // 4. GST type from history
     const gstType = fields?.gst_type || "IGST";
     if (gstType === "IGST") {
       setValue("gstLines", DEFAULT_GST_LINES.map((l, i) => ({ ...l, isSelected: i === 0 })), { shouldDirty: true });
@@ -523,7 +533,7 @@ export default function SaleBillForm({
     }
     filled.push(`GST: ${gstType}`);
 
-    // 4. Update amounts on already-loaded items (when certified bill is already selected)
+    // 5. Update amounts on already-loaded items (when certified bill is already selected)
     const currentItems = getValues("items") || [];
     if (currentItems.length > 0 && fields?.cc_code && fields?.basic_amount) {
       const idx = currentItems.findIndex((it) => it.ccCode === fields.cc_code);
@@ -540,9 +550,8 @@ export default function SaleBillForm({
       return;
     }
 
-    const hint = currentItems.length === 0
-      ? ` · Now select Sale Order → Certified Bill to load items`
-      : "";
+    const needsCertBill = !getValues("certifiedBillId");
+    const hint = needsCertBill ? " · Now select a Certified Bill to load items" : "";
     toast.success(`AI filled: ${filled.join(", ")}${hint}`, { duration: 5000 });
   };
 

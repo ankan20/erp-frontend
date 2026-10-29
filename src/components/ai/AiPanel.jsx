@@ -150,7 +150,8 @@ export default function AiPanel({
               />
               {autoFields && !autoLoading && (
                 <div className="mt-2 rounded-lg bg-violet-50 dark:bg-violet-950/20 border border-violet-200 dark:border-violet-800 px-3 py-2 text-[11px] text-violet-700 dark:text-violet-300 space-y-0.5">
-                  <div><span className="font-semibold">Suggested CC:</span> {autoFields.cc_code} — {autoFields.cc_name}</div>
+                  {autoFields.og_sale_order_no && <div><span className="font-semibold">Sale Order:</span> {autoFields.og_sale_order_no}</div>}
+                  <div><span className="font-semibold">CC Code:</span> {autoFields.cc_code} — {autoFields.cc_name}</div>
                   <div><span className="font-semibold">Avg Amount:</span> ₹{Number(autoFields.basic_amount).toLocaleString("en-IN")}</div>
                   <div><span className="font-semibold">GST:</span> {autoFields.gst_type}</div>
                 </div>
