@@ -42,11 +42,12 @@ const itemSchema = z.object({
   itemName:          z.string().optional(),
   itemDescription:   z.string().optional(),
   unit:              z.string().optional(),
-  orderQty:          z.coerce.number().min(0).optional(),
-  claimQty:          z.coerce.number().min(0).optional(),
-  certifiedQty:      z.coerce.number().min(0).optional(),
-  rate:              z.coerce.number().min(0).optional(),
-  gstPercent:        z.coerce.number().min(0).optional(),
+  orderQty:            z.coerce.number().min(0).optional(),
+  claimQty:            z.coerce.number().min(0).optional(),
+  certifiedQty:        z.coerce.number().min(0).optional(),
+  preCertifiedAmount:  z.coerce.number().min(0).optional(),
+  rate:                z.coerce.number().min(0).optional(),
+  gstPercent:          z.coerce.number().min(0).optional(),
 });
 
 const schema = z.object({
@@ -67,11 +68,12 @@ const DEFAULT_ITEM = {
   itemName:          "",
   itemDescription:   "",
   unit:              "",
-  orderQty:          "",
-  claimQty:          "",
-  certifiedQty:      "",
-  rate:              "",
-  gstPercent:        "",
+  orderQty:           "",
+  claimQty:           "",
+  certifiedQty:       "",
+  preCertifiedAmount: 0,
+  rate:               "",
+  gstPercent:         "",
 };
 
 const defaultValues = {
@@ -207,17 +209,18 @@ export default function SaleCertifiedBillForm({ mode = "create", billId, onAfter
       }
       const mapLookupItem = (it, type) => ({
         type,
-        ogSaleOrderItemId: it.id || it.ogSaleOrderItemId || null,
-        itemDisplayCode:   it.itemDisplayCode || it.itemCode    || "",
-        itemCode:          it.itemCode        || "",
-        itemName:          it.itemName        || "",
-        itemDescription:   it.itemDescription || it.description || "",
-        unit:              it.unit            || "",
-        orderQty:          it.orderQty        ?? "",
-        claimQty:          it.claimQty        ?? "",
-        certifiedQty:      it.claimQty        ?? "",
-        rate:              it.rate            || "",
-        gstPercent:        it.gstPercent      || it.gst  || "",
+        ogSaleOrderItemId:  it.id || it.ogSaleOrderItemId || null,
+        itemDisplayCode:    it.itemDisplayCode || it.itemCode    || "",
+        itemCode:           it.itemCode        || "",
+        itemName:           it.itemName        || "",
+        itemDescription:    it.itemDescription || it.description || "",
+        unit:               it.unit            || "",
+        orderQty:           it.orderQty        ?? "",
+        claimQty:           it.claimQty        ?? "",
+        certifiedQty:       it.claimQty        ?? "",
+        preCertifiedAmount: it.preCertifiedAmount ?? 0,
+        rate:               it.rate            || "",
+        gstPercent:         it.gstPercent      || it.gst  || "",
       });
       const items = [
         ...(d.boqItems || []).map((it) => mapLookupItem(it, "boq")),
@@ -244,17 +247,18 @@ export default function SaleCertifiedBillForm({ mode = "create", billId, onAfter
         const d = res.data;
         const mapDetailItem = (it, type) => ({
           type,
-          ogSaleOrderItemId: it.ogSaleOrderItemId || null,
-          itemDisplayCode:   it.itemDisplayCode   || it.itemCode || "",
-          itemCode:          it.itemCode           || "",
-          itemName:          it.itemName           || "",
-          itemDescription:   it.itemDescription   || "",
-          unit:              it.unit               || "",
-          orderQty:          it.orderQty           || "",
-          claimQty:          it.claimQty           || "",
-          certifiedQty:      it.certifiedQty       || "",
-          rate:              it.rate               || "",
-          gstPercent:        it.gstPercent         || "",
+          ogSaleOrderItemId:  it.ogSaleOrderItemId || null,
+          itemDisplayCode:    it.itemDisplayCode   || it.itemCode || "",
+          itemCode:           it.itemCode           || "",
+          itemName:           it.itemName           || "",
+          itemDescription:    it.itemDescription   || "",
+          unit:               it.unit               || "",
+          orderQty:           it.orderQty           || "",
+          claimQty:           it.claimQty           || "",
+          certifiedQty:       it.certifiedQty       || "",
+          preCertifiedAmount: it.preCertifiedAmount ?? 0,
+          rate:               it.rate               || "",
+          gstPercent:         it.gstPercent         || "",
         });
         const formatted = {
           claimBillId:        d.claimBillId         || null,
@@ -566,7 +570,7 @@ export default function SaleCertifiedBillForm({ mode = "create", billId, onAfter
             </div>
 
             <div className="overflow-x-auto overflow-y-auto lg:max-h-[calc(100vh-260px)]">
-              <table ref={tableRef} className="w-full border-collapse text-sm" style={{ minWidth: 1260 }}>
+              <table ref={tableRef} className="w-full border-collapse text-sm" style={{ minWidth: 1400 }}>
 
                 <thead className="sticky top-0 z-20">
                   <tr className="bg-[#3b6ea5] text-white">
@@ -578,6 +582,7 @@ export default function SaleCertifiedBillForm({ mode = "create", billId, onAfter
                     <th className="border border-[#2a5080] w-[85px] text-right px-2 text-[13px] py-1.5 min-w-[100px]">Order Qty</th>
                     <th className="border border-[#2a5080] w-[85px] text-right px-2 text-[13px] py-1.5 min-w-[100px]">Claim Qty</th>
                     <th className="border border-[#2a5080] w-[90px] text-right px-2 text-[13px] py-1.5">Certified Qty</th>
+                    <th className="border border-[#2a5080] w-[115px] text-right px-2 text-[13px] py-1.5 min-w-[120px]">Pre Cert Amt</th>
                     <th className="border border-[#2a5080] w-[90px] text-right px-2 text-[13px] py-1.5 min-w-[110px]">Rate</th>
                     <th className="border border-[#2a5080] w-[100px] text-right px-2 text-[13px] py-1.5">Basic Amt</th>
                     <th className="border border-[#2a5080] w-[90px] text-right px-2 text-[13px] py-1.5">GST %</th>
@@ -590,7 +595,7 @@ export default function SaleCertifiedBillForm({ mode = "create", billId, onAfter
                   {fields.length === 0 && (
                     <tr>
                       <td
-                        colSpan={12}
+                        colSpan={14}
                         className="text-center text-[13px] text-[#888] py-8 italic border border-[#ccc]"
                       >
                         Select an order, then a claim bill above to populate items
@@ -598,11 +603,12 @@ export default function SaleCertifiedBillForm({ mode = "create", billId, onAfter
                     </tr>
                   )}
                   {fields.map((field, index) => {
-                    const item         = watchedItems[index] || {};
-                    const orderQty     = Number(item.orderQty     || 0);
-                    const claimQty     = Number(item.claimQty     || 0);
-                    const certifiedQty = Number(item.certifiedQty || 0);
-                    const rate         = Number(item.rate         || 0);
+                    const item               = watchedItems[index] || {};
+                    const orderQty           = Number(item.orderQty           || 0);
+                    const claimQty           = Number(item.claimQty           || 0);
+                    const certifiedQty       = Number(item.certifiedQty       || 0);
+                    const preCertifiedAmount = Number(item.preCertifiedAmount || 0);
+                    const rate               = Number(item.rate               || 0);
                     const gstPct       = Number(item.gstPercent   || 0);
                     const amount       = certifiedQty * rate;
                     const gstAmt       = amount * gstPct / 100;
@@ -703,6 +709,12 @@ export default function SaleCertifiedBillForm({ mode = "create", billId, onAfter
                           />
                         </td>
 
+                        {/* PRE CERTIFIED AMOUNT — read-only */}
+                        <td className="border border-[#ccc] bg-[#f0f4f8] px-2 text-[13px] text-right align-middle text-[#555] whitespace-nowrap">
+                          {preCertifiedAmount > 0 ? formatAmount(preCertifiedAmount) : "—"}
+                          <input {...register(`items.${index}.preCertifiedAmount`)} type="hidden" />
+                        </td>
+
                         {/* RATE — editable */}
                         <td className="border border-[#ccc] p-0 align-middle">
                           <AmountInput
@@ -747,6 +759,7 @@ export default function SaleCertifiedBillForm({ mode = "create", billId, onAfter
 
                 <tfoot className="sticky bottom-0 z-10 bg-[#b7d5f0]">
                   <tr className="font-bold">
+                    <td className="border border-[#9ec5e0]" />
                     <td className="border border-[#9ec5e0]" />
                     <td className="border border-[#9ec5e0]" />
                     <td className="border border-[#9ec5e0]" />
