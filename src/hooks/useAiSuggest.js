@@ -29,6 +29,14 @@ export default function useAiSuggest({
   const fetch = useCallback(
     async (overridePayload) => {
       if (!url) return;
+      // Drop browser Event objects accidentally forwarded from onClick handlers
+      if (
+        overridePayload != null &&
+        typeof overridePayload === "object" &&
+        ("nativeEvent" in overridePayload || overridePayload instanceof Event)
+      ) {
+        overridePayload = undefined;
+      }
       setLoading(true);
       setError(null);
       setSuggestion("");

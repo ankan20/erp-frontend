@@ -32,7 +32,7 @@ export default function AiSuggestionCard({
         {onRefresh && !loading && (
           <button
             type="button"
-            onClick={onRefresh}
+            onClick={() => onRefresh()}
             title="Refresh suggestion"
             className="text-violet-400 hover:text-violet-600 transition"
           >
