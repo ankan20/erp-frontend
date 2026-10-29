@@ -44,6 +44,7 @@ const itemSchema = z.object({
   unit:              z.string().optional(),
   orderQty:          z.coerce.number().min(0).optional(),
   claimQty:          z.coerce.number().min(0).optional(),
+  certifiedQty:      z.coerce.number().min(0).optional(),
   certifiedAmount:   z.coerce.number().min(0).optional(),
   rate:              z.coerce.number().min(0).optional(),
   gstPercent:        z.coerce.number().min(0).optional(),
@@ -68,6 +69,7 @@ const DEFAULT_ITEM = {
   unit:              "",
   orderQty:          "",
   claimQty:          "",
+  certifiedQty:      0,
   certifiedAmount:   0,
   rate:              "",
   gstPercent:        "",
@@ -179,6 +181,7 @@ export default function SaleClaimBillForm({ mode = "create", billId, onAfterSubm
         unit:              it.unit            || "",
         orderQty:          it.orderQty        || it.qty || "",
         claimQty:          "",
+        certifiedQty:      it.certifiedQty    ?? 0,
         certifiedAmount:   it.certifiedAmount ?? 0,
         rate:              it.rate            || "",
         gstPercent:        it.gstPercent      || it.gst  || "",
@@ -216,6 +219,7 @@ export default function SaleClaimBillForm({ mode = "create", billId, onAfterSubm
           unit:              it.unit               || "",
           orderQty:          it.orderQty           || "",
           claimQty:          it.claimQty           || "",
+          certifiedQty:      it.certifiedQty       ?? 0,
           certifiedAmount:   it.certifiedAmount    ?? 0,
           rate:              it.rate               || "",
           gstPercent:        it.gstPercent         || "",
@@ -503,7 +507,7 @@ export default function SaleClaimBillForm({ mode = "create", billId, onAfterSubm
             </div>
 
             <div className="overflow-x-auto overflow-y-auto lg:max-h-[calc(100vh-260px)]">
-              <table ref={tableRef} className="w-full border-collapse text-sm" style={{ minWidth: 1380 }}>
+              <table ref={tableRef} className="w-full border-collapse text-sm" style={{ minWidth: 1500 }}>
 
                 <thead className="sticky top-0 z-20">
                   <tr className="bg-[#3b6ea5] text-white">
@@ -514,6 +518,7 @@ export default function SaleClaimBillForm({ mode = "create", billId, onAfterSubm
                     <th className="border border-[#2a5080] w-[60px] text-center text-[13px] py-1.5">Unit</th>
                     <th className="border border-[#2a5080] w-[85px] text-right px-2 text-[13px] py-1.5 min-w-[110px]">Order Qty</th>
                     <th className="border border-[#2a5080] w-[85px] text-right px-2 text-[13px] py-1.5">Claim Qty</th>
+                    <th className="border border-[#2a5080] w-[95px] text-right px-2 text-[13px] py-1.5 min-w-[100px]">Cert Qty</th>
                     <th className="border border-[#2a5080] w-[110px] text-right px-2 text-[13px] py-1.5 min-w-[120px]">Certified Amt</th>
                     <th className="border border-[#2a5080] w-[90px] text-right px-2 text-[13px] py-1.5 min-w-[110px]">Rate</th>
                     <th className="border border-[#2a5080] w-[100px] text-right px-2 text-[13px] py-1.5">Basic Amt</th>
@@ -527,7 +532,7 @@ export default function SaleClaimBillForm({ mode = "create", billId, onAfterSubm
                   {fields.length === 0 && (
                     <tr>
                       <td
-                        colSpan={13}
+                        colSpan={14}
                         className="text-center text-[13px] text-[#888] py-8 italic border border-[#ccc]"
                       >
                         Select an order above to populate items
@@ -538,6 +543,7 @@ export default function SaleClaimBillForm({ mode = "create", billId, onAfterSubm
                     const item            = watchedItems[index] || {};
                     const orderQty        = Number(item.orderQty        || 0);
                     const claimQty        = Number(item.claimQty        || 0);
+                    const certifiedQty    = Number(item.certifiedQty    || 0);
                     const certifiedAmount = Number(item.certifiedAmount || 0);
                     const rate            = Number(item.rate            || 0);
                     const gstPct          = Number(item.gstPercent      || 0);
@@ -634,6 +640,12 @@ export default function SaleClaimBillForm({ mode = "create", billId, onAfterSubm
                           />
                         </td>
 
+                        {/* CERTIFIED QTY — read-only reference */}
+                        <td className="border border-[#ccc] bg-[#f0f4f8] px-2 text-[13px] text-right align-middle text-[#555] whitespace-nowrap">
+                          {certifiedQty > 0 ? formatQtyDisplay(certifiedQty) : "—"}
+                          <input {...register(`items.${index}.certifiedQty`)} type="hidden" />
+                        </td>
+
                         {/* CERTIFIED AMOUNT — read-only reference */}
                         <td className="border border-[#ccc] bg-[#f0f4f8] px-2 text-[13px] text-right align-middle text-[#555] whitespace-nowrap">
                           {certifiedAmount > 0 ? formatAmount(certifiedAmount) : "—"}
@@ -679,6 +691,7 @@ export default function SaleClaimBillForm({ mode = "create", billId, onAfterSubm
 
                 <tfoot className="sticky bottom-0 z-10 bg-[#b7d5f0]">
                   <tr className="font-bold">
+                    <td className="border border-[#9ec5e0]" />
                     <td className="border border-[#9ec5e0]" />
                     <td className="border border-[#9ec5e0]" />
                     <td className="border border-[#9ec5e0]" />

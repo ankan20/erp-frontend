@@ -44,6 +44,7 @@ const itemSchema = z.object({
   unit:              z.string().optional(),
   orderQty:            z.coerce.number().min(0).optional(),
   claimQty:            z.coerce.number().min(0).optional(),
+  preCertifiedQty:     z.coerce.number().min(0).optional(),
   certifiedQty:        z.coerce.number().min(0).optional(),
   preCertifiedAmount:  z.coerce.number().min(0).optional(),
   rate:                z.coerce.number().min(0).optional(),
@@ -70,6 +71,7 @@ const DEFAULT_ITEM = {
   unit:              "",
   orderQty:           "",
   claimQty:           "",
+  preCertifiedQty:    0,
   certifiedQty:       "",
   preCertifiedAmount: 0,
   rate:               "",
@@ -103,6 +105,7 @@ export default function SaleCertifiedBillForm({ mode = "create", billId, onAfter
   const [saleOrderOpts,   setSaleOrderOpts]   = useState([]);
   const [claimBillOpts,   setClaimBillOpts]   = useState([]);
   const [claimBillLoading, setClaimBillLoading] = useState(false);
+  const [prevCertBillOpts, setPrevCertBillOpts] = useState([]);
   const [useLocations,    setUseLocations]    = useState([]);
   const [lookupLoading,   setLookupLoading]   = useState(false);
 
@@ -190,6 +193,7 @@ export default function SaleCertifiedBillForm({ mode = "create", billId, onAfter
     setValue("items",         [],    { shouldDirty: true });
     setValue("preCertifiedAmount", "", { shouldDirty: true });
     setClaimBillOpts([]);
+    setPrevCertBillOpts([]);
     fetchClaimBills(value);
   }, [setValue, fetchClaimBills]);
 
@@ -217,6 +221,7 @@ export default function SaleCertifiedBillForm({ mode = "create", billId, onAfter
         unit:               it.unit            || "",
         orderQty:           it.orderQty        ?? "",
         claimQty:           it.claimQty        ?? "",
+        preCertifiedQty:    it.preCertifiedQty ?? 0,
         certifiedQty:       it.claimQty        ?? "",
         preCertifiedAmount: it.preCertifiedAmount ?? 0,
         rate:               it.rate            || "",
@@ -227,6 +232,22 @@ export default function SaleCertifiedBillForm({ mode = "create", billId, onAfter
         ...(d.items    || []).map((it) => mapLookupItem(it, "non-boq")),
       ];
       if (items.length) setValue("items", items, { shouldDirty: true });
+
+      // fetch prev approved cert bills for reference dropdown
+      try {
+        const certRes = await apiRequest({
+          url:    `${API_ENDPOINTS.PROJECT.SALE_CERTIFIED_BILL.CERT_BILLS_FOR_CLAIM}?claimBillId=${encodeURIComponent(id)}`,
+          method: "GET",
+        });
+        setPrevCertBillOpts(
+          (Array.isArray(certRes.data) ? certRes.data : []).map((b) => ({
+            ...b,
+            displayLabel: b.billingNo,
+          }))
+        );
+      } catch {
+        setPrevCertBillOpts([]);
+      }
     } catch {
       toast.error("Failed to load claim bill details");
     } finally {
@@ -255,6 +276,7 @@ export default function SaleCertifiedBillForm({ mode = "create", billId, onAfter
           unit:               it.unit               || "",
           orderQty:           it.orderQty           || "",
           claimQty:           it.claimQty           || "",
+          preCertifiedQty:    it.preCertifiedQty    ?? 0,
           certifiedQty:       it.certifiedQty       || "",
           preCertifiedAmount: it.preCertifiedAmount ?? 0,
           rate:               it.rate               || "",
@@ -276,6 +298,16 @@ export default function SaleCertifiedBillForm({ mode = "create", billId, onAfter
         reset(formatted);
         setInitialData(formatted);
         if (d.ogSaleOrderNo) fetchClaimBills(d.ogSaleOrderNo);
+        if (d.claimBillId) {
+          apiRequest({
+            url:    `${API_ENDPOINTS.PROJECT.SALE_CERTIFIED_BILL.CERT_BILLS_FOR_CLAIM}?claimBillId=${d.claimBillId}`,
+            method: "GET",
+          }).then((r) => {
+            setPrevCertBillOpts(
+              (Array.isArray(r.data) ? r.data : []).map((b) => ({ ...b, displayLabel: b.billingNo }))
+            );
+          }).catch(() => setPrevCertBillOpts([]));
+        }
         onUuid?.(d.billingUuid || "");
         setExistingUrl(d.attachment || "");
         setInitialUrl(d.attachment  || "");
@@ -461,6 +493,23 @@ export default function SaleCertifiedBillForm({ mode = "create", billId, onAfter
               </div>
             </PMFormRow>
 
+            {prevCertBillOpts.length > 0 && (
+              <PMFormRow label="Prev Cert Bills" labelWidth="sm:w-[140px] sm:min-w-[140px]">
+                <div className="flex-1">
+                  <SearchableSelect
+                    options={prevCertBillOpts}
+                    value=""
+                    disabled={true}
+                    onChange={() => {}}
+                    placeholder={`${prevCertBillOpts.length} approved bill(s)`}
+                    labelKey="displayLabel"
+                    valueKey="id"
+                    searchKeys={["billingNo", "displayLabel"]}
+                  />
+                </div>
+              </PMFormRow>
+            )}
+
             <PMFormRow label="Bill Date" required={!disabled} labelWidth="sm:w-[140px] sm:min-w-[140px]">
               <PMDateInput
                 {...register("billingDate")}
@@ -570,7 +619,7 @@ export default function SaleCertifiedBillForm({ mode = "create", billId, onAfter
             </div>
 
             <div className="overflow-x-auto overflow-y-auto lg:max-h-[calc(100vh-260px)]">
-              <table ref={tableRef} className="w-full border-collapse text-sm" style={{ minWidth: 1400 }}>
+              <table ref={tableRef} className="w-full border-collapse text-sm" style={{ minWidth: 1700 }}>
 
                 <thead className="sticky top-0 z-20">
                   <tr className="bg-[#3b6ea5] text-white">
@@ -581,10 +630,13 @@ export default function SaleCertifiedBillForm({ mode = "create", billId, onAfter
                     <th className="border border-[#2a5080] w-[60px] text-center text-[13px] py-1.5">Unit</th>
                     <th className="border border-[#2a5080] w-[85px] text-right px-2 text-[13px] py-1.5 min-w-[100px]">Order Qty</th>
                     <th className="border border-[#2a5080] w-[85px] text-right px-2 text-[13px] py-1.5 min-w-[100px]">Claim Qty</th>
-                    <th className="border border-[#2a5080] w-[90px] text-right px-2 text-[13px] py-1.5">Certified Qty</th>
-                    <th className="border border-[#2a5080] w-[115px] text-right px-2 text-[13px] py-1.5 min-w-[120px]">Pre Cert Amt</th>
+                    <th className="border border-[#2a5080] w-[90px] text-right px-2 text-[13px] py-1.5 min-w-[95px]">Pre Cert Qty</th>
+                    <th className="border border-[#2a5080] w-[90px] text-right px-2 text-[13px] py-1.5">Cert Qty</th>
+                    <th className="border border-[#2a5080] w-[95px] text-right px-2 text-[13px] py-1.5 min-w-[95px]">Total Cert Qty</th>
                     <th className="border border-[#2a5080] w-[90px] text-right px-2 text-[13px] py-1.5 min-w-[110px]">Rate</th>
-                    <th className="border border-[#2a5080] w-[100px] text-right px-2 text-[13px] py-1.5">Basic Amt</th>
+                    <th className="border border-[#2a5080] w-[115px] text-right px-2 text-[13px] py-1.5 min-w-[120px]">Pre Cert Amt</th>
+                    <th className="border border-[#2a5080] w-[100px] text-right px-2 text-[13px] py-1.5">Cert Amt</th>
+                    <th className="border border-[#2a5080] w-[110px] text-right px-2 text-[13px] py-1.5 min-w-[115px]">Total Cert Amt</th>
                     <th className="border border-[#2a5080] w-[90px] text-right px-2 text-[13px] py-1.5">GST %</th>
                     <th className="border border-[#2a5080] w-[100px] text-right px-2 text-[13px] py-1.5 min-w-[120px]">GST Amt</th>
                     <th className="border border-[#2a5080] w-[105px] text-right px-2 text-[13px] py-1.5 min-w-[120px]">Amount</th>
@@ -595,7 +647,7 @@ export default function SaleCertifiedBillForm({ mode = "create", billId, onAfter
                   {fields.length === 0 && (
                     <tr>
                       <td
-                        colSpan={14}
+                        colSpan={17}
                         className="text-center text-[13px] text-[#888] py-8 italic border border-[#ccc]"
                       >
                         Select an order, then a claim bill above to populate items
@@ -606,13 +658,17 @@ export default function SaleCertifiedBillForm({ mode = "create", billId, onAfter
                     const item               = watchedItems[index] || {};
                     const orderQty           = Number(item.orderQty           || 0);
                     const claimQty           = Number(item.claimQty           || 0);
+                    const preCertifiedQty    = Number(item.preCertifiedQty    || 0);
                     const certifiedQty       = Number(item.certifiedQty       || 0);
+                    const totalCertQty       = preCertifiedQty + certifiedQty;
                     const preCertifiedAmount = Number(item.preCertifiedAmount || 0);
                     const rate               = Number(item.rate               || 0);
-                    const gstPct       = Number(item.gstPercent   || 0);
-                    const amount       = certifiedQty * rate;
-                    const gstAmt       = amount * gstPct / 100;
-                    const overQty      = !disabled && certifiedQty > claimQty && claimQty > 0;
+                    const gstPct             = Number(item.gstPercent         || 0);
+                    const certAmt            = certifiedQty * rate;
+                    const totalCertAmt       = preCertifiedAmount + certAmt;
+                    const amount             = certAmt;
+                    const gstAmt             = amount * gstPct / 100;
+                    const overQty            = !disabled && certifiedQty > claimQty && claimQty > 0;
 
                     return (
                       <tr key={field.id} className={index % 2 === 0 ? "bg-white" : "bg-[#f5f8fc]"}>
@@ -691,7 +747,13 @@ export default function SaleCertifiedBillForm({ mode = "create", billId, onAfter
                           <input {...register(`items.${index}.claimQty`)} type="hidden" />
                         </td>
 
-                        {/* CERTIFIED QTY — editable; orange highlight when above claimQty */}
+                        {/* PRE CERT QTY — read-only */}
+                        <td className="border border-[#ccc] bg-[#f0f4f8] px-2 text-[13px] text-right align-middle text-[#555] whitespace-nowrap">
+                          {preCertifiedQty > 0 ? formatQtyDisplay(preCertifiedQty) : "—"}
+                          <input {...register(`items.${index}.preCertifiedQty`)} type="hidden" />
+                        </td>
+
+                        {/* CERT QTY — editable; orange highlight when above claimQty */}
                         <td className="border border-[#ccc] p-0 align-middle">
                           <Controller
                             control={control}
@@ -709,10 +771,9 @@ export default function SaleCertifiedBillForm({ mode = "create", billId, onAfter
                           />
                         </td>
 
-                        {/* PRE CERTIFIED AMOUNT — read-only */}
-                        <td className="border border-[#ccc] bg-[#f0f4f8] px-2 text-[13px] text-right align-middle text-[#555] whitespace-nowrap">
-                          {preCertifiedAmount > 0 ? formatAmount(preCertifiedAmount) : "—"}
-                          <input {...register(`items.${index}.preCertifiedAmount`)} type="hidden" />
+                        {/* TOTAL CERT QTY — computed */}
+                        <td className="border border-[#ccc] bg-[#edf8f0] px-2 text-[13px] font-medium text-right align-middle whitespace-nowrap">
+                          {totalCertQty > 0 ? formatQtyDisplay(totalCertQty) : "—"}
                         </td>
 
                         {/* RATE — editable */}
@@ -726,9 +787,20 @@ export default function SaleCertifiedBillForm({ mode = "create", billId, onAfter
                           />
                         </td>
 
-                        {/* BASIC AMOUNT */}
+                        {/* PRE CERT AMT — read-only */}
+                        <td className="border border-[#ccc] bg-[#f0f4f8] px-2 text-[13px] text-right align-middle text-[#555] whitespace-nowrap">
+                          {preCertifiedAmount > 0 ? formatAmount(preCertifiedAmount) : "—"}
+                          <input {...register(`items.${index}.preCertifiedAmount`)} type="hidden" />
+                        </td>
+
+                        {/* CERT AMT — computed */}
                         <td className="border border-[#ccc] bg-[#edf8ed] px-2 text-[13px] font-medium text-right align-middle whitespace-nowrap">
-                          {formatAmount(amount)}
+                          {formatAmount(certAmt)}
+                        </td>
+
+                        {/* TOTAL CERT AMT — pre + current */}
+                        <td className="border border-[#ccc] bg-[#edf8f0] px-2 text-[13px] font-medium text-right align-middle whitespace-nowrap">
+                          {formatAmount(totalCertAmt)}
                         </td>
 
                         {/* GST % */}
@@ -759,6 +831,9 @@ export default function SaleCertifiedBillForm({ mode = "create", billId, onAfter
 
                 <tfoot className="sticky bottom-0 z-10 bg-[#b7d5f0]">
                   <tr className="font-bold">
+                    <td className="border border-[#9ec5e0]" />
+                    <td className="border border-[#9ec5e0]" />
+                    <td className="border border-[#9ec5e0]" />
                     <td className="border border-[#9ec5e0]" />
                     <td className="border border-[#9ec5e0]" />
                     <td className="border border-[#9ec5e0]" />
