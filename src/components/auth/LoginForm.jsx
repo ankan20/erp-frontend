@@ -161,7 +161,8 @@ useEffect(()=>{
                   value={formData.loginId}
                   onChange={handleChange}
                   disabled={loading}
-                  className="h-10 bg-white border-gray-400 text-[20px] font-medium"
+                  placeholder="Login ID or Mobile Number"
+                  className="h-10 bg-white border-gray-400 text-[20px] font-medium placeholder:text-gray-400 placeholder:text-[15px]"
                 />
               </div>
 
@@ -174,7 +175,8 @@ useEffect(()=>{
                     value={formData.password}
                     onChange={handleChange}
                     disabled={loading}
-                    className="h-10 bg-white border-gray-400 text-[20px] font-medium pr-10"
+                    placeholder="Enter Password"
+                    className="h-10 bg-white border-gray-400 text-[20px] font-medium pr-10 placeholder:text-gray-400 placeholder:text-[15px]"
                   />
                   <button
                     type="button"
