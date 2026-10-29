@@ -33,6 +33,25 @@ import { zodDate } from "@/lib/dateUtils";
 
 const BILL_MODE = "sale_claim_bill";
 
+// ── COLUMN DEFINITIONS ────────────────────────────────────────────────────────
+const CLAIM_COLS = [
+  { id: "sl",              label: "SL no",                  thClass: "w-[44px] text-center" },
+  { id: "type",            label: "Type",                   thClass: "w-[90px] text-center" },
+  { id: "itemCode",        label: "Item Code",              thClass: "w-[110px] text-left px-2" },
+  { id: "itemName",        label: "Item Name & Description",thClass: "text-left px-2" },
+  { id: "unit",            label: "Unit",                   thClass: "w-[60px] text-center" },
+  { id: "orderQty",        label: "Order Qty",              thClass: "w-[85px] text-right px-2 min-w-[110px]" },
+  { id: "claimQty",        label: "Claim Qty",              thClass: "w-[85px] text-right px-2" },
+  { id: "certifiedQty",    label: "Cert Qty",               thClass: "w-[95px] text-right px-2 min-w-[100px]" },
+  { id: "certifiedAmount", label: "Certified Amt",          thClass: "w-[110px] text-right px-2 min-w-[120px]" },
+  { id: "rate",            label: "Rate",                   thClass: "w-[90px] text-right px-2 min-w-[110px]" },
+  { id: "basicAmt",        label: "Basic Amt",              thClass: "w-[100px] text-right px-2" },
+  { id: "gstPct",          label: "GST %",                  thClass: "w-[90px] text-right px-2" },
+  { id: "gstAmt",          label: "GST Amt",                thClass: "w-[100px] text-right px-2 min-w-[120px]" },
+  { id: "amount",          label: "Amount",                 thClass: "w-[105px] text-right px-2 min-w-[120px]" },
+];
+const CLAIM_COL_IDS = CLAIM_COLS.map((c) => c.id);
+
 // ── SCHEMA ────────────────────────────────────────────────────────────────────
 const itemSchema = z.object({
   type:              z.string().optional().default("non-boq"),
@@ -106,6 +125,39 @@ export default function SaleClaimBillForm({ mode = "create", billId, onAfterSubm
   const [existingUrl,  setExistingUrl]  = useState("");
   const [initialUrl,   setInitialUrl]   = useState("");
   const [fileResetKey, setFileResetKey] = useState(0);
+
+  // ── COLUMN ORDER (drag-to-reorder, saved per user) ───────────────────────────
+  const colLsKey = `colOrder_saleClaimBill_${getLocalStorage("userName") || "default"}`;
+  const [columnOrder, setColumnOrder] = useState(() => {
+    try {
+      const saved = JSON.parse(localStorage.getItem(colLsKey) || "null");
+      if (Array.isArray(saved) && saved.length === CLAIM_COL_IDS.length &&
+          CLAIM_COL_IDS.every((id) => saved.includes(id))) return saved;
+    } catch {}
+    return [...CLAIM_COL_IDS];
+  });
+  const [dragColId,  setDragColId]  = useState(null);
+  const [overColId,  setOverColId]  = useState(null);
+
+  const saveColOrder = (order) => {
+    try { localStorage.setItem(colLsKey, JSON.stringify(order)); } catch {}
+  };
+  const onColDragStart = (colId) => setDragColId(colId);
+  const onColDragOver  = (e, colId) => { e.preventDefault(); setOverColId(colId); };
+  const onColDrop      = (e, targetId) => {
+    e.preventDefault();
+    if (!dragColId || dragColId === targetId) { setDragColId(null); setOverColId(null); return; }
+    const next = [...columnOrder];
+    const from = next.indexOf(dragColId);
+    const to   = next.indexOf(targetId);
+    next.splice(from, 1);
+    next.splice(to, 0, dragColId);
+    setColumnOrder(next);
+    saveColOrder(next);
+    setDragColId(null);
+    setOverColId(null);
+  };
+  const onColDragEnd   = () => { setDragColId(null); setOverColId(null); };
 
   const {
     register, control, handleSubmit, reset, getValues, setValue, watch,
@@ -509,32 +561,35 @@ export default function SaleClaimBillForm({ mode = "create", billId, onAfterSubm
             <div className="overflow-x-auto overflow-y-auto lg:max-h-[calc(100vh-260px)]">
               <table ref={tableRef} className="w-full border-collapse text-sm" style={{ minWidth: 1500 }}>
 
+                {/* ── DYNAMIC DRAGGABLE HEADERS ── */}
                 <thead className="sticky top-0 z-20">
                   <tr className="bg-[#3b6ea5] text-white">
-                    <th className="border border-[#2a5080] w-[44px] text-center text-[13px] py-1.5">SL no</th>
-                    <th className="border border-[#2a5080] w-[90px] text-center text-[13px] py-1.5">Type</th>
-                    <th className="border border-[#2a5080] w-[110px] text-left px-2 text-[13px] py-1.5">Item Code</th>
-                    <th className="border border-[#2a5080] text-left px-2 text-[13px] py-1.5">Item Name &amp; Description</th>
-                    <th className="border border-[#2a5080] w-[60px] text-center text-[13px] py-1.5">Unit</th>
-                    <th className="border border-[#2a5080] w-[85px] text-right px-2 text-[13px] py-1.5 min-w-[110px]">Order Qty</th>
-                    <th className="border border-[#2a5080] w-[85px] text-right px-2 text-[13px] py-1.5">Claim Qty</th>
-                    <th className="border border-[#2a5080] w-[95px] text-right px-2 text-[13px] py-1.5 min-w-[100px]">Cert Qty</th>
-                    <th className="border border-[#2a5080] w-[110px] text-right px-2 text-[13px] py-1.5 min-w-[120px]">Certified Amt</th>
-                    <th className="border border-[#2a5080] w-[90px] text-right px-2 text-[13px] py-1.5 min-w-[110px]">Rate</th>
-                    <th className="border border-[#2a5080] w-[100px] text-right px-2 text-[13px] py-1.5">Basic Amt</th>
-                    <th className="border border-[#2a5080] w-[90px] text-right px-2 text-[13px] py-1.5">GST %</th>
-                    <th className="border border-[#2a5080] w-[100px] text-right px-2 text-[13px] py-1.5 min-w-[120px]">GST Amt</th>
-                    <th className="border border-[#2a5080] w-[105px] text-right px-2 text-[13px] py-1.5 min-w-[120px]">Amount</th>
+                    {columnOrder.map((colId) => {
+                      const col = CLAIM_COLS.find((c) => c.id === colId);
+                      const isOver  = overColId  === colId && dragColId !== colId;
+                      const isDragging = dragColId === colId;
+                      return (
+                        <th
+                          key={colId}
+                          draggable
+                          onDragStart={() => onColDragStart(colId)}
+                          onDragOver={(e) => onColDragOver(e, colId)}
+                          onDrop={(e) => onColDrop(e, colId)}
+                          onDragEnd={onColDragEnd}
+                          className={`border border-[#2a5080] text-[13px] py-1.5 select-none cursor-grab active:cursor-grabbing ${col.thClass} ${isDragging ? "opacity-40" : ""} ${isOver ? "border-l-4 border-l-yellow-300" : ""}`}
+                          title="Drag to reorder"
+                        >
+                          {col.label}
+                        </th>
+                      );
+                    })}
                   </tr>
                 </thead>
 
                 <tbody>
                   {fields.length === 0 && (
                     <tr>
-                      <td
-                        colSpan={14}
-                        className="text-center text-[13px] text-[#888] py-8 italic border border-[#ccc]"
-                      >
+                      <td colSpan={CLAIM_COL_IDS.length} className="text-center text-[13px] text-[#888] py-8 italic border border-[#ccc]">
                         Select an order above to populate items
                       </td>
                     </tr>
@@ -548,163 +603,119 @@ export default function SaleClaimBillForm({ mode = "create", billId, onAfterSubm
                     const rate            = Number(item.rate            || 0);
                     const gstPct          = Number(item.gstPercent      || 0);
                     const amount          = claimQty * rate;
-                    const gstAmt   = amount * gstPct / 100;
-                    const overQty  = !disabled && claimQty > orderQty && orderQty > 0;
+                    const gstAmt          = amount * gstPct / 100;
+                    const overQty         = !disabled && claimQty > orderQty && orderQty > 0;
+
+                    const renderCell = (colId) => {
+                      switch (colId) {
+                        case "sl":
+                          return <td key={colId} className="border border-[#ccc] text-center bg-[#edf4fb] text-[13px] font-medium align-middle">{index + 1}</td>;
+                        case "type":
+                          return (
+                            <td key={colId} className="border border-[#ccc] text-center text-[13px] align-middle text-[#555]">
+                              {watch(`items.${index}.type`) === "boq" ? "BOQ" : "Non-BOQ"}
+                              <input {...register(`items.${index}.type`)} type="hidden" />
+                            </td>
+                          );
+                        case "itemCode":
+                          return (
+                            <td key={colId} className="border border-[#ccc] p-0 align-middle">
+                              <input {...register(`items.${index}.itemDisplayCode`)} disabled placeholder="—"
+                                className={`${getInputClass(false, true)} border-0 rounded-none w-full h-[30px] text-[13px] px-1`} />
+                              <input {...register(`items.${index}.itemCode`)} type="hidden" />
+                              <input {...register(`items.${index}.ogSaleOrderItemId`)} type="hidden" />
+                            </td>
+                          );
+                        case "itemName":
+                          return (
+                            <td key={colId} className="border border-[#ccc] p-0">
+                              <Controller name={`items.${index}.itemName`} control={control}
+                                render={({ field: f }) => <ExpandableTextCell value={f.value || ""} onChange={f.onChange} disabled={true} label="Item Name" placeholder="—" textSize="text-[13px]" />} />
+                              <Controller name={`items.${index}.itemDescription`} control={control}
+                                render={({ field: f }) => <ExpandableTextCell value={f.value || ""} onChange={f.onChange} disabled={true} label="Item Description" placeholder="—" />} />
+                            </td>
+                          );
+                        case "unit":
+                          return (
+                            <td key={colId} className="border border-[#ccc] p-0 align-middle">
+                              <input {...register(`items.${index}.unit`)} disabled placeholder="—"
+                                className={`${getInputClass(false, true)} border-0 rounded-none w-full h-[30px] text-[13px] text-center`} />
+                            </td>
+                          );
+                        case "orderQty":
+                          return (
+                            <td key={colId} className="border border-[#ccc] bg-[#f0f4f8] px-2 text-[13px] text-right align-middle text-[#555] whitespace-nowrap">
+                              {orderQty > 0 ? formatQtyDisplay(orderQty) : "—"}
+                              <input {...register(`items.${index}.orderQty`)} type="hidden" />
+                            </td>
+                          );
+                        case "claimQty":
+                          return (
+                            <td key={colId} className="border border-[#ccc] p-0 align-middle">
+                              <Controller control={control} name={`items.${index}.claimQty`}
+                                render={({ field: f }) => (
+                                  <QtyInput {...f} onChange={(e) => f.onChange(e.target.value)} disabled={disabled} placeholder="0"
+                                    title={overQty ? `Above order qty (${orderQty})` : undefined}
+                                    className={`${overQty ? "border-orange-400 bg-orange-50 text-orange-700" : getInputClass(errors?.items?.[index]?.claimQty, disabled)} border-0 rounded-none w-full h-[30px] text-[13px] text-right pr-2`} />
+                                )} />
+                            </td>
+                          );
+                        case "certifiedQty":
+                          return (
+                            <td key={colId} className="border border-[#ccc] bg-[#f0f4f8] px-2 text-[13px] text-right align-middle text-[#555] whitespace-nowrap">
+                              {certifiedQty > 0 ? formatQtyDisplay(certifiedQty) : "—"}
+                              <input {...register(`items.${index}.certifiedQty`)} type="hidden" />
+                            </td>
+                          );
+                        case "certifiedAmount":
+                          return (
+                            <td key={colId} className="border border-[#ccc] bg-[#f0f4f8] px-2 text-[13px] text-right align-middle text-[#555] whitespace-nowrap">
+                              {certifiedAmount > 0 ? formatAmount(certifiedAmount) : "—"}
+                              <input {...register(`items.${index}.certifiedAmount`)} type="hidden" />
+                            </td>
+                          );
+                        case "rate":
+                          return (
+                            <td key={colId} className="border border-[#ccc] bg-[#f0f4f8] px-2 text-[13px] text-right align-middle text-[#555] whitespace-nowrap">
+                              {formatAmount(rate)}
+                              <input {...register(`items.${index}.rate`)} type="hidden" />
+                            </td>
+                          );
+                        case "basicAmt":
+                          return <td key={colId} className="border border-[#ccc] bg-[#edf8ed] px-2 text-[13px] font-medium text-right align-middle whitespace-nowrap">{formatAmount(amount)}</td>;
+                        case "gstPct":
+                          return (
+                            <td key={colId} className="border border-[#ccc] p-0 align-middle">
+                              <GstInput {...register(`items.${index}.gstPercent`)} value={item.gstPercent ?? ""} disabled={disabled} placeholder="0"
+                                className={`${getInputClass(false, disabled)} border-0 rounded-none w-full h-[30px] text-[13px] text-right pr-2`} />
+                            </td>
+                          );
+                        case "gstAmt":
+                          return <td key={colId} className="border border-[#ccc] bg-[#edf8ed] px-2 text-[13px] font-medium text-right align-middle whitespace-nowrap">{formatAmount(gstAmt)}</td>;
+                        case "amount":
+                          return <td key={colId} className="border border-[#ccc] bg-[#edf8ed] px-2 text-[13px] font-medium text-right align-middle whitespace-nowrap">{formatAmount(amount + gstAmt)}</td>;
+                        default: return null;
+                      }
+                    };
 
                     return (
                       <tr key={field.id} className={index % 2 === 0 ? "bg-white" : "bg-[#f5f8fc]"}>
-
-                        {/* SL */}
-                        <td className="border border-[#ccc] text-center bg-[#edf4fb] text-[13px] font-medium align-middle">
-                          {index + 1}
-                        </td>
-
-                        {/* TYPE — read-only */}
-                        <td className="border border-[#ccc] text-center text-[13px] align-middle text-[#555]">
-                          {watch(`items.${index}.type`) === "boq" ? "BOQ" : "Non-BOQ"}
-                          <input {...register(`items.${index}.type`)} type="hidden" />
-                        </td>
-
-                        {/* ITEM CODE — read-only */}
-                        <td className="border border-[#ccc] p-0 align-middle">
-                          <input
-                            {...register(`items.${index}.itemDisplayCode`)}
-                            disabled placeholder="—"
-                            className={`${getInputClass(false, true)} border-0 rounded-none w-full h-[30px] text-[13px] px-1`}
-                          />
-                          <input {...register(`items.${index}.itemCode`)}          type="hidden" />
-                          <input {...register(`items.${index}.ogSaleOrderItemId`)} type="hidden" />
-                        </td>
-
-                        {/* ITEM NAME & DESCRIPTION — name read-only, desc expandable */}
-                        <td className="border border-[#ccc] p-0">
-                          <Controller
-                            name={`items.${index}.itemName`}
-                            control={control}
-                            render={({ field }) => (
-                              <ExpandableTextCell
-                                value={field.value || ""}
-                                onChange={field.onChange}
-                                disabled={true}
-                                label="Item Name"
-                                placeholder="—"
-                                textSize="text-[13px]"
-                              />
-                            )}
-                          />
-                          <Controller
-                            name={`items.${index}.itemDescription`}
-                            control={control}
-                            render={({ field }) => (
-                              <ExpandableTextCell
-                                value={field.value || ""}
-                                onChange={field.onChange}
-                                disabled={true}
-                                label="Item Description"
-                                placeholder="—"
-                              />
-                            )}
-                          />
-                        </td>
-
-                        {/* UNIT — read-only */}
-                        <td className="border border-[#ccc] p-0 align-middle">
-                          <input
-                            {...register(`items.${index}.unit`)}
-                            disabled placeholder="—"
-                            className={`${getInputClass(false, true)} border-0 rounded-none w-full h-[30px] text-[13px] text-center`}
-                          />
-                        </td>
-
-                        {/* ORDER QTY — read-only reference */}
-                        <td className="border border-[#ccc] bg-[#f0f4f8] px-2 text-[13px] text-right align-middle text-[#555] whitespace-nowrap">
-                          {orderQty > 0 ? formatQtyDisplay(orderQty) : "—"}
-                          <input {...register(`items.${index}.orderQty`)} type="hidden" />
-                        </td>
-
-                        {/* CLAIM QTY — editable; red highlight when above orderQty */}
-                        <td className="border border-[#ccc] p-0 align-middle">
-                          <Controller
-                            control={control}
-                            name={`items.${index}.claimQty`}
-                            render={({ field: f }) => (
-                              <QtyInput
-                                {...f}
-                                onChange={(e) => f.onChange(e.target.value)}
-                                disabled={disabled}
-                                placeholder="0"
-                                title={overQty ? `Above order qty (${orderQty})` : undefined}
-                                className={`${overQty ? "border-orange-400 bg-orange-50 text-orange-700" : getInputClass(errors?.items?.[index]?.claimQty, disabled)} border-0 rounded-none w-full h-[30px] text-[13px] text-right pr-2`}
-                              />
-                            )}
-                          />
-                        </td>
-
-                        {/* CERTIFIED QTY — read-only reference */}
-                        <td className="border border-[#ccc] bg-[#f0f4f8] px-2 text-[13px] text-right align-middle text-[#555] whitespace-nowrap">
-                          {certifiedQty > 0 ? formatQtyDisplay(certifiedQty) : "—"}
-                          <input {...register(`items.${index}.certifiedQty`)} type="hidden" />
-                        </td>
-
-                        {/* CERTIFIED AMOUNT — read-only reference */}
-                        <td className="border border-[#ccc] bg-[#f0f4f8] px-2 text-[13px] text-right align-middle text-[#555] whitespace-nowrap">
-                          {certifiedAmount > 0 ? formatAmount(certifiedAmount) : "—"}
-                          <input {...register(`items.${index}.certifiedAmount`)} type="hidden" />
-                        </td>
-
-                        {/* RATE — read-only (from order) */}
-                        <td className="border border-[#ccc] bg-[#f0f4f8] px-2 text-[13px] text-right align-middle text-[#555] whitespace-nowrap">
-                          {formatAmount(rate)}
-                          <input {...register(`items.${index}.rate`)} type="hidden" />
-                        </td>
-
-                        {/* BASIC AMOUNT */}
-                        <td className="border border-[#ccc] bg-[#edf8ed] px-2 text-[13px] font-medium text-right align-middle whitespace-nowrap">
-                          {formatAmount(amount)}
-                        </td>
-
-                        {/* GST % */}
-                        <td className="border border-[#ccc] p-0 align-middle">
-                          <GstInput
-                            {...register(`items.${index}.gstPercent`)}
-                            value={item.gstPercent ?? ""}
-                            disabled={disabled}
-                            placeholder="0"
-                            className={`${getInputClass(false, disabled)} border-0 rounded-none w-full h-[30px] text-[13px] text-right pr-2`}
-                          />
-                        </td>
-
-                        {/* GST AMOUNT */}
-                        <td className="border border-[#ccc] bg-[#edf8ed] px-2 text-[13px] font-medium text-right align-middle whitespace-nowrap">
-                          {formatAmount(gstAmt)}
-                        </td>
-
-                        {/* AMOUNT — basic + GST, i.e. the line total */}
-                        <td className="border border-[#ccc] bg-[#edf8ed] px-2 text-[13px] font-medium text-right align-middle whitespace-nowrap">
-                          {formatAmount(amount + gstAmt)}
-                        </td>
-
+                        {columnOrder.map(renderCell)}
                       </tr>
                     );
                   })}
                 </tbody>
 
+                {/* ── DYNAMIC TFOOT ── */}
                 <tfoot className="sticky bottom-0 z-10 bg-[#b7d5f0]">
                   <tr className="font-bold">
-                    <td className="border border-[#9ec5e0]" />
-                    <td className="border border-[#9ec5e0]" />
-                    <td className="border border-[#9ec5e0]" />
-                    <td className="border border-[#9ec5e0]" />
-                    <td className="border border-[#9ec5e0]" />
-                    <td className="border border-[#9ec5e0]" />
-                    <td className="border border-[#9ec5e0]" />
-                    <td className="border border-[#9ec5e0]" />
-                    <td className="border border-[#9ec5e0]" />
-                    <td className="border border-[#9ec5e0] px-2 text-right text-[13px] whitespace-nowrap">TOTAL=</td>
-                    <td className="border border-[#9ec5e0] px-2 text-right text-[13px] whitespace-nowrap">{formatAmount(thisBillClaim)}</td>
-                    <td className="border border-[#9ec5e0]" />
-                    <td className="border border-[#9ec5e0] px-2 text-right text-[13px] whitespace-nowrap">{formatAmount(gstAmount)}</td>
-                    <td className="border border-[#9ec5e0] px-2 text-right text-[13px] whitespace-nowrap">{formatAmount(thisBillClaim + gstAmount)}</td>
+                    {columnOrder.map((colId) => {
+                      if (colId === "basicAmt") return <td key={colId} className="border border-[#9ec5e0] px-2 text-right text-[13px] whitespace-nowrap">{formatAmount(thisBillClaim)}</td>;
+                      if (colId === "gstAmt")   return <td key={colId} className="border border-[#9ec5e0] px-2 text-right text-[13px] whitespace-nowrap">{formatAmount(gstAmount)}</td>;
+                      if (colId === "amount")   return <td key={colId} className="border border-[#9ec5e0] px-2 text-right text-[13px] whitespace-nowrap">{formatAmount(thisBillClaim + gstAmount)}</td>;
+                      if (colId === "rate")     return <td key={colId} className="border border-[#9ec5e0] px-2 text-right text-[13px] whitespace-nowrap">TOTAL=</td>;
+                      return <td key={colId} className="border border-[#9ec5e0]" />;
+                    })}
                   </tr>
                 </tfoot>
 
