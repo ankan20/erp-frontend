@@ -8,19 +8,13 @@ import { useColumnResize } from "@/hooks/useColumnResize";
 
 function deriveFromItems(items) {
   const categoryMap = {};
-  const locationMap = {};
 
   items.forEach((row) => {
     if (!row.manId) return;
     const totalWH = parseFloat(row.totalWorkingHr) || 0;
-
     const cat = row.category || "Uncategorized";
     if (!categoryMap[cat]) categoryMap[cat] = 0;
     categoryMap[cat] += totalWH;
-
-    const loc = row.jobLocation || "Unknown";
-    if (!locationMap[loc]) locationMap[loc] = 0;
-    locationMap[loc] += totalWH;
   });
 
   const categoryRows = Object.entries(categoryMap).map(([category, totalWH], i) => ({
@@ -32,14 +26,7 @@ function deriveFromItems(items) {
     amount:         0,
   }));
 
-  const locationRows = Object.entries(locationMap).map(([location, totalWH], i) => ({
-    sl:             i + 1,
-    location,
-    totalWorkingHr: parseFloat(totalWH.toFixed(2)),
-    amount:         0,
-  }));
-
-  return { categoryRows, locationRows };
+  return { categoryRows };
 }
 
 // ── Table styles ──────────────────────────────────────────────────────────────
@@ -54,9 +41,9 @@ const HEADER_BG = "bg-[#d8e0d1]";
 // ── Component ─────────────────────────────────────────────────────────────────
 
 export default function DLRSummaryTab({ items = [], serverData = null, loading = false }) {
-  const { tableRef: tableRef1 } = useColumnResize();
-  const { tableRef: tableRef2 } = useColumnResize();
-  const { categoryRows, locationRows } = useMemo(() => {
+  const { tableRef } = useColumnResize();
+
+  const { categoryRows } = useMemo(() => {
     if (serverData) {
       const catRows = (serverData.mandaysSummary || serverData.categoryRows || serverData.mandays || []).map((r, i) => ({
         sl:             i + 1,
@@ -66,13 +53,7 @@ export default function DLRSummaryTab({ items = [], serverData = null, loading =
         rate:           parseFloat(r.rate   || 0),
         amount:         parseFloat(r.amount || 0),
       }));
-      const locRows = (serverData.areaSummary || serverData.locationRows || serverData.areas || []).map((r, i) => ({
-        sl:             i + 1,
-        location:       r.location || r.jobLocation || r.area || "",
-        totalWorkingHr: parseFloat(r.totalWorkingHr || r.totalHours || 0),
-        amount:         parseFloat(r.amount || 0),
-      }));
-      return { categoryRows: catRows, locationRows: locRows };
+      return { categoryRows: catRows };
     }
     return deriveFromItems(items);
   }, [serverData, items]);
@@ -80,9 +61,6 @@ export default function DLRSummaryTab({ items = [], serverData = null, loading =
   const catTotalWH  = categoryRows.reduce((s, r) => s + r.totalWorkingHr, 0);
   const catTotalMd  = categoryRows.reduce((s, r) => s + r.manday,         0);
   const catTotalAmt = categoryRows.reduce((s, r) => s + r.amount,         0);
-
-  const locTotalWH  = locationRows.reduce((s, r) => s + r.totalWorkingHr, 0);
-  const locTotalAmt = locationRows.reduce((s, r) => s + r.amount,         0);
 
   if (loading) {
     return (
@@ -99,7 +77,7 @@ export default function DLRSummaryTab({ items = [], serverData = null, loading =
         <div className={`${HEADER_BG} border border-gray-300 px-3 py-1 mb-0`}>
           <span className="text-[13px] font-semibold text-[#1a3a5c]">Mandays Summary</span>
         </div>
-        <table ref={tableRef1} className="min-w-full border-collapse border border-gray-300">
+        <table ref={tableRef} className="min-w-full border-collapse border border-gray-300">
           <thead>
             <tr className={COL_HDR}>
               <th className={th}>Sl No</th>
@@ -135,46 +113,6 @@ export default function DLRSummaryTab({ items = [], serverData = null, loading =
               <td className={tft}>{parseFloat(catTotalMd.toFixed(2))}</td>
               <td className={tft}>—</td>
               <td className={tft}>{parseFloat(catTotalAmt.toFixed(2))}</td>
-            </tr>
-          </tfoot>
-        </table>
-      </div>
-
-      {/* Area Wise Summary */}
-      <div className="flex-1 min-w-0 overflow-x-auto">
-        <div className={`${HEADER_BG} border border-gray-300 px-3 py-1 mb-0`}>
-          <span className="text-[13px] font-semibold text-[#1a3a5c]">Area Wise Summary</span>
-        </div>
-        <table ref={tableRef2} className="min-w-full border-collapse border border-gray-300">
-          <thead>
-            <tr className={COL_HDR}>
-              <th className={th}>Sl No</th>
-              <th className={th}>Location</th>
-              <th className={th}>Total Working Hr.</th>
-              <th className={th}>Amount</th>
-            </tr>
-          </thead>
-          <tbody>
-            {locationRows.length === 0 ? (
-              <tr>
-                <td colSpan={4} className={`${td} text-center text-gray-400 py-4`}>No data</td>
-              </tr>
-            ) : (
-              locationRows.map((row, idx) => (
-                <tr key={idx} className={idx % 2 === 1 ? "bg-[#f0f5ff]" : "bg-white"}>
-                  <td className={td}>{row.sl}</td>
-                  <td className={td}>{row.location}</td>
-                  <td className={td}>{parseFloat(row.totalWorkingHr.toFixed(2))}</td>
-                  <td className={td}>{parseFloat(row.amount.toFixed(2))}</td>
-                </tr>
-              ))
-            )}
-          </tbody>
-          <tfoot>
-            <tr>
-              <td className={tft} colSpan={2}>TOTAL</td>
-              <td className={tft}>{parseFloat(locTotalWH.toFixed(2))}</td>
-              <td className={tft}>{parseFloat(locTotalAmt.toFixed(2))}</td>
             </tr>
           </tfoot>
         </table>

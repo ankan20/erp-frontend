@@ -100,7 +100,6 @@ export default function DLRForm({
   const [supplierList,     setSupplierList]     = useState([]);
   const [vendorOrders,     setVendorOrders]     = useState([]);
   const [labourList,       setLabourList]       = useState([]);
-  const [locationOptions,  setLocationOptions]  = useState([]);
   const [items,         setItems]         = useState([emptyRow()]);
   const [initialItems,  setInitialItems]  = useState([emptyRow()]);
 
@@ -141,20 +140,6 @@ export default function DLRForm({
         setSupplierList(list);
       })
       .catch(() => toast.error("Failed to load supplier list"));
-  }, [projectCode]);
-
-  // ── Load project locations once ───────────────────────────────────────────
-  useEffect(() => {
-    if (!projectCode) return;
-    apiRequest({
-      url: `${API_ENDPOINTS.SETTINGS.PROJECT_LOCATION.LIST}/${projectCode}`,
-      method: "GET",
-    })
-      .then((res) => {
-        const data = Array.isArray(res?.data) ? res.data : [];
-        setLocationOptions(data.filter((l) => l.locationType === "Use"));
-      })
-      .catch(() => setLocationOptions([]));
   }, [projectCode]);
 
   // ── Load vendor orders when supplier changes ───────────────────────────────
@@ -226,7 +211,8 @@ export default function DLRForm({
           workingHour:    it.workingHour      ?? 0,
           bonusHour:      it.bonusHour        ?? 0,
           totalWorkingHr: it.totalWorkingHr   ?? 0,
-          jobLocation:    it.jobLocation      || "",
+          mes:            it.mes              ?? 0,
+          supl:           it.supl             ?? 0,
         }));
         setItems(mappedItems.length > 0 ? mappedItems : [emptyRow()]);
         setInitialItems(mappedItems.length > 0 ? mappedItems : [emptyRow()]);
@@ -575,7 +561,6 @@ export default function DLRForm({
               onItemsChange={setItems}
               disabled={fieldDisabled}
               labourList={labourList}
-              locationOptions={locationOptions}
             />
           ) : (
             <DLRSummaryTab

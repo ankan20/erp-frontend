@@ -2,7 +2,6 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { Users, X } from "lucide-react";
-import SearchableSelect from "@/components/common/SearchableSelect";
 import { useColumnResize } from "@/hooks/useColumnResize";
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
@@ -22,11 +21,15 @@ function calcWorkingHour(startTime, finishTime, lunchHour) {
 function updateRow(items, idx, patch) {
   const updated = items.map((r, i) => (i !== idx ? r : { ...r, ...patch }));
   const row = updated[idx];
-  const wh  = calcWorkingHour(row.startTime, row.finishTime, row.lunchHour);
+  const wh    = calcWorkingHour(row.startTime, row.finishTime, row.lunchHour);
+  const total = parseFloat((wh + (parseFloat(row.bonusHour) || 0)).toFixed(2));
+  const mes   = parseFloat(row.mes ?? 0);
   updated[idx] = {
     ...row,
     workingHour:    wh,
-    totalWorkingHr: parseFloat((wh + (parseFloat(row.bonusHour) || 0)).toFixed(2)),
+    totalWorkingHr: total,
+    mes:            Math.min(mes, total),
+    supl:           parseFloat(Math.max(total - mes, 0).toFixed(2)),
   };
   return updated;
 }
@@ -42,7 +45,8 @@ export const emptyRow = () => ({
   workingHour:    0,
   bonusHour:      0,
   totalWorkingHr: 0,
-  jobLocation:    "",
+  mes:            0,
+  supl:           0,
 });
 
 // ── Shared styles ─────────────────────────────────────────────────────────────
@@ -55,11 +59,11 @@ const MINPUT = "h-[28px] text-[12px] border border-gray-300 rounded-sm px-1 w-fu
 const MCALC  = `${MINPUT} bg-gray-100 cursor-default`;
 const MLBL   = "text-[11px] font-medium text-gray-500 mb-0.5 select-none";
 
-const DEFAULT_FIELDS = { startTime: "09:00", finishTime: "17:00", lunchHour: 1, bonusHour: 0, jobLocation: "" };
+const DEFAULT_FIELDS = { startTime: "09:00", finishTime: "17:00", lunchHour: 1, bonusHour: 0 };
 
 // ── Mass Entry / Mass Change Modal ────────────────────────────────────────────
 
-function MassModal({ open, onClose, mode, labourList, alreadyInTableIds, checkedRows, locationOptions, onSave }) {
+function MassModal({ open, onClose, mode, labourList, alreadyInTableIds, checkedRows, onSave }) {
   const { tableRef } = useColumnResize();
   const [fields,   setFields]   = useState(DEFAULT_FIELDS);
   const [selected, setSelected] = useState([]);
@@ -79,11 +83,10 @@ function MassModal({ open, onClose, mode, labourList, alreadyInTableIds, checked
     if (mode === "change" && checkedRows.length > 0) {
       const first = checkedRows[0];
       setFields({
-        startTime:   first.startTime   || "09:00",
-        finishTime:  first.finishTime  || "17:00",
-        lunchHour:   first.lunchHour   ?? 1,
-        bonusHour:   first.bonusHour   ?? 0,
-        jobLocation: first.jobLocation || "",
+        startTime:  first.startTime  || "09:00",
+        finishTime: first.finishTime || "17:00",
+        lunchHour:  first.lunchHour  ?? 1,
+        bonusHour:  first.bonusHour  ?? 0,
       });
     } else {
       setFields(DEFAULT_FIELDS);
@@ -112,7 +115,8 @@ function MassModal({ open, onClose, mode, labourList, alreadyInTableIds, checked
       workingHour:    wh,
       bonusHour:      parseFloat(fields.bonusHour) || 0,
       totalWorkingHr: totalWH,
-      jobLocation:    fields.jobLocation,
+      mes:            0,
+      supl:           totalWH,
     };
 
     const chosen = available.filter((l) => selected.includes(l.manId));
@@ -162,11 +166,11 @@ function MassModal({ open, onClose, mode, labourList, alreadyInTableIds, checked
         <div className="px-4 py-3 border-b border-gray-200 bg-gray-50 shrink-0">
           <p className="text-[10px] font-semibold uppercase tracking-wider text-gray-400 mb-2">
             {mode === "change"
-              ? "New Time & Location — applied to selected workers"
-              : "Common Time & Location — applied to all selected workers"}
+              ? "New Time — applied to selected workers"
+              : "Common Time — applied to all selected workers"}
           </p>
 
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-7 gap-x-3 gap-y-2">
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-x-3 gap-y-2">
             <div>
               <div className={MLBL}>Start Time</div>
               <input type="time" value={fields.startTime}
@@ -194,18 +198,6 @@ function MassModal({ open, onClose, mode, labourList, alreadyInTableIds, checked
             <div>
               <div className={MLBL}>Total Working Hr</div>
               <input type="number" value={totalWH} readOnly disabled className={MCALC} />
-            </div>
-            <div className="col-span-2 sm:col-span-1">
-              <div className={MLBL}>Job Location</div>
-              <SearchableSelect
-                options={locationOptions}
-                value={fields.jobLocation}
-                onChange={(val) => setField("jobLocation", val || "")}
-                placeholder="Select location"
-                labelKey="locationName"
-                valueKey="locationName"
-                searchKeys={["locationName"]}
-              />
             </div>
           </div>
         </div>
@@ -310,11 +302,10 @@ function MassModal({ open, onClose, mode, labourList, alreadyInTableIds, checked
 // ── Main component ────────────────────────────────────────────────────────────
 
 export default function DLRDetailsTable({
-  items           = [],
+  items         = [],
   onItemsChange,
-  disabled        = false,
-  labourList      = [],
-  locationOptions = [],
+  disabled      = false,
+  labourList    = [],
 }) {
   const [massOpen, setMassOpen] = useState(false);
 
@@ -372,6 +363,8 @@ export default function DLRDetailsTable({
   const totalWorkingHr    = rows.reduce((s, r) => s + (parseFloat(r.workingHour)    || 0), 0);
   const totalBonusHour    = rows.reduce((s, r) => s + (parseFloat(r.bonusHour)      || 0), 0);
   const totalTotalWorking = rows.reduce((s, r) => s + (parseFloat(r.totalWorkingHr) || 0), 0);
+  const totalMes          = rows.reduce((s, r) => s + (parseFloat(r.mes)            || 0), 0);
+  const totalSupl         = rows.reduce((s, r) => s + (parseFloat(r.supl)           || 0), 0);
 
   return (
     <>
@@ -382,7 +375,6 @@ export default function DLRDetailsTable({
         labourList={labourList}
         alreadyInTableIds={selectedManIds}
         checkedRows={checkedRows}
-        locationOptions={locationOptions}
         onSave={handleMassave}
       />
 
@@ -408,7 +400,8 @@ export default function DLRDetailsTable({
                 <th className={`${cellCls} min-w-[80px]`}>Working Hr</th>
                 <th className={`${cellCls} min-w-[70px]`}>Bonus Hr</th>
                 <th className={`${cellCls} min-w-[100px]`}>Total Working Hr</th>
-                <th className={`${cellCls} min-w-[130px]`}>Job Location</th>
+                <th className={`${cellCls} min-w-[80px]`}>MES (Hr)</th>
+                <th className={`${cellCls} min-w-[80px]`}>SUPL (Hr)</th>
               </tr>
             </thead>
             <tbody>
@@ -527,19 +520,39 @@ export default function DLRDetailsTable({
                       )}
                     </td>
 
-                    {/* Job Location */}
+                    {/* MES */}
                     <td className={cellCls}>
                       {disabled ? (
-                        <span className="px-1">{row.jobLocation || "—"}</span>
+                        <span className="px-1">{row.mes ?? 0}</span>
                       ) : (
-                        <SearchableSelect
-                          options={locationOptions}
-                          value={row.jobLocation || ""}
-                          onChange={(val) => handleChange(idx, "jobLocation", val || "")}
-                          placeholder="Select"
-                          labelKey="locationName"
-                          valueKey="locationName"
-                          searchKeys={["locationName"]}
+                        <input
+                          type="number"
+                          min="0"
+                          step="0.25"
+                          value={row.mes ?? 0}
+                          onChange={(e) => {
+                            const mes = Math.min(
+                              parseFloat(e.target.value) || 0,
+                              parseFloat(row.totalWorkingHr) || 0
+                            );
+                            handleChange(idx, "mes", parseFloat(mes.toFixed(2)));
+                          }}
+                          className={inputCls}
+                        />
+                      )}
+                    </td>
+
+                    {/* SUPL — auto = totalWorkingHr - MES */}
+                    <td className={cellCls}>
+                      {disabled ? (
+                        <span className="px-1">{row.supl ?? 0}</span>
+                      ) : (
+                        <input
+                          type="number"
+                          value={parseFloat(Math.max((parseFloat(row.totalWorkingHr) || 0) - (parseFloat(row.mes) || 0), 0).toFixed(2))}
+                          readOnly
+                          disabled
+                          className={calcCls}
                         />
                       )}
                     </td>
@@ -558,7 +571,8 @@ export default function DLRDetailsTable({
                 <td className={cellCls}>{parseFloat(totalWorkingHr.toFixed(2))}</td>
                 <td className={cellCls}>{parseFloat(totalBonusHour.toFixed(2))}</td>
                 <td className={cellCls}>{parseFloat(totalTotalWorking.toFixed(2))}</td>
-                <td className={cellCls} />
+                <td className={cellCls}>{parseFloat(totalMes.toFixed(2))}</td>
+                <td className={cellCls}>{parseFloat(totalSupl.toFixed(2))}</td>
               </tr>
             </tfoot>
           </table>
