@@ -497,53 +497,53 @@ export default function SaleBillForm({
     }
   };
 
-  // ── AI: auto-fill form fields from structured fields returned by the AI endpoint ──
+  // ── AI: fill safe header fields; items come from Certified Bill selection ──
   const handleAiApply = (fields, _suggestion) => {
-    if (!fields?.cc_code) {
-      toast.info("No auto-fill data available — read the suggestion panel.", { duration: 3000 });
+    const filled = [];
+
+    // 1. Mode → Sale Invoice (most common; only set if blank)
+    if (!getValues("mode")) {
+      setValue("mode", "Sale Invoice", { shouldDirty: true });
+      filled.push("Mode");
+    }
+
+    // 2. Invoice Date → today (only set if blank)
+    if (!getValues("invoiceDate")) {
+      const today = new Date().toISOString().split("T")[0]; // "YYYY-MM-DD"
+      setValue("invoiceDate", today, { shouldValidate: true, shouldDirty: true });
+      filled.push("Invoice Date");
+    }
+
+    // 3. GST type from history
+    const gstType = fields?.gst_type || "IGST";
+    if (gstType === "IGST") {
+      setValue("gstLines", DEFAULT_GST_LINES.map((l, i) => ({ ...l, isSelected: i === 0 })), { shouldDirty: true });
+    } else {
+      setValue("gstLines", DEFAULT_GST_LINES.map((l, i) => ({ ...l, isSelected: i > 0 })), { shouldDirty: true });
+    }
+    filled.push(`GST: ${gstType}`);
+
+    // 4. Update amounts on already-loaded items (when certified bill is already selected)
+    const currentItems = getValues("items") || [];
+    if (currentItems.length > 0 && fields?.cc_code && fields?.basic_amount) {
+      const idx = currentItems.findIndex((it) => it.ccCode === fields.cc_code);
+      if (idx >= 0) {
+        const updated = [...currentItems];
+        updated[idx] = { ...updated[idx], basicAmount: fields.basic_amount };
+        setValue("items", updated, { shouldValidate: true, shouldDirty: true });
+        filled.push(`${fields.cc_code} amount`);
+      }
+    }
+
+    if (filled.length === 0) {
+      toast.info("Nothing new to fill — all fields already set.", { duration: 3000 });
       return;
     }
-    const currentItems = getValues("items") || [];
-    // If an item with this cc_code already exists, update its amount; otherwise append
-    const existing = currentItems.findIndex((it) => it.ccCode === fields.cc_code);
-    if (existing >= 0) {
-      const updated = [...currentItems];
-      updated[existing] = { ...updated[existing], basicAmount: fields.basic_amount };
-      setValue("items", updated, { shouldValidate: true, shouldDirty: true });
-    } else {
-      setValue(
-        "items",
-        [
-          ...currentItems,
-          {
-            slNo: currentItems.length + 1,
-            ccCode: fields.cc_code,
-            ccName: fields.cc_name || fields.cc_code,
-            description: "",
-            hsnSac: "",
-            basicAmount: fields.basic_amount,
-          },
-        ],
-        { shouldValidate: true, shouldDirty: true }
-      );
-    }
-    // Set GST type
-    if (fields.gst_type === "IGST") {
-      setValue(
-        "gstLines",
-        DEFAULT_GST_LINES.map((l, i) => ({ ...l, isSelected: i === 0 })),
-        { shouldDirty: true }
-      );
-    } else if (fields.gst_type === "CGST_SGST") {
-      setValue(
-        "gstLines",
-        DEFAULT_GST_LINES.map((l, i) => ({ ...l, isSelected: i > 0 })),
-        { shouldDirty: true }
-      );
-    }
-    toast.success(`AI auto-filled: ${fields.cc_code} · ₹${fields.basic_amount.toLocaleString("en-IN")}`, {
-      duration: 4000,
-    });
+
+    const hint = currentItems.length === 0
+      ? ` · Now select Sale Order → Certified Bill to load items`
+      : "";
+    toast.success(`AI filled: ${filled.join(", ")}${hint}`, { duration: 5000 });
   };
 
   if (isLoading) {
