@@ -11,6 +11,7 @@ import { useRouter } from "next/navigation";
 import SaveButton from "@/components/common/SaveButton";
 import SaveDraftButton from "@/components/common/SaveDraftButton";
 import EditButton from "@/components/common/EditButton";
+import DeleteRequestButton from "@/components/common/DeleteRequestButton";
 
 import { apiRequest } from "@/lib/apiClient";
 import { API_ENDPOINTS } from "@/config/api.config";
@@ -479,6 +480,14 @@ export default function GINForm({ mode = "create", ginId, onUuid, onAfterSubmit 
             <EditButton onClick={handleEdit} disabled={isSubmitting}>
               {isEditing ? "Cancel" : "Edit"}
             </EditButton>
+          )}
+
+          {mode === "edit" && !isEditing && (
+            <DeleteRequestButton
+              moduleCode="GIN"
+              recordId={Number(ginId)}
+              onDeleted={() => router.back()}
+            />
           )}
         </div>
       )}

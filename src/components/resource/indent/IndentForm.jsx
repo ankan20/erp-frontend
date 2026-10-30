@@ -14,6 +14,7 @@ import { Input } from "@/components/ui/input";
 import SaveButton from "@/components/common/SaveButton";
 import EditButton from "@/components/common/EditButton";
 import SaveDraftButton from "@/components/common/SaveDraftButton";
+import DeleteRequestButton from "@/components/common/DeleteRequestButton";
 
 import { apiRequest } from "@/lib/apiClient";
 import { API_ENDPOINTS } from "@/config/api.config";
@@ -643,6 +644,14 @@ export default function IndentForm({
             <EditButton onClick={handleEdit} disabled={isSubmitting}>
               {isEditing ? "Cancel" : "Edit"}
             </EditButton>
+          )}
+
+          {mode === "edit" && !isEditing && (
+            <DeleteRequestButton
+              moduleCode="INDENT"
+              recordId={Number(indentId)}
+              onDeleted={() => router.back()}
+            />
           )}
         </div>
       )}

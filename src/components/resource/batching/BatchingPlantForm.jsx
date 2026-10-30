@@ -12,6 +12,7 @@ import { Input } from "@/components/ui/input";
 import SaveButton from "@/components/common/SaveButton";
 import SaveDraftButton from "@/components/common/SaveDraftButton";
 import EditButton from "@/components/common/EditButton";
+import DeleteRequestButton from "@/components/common/DeleteRequestButton";
 import SearchableSelect from "@/components/common/SearchableSelect";
 import { apiRequest } from "@/lib/apiClient";
 import { API_ENDPOINTS } from "@/config/api.config";
@@ -435,6 +436,14 @@ export default function BatchingPlantForm({ mode = "create", docketId, onAfterSu
             <EditButton onClick={handleEdit} disabled={isSubmitting}>
               {isEditing ? "Cancel" : "Edit"}
             </EditButton>
+          )}
+
+          {mode === "edit" && !isEditing && (
+            <DeleteRequestButton
+              moduleCode="BATCHING_PLANT"
+              recordId={Number(docketId)}
+              onDeleted={() => router.back()}
+            />
           )}
         </div>
       )}

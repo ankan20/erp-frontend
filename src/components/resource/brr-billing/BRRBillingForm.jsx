@@ -9,6 +9,7 @@ import { toast } from "sonner";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import SaveButton from "@/components/common/SaveButton";
 import EditButton from "@/components/common/EditButton";
+import DeleteRequestButton from "@/components/common/DeleteRequestButton";
 import SaveDraftButton from "@/components/common/SaveDraftButton";
 import BRRBillingLeftPanel from "./BRRBillingLeftPanel";
 import BRRBillingDetailsTab from "./tabs/BRRBillingDetailsTab";
@@ -433,6 +434,14 @@ export default function BRRBillingForm({ mode = "create", billingType, brrId, bi
             <EditButton onClick={handleEdit} disabled={isSubmitting}>
               {isEditing ? "Cancel" : "Edit"}
             </EditButton>
+          )}
+
+          {mode === "edit" && !isEditing && billingId && (
+            <DeleteRequestButton
+              moduleCode={isGRN ? "BRG" : "BRS"}
+              recordId={Number(billingId)}
+              onDeleted={() => router.back()}
+            />
           )}
         </div>
       )}
