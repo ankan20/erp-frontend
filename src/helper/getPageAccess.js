@@ -8,6 +8,7 @@ from "@/lib/localStorage";
 export const getPageAccess = ({
   pageCode,
   pageType,
+  defaultToAllowed = false,
 }) => {
 
   const permissions =
@@ -15,33 +16,38 @@ export const getPageAccess = ({
       "permissions"
     ) || {};
 
-  const canView =
+  let canView =
     permissions?.[
       `${pageCode}.VIEW`
     ];
 
-  const canEdit =
+  let canEdit =
     permissions?.[
       `${pageCode}.EDIT`
     ];
 
-  const canApprove =
+  let canApprove =
     permissions?.[
       `${pageCode}.APPROVER`
     ];
-    
-  const hasAccess =
+
+  let hasAccess =
     canView ||
     canEdit ||
     canApprove;
 
-  // NO ACCESS
+  // NO ACCESS — if defaultToAllowed, treat as full edit access (for new/unconfigured modules)
 
   if (!hasAccess) {
-
-    return {
-      allowed: false,
-    };
+    if (defaultToAllowed) {
+      canView = true;
+      canEdit = true;
+      hasAccess = true;
+    } else {
+      return {
+        allowed: false,
+      };
+    }
   }
 
   // LIST PAGE

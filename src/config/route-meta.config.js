@@ -809,4 +809,86 @@ export const routeMetaConfig = [
     basePath: "/hr-management/reports/performance-appraisal",
     breadcrumbs: ["HR Management", "Reports", "Performance & Discipline"],
   },
+
+  // Asset Management
+  {
+    basePath: "/asset-management/asset-register/new",
+    breadcrumbs: ["Asset Management", "Asset Register", "New"],
+  },
+  {
+    basePath: "/asset-management/asset-register/[id]",
+    breadcrumbs: ["Asset Management", "Asset Register", "Details"],
+  },
+  {
+    basePath: "/asset-management/asset-register",
+    breadcrumbs: ["Asset Management", "Asset Register"],
+  },
+  {
+    basePath: "/asset-management/site-allocation",
+    breadcrumbs: ["Asset Management", "Site Allocation & Transfer"],
+  },
+  {
+    basePath: "/asset-management/site-allocation/new",
+    breadcrumbs: ["Asset Management", "Site Allocation & Transfer", "New"],
+  },
+  {
+    basePath: "/asset-management/site-allocation/[id]",
+    breadcrumbs: ["Asset Management", "Site Allocation & Transfer", "Details"],
+  },
+  {
+    basePath: "/asset-management/maintenance-repair",
+    breadcrumbs: ["Asset Management", "Maintenance & Repair"],
+  },
+  {
+    basePath: "/asset-management/maintenance-repair/new",
+    breadcrumbs: ["Asset Management", "Maintenance & Repair", "New"],
+  },
+  {
+    basePath: "/asset-management/maintenance-repair/[id]",
+    breadcrumbs: ["Asset Management", "Maintenance & Repair", "Details"],
+  },
+  {
+    basePath: "/asset-management/rental-utilization",
+    breadcrumbs: ["Asset Management", "Rental & Utilization Management"],
+  },
+  {
+    basePath: "/asset-management/rental-utilization/new",
+    breadcrumbs: ["Asset Management", "Rental & Utilization Management", "New"],
+  },
+  {
+    basePath: "/asset-management/rental-utilization/[id]",
+    breadcrumbs: ["Asset Management", "Rental & Utilization Management", "Details"],
+  },
+  {
+    basePath: "/asset-management/depreciation-disposal",
+    breadcrumbs: ["Asset Management", "Depreciation & Disposal"],
+  },
+  {
+    basePath: "/asset-management/depreciation-disposal/[id]",
+    breadcrumbs: ["Asset Management", "Depreciation & Disposal", "Asset Schedule"],
+  },
+  {
+    basePath: "/asset-management/disposal-requests",
+    breadcrumbs: ["Asset Management", "Depreciation & Disposal", "Disposal Requests"],
+  },
+  {
+    basePath: "/asset-management/disposal-requests/new",
+    breadcrumbs: ["Asset Management", "Depreciation & Disposal", "Disposal Requests", "New"],
+  },
+  {
+    basePath: "/asset-management/disposal-requests/[id]",
+    breadcrumbs: ["Asset Management", "Depreciation & Disposal", "Disposal Requests", "Details"],
+  },
+  {
+    basePath: "/asset-management/daily-issue-return",
+    breadcrumbs: ["Asset Management", "Daily Asset Issue & Return"],
+  },
+  {
+    basePath: "/asset-management/daily-issue-return/new",
+    breadcrumbs: ["Asset Management", "Daily Asset Issue & Return", "Issue Asset"],
+  },
+  {
+    basePath: "/asset-management/daily-issue-return/[id]",
+    breadcrumbs: ["Asset Management", "Daily Asset Issue & Return", "Details"],
+  },
 ];

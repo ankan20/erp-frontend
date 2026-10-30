@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import { useFieldArray, Controller } from "react-hook-form";
 import { useFormWithToast as useForm } from "@/hooks/useFormWithToast";
 import { z } from "zod";
@@ -40,13 +40,15 @@ const CERT_COLS = [
   { id: "type",     label: "Type",                    thClass: "w-[75px] text-center" },
   { id: "itemCode", label: "Item Code",               thClass: "w-[100px] text-left px-2" },
   { id: "itemName", label: "Item Name & Description", thClass: "text-left px-2" },
+  { id: "orderQty", label: "Order Qty",               thClass: "w-[85px] text-center" },
+  { id: "rate",     label: "Rate",                    thClass: "w-[88px] text-center" },
   { id: "unit",     label: "Unit",                    thClass: "w-[60px] text-center" },
-  { id: "qtyGrp",  label: "Quantity",                 thClass: "text-center", colSpan: 5, groupBg: "bg-[#25507a]" },
-  { id: "amtGrp",  label: "Amount",                   thClass: "text-center", colSpan: 4, groupBg: "bg-[#1a4d2e]" },
-  { id: "gstGrp",  label: "GST",                      thClass: "text-center", colSpan: 3, groupBg: "bg-[#4a2760]" },
+  { id: "qtyGrp",  label: "Quantity",                 thClass: "text-center", colSpan: 3, groupBg: "bg-[#25507a]" },
+  { id: "amtGrp",  label: "Amount",                   thClass: "text-center", colSpan: 2, groupBg: "bg-[#1a4d2e]" },
+  { id: "gstPct",  label: "GST % ✎",                  thClass: "w-[72px] text-center" },
 ];
-// total leaf cols = 5 fixed + 5 + 4 + 3 = 17
-const CERT_TOTAL_COLS = 17;
+// total leaf cols = 7 fixed + 3 + 2 + 1 = 13
+const CERT_TOTAL_COLS = 13;
 
 // View table group-level columns (certQtyGrp / certAmtGrp each expand to 3 sub-columns)
 const CERT_VIEW_COLS = [
@@ -54,8 +56,8 @@ const CERT_VIEW_COLS = [
   { id: "itemCode",    label: "Item Code",               thClass: "w-[100px] text-left px-2" },
   { id: "itemName",    label: "Item Name & Description", thClass: "text-left px-2" },
   { id: "orderQty",    label: "Order Qty",               thClass: "w-[85px] text-center" },
-  { id: "unit",        label: "Unit",                    thClass: "w-[65px] text-center" },
   { id: "rate",        label: "Rate",                    thClass: "w-[90px] text-center" },
+  { id: "unit",        label: "Unit",                    thClass: "w-[65px] text-center" },
   { id: "certQtyGrp",  label: "Certified Quantity",      thClass: "text-center", colSpan: 3, groupBg: "bg-[#25507a]" },
   { id: "gstPct",      label: "GST %",                   thClass: "w-[65px] text-center" },
   { id: "gstAmt",      label: "GST Amount",              thClass: "w-[100px] text-center" },
@@ -506,9 +508,9 @@ export default function SaleCertifiedBillForm({ mode = "create", billId, onAfter
         { content: "SL",         rowSpan: 2, styles: { halign: "center", valign: "middle" } },
         { content: "Item Code",  rowSpan: 2, styles: { halign: "center", valign: "middle" } },
         { content: "Item Name",  rowSpan: 2, styles: { halign: "left",   valign: "middle" } },
+        { content: "Rate",       rowSpan: 2, styles: { halign: "right",  valign: "middle" } },
         { content: "Order Qty",  rowSpan: 2, styles: { halign: "center", valign: "middle" } },
         { content: "Unit",       rowSpan: 2, styles: { halign: "center", valign: "middle" } },
-        { content: "Rate",       rowSpan: 2, styles: { halign: "right",  valign: "middle" } },
         { content: "Certified Quantity", colSpan: 3, styles: { halign: "center", fillColor: [37, 80, 122] } },
         { content: "GST %",      rowSpan: 2, styles: { halign: "center", valign: "middle" } },
         { content: "GST Amount", rowSpan: 2, styles: { halign: "right",  valign: "middle" } },
@@ -537,9 +539,9 @@ export default function SaleCertifiedBillForm({ mode = "create", billId, onAfter
         i + 1,
         it?.itemDisplayCode || it?.itemCode || "—",
         `${it?.itemName || ""}${it?.itemDescription ? `\n${it.itemDescription}` : ""}`,
+        formatAmount(rate),
         Number(it?.orderQty || 0) > 0 ? formatQtyDisplay(Number(it.orderQty)) : "—",
         it?.unit || "—",
-        formatAmount(rate),
         preCertQty > 0 ? formatQtyDisplay(preCertQty) : "—",
         certQty > 0    ? formatQtyDisplay(certQty)    : "—",
         formatQtyDisplay(preCertQty + certQty),
@@ -825,30 +827,19 @@ export default function SaleCertifiedBillForm({ mode = "create", billId, onAfter
                   </tr>
                   {/* Row 2: sub-headers; amber = editable */}
                   <tr className="bg-[#3b6ea5] text-white text-center text-[12px]">
-                    {entryOrder.filter((id) => ["qtyGrp","amtGrp","gstGrp"].includes(id)).map((colId) => {
+                    {entryOrder.filter((id) => ["qtyGrp","amtGrp"].includes(id)).map((colId) => {
                       if (colId === "qtyGrp") return (
-                        <>
-                          <th key="oq"  className="border border-[#2a5080] py-1 px-1 w-[85px]">Order Qty</th>
-                          <th key="cq"  className="border border-[#2a5080] py-1 px-1 w-[85px]">Claim Qty</th>
-                          <th key="pcq" className="border border-[#2a5080] py-1 px-1 w-[85px]">Pre Cert Qty</th>
-                          <th key="ceq" className="border border-[#2a5080] py-1 px-1 w-[88px] bg-[#b06010]">Cert Qty ✎</th>
-                          <th key="tcq" className="border border-[#2a5080] py-1 px-1 w-[90px]">Total Cert Qty</th>
-                        </>
-                      );
-                      if (colId === "amtGrp") return (
-                        <>
-                          <th key="rt"  className="border border-[#2a5080] py-1 px-1 w-[88px] bg-[#2d7a52]">Rate ✎</th>
-                          <th key="pca" className="border border-[#2a5080] py-1 px-1 w-[105px]">Pre Cert Amt</th>
-                          <th key="ca"  className="border border-[#2a5080] py-1 px-1 w-[95px]">Cert Amt</th>
-                          <th key="tca" className="border border-[#2a5080] py-1 px-1 w-[105px]">Total Cert Amt</th>
-                        </>
+                        <React.Fragment key={colId}>
+                          <th className="border border-[#2a5080] py-1 px-1 w-[85px]">Pre Cert Qty</th>
+                          <th className="border border-[#2a5080] py-1 px-1 w-[88px] bg-[#b06010]">Cert Qty ✎</th>
+                          <th className="border border-[#2a5080] py-1 px-1 w-[90px]">Total Cert Qty</th>
+                        </React.Fragment>
                       );
                       return (
-                        <>
-                          <th key="gp"  className="border border-[#2a5080] py-1 px-1 w-[72px] bg-[#7a3a90]">GST % ✎</th>
-                          <th key="ga"  className="border border-[#2a5080] py-1 px-1 w-[95px]">GST Amt</th>
-                          <th key="amt" className="border border-[#2a5080] py-1 px-1 w-[100px]">Amount</th>
-                        </>
+                        <React.Fragment key={colId}>
+                          <th className="border border-[#2a5080] py-1 px-1 w-[95px]">Cert Amt</th>
+                          <th className="border border-[#2a5080] py-1 px-1 w-[105px]">Total Cert Amt</th>
+                        </React.Fragment>
                       );
                     })}
                   </tr>
@@ -906,6 +897,20 @@ export default function SaleCertifiedBillForm({ mode = "create", billId, onAfter
                                 render={({ field: f }) => <ExpandableTextCell value={f.value || ""} onChange={f.onChange} disabled label="Item Description" placeholder="—" />} />
                             </td>
                           );
+                        case "rate":
+                          return (
+                            <td key={colId} className="border border-[#ccc] p-0 align-middle bg-[#f0faf5]">
+                              <AmountInput {...register(`items.${index}.rate`)} value={item.rate ?? ""} disabled={disabled} placeholder="0"
+                                className={`${getInputClass(false, disabled)} border-0 rounded-none w-full h-[30px] text-right pr-2`} />
+                            </td>
+                          );
+                        case "orderQty":
+                          return (
+                            <td key={colId} className="border border-[#ccc] bg-[#f0f4f8] px-2 text-right align-middle text-[#555] whitespace-nowrap">
+                              {orderQty > 0 ? formatQtyDisplay(orderQty) : "—"}
+                              <input {...register(`items.${index}.orderQty`)} type="hidden" />
+                            </td>
+                          );
                         case "unit":
                           return (
                             <td key={colId} className="border border-[#ccc] p-0 align-middle">
@@ -915,20 +920,12 @@ export default function SaleCertifiedBillForm({ mode = "create", billId, onAfter
                           );
                         case "qtyGrp":
                           return (
-                            <>
-                              <td key="oq"  className="border border-[#ccc] bg-[#f0f4f8] px-2 text-right align-middle text-[#555] whitespace-nowrap">
-                                {orderQty > 0 ? formatQtyDisplay(orderQty) : "—"}
-                                <input {...register(`items.${index}.orderQty`)} type="hidden" />
-                              </td>
-                              <td key="cq"  className="border border-[#ccc] bg-[#f0f4f8] px-2 text-right align-middle text-[#555] whitespace-nowrap">
-                                {claimQty > 0 ? formatQtyDisplay(claimQty) : "—"}
-                                <input {...register(`items.${index}.claimQty`)} type="hidden" />
-                              </td>
-                              <td key="pcq" className="border border-[#ccc] bg-[#f0f4f8] px-2 text-right align-middle text-[#555] whitespace-nowrap">
+                            <React.Fragment key={colId}>
+                              <td className="border border-[#ccc] bg-[#f0f4f8] px-2 text-right align-middle text-[#555] whitespace-nowrap">
                                 {preCertifiedQty > 0 ? formatQtyDisplay(preCertifiedQty) : "—"}
                                 <input {...register(`items.${index}.preCertifiedQty`)} type="hidden" />
                               </td>
-                              <td key="ceq" className="border border-[#ccc] p-0 align-middle bg-[#fff8f0]">
+                              <td className="border border-[#ccc] p-0 align-middle bg-[#fff8f0]">
                                 <Controller control={control} name={`items.${index}.certifiedQty`}
                                   render={({ field: f }) => (
                                     <QtyInput {...f} onChange={(e) => f.onChange(e.target.value)} disabled={disabled} placeholder="0"
@@ -936,36 +933,26 @@ export default function SaleCertifiedBillForm({ mode = "create", billId, onAfter
                                       className={`${overQty ? "border-orange-400 bg-orange-50 text-orange-700" : getInputClass(errors?.items?.[index]?.certifiedQty, disabled)} border-0 rounded-none w-full h-[30px] text-right pr-2`} />
                                   )} />
                               </td>
-                              <td key="tcq" className="border border-[#ccc] bg-[#edf8f0] px-2 font-medium text-right align-middle whitespace-nowrap">
+                              <td className="border border-[#ccc] bg-[#edf8f0] px-2 font-medium text-right align-middle whitespace-nowrap">
                                 {totalCertQty > 0 ? formatQtyDisplay(totalCertQty) : "—"}
                               </td>
-                            </>
+                            </React.Fragment>
                           );
                         case "amtGrp":
                           return (
-                            <>
-                              <td key="rt"  className="border border-[#ccc] p-0 align-middle bg-[#f0faf5]">
-                                <AmountInput {...register(`items.${index}.rate`)} value={item.rate ?? ""} disabled={disabled} placeholder="0"
-                                  className={`${getInputClass(false, disabled)} border-0 rounded-none w-full h-[30px] text-right pr-2`} />
-                              </td>
-                              <td key="pca" className="border border-[#ccc] bg-[#f0f4f8] px-2 text-right align-middle text-[#555] whitespace-nowrap">
-                                {preCertifiedAmount > 0 ? formatAmount(preCertifiedAmount) : "—"}
-                                <input {...register(`items.${index}.preCertifiedAmount`)} type="hidden" />
-                              </td>
-                              <td key="ca"  className="border border-[#ccc] bg-[#edf8ed] px-2 font-medium text-right align-middle whitespace-nowrap">{formatAmount(certAmt)}</td>
-                              <td key="tca" className="border border-[#ccc] bg-[#edf8f0] px-2 font-medium text-right align-middle whitespace-nowrap">{formatAmount(totalCertAmt)}</td>
-                            </>
+                            <React.Fragment key={colId}>
+                              <td className="border border-[#ccc] bg-[#edf8ed] px-2 font-medium text-right align-middle whitespace-nowrap">{formatAmount(certAmt)}</td>
+                              <td className="border border-[#ccc] bg-[#edf8f0] px-2 font-medium text-right align-middle whitespace-nowrap">{formatAmount(totalCertAmt)}</td>
+                            </React.Fragment>
                           );
-                        case "gstGrp":
+                        case "gstPct":
                           return (
-                            <>
-                              <td key="gp"  className="border border-[#ccc] p-0 align-middle bg-[#faf0ff]">
-                                <GstInput {...register(`items.${index}.gstPercent`)} value={item.gstPercent ?? ""} disabled={disabled} placeholder="0"
-                                  className={`${getInputClass(false, disabled)} border-0 rounded-none w-full h-[30px] text-right pr-2`} />
-                              </td>
-                              <td key="ga"  className="border border-[#ccc] bg-[#edf8ed] px-2 font-medium text-right align-middle whitespace-nowrap">{formatAmount(gstAmt)}</td>
-                              <td key="amt" className="border border-[#ccc] bg-[#edf8ed] px-2 font-medium text-right align-middle whitespace-nowrap">{formatAmount(certAmt + gstAmt)}</td>
-                            </>
+                            <td key={colId} className="border border-[#ccc] p-0 align-middle bg-[#faf0ff]">
+                              <GstInput {...register(`items.${index}.gstPercent`)} value={item.gstPercent ?? ""} disabled={disabled} placeholder="0"
+                                className={`${getInputClass(false, disabled)} border-0 rounded-none w-full h-[30px] text-right pr-2`} />
+                              <input {...register(`items.${index}.claimQty`)} type="hidden" />
+                              <input {...register(`items.${index}.preCertifiedAmount`)} type="hidden" />
+                            </td>
                           );
                         default: return null;
                       }
@@ -986,31 +973,23 @@ export default function SaleCertifiedBillForm({ mode = "create", billId, onAfter
                         case "type":     return <td key={colId} className="border border-[#9ec5e0]" />;
                         case "itemCode": return <td key={colId} className="border border-[#9ec5e0]" />;
                         case "itemName": return <td key={colId} className="border border-[#9ec5e0] px-2 text-right text-[#1c3a5e]">TOTAL</td>;
+                        case "rate":     return <td key={colId} className="border border-[#9ec5e0]" />;
+                        case "orderQty": return <td key={colId} className="border border-[#9ec5e0]" />;
                         case "unit":     return <td key={colId} className="border border-[#9ec5e0]" />;
                         case "qtyGrp":  return (
-                          <>
-                            <td key="foq"  className="border border-[#9ec5e0]" />
-                            <td key="fcq"  className="border border-[#9ec5e0]" />
-                            <td key="fpcq" className="border border-[#9ec5e0]" />
-                            <td key="fceq" className="border border-[#9ec5e0]" />
-                            <td key="ftcq" className="border border-[#9ec5e0]" />
-                          </>
+                          <React.Fragment key={colId}>
+                            <td className="border border-[#9ec5e0]" />
+                            <td className="border border-[#9ec5e0]" />
+                            <td className="border border-[#9ec5e0]" />
+                          </React.Fragment>
                         );
                         case "amtGrp":  return (
-                          <>
-                            <td key="frt"  className="border border-[#9ec5e0] px-2 text-right whitespace-nowrap">TOTAL=</td>
-                            <td key="fpca" className="border border-[#9ec5e0]" />
-                            <td key="fca"  className="border border-[#9ec5e0] px-2 text-right whitespace-nowrap">{formatAmount(thisBillAmount)}</td>
-                            <td key="ftca" className="border border-[#9ec5e0] px-2 text-right whitespace-nowrap">{formatAmount(thisBillAmount)}</td>
-                          </>
+                          <React.Fragment key={colId}>
+                            <td className="border border-[#9ec5e0] px-2 text-right whitespace-nowrap">{formatAmount(thisBillAmount)}</td>
+                            <td className="border border-[#9ec5e0] px-2 text-right whitespace-nowrap">{formatAmount(thisBillAmount)}</td>
+                          </React.Fragment>
                         );
-                        case "gstGrp":  return (
-                          <>
-                            <td key="fgp"  className="border border-[#9ec5e0]" />
-                            <td key="fga"  className="border border-[#9ec5e0] px-2 text-right whitespace-nowrap">{formatAmount(gstAmount)}</td>
-                            <td key="famt" className="border border-[#9ec5e0] px-2 text-right whitespace-nowrap">{formatAmount(thisBillAmount + gstAmount)}</td>
-                          </>
-                        );
+                        case "gstPct":  return <td key={colId} className="border border-[#9ec5e0]" />;
                         default: return null;
                       }
                     })}

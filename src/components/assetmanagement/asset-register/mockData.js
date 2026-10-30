@@ -1,0 +1,341 @@
+// ─── Mock GRNs ───────────────────────────────────────────────────────────────
+export const MOCK_GRNS = [
+  {
+    id: 1,
+    grnNo: "GRN-2024-001",
+    grnDate: "15/01/2024",
+    partyName: "ABC Plant & Machinery Ltd",
+    orderNo: "PO-2024-011",
+    receivedCategory: "Plant & Machinery",
+    items: [
+      { id: 101, itemCode: "MCH-001", itemName: "Excavator JCB 3DX", unit: "No", qty: 1, rate: 2500000, gstPct: 18, hsnSac: "8429" },
+      { id: 102, itemCode: "MCH-002", itemName: "Concrete Mixer 10/7", unit: "No", qty: 2, rate: 85000, gstPct: 18, hsnSac: "8474" },
+    ],
+  },
+  {
+    id: 2,
+    grnNo: "GRN-2024-014",
+    grnDate: "22/02/2024",
+    partyName: "XYZ Office Suppliers",
+    orderNo: "PO-2024-028",
+    receivedCategory: "Furniture & Fixture",
+    items: [
+      { id: 201, itemCode: "FRN-001", itemName: "Executive Office Chair", unit: "No", qty: 10, rate: 8500, gstPct: 18, hsnSac: "9401" },
+      { id: 202, itemCode: "FRN-002", itemName: "Steel Almirah 4-Door", unit: "No", qty: 5, rate: 12000, gstPct: 18, hsnSac: "9403" },
+      { id: 203, itemCode: "FRN-003", itemName: "Conference Table 10-Seater", unit: "No", qty: 2, rate: 35000, gstPct: 18, hsnSac: "9403" },
+    ],
+  },
+  {
+    id: 3,
+    grnNo: "GRN-2024-021",
+    grnDate: "08/03/2024",
+    partyName: "Delta IT Solutions Pvt Ltd",
+    orderNo: "PO-2024-039",
+    receivedCategory: "IT Equipment",
+    items: [
+      { id: 301, itemCode: "IT-001", itemName: "Laptop Dell Inspiron 15", unit: "No", qty: 5, rate: 65000, gstPct: 18, hsnSac: "8471" },
+      { id: 302, itemCode: "IT-002", itemName: "HP LaserJet Printer", unit: "No", qty: 3, rate: 22000, gstPct: 18, hsnSac: "8443" },
+    ],
+  },
+  {
+    id: 4,
+    grnNo: "GRN-2024-033",
+    grnDate: "19/04/2024",
+    partyName: "Tata Motors Dealers",
+    orderNo: "PO-2024-052",
+    receivedCategory: "Vehicle",
+    items: [
+      { id: 401, itemCode: "VEH-001", itemName: "Tata Ace Mini Truck", unit: "No", qty: 2, rate: 850000, gstPct: 28, hsnSac: "8704" },
+    ],
+  },
+];
+
+// ─── Mock Asset Categories ────────────────────────────────────────────────────
+export const ASSET_CATEGORIES = [
+  "Plant & Machinery",
+  "Furniture & Fixture",
+  "IT Equipment",
+  "Vehicle",
+  "Electrical Equipment",
+  "Tools & Equipment",
+  "Land & Building",
+  "Office Equipment",
+];
+
+// ─── Mock Depreciation Methods ────────────────────────────────────────────────
+export const DEPRECIATION_METHODS = [
+  { value: "SLM", label: "Straight Line Method (SLM)" },
+  { value: "WDV", label: "Written Down Value (WDV)" },
+  { value: "NONE", label: "No Depreciation" },
+];
+
+// ─── Mock Locations ───────────────────────────────────────────────────────────
+export const MOCK_LOCATIONS = [
+  "Head Office",
+  "Site A - Mumbai",
+  "Site B - Pune",
+  "Site C - Nagpur",
+  "Workshop",
+  "Warehouse",
+];
+
+// ─── Mock Cost Centers ────────────────────────────────────────────────────────
+export const MOCK_COST_CENTERS = [
+  "CC-001 - Administration",
+  "CC-002 - Engineering",
+  "CC-003 - Operations",
+  "CC-004 - Procurement",
+  "CC-005 - Finance",
+];
+
+// ─── Mock Users ───────────────────────────────────────────────────────────────
+export const MOCK_USERS = [
+  "Rajesh Kumar",
+  "Priya Sharma",
+  "Amit Patel",
+  "Sunita Verma",
+  "Deepak Singh",
+  "Anita Nair",
+];
+
+// ─── Asset Status options ────────────────────────────────────────────────────
+export const ASSET_STATUSES = [
+  { value: "active", label: "Active" },
+  { value: "in_maintenance", label: "In Maintenance" },
+  { value: "transferred", label: "Transferred" },
+  { value: "disposed", label: "Disposed" },
+  { value: "inactive", label: "Inactive" },
+];
+
+// ─── Mock Assets (list data) ──────────────────────────────────────────────────
+export const MOCK_ASSETS = [
+  {
+    id: 1,
+    assetRegNo: "ARN-2024-0001",
+    regDate: "16/01/2024",
+    assetId: "AM-MCH-0001",
+    assetName: "Excavator JCB 3DX",
+    category: "Plant & Machinery",
+    itemCode: "MCH-001",
+    trackingType: "individual",
+    serialNo: "JCB3DX2024001",
+    modelNo: "3DX Super",
+    make: "JCB",
+    hsnSac: "8429",
+    unit: "No",
+    grnNo: "GRN-2024-001",
+    grnDate: "15/01/2024",
+    partyName: "ABC Plant & Machinery Ltd",
+    purchaseDate: "16/01/2024",
+    purchaseValue: 2500000,
+    gstAmount: 450000,
+    totalCost: 2950000,
+    depreciationMethod: "WDV",
+    depreciationRate: 15,
+    usefulLife: 10,
+    location: "Site A - Mumbai",
+    costCenter: "CC-003 - Operations",
+    department: "Engineering",
+    assignedTo: "Rajesh Kumar",
+    custodian: "Deepak Singh",
+    status: "active",
+    batchQty: null,
+    batchItems: [],
+    activities: [
+      { id: 1, action: "Registered", by: "Rajesh Kumar", at: "2024-01-16T10:30:00", note: "Asset registered from GRN-2024-001" },
+      { id: 2, action: "Allocated", by: "Priya Sharma", at: "2024-01-20T09:00:00", note: "Allocated to Site A - Mumbai" },
+      { id: 3, action: "Status Updated", by: "Amit Patel", at: "2024-03-10T14:15:00", note: "Status changed to Active after commissioning" },
+    ],
+  },
+  {
+    id: 2,
+    assetRegNo: "ARN-2024-0002",
+    regDate: "16/01/2024",
+    assetId: "AM-MCH-0002",
+    assetName: "Concrete Mixer 10/7",
+    category: "Plant & Machinery",
+    itemCode: "MCH-002",
+    trackingType: "batch",
+    serialNo: "",
+    modelNo: "10/7 Tilting",
+    make: "Ajax",
+    hsnSac: "8474",
+    unit: "No",
+    grnNo: "GRN-2024-001",
+    grnDate: "15/01/2024",
+    partyName: "ABC Plant & Machinery Ltd",
+    purchaseDate: "16/01/2024",
+    purchaseValue: 85000,
+    gstAmount: 15300,
+    totalCost: 100300,
+    depreciationMethod: "SLM",
+    depreciationRate: 10,
+    usefulLife: 8,
+    location: "Workshop",
+    costCenter: "CC-003 - Operations",
+    department: "Engineering",
+    assignedTo: "Deepak Singh",
+    custodian: "Deepak Singh",
+    status: "active",
+    batchQty: 2,
+    batchItems: [
+      { subId: "AM-MCH-0002-A", serialNo: "AJAX001", location: "Site A - Mumbai", status: "active" },
+      { subId: "AM-MCH-0002-B", serialNo: "AJAX002", location: "Site B - Pune", status: "active" },
+    ],
+    activities: [
+      { id: 1, action: "Registered", by: "Rajesh Kumar", at: "2024-01-16T11:00:00", note: "Batch of 2 registered from GRN-2024-001" },
+      { id: 2, action: "Batch Split", by: "Priya Sharma", at: "2024-01-22T10:00:00", note: "AM-MCH-0002-A to Site A, AM-MCH-0002-B to Site B" },
+    ],
+  },
+  {
+    id: 3,
+    assetRegNo: "ARN-2024-0003",
+    regDate: "23/02/2024",
+    assetId: "AM-FRN-0001",
+    assetName: "Executive Office Chair",
+    category: "Furniture & Fixture",
+    itemCode: "FRN-001",
+    trackingType: "batch",
+    serialNo: "",
+    modelNo: "ErgoMax Pro",
+    make: "Godrej",
+    hsnSac: "9401",
+    unit: "No",
+    grnNo: "GRN-2024-014",
+    grnDate: "22/02/2024",
+    partyName: "XYZ Office Suppliers",
+    purchaseDate: "23/02/2024",
+    purchaseValue: 8500,
+    gstAmount: 1530,
+    totalCost: 10030,
+    depreciationMethod: "SLM",
+    depreciationRate: 10,
+    usefulLife: 10,
+    location: "Head Office",
+    costCenter: "CC-001 - Administration",
+    department: "Administration",
+    assignedTo: "Sunita Verma",
+    custodian: "Anita Nair",
+    status: "active",
+    batchQty: 10,
+    batchItems: Array.from({ length: 10 }, (_, i) => ({
+      subId: `AM-FRN-0001-${String.fromCharCode(65 + i)}`,
+      serialNo: `GOD-CHR-${String(i + 1).padStart(3, "0")}`,
+      location: "Head Office",
+      status: "active",
+    })),
+    activities: [
+      { id: 1, action: "Registered", by: "Sunita Verma", at: "2024-02-23T09:30:00", note: "Batch of 10 chairs registered" },
+    ],
+  },
+  {
+    id: 4,
+    assetRegNo: "ARN-2024-0004",
+    regDate: "09/03/2024",
+    assetId: "AM-IT-0001",
+    assetName: "Laptop Dell Inspiron 15",
+    category: "IT Equipment",
+    itemCode: "IT-001",
+    trackingType: "batch",
+    serialNo: "",
+    modelNo: "Inspiron 15 3520",
+    make: "Dell",
+    hsnSac: "8471",
+    unit: "No",
+    grnNo: "GRN-2024-021",
+    grnDate: "08/03/2024",
+    partyName: "Delta IT Solutions Pvt Ltd",
+    purchaseDate: "09/03/2024",
+    purchaseValue: 65000,
+    gstAmount: 11700,
+    totalCost: 76700,
+    depreciationMethod: "WDV",
+    depreciationRate: 40,
+    usefulLife: 3,
+    location: "Head Office",
+    costCenter: "CC-001 - Administration",
+    department: "Administration",
+    assignedTo: "Amit Patel",
+    custodian: "Amit Patel",
+    status: "active",
+    batchQty: 5,
+    batchItems: [
+      { subId: "AM-IT-0001-A", serialNo: "DELL-SN-20240301", location: "Head Office", status: "active" },
+      { subId: "AM-IT-0001-B", serialNo: "DELL-SN-20240302", location: "Head Office", status: "active" },
+      { subId: "AM-IT-0001-C", serialNo: "DELL-SN-20240303", location: "Site A - Mumbai", status: "active" },
+      { subId: "AM-IT-0001-D", serialNo: "DELL-SN-20240304", location: "Site B - Pune", status: "active" },
+      { subId: "AM-IT-0001-E", serialNo: "DELL-SN-20240305", location: "Head Office", status: "in_maintenance" },
+    ],
+    activities: [
+      { id: 1, action: "Registered", by: "Amit Patel", at: "2024-03-09T10:00:00", note: "Batch of 5 laptops registered from GRN-2024-021" },
+      { id: 2, action: "Allocated", by: "Priya Sharma", at: "2024-03-12T11:30:00", note: "AM-IT-0001-C allocated to Site A, AM-IT-0001-D to Site B" },
+      { id: 3, action: "Status Updated", by: "Rajesh Kumar", at: "2024-05-20T09:00:00", note: "AM-IT-0001-E sent for maintenance (screen issue)" },
+    ],
+  },
+  {
+    id: 5,
+    assetRegNo: "ARN-2024-0005",
+    regDate: "20/04/2024",
+    assetId: "AM-VEH-0001",
+    assetName: "Tata Ace Mini Truck",
+    category: "Vehicle",
+    itemCode: "VEH-001",
+    trackingType: "batch",
+    serialNo: "",
+    modelNo: "Ace HT CNG",
+    make: "Tata Motors",
+    hsnSac: "8704",
+    unit: "No",
+    grnNo: "GRN-2024-033",
+    grnDate: "19/04/2024",
+    partyName: "Tata Motors Dealers",
+    purchaseDate: "20/04/2024",
+    purchaseValue: 850000,
+    gstAmount: 238000,
+    totalCost: 1088000,
+    depreciationMethod: "WDV",
+    depreciationRate: 15,
+    usefulLife: 8,
+    location: "Head Office",
+    costCenter: "CC-003 - Operations",
+    department: "Operations",
+    assignedTo: "Deepak Singh",
+    custodian: "Deepak Singh",
+    status: "active",
+    batchQty: 2,
+    batchItems: [
+      { subId: "AM-VEH-0001-A", serialNo: "MH12AB1234", location: "Site A - Mumbai", status: "active" },
+      { subId: "AM-VEH-0001-B", serialNo: "MH12AB5678", location: "Site B - Pune", status: "transferred" },
+    ],
+    activities: [
+      { id: 1, action: "Registered", by: "Deepak Singh", at: "2024-04-20T14:00:00", note: "2 vehicles registered from GRN-2024-033" },
+      { id: 2, action: "Transferred", by: "Anita Nair", at: "2024-06-01T10:00:00", note: "AM-VEH-0001-B transferred to Site B" },
+    ],
+  },
+];
+
+// ─── ID Generation helper ────────────────────────────────────────────────────
+export function generateAssetId(category, existingCount) {
+  const prefixMap = {
+    "Plant & Machinery": "MCH",
+    "Furniture & Fixture": "FRN",
+    "IT Equipment": "IT",
+    "Vehicle": "VEH",
+    "Electrical Equipment": "ELE",
+    "Tools & Equipment": "TLS",
+    "Land & Building": "LNB",
+    "Office Equipment": "OFC",
+  };
+  const prefix = prefixMap[category] || "AST";
+  const seq = String(existingCount + 1).padStart(4, "0");
+  return `AM-${prefix}-${seq}`;
+}
+
+export function generateBatchSubIds(parentId, qty) {
+  return Array.from({ length: qty }, (_, i) => ({
+    subId: `${parentId}-${String.fromCharCode(65 + i)}`,
+    serialNo: "",
+    location: "",
+    status: "active",
+  }));
+}
