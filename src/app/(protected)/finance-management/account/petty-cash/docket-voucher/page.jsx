@@ -7,6 +7,7 @@ import { toast }               from "sonner";
 
 import SearchSection    from "@/components/common/SearchSection";
 import DataTable        from "@/components/common/DataTable";
+import { useDeletePendingIds } from "@/hooks/useDeletePendingIds";
 import PageHeader       from "@/components/layout/PageHeader";
 import HeaderWrapper    from "@/components/layout/HeaderWrapper";
 import PageNotAvailable from "@/components/common/PageNotAvailable";
@@ -98,6 +99,8 @@ export default function DocketVoucherListPage() {
 
   const actions = getPageActions({ router });
 
+  const pendingDeleteIds = useDeletePendingIds("DOCKET_VOUCHER", access.allowed);
+
   if (!access.allowed) return <PageNotAvailable />;
 
   if (loading) {
@@ -128,6 +131,7 @@ export default function DocketVoucherListPage() {
             if (!access.canOpenDetails) return;
             router.push(`/finance-management/account/petty-cash/docket-voucher/${row._id}`);
           }}
+        pendingDeleteIds={pendingDeleteIds}
         />
       </div>
     </HeaderWrapper>
