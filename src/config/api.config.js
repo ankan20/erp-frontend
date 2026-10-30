@@ -636,6 +636,8 @@ export const API_ENDPOINTS = {
       REJECT:             "/finance/journal-entry/reject/",              // /:id POST { comments }
       HISTORY:            "/finance/journal-entry/history/",             // /:id GET
       MY_APPROVAL_STATUS: "/finance/journal-entry/my-approval-status/",  // /:id GET
+      DR_LINES_BY_CC:     "/finance/journal-entry/lines/by-cc/",         // /:cc_id GET ?projectCode&fromDate&toDate&workflowStatus
+      DR_LINES_BY_VENDOR: "/finance/journal-entry/lines/by-vendor/",     // /:vendor_id GET ?projectCode&fromDate&toDate&workflowStatus
     },
     JOURNAL_VOUCHERING: {
       BASE:              "/finance/journal-entry/journal-voucher",
