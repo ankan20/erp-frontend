@@ -29,16 +29,14 @@ import { zodDate }         from "@/lib/dateUtils";
 // ─── Schema ───────────────────────────────────────────────────────────────────
 
 const drLineSchema = z.object({
-  type:           z.enum(["CC", "Vendor"]),
-  accountId:      z.coerce.number().nullable().optional(),
-  openingBalance: z.coerce.number().default(0),
-  debitAmount:    z.coerce.number().min(0).default(0),
+  type:        z.enum(["CC", "Vendor"]),
+  accountId:   z.coerce.number().nullable().optional(),
+  debitAmount: z.coerce.number().min(0).default(0),
 });
 
 const crLineSchema = z.object({
-  type:           z.enum(["CC", "Vendor"]),
-  accountId:      z.coerce.number().nullable().optional(),
-  openingBalance: z.coerce.number().default(0),
+  type:      z.enum(["CC", "Vendor"]),
+  accountId: z.coerce.number().nullable().optional(),
 });
 
 const schema = z.object({
@@ -48,8 +46,8 @@ const schema = z.object({
   crLine:    crLineSchema,
 });
 
-const BLANK_DR = { type: "CC", accountId: null, openingBalance: 0, debitAmount: 0 };
-const BLANK_CR = { type: "CC", accountId: null, openingBalance: 0 };
+const BLANK_DR = { type: "CC", accountId: null, debitAmount: 0 };
+const BLANK_CR = { type: "CC", accountId: null };
 const DEFAULT_VALUES = { entryDate: "", remarks: "", drLines: [{ ...BLANK_DR }], crLine: { ...BLANK_CR } };
 
 // ─── Component ────────────────────────────────────────────────────────────────
@@ -98,8 +96,8 @@ const { fields: drFields, append: appendDr, remove: removeDr } = useFieldArray({
         const sorted  = [...(d.lines || [])].sort((a, b) => a.slNo - b.slNo);
         const drLines = sorted.filter((l) => l.drCr === "Dr");
         const crLine  = sorted.find((l) => l.drCr === "Cr") || {};
-        const mapDr   = (l) => ({ type: l.ccId ? "CC" : "Vendor", accountId: l.ccId || l.vendorId || null, openingBalance: Number(l.openingBalance || 0), debitAmount: Number(l.debitAmount || 0) });
-        const mapCr   = (l) => ({ type: l.ccId ? "CC" : "Vendor", accountId: l.ccId || l.vendorId || null, openingBalance: Number(l.openingBalance || 0) });
+        const mapDr   = (l) => ({ type: l.ccId ? "CC" : "Vendor", accountId: l.ccId || l.vendorId || null, debitAmount: Number(l.debitAmount || 0) });
+        const mapCr   = (l) => ({ type: l.ccId ? "CC" : "Vendor", accountId: l.ccId || l.vendorId || null });
         reset({ entryDate: d.entryDate || "", remarks: d.remarks || "", drLines: drLines.length ? drLines.map(mapDr) : [{ ...BLANK_DR }], crLine: mapCr(crLine) });
         setErpVoucherNo(d.voucherNo || "");
         const locked = d.workflowStatus && !["Draft", "Reback"].includes(d.workflowStatus);
@@ -122,8 +120,8 @@ const { fields: drFields, append: appendDr, remove: removeDr } = useFieldArray({
     const payload = {
       projectCode, entryDate: v.entryDate || "", remarks: v.remarks || "",
       lines: [
-        ...v.drLines.map((l, i) => ({ slNo: i + 1, drCr: "Dr", ccId: l.type === "CC" ? Number(l.accountId) : null, vendorId: l.type === "Vendor" ? Number(l.accountId) : null, openingBalance: Number(l.openingBalance || 0), debitAmount: Number(l.debitAmount || 0), creditAmount: 0 })),
-        { slNo: v.drLines.length + 1, drCr: "Cr", ccId: v.crLine.type === "CC" ? Number(v.crLine.accountId) : null, vendorId: v.crLine.type === "Vendor" ? Number(v.crLine.accountId) : null, openingBalance: Number(v.crLine.openingBalance || 0), debitAmount: 0, creditAmount: drTotal },
+        ...v.drLines.map((l, i) => ({ slNo: i + 1, drCr: "Dr", ccId: l.type === "CC" ? Number(l.accountId) : null, vendorId: l.type === "Vendor" ? Number(l.accountId) : null, debitAmount: Number(l.debitAmount || 0), creditAmount: 0 })),
+        { slNo: v.drLines.length + 1, drCr: "Cr", ccId: v.crLine.type === "CC" ? Number(v.crLine.accountId) : null, vendorId: v.crLine.type === "Vendor" ? Number(v.crLine.accountId) : null, debitAmount: 0, creditAmount: drTotal },
       ],
     };
     try {
