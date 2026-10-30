@@ -11,6 +11,7 @@ import { useRouter } from "next/navigation";
 import SaveButton from "@/components/common/SaveButton";
 import SaveDraftButton from "@/components/common/SaveDraftButton";
 import EditButton from "@/components/common/EditButton";
+import DeleteRequestButton from "@/components/common/DeleteRequestButton";
 
 import { apiRequest } from "@/lib/apiClient";
 import { API_ENDPOINTS } from "@/config/api.config";
@@ -478,7 +479,15 @@ export default function DCForm({ mode = "create", dcId, onAfterSubmit }) {
               {isEditing ? "Cancel" : "Edit"}
             </EditButton>
           )}
-        </div>
+
+
+          {mode === "edit" && !isEditing && (
+            <DeleteRequestButton
+              moduleCode="DC"
+              recordId={Number(dcId)}
+              onDeleted={() => router.back()}
+            />
+          )}        </div>
       )}
     </div>
   );

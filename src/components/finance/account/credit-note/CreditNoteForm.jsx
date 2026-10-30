@@ -12,6 +12,7 @@ import { Loader2, PanelLeftClose, PanelLeftOpen, Plus, Trash2 } from "lucide-rea
 import SaveButton         from "@/components/common/SaveButton";
 import SaveDraftButton    from "@/components/common/SaveDraftButton";
 import EditButton         from "@/components/common/EditButton";
+import DeleteRequestButton from "@/components/common/DeleteRequestButton";
 import PMSection          from "@/components/project-management/common/PMSection";
 import PMFormRow          from "@/components/project-management/common/PMFormRow";
 import PMDateInput        from "@/components/project-management/common/PMDateInput";
@@ -550,7 +551,15 @@ export default function CreditNoteForm({ mode = "create", noteId, onAfterSubmit,
                   {isEditing ? "Cancel" : "Edit"}
                 </EditButton>
               )}
-            </div>
+
+
+          {mode === "edit" && !isEditing && (
+            <DeleteRequestButton
+              moduleCode="CREDIT_NOTE"
+              recordId={Number(noteId)}
+              onDeleted={() => router.back()}
+            />
+          )}            </div>
           )}
         </div>
       </div>

@@ -12,6 +12,7 @@ import { Plus, Trash2 }                 from "lucide-react";
 import SaveButton       from "@/components/common/SaveButton";
 import SaveDraftButton  from "@/components/common/SaveDraftButton";
 import EditButton       from "@/components/common/EditButton";
+import DeleteRequestButton from "@/components/common/DeleteRequestButton";
 import SearchableSelect from "@/components/common/SearchableSelect";
 import AmountInput      from "@/components/common/AmountInput";
 import PMSection        from "@/components/project-management/common/PMSection";
@@ -341,7 +342,15 @@ const { fields: drFields, append: appendDr, remove: removeDr } = useFieldArray({
               {isEditing ? "Cancel" : "Edit"}
             </EditButton>
           )}
-          {isEditing && (
+
+
+          {mode === "edit" && !isEditing && (
+            <DeleteRequestButton
+              moduleCode="JOURNAL_ENTRY"
+              recordId={Number(journalId)}
+              onDeleted={() => router.back()}
+            />
+          )}          {isEditing && (
             <SaveDraftButton onClick={() => handleSubmit(onSave)()} loading={isSubmitting} disabled={isSubmitting} />
           )}
           <SaveButton

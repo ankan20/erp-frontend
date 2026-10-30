@@ -8,6 +8,7 @@ import { toast } from "sonner";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import SaveButton from "@/components/common/SaveButton";
 import EditButton from "@/components/common/EditButton";
+import DeleteRequestButton from "@/components/common/DeleteRequestButton";
 import SaveDraftButton from "@/components/common/SaveDraftButton";
 import OrderBasicSection from "./sections/OrderBasicSection";
 import OrderItemsTab from "./tabs/OrderItemsTab";
@@ -581,7 +582,15 @@ export default function OrderForm({ mode = "create", orderId, onUuid, onAfterSub
               {isEditing ? "Cancel" : "Edit"}
             </EditButton>
           )}
-        </div>
+
+
+          {mode === "edit" && !isEditing && (
+            <DeleteRequestButton
+              moduleCode="ORDER"
+              recordId={Number(orderId)}
+              onDeleted={() => router.back()}
+            />
+          )}        </div>
       )}
     </>
   );

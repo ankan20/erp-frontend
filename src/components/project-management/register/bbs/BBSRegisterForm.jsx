@@ -12,6 +12,7 @@ import { useRouter } from "next/navigation";
 import SaveButton      from "@/components/common/SaveButton";
 import SaveDraftButton from "@/components/common/SaveDraftButton";
 import EditButton      from "@/components/common/EditButton";
+import DeleteRequestButton from "@/components/common/DeleteRequestButton";
 import PMSection       from "@/components/project-management/common/PMSection";
 import PMFormRow       from "@/components/project-management/common/PMFormRow";
 import PMInput         from "@/components/project-management/common/PMInput";
@@ -472,7 +473,15 @@ export default function BBSRegisterForm({ mode = "create", bbsId, onAfterSubmit 
               {isEditing ? "Cancel" : "Edit"}
             </EditButton>
           )}
-        </div>
+
+
+          {mode === "edit" && !isEditing && (
+            <DeleteRequestButton
+              moduleCode="BBS_REGISTER"
+              recordId={Number(bbsId)}
+              onDeleted={() => router.back()}
+            />
+          )}        </div>
       )}
 
     </div>

@@ -12,6 +12,7 @@ import { Loader2, PanelLeftClose, PanelLeftOpen, Plus, Trash2 } from "lucide-rea
 import SaveButton      from "@/components/common/SaveButton";
 import SaveDraftButton from "@/components/common/SaveDraftButton";
 import EditButton      from "@/components/common/EditButton";
+import DeleteRequestButton from "@/components/common/DeleteRequestButton";
 import SearchableSelect from "@/components/common/SearchableSelect";
 import ExpandableTextCell from "@/components/project-management/common/ExpandableTextCell";
 import PMSection       from "@/components/project-management/common/PMSection";
@@ -464,7 +465,15 @@ export default function PurchaseVoucherForm({
                   {isEditing ? "Cancel" : "Edit"}
                 </EditButton>
               )}
-            </div>
+
+
+          {mode === "edit" && !isEditing && (
+            <DeleteRequestButton
+              moduleCode="PURCHASE_VOUCHER"
+              recordId={Number(voucherId)}
+              onDeleted={() => router.back()}
+            />
+          )}            </div>
           )}
         </div>
       </div>

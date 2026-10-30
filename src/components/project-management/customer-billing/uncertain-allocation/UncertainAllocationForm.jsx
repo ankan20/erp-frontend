@@ -8,6 +8,7 @@ import { useRouter } from "next/navigation";
 import SaveButton      from "@/components/common/SaveButton";
 import SaveDraftButton from "@/components/common/SaveDraftButton";
 import EditButton      from "@/components/common/EditButton";
+import DeleteRequestButton from "@/components/common/DeleteRequestButton";
 import SearchableSelect from "@/components/common/SearchableSelect";
 import PMSection       from "@/components/project-management/common/PMSection";
 import PMFormRow       from "@/components/project-management/common/PMFormRow";
@@ -756,7 +757,15 @@ export default function UncertainAllocationForm({ mode = "create", uaId, onAfter
                   {isEditing ? "Cancel" : "Edit"}
                 </EditButton>
               )}
-            </div>
+
+
+          {mode === "edit" && !isEditing && (
+            <DeleteRequestButton
+              moduleCode="UNCERTAIN_ALLOC"
+              recordId={Number(uaId)}
+              onDeleted={() => router.back()}
+            />
+          )}            </div>
           )}
         </div>
       </div>

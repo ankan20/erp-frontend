@@ -12,6 +12,7 @@ import { useRouter }                   from "next/navigation";
 
 import SaveButton           from "@/components/common/SaveButton";
 import EditButton           from "@/components/common/EditButton";
+import DeleteRequestButton from "@/components/common/DeleteRequestButton";
 import SaveDraftButton      from "@/components/common/SaveDraftButton";
 import FileUpload, { ACCEPT_ALL, TYPES_ALL } from "@/components/common/FileUpload";
 import SearchableSelect     from "@/components/common/SearchableSelect";
@@ -630,7 +631,15 @@ export default function BudgetForm({ mode = "create", budgetId, canApprove = fal
                 {isEditing ? "Cancel" : "Edit"}
               </EditButton>
             )}
-          </div>
+
+
+          {mode === "edit" && !isEditing && (
+            <DeleteRequestButton
+              moduleCode="PETTY_CASH_BUDGET"
+              recordId={Number(budgetId)}
+              onDeleted={() => router.back()}
+            />
+          )}          </div>
         )}
 
         {/* Revise section — approver only */}

@@ -8,6 +8,7 @@ import { toast } from "sonner";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import SaveButton from "@/components/common/SaveButton";
 import EditButton from "@/components/common/EditButton";
+import DeleteRequestButton from "@/components/common/DeleteRequestButton";
 import SaveDraftButton from "@/components/common/SaveDraftButton";
 import ServiceOrderBasicSection from "./sections/ServiceOrderBasicSection";
 import ServiceOrderItemsTab from "./tabs/ServiceOrderItemsTab";
@@ -431,7 +432,15 @@ export default function ServiceOrderForm({ mode = "create", serviceOrderId, onUu
               {isEditing ? "Cancel" : "Edit"}
             </EditButton>
           )}
-        </div>
+
+
+          {mode === "edit" && !isEditing && (
+            <DeleteRequestButton
+              moduleCode="PW_ORDER"
+              recordId={Number(serviceOrderId)}
+              onDeleted={() => router.back()}
+            />
+          )}        </div>
       )}
     </>
   );

@@ -13,6 +13,7 @@ import { Input } from "@/components/ui/input";
 import SearchableSelect from "@/components/common/SearchableSelect";
 import SaveButton from "@/components/common/SaveButton";
 import EditButton from "@/components/common/EditButton";
+import DeleteRequestButton from "@/components/common/DeleteRequestButton";
 import SaveDraftButton from "@/components/common/SaveDraftButton";
 import { apiRequest } from "@/lib/apiClient";
 import { API_ENDPOINTS } from "@/config/api.config";
@@ -611,7 +612,15 @@ export default function DLRForm({
               {isEditing ? "Cancel" : "Edit"}
             </EditButton>
           )}
-        </div>
+
+
+          {mode === "edit" && !isEditing && (
+            <DeleteRequestButton
+              moduleCode="DLR"
+              recordId={Number(dlrId)}
+              onDeleted={() => router.back()}
+            />
+          )}        </div>
       )}
     </div>
   );

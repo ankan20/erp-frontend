@@ -18,6 +18,7 @@ import AmountInput from "@/components/common/AmountInput";
 import { formatAmount } from "@/helper/numberFormatter";
 import SaveButton from "@/components/common/SaveButton";
 import EditButton from "@/components/common/EditButton";
+import DeleteRequestButton from "@/components/common/DeleteRequestButton";
 import SaveDraftButton from "@/components/common/SaveDraftButton";
 import { apiRequest } from "@/lib/apiClient";
 import { API_ENDPOINTS } from "@/config/api.config";
@@ -576,7 +577,15 @@ export default function BRRForm({ mode = "create", brrId, onDataLoaded, onAfterS
               {isEditing ? "Cancel" : "Edit"}
             </EditButton>
           )}
-        </div>
+
+
+          {mode === "edit" && !isEditing && (
+            <DeleteRequestButton
+              moduleCode="BRR"
+              recordId={Number(brrId)}
+              onDeleted={() => router.back()}
+            />
+          )}        </div>
       )}
     </>
   );
