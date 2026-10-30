@@ -6,7 +6,7 @@ import { useFormWithToast as useForm } from "@/hooks/useFormWithToast";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
-import { Loader2, PanelLeftClose, PanelLeftOpen } from "lucide-react";
+import { Loader2, PanelLeftClose, PanelLeftOpen, Download, ClipboardList, TableProperties } from "lucide-react";
 import { useRouter } from "next/navigation";
 
 import SaveButton       from "@/components/common/SaveButton";
@@ -28,32 +28,39 @@ import { apiRequest }      from "@/lib/apiClient";
 import { API_ENDPOINTS }   from "@/config/api.config";
 import { getLocalStorage } from "@/lib/localStorage";
 import { getInputClass }   from "@/lib/formStyles";
-import { useColumnResize } from "@/hooks/useColumnResize";
+import { useResizableTable } from "@/hooks/useResizableTable";
 import { zodDate } from "@/lib/dateUtils";
 
 const BILL_MODE = "sale_certified_bill";
 
 // ── COLUMN DEFINITIONS ────────────────────────────────────────────────────────
+// Entry table: group-level cols (qtyGrp→5 sub-cols, amtGrp→4, gstGrp→3)
 const CERT_COLS = [
-  { id: "sl",           label: "SL no",                   thClass: "w-[44px] text-center" },
-  { id: "type",         label: "Type",                    thClass: "w-[90px] text-center" },
-  { id: "itemCode",     label: "Item Code",               thClass: "w-[110px] text-left px-2" },
-  { id: "itemName",     label: "Item Name & Description", thClass: "text-left px-2" },
-  { id: "unit",         label: "Unit",                    thClass: "w-[60px] text-center" },
-  { id: "orderQty",     label: "Order Qty",               thClass: "w-[85px] text-right px-2 min-w-[100px]" },
-  { id: "claimQty",     label: "Claim Qty",               thClass: "w-[85px] text-right px-2 min-w-[100px]" },
-  { id: "preCertQty",   label: "Pre Cert Qty",            thClass: "w-[90px] text-right px-2 min-w-[95px]" },
-  { id: "certQty",      label: "Cert Qty",                thClass: "w-[90px] text-right px-2" },
-  { id: "totalCertQty", label: "Total Cert Qty",          thClass: "w-[95px] text-right px-2 min-w-[95px]" },
-  { id: "rate",         label: "Rate",                    thClass: "w-[90px] text-right px-2 min-w-[110px]" },
-  { id: "preCertAmt",   label: "Pre Cert Amt",            thClass: "w-[115px] text-right px-2 min-w-[120px]" },
-  { id: "certAmt",      label: "Cert Amt",                thClass: "w-[100px] text-right px-2" },
-  { id: "totalCertAmt", label: "Total Cert Amt",          thClass: "w-[110px] text-right px-2 min-w-[115px]" },
-  { id: "gstPct",       label: "GST %",                   thClass: "w-[90px] text-right px-2" },
-  { id: "gstAmt",       label: "GST Amt",                 thClass: "w-[100px] text-right px-2 min-w-[120px]" },
-  { id: "amount",       label: "Amount",                  thClass: "w-[105px] text-right px-2 min-w-[120px]" },
+  { id: "sl",       label: "SL",                      thClass: "w-[40px] text-center" },
+  { id: "type",     label: "Type",                    thClass: "w-[75px] text-center" },
+  { id: "itemCode", label: "Item Code",               thClass: "w-[100px] text-left px-2" },
+  { id: "itemName", label: "Item Name & Description", thClass: "text-left px-2" },
+  { id: "unit",     label: "Unit",                    thClass: "w-[60px] text-center" },
+  { id: "qtyGrp",  label: "Quantity",                 thClass: "text-center", colSpan: 5, groupBg: "bg-[#25507a]" },
+  { id: "amtGrp",  label: "Amount",                   thClass: "text-center", colSpan: 4, groupBg: "bg-[#1a4d2e]" },
+  { id: "gstGrp",  label: "GST",                      thClass: "text-center", colSpan: 3, groupBg: "bg-[#4a2760]" },
 ];
-const CERT_COL_IDS = CERT_COLS.map((c) => c.id);
+// total leaf cols = 5 fixed + 5 + 4 + 3 = 17
+const CERT_TOTAL_COLS = 17;
+
+// View table group-level columns (certQtyGrp / certAmtGrp each expand to 3 sub-columns)
+const CERT_VIEW_COLS = [
+  { id: "sl",          label: "SL",                      thClass: "w-[40px] text-center" },
+  { id: "itemCode",    label: "Item Code",               thClass: "w-[100px] text-left px-2" },
+  { id: "itemName",    label: "Item Name & Description", thClass: "text-left px-2" },
+  { id: "orderQty",    label: "Order Qty",               thClass: "w-[85px] text-center" },
+  { id: "unit",        label: "Unit",                    thClass: "w-[65px] text-center" },
+  { id: "rate",        label: "Rate",                    thClass: "w-[90px] text-center" },
+  { id: "certQtyGrp",  label: "Certified Quantity",      thClass: "text-center", colSpan: 3, groupBg: "bg-[#25507a]" },
+  { id: "gstPct",      label: "GST %",                   thClass: "w-[65px] text-center" },
+  { id: "gstAmt",      label: "GST Amount",              thClass: "w-[100px] text-center" },
+  { id: "certAmtGrp",  label: "Certified Amount",        thClass: "text-center", colSpan: 3, groupBg: "bg-[#1a4d2e]" },
+];
 
 // ── SCHEMA ────────────────────────────────────────────────────────────────────
 const itemSchema = z.object({
@@ -112,12 +119,12 @@ const defaultValues = {
 
 // ── COMPONENT ─────────────────────────────────────────────────────────────────
 export default function SaleCertifiedBillForm({ mode = "create", billId, onAfterSubmit, onUuid }) {
-  const { tableRef } = useColumnResize();
   const isViewMode  = mode === "view" || mode === "approver";
   const router      = useRouter();
   const projectCode = getLocalStorage("projectInfo")?.projectCode || "";
 
   // ── STATE
+  const [activeTab,     setActiveTab]     = useState("entry");
   const [isEditing,     setIsEditing]     = useState(mode === "create");
   const [isSubmitted,   setIsSubmitted]   = useState(false);
   const [allowSubmit,   setAllowSubmit]   = useState(mode === "edit");
@@ -130,44 +137,20 @@ export default function SaleCertifiedBillForm({ mode = "create", billId, onAfter
   const [prevCertBillOpts, setPrevCertBillOpts] = useState([]);
   const [useLocations,    setUseLocations]    = useState([]);
   const [lookupLoading,   setLookupLoading]   = useState(false);
+  const [billUuid,        setBillUuid]        = useState("");
+  const [billingNo,       setBillingNo]       = useState("");
 
   const [file,         setFile]         = useState(null);
   const [existingUrl,  setExistingUrl]  = useState("");
   const [initialUrl,   setInitialUrl]   = useState("");
   const [fileResetKey, setFileResetKey] = useState(0);
 
-  // ── COLUMN ORDER (drag-to-reorder, saved per user) ───────────────────────────
-  const colLsKey = `colOrder_saleCertBill_${getLocalStorage("userName") || "default"}`;
-  const [columnOrder, setColumnOrder] = useState(() => {
-    try {
-      const saved = JSON.parse(localStorage.getItem(colLsKey) || "null");
-      if (Array.isArray(saved) && saved.length === CERT_COL_IDS.length &&
-          CERT_COL_IDS.every((id) => saved.includes(id))) return saved;
-    } catch {}
-    return [...CERT_COL_IDS];
-  });
-  const [dragColId,  setDragColId]  = useState(null);
-  const [overColId,  setOverColId]  = useState(null);
+  // ── RESIZABLE + DRAGGABLE TABLES ─────────────────────────────────────────────
+  const { columnOrder: entryOrder, tableRef: entryRef, getThProps: entryThProps } =
+    useResizableTable({ columns: CERT_COLS, storageKey: "saleCertBillEntry2" });
 
-  const saveColOrder = (order) => {
-    try { localStorage.setItem(colLsKey, JSON.stringify(order)); } catch {}
-  };
-  const onColDragStart = (colId) => setDragColId(colId);
-  const onColDragOver  = (e, colId) => { e.preventDefault(); setOverColId(colId); };
-  const onColDrop      = (e, targetId) => {
-    e.preventDefault();
-    if (!dragColId || dragColId === targetId) { setDragColId(null); setOverColId(null); return; }
-    const next = [...columnOrder];
-    const from = next.indexOf(dragColId);
-    const to   = next.indexOf(targetId);
-    next.splice(from, 1);
-    next.splice(to, 0, dragColId);
-    setColumnOrder(next);
-    saveColOrder(next);
-    setDragColId(null);
-    setOverColId(null);
-  };
-  const onColDragEnd   = () => { setDragColId(null); setOverColId(null); };
+  const { tableRef: viewRef, getThProps: viewThProps, columnOrder: viewOrder } =
+    useResizableTable({ columns: CERT_VIEW_COLS, storageKey: "saleCertBillView" });
 
   const {
     register, control, handleSubmit, reset, getValues, setValue, watch,
@@ -364,6 +347,8 @@ export default function SaleCertifiedBillForm({ mode = "create", billId, onAfter
           }).catch(() => setPrevCertBillOpts([]));
         }
         onUuid?.(d.billingUuid || "");
+        setBillUuid(d.billingUuid || "");
+        setBillingNo(d.billingNo || "");
         setExistingUrl(d.attachment || "");
         setInitialUrl(d.attachment  || "");
         const editable = ["draft", "reback"].includes((d.workflowStatus || "").toLowerCase());
@@ -457,6 +442,8 @@ export default function SaleCertifiedBillForm({ mode = "create", billId, onAfter
       );
       if (mode === "create") {
         const newId = res.data?.id;
+        if (res.data?.billingUuid) setBillUuid(res.data.billingUuid);
+        if (res.data?.billingNo)   setBillingNo(res.data.billingNo);
         if (newId) setTimeout(() => router.push(`/project-management/customer-billing/sale-bill-certified/${newId}`), 400);
       }
     } catch (err) {
@@ -482,6 +469,128 @@ export default function SaleCertifiedBillForm({ mode = "create", billId, onAfter
     } catch (err) {
       toast.error(err.message || "Failed to submit", { id: tid });
     }
+  };
+
+  // ── VIEW TABLE TOTALS ─────────────────────────────────────────────────────────
+  const vtotOrderQty = watchedItems.reduce((s, it) => s + Number(it?.orderQty || 0), 0);
+  const vtotPrevQty  = watchedItems.reduce((s, it) => s + Number(it?.preCertifiedQty || 0), 0);
+  const vtotThisQty  = watchedItems.reduce((s, it) => s + Number(it?.certifiedQty || 0), 0);
+  const vtotCumQty   = vtotPrevQty + vtotThisQty;
+  const vtotPrevAmt  = watchedItems.reduce((s, it) => s + Number(it?.preCertifiedAmount || 0), 0);
+  const vtotThisAmt  = watchedItems.reduce((s, it) => s + Number(it?.certifiedQty || 0) * Number(it?.rate || 0), 0);
+  const vtotCumAmt   = vtotPrevAmt + vtotThisAmt;
+  const vtotGstAmt   = watchedItems.reduce((s, it) => {
+    const a = Number(it?.certifiedQty || 0) * Number(it?.rate || 0);
+    return s + a * Number(it?.gstPercent || 0) / 100;
+  }, 0);
+
+  const handleDownloadPdf = async () => {
+    if (watchedItems.length === 0) { toast.error("No items to export"); return; }
+    const { default: jsPDF } = await import("jspdf");
+    const { default: autoTable } = await import("jspdf-autotable");
+
+    const doc = new jsPDF({ orientation: "landscape", unit: "mm", format: "a3" });
+
+    // Header info
+    const billNo = billingNo || `#${billId}` || "draft";
+    const billDt = watch("billingDate") || "—";
+    doc.setFontSize(14);
+    doc.setTextColor(28, 58, 94);
+    doc.text("Certification Statement", 14, 14);
+    doc.setFontSize(9);
+    doc.setTextColor(80, 80, 80);
+    doc.text(`Bill No: ${billNo}   Date: ${billDt}`, 14, 20);
+
+    const head = [
+      [
+        { content: "SL",         rowSpan: 2, styles: { halign: "center", valign: "middle" } },
+        { content: "Item Code",  rowSpan: 2, styles: { halign: "center", valign: "middle" } },
+        { content: "Item Name",  rowSpan: 2, styles: { halign: "left",   valign: "middle" } },
+        { content: "Order Qty",  rowSpan: 2, styles: { halign: "center", valign: "middle" } },
+        { content: "Unit",       rowSpan: 2, styles: { halign: "center", valign: "middle" } },
+        { content: "Rate",       rowSpan: 2, styles: { halign: "right",  valign: "middle" } },
+        { content: "Certified Quantity", colSpan: 3, styles: { halign: "center", fillColor: [37, 80, 122] } },
+        { content: "GST %",      rowSpan: 2, styles: { halign: "center", valign: "middle" } },
+        { content: "GST Amount", rowSpan: 2, styles: { halign: "right",  valign: "middle" } },
+        { content: "Certified Amount",   colSpan: 3, styles: { halign: "center", fillColor: [26, 77, 46] } },
+      ],
+      [
+        { content: "Previous",   styles: { halign: "right", fillColor: [59, 110, 165] } },
+        { content: "This Bill",  styles: { halign: "right", fillColor: [59, 110, 165] } },
+        { content: "Cumulative", styles: { halign: "right", fillColor: [59, 110, 165] } },
+        { content: "Previous",   styles: { halign: "right", fillColor: [45, 110, 71] } },
+        { content: "This Bill",  styles: { halign: "right", fillColor: [45, 110, 71] } },
+        { content: "Cumulative", styles: { halign: "right", fillColor: [45, 110, 71] } },
+      ],
+    ];
+
+    const body = watchedItems.map((it, i) => {
+      const preCertQty = Number(it?.preCertifiedQty || 0);
+      const certQty    = Number(it?.certifiedQty    || 0);
+      const rate       = Number(it?.rate            || 0);
+      const gstPct     = Number(it?.gstPercent      || 0);
+      const preCertAmt = Number(it?.preCertifiedAmount || 0);
+      const thisAmt    = certQty * rate;
+      const cumAmt     = preCertAmt + thisAmt;
+      const gstAmt     = thisAmt * gstPct / 100;
+      return [
+        i + 1,
+        it?.itemDisplayCode || it?.itemCode || "—",
+        `${it?.itemName || ""}${it?.itemDescription ? `\n${it.itemDescription}` : ""}`,
+        Number(it?.orderQty || 0) > 0 ? formatQtyDisplay(Number(it.orderQty)) : "—",
+        it?.unit || "—",
+        formatAmount(rate),
+        preCertQty > 0 ? formatQtyDisplay(preCertQty) : "—",
+        certQty > 0    ? formatQtyDisplay(certQty)    : "—",
+        formatQtyDisplay(preCertQty + certQty),
+        gstPct > 0     ? `${gstPct}%`                 : "—",
+        gstAmt > 0     ? formatAmount(gstAmt)          : "—",
+        preCertAmt > 0 ? formatAmount(preCertAmt)      : "—",
+        thisAmt > 0    ? formatAmount(thisAmt)         : "—",
+        cumAmt > 0     ? formatAmount(cumAmt)          : "—",
+      ];
+    });
+
+    // Totals row
+    body.push([
+      { content: "TOTAL", colSpan: 6, styles: { fontStyle: "bold", halign: "right", fillColor: [183, 213, 240] } },
+      { content: formatQtyDisplay(vtotPrevQty), styles: { fontStyle: "bold", halign: "right", fillColor: [183, 213, 240] } },
+      { content: formatQtyDisplay(vtotThisQty), styles: { fontStyle: "bold", halign: "right", fillColor: [183, 213, 240] } },
+      { content: formatQtyDisplay(vtotCumQty),  styles: { fontStyle: "bold", halign: "right", fillColor: [183, 213, 240] } },
+      { content: "",                             styles: { fillColor: [183, 213, 240] } },
+      { content: formatAmount(vtotGstAmt),       styles: { fontStyle: "bold", halign: "right", fillColor: [183, 213, 240] } },
+      { content: formatAmount(vtotPrevAmt),      styles: { fontStyle: "bold", halign: "right", fillColor: [183, 213, 240] } },
+      { content: formatAmount(vtotThisAmt),      styles: { fontStyle: "bold", halign: "right", fillColor: [183, 213, 240] } },
+      { content: formatAmount(vtotCumAmt),       styles: { fontStyle: "bold", halign: "right", fillColor: [183, 213, 240] } },
+    ]);
+
+    autoTable(doc, {
+      head,
+      body,
+      startY: 25,
+      theme: "grid",
+      headStyles: { fillColor: [28, 58, 94], textColor: 255, fontStyle: "bold", fontSize: 8, valign: "middle" },
+      bodyStyles: { fontSize: 8, valign: "middle" },
+      columnStyles: {
+        0: { cellWidth: 8,  halign: "center" },
+        1: { cellWidth: 20, halign: "left"   },
+        2: { cellWidth: 55, halign: "left"   },
+        3: { cellWidth: 18, halign: "right"  },
+        4: { cellWidth: 14, halign: "center" },
+        5: { cellWidth: 18, halign: "right"  },
+        6: { cellWidth: 22, halign: "right"  },
+        7: { cellWidth: 22, halign: "right"  },
+        8: { cellWidth: 22, halign: "right"  },
+        9: { cellWidth: 14, halign: "right"  },
+        10:{ cellWidth: 22, halign: "right"  },
+        11:{ cellWidth: 22, halign: "right"  },
+        12:{ cellWidth: 22, halign: "right"  },
+        13:{ cellWidth: 22, halign: "right"  },
+      },
+      alternateRowStyles: { fillColor: [245, 248, 252] },
+    });
+
+    doc.save(`certification-statement-${billNo}.pdf`);
   };
 
   // ── LOADING ───────────────────────────────────────────────────────────────────
@@ -664,46 +773,90 @@ export default function SaleCertifiedBillForm({ mode = "create", billId, onAfter
           </PMSection>
         </div>
 
-        {/* ── RIGHT PANEL: BOQ TABLE ──────────────────────────────────────────── */}
+        {/* ── RIGHT PANEL: TWO TABS ───────────────────────────────────────────── */}
         <div className="w-full lg:flex-1 min-w-0">
+
+          {/* Tab bar */}
+          <div className="flex border-b border-[#c8d8ea] mb-2">
+            {[
+              { id: "entry", label: "Entry",                  icon: <ClipboardList size={14} /> },
+              { id: "view",  label: "Certification Statement", icon: <TableProperties size={14} /> },
+            ].map((tab) => (
+              <button key={tab.id} type="button" onClick={() => setActiveTab(tab.id)}
+                className={`flex items-center gap-1.5 px-4 py-2 text-[13px] font-medium border-b-2 transition-colors ${
+                  activeTab === tab.id
+                    ? "border-[#3b6ea5] text-[#3b6ea5]"
+                    : "border-transparent text-[#666] hover:text-[#3b6ea5]"
+                }`}
+              >
+                {tab.icon}{tab.label}
+              </button>
+            ))}
+          </div>
+
+          {/* ── TAB 1: ENTRY ─────────────────────────────────────────────────── */}
+          {activeTab === "entry" && (
           <div className="border border-[#b5b5b5]">
-
             <div className="bg-[#d6e4f5] px-3 py-1.5 border-b border-[#b5b5b5] font-bold text-[15px] text-[#1c3a5e]">
-              Certified Sale
+              Certified Sale — Entry
             </div>
-
-            <div className="overflow-x-auto overflow-y-auto lg:max-h-[calc(100vh-260px)]">
-              <table ref={tableRef} className="w-full border-collapse text-sm" style={{ minWidth: 1700 }}>
-
-                {/* ── DYNAMIC DRAGGABLE HEADERS ── */}
+            <div className="overflow-x-auto overflow-y-auto lg:max-h-[calc(100vh-300px)]">
+              <table ref={entryRef} className="w-full border-collapse table-fixed text-[13px]" style={{ minWidth: 1500 }}>
                 <thead className="sticky top-0 z-20">
-                  <tr className="bg-[#3b6ea5] text-white">
-                    {columnOrder.map((colId) => {
+                  {/* Row 1: group headers */}
+                  <tr className="bg-[#1c3a5e] text-white text-center">
+                    {entryOrder.map((colId) => {
                       const col = CERT_COLS.find((c) => c.id === colId);
-                      const isOver     = overColId  === colId && dragColId !== colId;
-                      const isDragging = dragColId  === colId;
+                      if (col.colSpan) {
+                        return (
+                          <th key={colId} colSpan={col.colSpan}
+                            {...entryThProps(colId, `border border-[#0f2540] py-1 ${col.groupBg} ${col.thClass}`)}>
+                            {col.label}
+                          </th>
+                        );
+                      }
                       return (
-                        <th
-                          key={colId}
-                          draggable
-                          onDragStart={() => onColDragStart(colId)}
-                          onDragOver={(e) => onColDragOver(e, colId)}
-                          onDrop={(e) => onColDrop(e, colId)}
-                          onDragEnd={onColDragEnd}
-                          className={`border border-[#2a5080] text-[13px] py-1.5 select-none cursor-grab active:cursor-grabbing ${col.thClass} ${isDragging ? "opacity-40" : ""} ${isOver ? "border-l-4 border-l-yellow-300" : ""}`}
-                          title="Drag to reorder"
-                        >
+                        <th key={colId} rowSpan={2}
+                          {...entryThProps(colId, `border border-[#0f2540] py-1.5 px-2 ${col.thClass}`)}>
                           {col.label}
                         </th>
                       );
                     })}
                   </tr>
+                  {/* Row 2: sub-headers; amber = editable */}
+                  <tr className="bg-[#3b6ea5] text-white text-center text-[12px]">
+                    {entryOrder.filter((id) => ["qtyGrp","amtGrp","gstGrp"].includes(id)).map((colId) => {
+                      if (colId === "qtyGrp") return (
+                        <>
+                          <th key="oq"  className="border border-[#2a5080] py-1 px-1 w-[85px]">Order Qty</th>
+                          <th key="cq"  className="border border-[#2a5080] py-1 px-1 w-[85px]">Claim Qty</th>
+                          <th key="pcq" className="border border-[#2a5080] py-1 px-1 w-[85px]">Pre Cert Qty</th>
+                          <th key="ceq" className="border border-[#2a5080] py-1 px-1 w-[88px] bg-[#b06010]">Cert Qty ✎</th>
+                          <th key="tcq" className="border border-[#2a5080] py-1 px-1 w-[90px]">Total Cert Qty</th>
+                        </>
+                      );
+                      if (colId === "amtGrp") return (
+                        <>
+                          <th key="rt"  className="border border-[#2a5080] py-1 px-1 w-[88px] bg-[#2d7a52]">Rate ✎</th>
+                          <th key="pca" className="border border-[#2a5080] py-1 px-1 w-[105px]">Pre Cert Amt</th>
+                          <th key="ca"  className="border border-[#2a5080] py-1 px-1 w-[95px]">Cert Amt</th>
+                          <th key="tca" className="border border-[#2a5080] py-1 px-1 w-[105px]">Total Cert Amt</th>
+                        </>
+                      );
+                      return (
+                        <>
+                          <th key="gp"  className="border border-[#2a5080] py-1 px-1 w-[72px] bg-[#7a3a90]">GST % ✎</th>
+                          <th key="ga"  className="border border-[#2a5080] py-1 px-1 w-[95px]">GST Amt</th>
+                          <th key="amt" className="border border-[#2a5080] py-1 px-1 w-[100px]">Amount</th>
+                        </>
+                      );
+                    })}
+                  </tr>
                 </thead>
-
                 <tbody>
                   {fields.length === 0 && (
                     <tr>
-                      <td colSpan={CERT_COL_IDS.length} className="text-center text-[13px] text-[#888] py-8 italic border border-[#ccc]">
+                      <td colSpan={CERT_TOTAL_COLS} className="text-center text-[#888] py-8 italic border border-[#ccc]">
                         Select an order, then a claim bill above to populate items
                       </td>
                     </tr>
@@ -722,14 +875,15 @@ export default function SaleCertifiedBillForm({ mode = "create", billId, onAfter
                     const totalCertAmt       = preCertifiedAmount + certAmt;
                     const gstAmt             = certAmt * gstPct / 100;
                     const overQty            = !disabled && certifiedQty > claimQty && claimQty > 0;
+                    const rowBg              = index % 2 === 0 ? "bg-white" : "bg-[#f5f8fc]";
 
                     const renderCell = (colId) => {
                       switch (colId) {
                         case "sl":
-                          return <td key={colId} className="border border-[#ccc] text-center bg-[#edf4fb] text-[13px] font-medium align-middle">{index + 1}</td>;
+                          return <td key={colId} className="border border-[#ccc] text-center bg-[#edf4fb] font-medium align-middle">{index + 1}</td>;
                         case "type":
                           return (
-                            <td key={colId} className="border border-[#ccc] text-center text-[13px] align-middle text-[#555]">
+                            <td key={colId} className="border border-[#ccc] text-center align-middle text-[#555]">
                               {watch(`items.${index}.type`) === "boq" ? "BOQ" : "Non-BOQ"}
                               <input {...register(`items.${index}.type`)} type="hidden" />
                             </td>
@@ -738,7 +892,7 @@ export default function SaleCertifiedBillForm({ mode = "create", billId, onAfter
                           return (
                             <td key={colId} className="border border-[#ccc] p-0 align-middle">
                               <input {...register(`items.${index}.itemDisplayCode`)} disabled placeholder="—"
-                                className={`${getInputClass(false, true)} border-0 rounded-none w-full h-[30px] text-[13px] px-1`} />
+                                className={`${getInputClass(false, true)} border-0 rounded-none w-full h-[30px] px-1`} />
                               <input {...register(`items.${index}.itemCode`)} type="hidden" />
                               <input {...register(`items.${index}.ogSaleOrderItemId`)} type="hidden" />
                             </td>
@@ -747,110 +901,272 @@ export default function SaleCertifiedBillForm({ mode = "create", billId, onAfter
                           return (
                             <td key={colId} className="border border-[#ccc] p-0">
                               <Controller name={`items.${index}.itemName`} control={control}
-                                render={({ field: f }) => <ExpandableTextCell value={f.value || ""} onChange={f.onChange} disabled={true} label="Item Name" placeholder="—" textSize="text-[13px]" />} />
+                                render={({ field: f }) => <ExpandableTextCell value={f.value || ""} onChange={f.onChange} disabled label="Item Name" placeholder="—" textSize="text-[13px]" />} />
                               <Controller name={`items.${index}.itemDescription`} control={control}
-                                render={({ field: f }) => <ExpandableTextCell value={f.value || ""} onChange={f.onChange} disabled={true} label="Item Description" placeholder="—" />} />
+                                render={({ field: f }) => <ExpandableTextCell value={f.value || ""} onChange={f.onChange} disabled label="Item Description" placeholder="—" />} />
                             </td>
                           );
                         case "unit":
                           return (
                             <td key={colId} className="border border-[#ccc] p-0 align-middle">
                               <input {...register(`items.${index}.unit`)} disabled placeholder="—"
-                                className={`${getInputClass(false, true)} border-0 rounded-none w-full h-[30px] text-[13px] text-center`} />
+                                className={`${getInputClass(false, true)} border-0 rounded-none w-full h-[30px] text-center`} />
                             </td>
                           );
-                        case "orderQty":
+                        case "qtyGrp":
                           return (
-                            <td key={colId} className="border border-[#ccc] bg-[#f0f4f8] px-2 text-[13px] text-right align-middle text-[#555] whitespace-nowrap">
-                              {orderQty > 0 ? formatQtyDisplay(orderQty) : "—"}
-                              <input {...register(`items.${index}.orderQty`)} type="hidden" />
-                            </td>
+                            <>
+                              <td key="oq"  className="border border-[#ccc] bg-[#f0f4f8] px-2 text-right align-middle text-[#555] whitespace-nowrap">
+                                {orderQty > 0 ? formatQtyDisplay(orderQty) : "—"}
+                                <input {...register(`items.${index}.orderQty`)} type="hidden" />
+                              </td>
+                              <td key="cq"  className="border border-[#ccc] bg-[#f0f4f8] px-2 text-right align-middle text-[#555] whitespace-nowrap">
+                                {claimQty > 0 ? formatQtyDisplay(claimQty) : "—"}
+                                <input {...register(`items.${index}.claimQty`)} type="hidden" />
+                              </td>
+                              <td key="pcq" className="border border-[#ccc] bg-[#f0f4f8] px-2 text-right align-middle text-[#555] whitespace-nowrap">
+                                {preCertifiedQty > 0 ? formatQtyDisplay(preCertifiedQty) : "—"}
+                                <input {...register(`items.${index}.preCertifiedQty`)} type="hidden" />
+                              </td>
+                              <td key="ceq" className="border border-[#ccc] p-0 align-middle bg-[#fff8f0]">
+                                <Controller control={control} name={`items.${index}.certifiedQty`}
+                                  render={({ field: f }) => (
+                                    <QtyInput {...f} onChange={(e) => f.onChange(e.target.value)} disabled={disabled} placeholder="0"
+                                      title={overQty ? `Above claim qty (${claimQty})` : undefined}
+                                      className={`${overQty ? "border-orange-400 bg-orange-50 text-orange-700" : getInputClass(errors?.items?.[index]?.certifiedQty, disabled)} border-0 rounded-none w-full h-[30px] text-right pr-2`} />
+                                  )} />
+                              </td>
+                              <td key="tcq" className="border border-[#ccc] bg-[#edf8f0] px-2 font-medium text-right align-middle whitespace-nowrap">
+                                {totalCertQty > 0 ? formatQtyDisplay(totalCertQty) : "—"}
+                              </td>
+                            </>
                           );
-                        case "claimQty":
+                        case "amtGrp":
                           return (
-                            <td key={colId} className="border border-[#ccc] bg-[#f0f4f8] px-2 text-[13px] text-right align-middle text-[#555] whitespace-nowrap">
-                              {claimQty > 0 ? formatQtyDisplay(claimQty) : "—"}
-                              <input {...register(`items.${index}.claimQty`)} type="hidden" />
-                            </td>
+                            <>
+                              <td key="rt"  className="border border-[#ccc] p-0 align-middle bg-[#f0faf5]">
+                                <AmountInput {...register(`items.${index}.rate`)} value={item.rate ?? ""} disabled={disabled} placeholder="0"
+                                  className={`${getInputClass(false, disabled)} border-0 rounded-none w-full h-[30px] text-right pr-2`} />
+                              </td>
+                              <td key="pca" className="border border-[#ccc] bg-[#f0f4f8] px-2 text-right align-middle text-[#555] whitespace-nowrap">
+                                {preCertifiedAmount > 0 ? formatAmount(preCertifiedAmount) : "—"}
+                                <input {...register(`items.${index}.preCertifiedAmount`)} type="hidden" />
+                              </td>
+                              <td key="ca"  className="border border-[#ccc] bg-[#edf8ed] px-2 font-medium text-right align-middle whitespace-nowrap">{formatAmount(certAmt)}</td>
+                              <td key="tca" className="border border-[#ccc] bg-[#edf8f0] px-2 font-medium text-right align-middle whitespace-nowrap">{formatAmount(totalCertAmt)}</td>
+                            </>
                           );
-                        case "preCertQty":
+                        case "gstGrp":
                           return (
-                            <td key={colId} className="border border-[#ccc] bg-[#f0f4f8] px-2 text-[13px] text-right align-middle text-[#555] whitespace-nowrap">
-                              {preCertifiedQty > 0 ? formatQtyDisplay(preCertifiedQty) : "—"}
-                              <input {...register(`items.${index}.preCertifiedQty`)} type="hidden" />
-                            </td>
+                            <>
+                              <td key="gp"  className="border border-[#ccc] p-0 align-middle bg-[#faf0ff]">
+                                <GstInput {...register(`items.${index}.gstPercent`)} value={item.gstPercent ?? ""} disabled={disabled} placeholder="0"
+                                  className={`${getInputClass(false, disabled)} border-0 rounded-none w-full h-[30px] text-right pr-2`} />
+                              </td>
+                              <td key="ga"  className="border border-[#ccc] bg-[#edf8ed] px-2 font-medium text-right align-middle whitespace-nowrap">{formatAmount(gstAmt)}</td>
+                              <td key="amt" className="border border-[#ccc] bg-[#edf8ed] px-2 font-medium text-right align-middle whitespace-nowrap">{formatAmount(certAmt + gstAmt)}</td>
+                            </>
                           );
-                        case "certQty":
-                          return (
-                            <td key={colId} className="border border-[#ccc] p-0 align-middle">
-                              <Controller control={control} name={`items.${index}.certifiedQty`}
-                                render={({ field: f }) => (
-                                  <QtyInput {...f} onChange={(e) => f.onChange(e.target.value)} disabled={disabled} placeholder="0"
-                                    title={overQty ? `Above claim qty (${claimQty})` : undefined}
-                                    className={`${overQty ? "border-orange-400 bg-orange-50 text-orange-700" : getInputClass(errors?.items?.[index]?.certifiedQty, disabled)} border-0 rounded-none w-full h-[30px] text-[13px] text-right pr-2`} />
-                                )} />
-                            </td>
-                          );
-                        case "totalCertQty":
-                          return <td key={colId} className="border border-[#ccc] bg-[#edf8f0] px-2 text-[13px] font-medium text-right align-middle whitespace-nowrap">{totalCertQty > 0 ? formatQtyDisplay(totalCertQty) : "—"}</td>;
-                        case "rate":
-                          return (
-                            <td key={colId} className="border border-[#ccc] p-0 align-middle">
-                              <AmountInput {...register(`items.${index}.rate`)} value={item.rate ?? ""} disabled={disabled} placeholder="0"
-                                className={`${getInputClass(false, disabled)} border-0 rounded-none w-full h-[30px] text-[13px] text-right pr-2`} />
-                            </td>
-                          );
-                        case "preCertAmt":
-                          return (
-                            <td key={colId} className="border border-[#ccc] bg-[#f0f4f8] px-2 text-[13px] text-right align-middle text-[#555] whitespace-nowrap">
-                              {preCertifiedAmount > 0 ? formatAmount(preCertifiedAmount) : "—"}
-                              <input {...register(`items.${index}.preCertifiedAmount`)} type="hidden" />
-                            </td>
-                          );
-                        case "certAmt":
-                          return <td key={colId} className="border border-[#ccc] bg-[#edf8ed] px-2 text-[13px] font-medium text-right align-middle whitespace-nowrap">{formatAmount(certAmt)}</td>;
-                        case "totalCertAmt":
-                          return <td key={colId} className="border border-[#ccc] bg-[#edf8f0] px-2 text-[13px] font-medium text-right align-middle whitespace-nowrap">{formatAmount(totalCertAmt)}</td>;
-                        case "gstPct":
-                          return (
-                            <td key={colId} className="border border-[#ccc] p-0 align-middle">
-                              <GstInput {...register(`items.${index}.gstPercent`)} value={item.gstPercent ?? ""} disabled={disabled} placeholder="0"
-                                className={`${getInputClass(false, disabled)} border-0 rounded-none w-full h-[30px] text-[13px] text-right pr-2`} />
-                            </td>
-                          );
-                        case "gstAmt":
-                          return <td key={colId} className="border border-[#ccc] bg-[#edf8ed] px-2 text-[13px] font-medium text-right align-middle whitespace-nowrap">{formatAmount(gstAmt)}</td>;
-                        case "amount":
-                          return <td key={colId} className="border border-[#ccc] bg-[#edf8ed] px-2 text-[13px] font-medium text-right align-middle whitespace-nowrap">{formatAmount(certAmt + gstAmt)}</td>;
                         default: return null;
                       }
                     };
 
                     return (
-                      <tr key={field.id} className={index % 2 === 0 ? "bg-white" : "bg-[#f5f8fc]"}>
-                        {columnOrder.map(renderCell)}
+                      <tr key={field.id} className={rowBg}>
+                        {entryOrder.map(renderCell)}
                       </tr>
                     );
                   })}
                 </tbody>
-
-                {/* ── DYNAMIC TFOOT ── */}
                 <tfoot className="sticky bottom-0 z-10 bg-[#b7d5f0]">
                   <tr className="font-bold">
-                    {columnOrder.map((colId) => {
-                      if (colId === "certAmt")      return <td key={colId} className="border border-[#9ec5e0] px-2 text-right text-[13px] whitespace-nowrap">{formatAmount(thisBillAmount)}</td>;
-                      if (colId === "gstAmt")       return <td key={colId} className="border border-[#9ec5e0] px-2 text-right text-[13px] whitespace-nowrap">{formatAmount(gstAmount)}</td>;
-                      if (colId === "amount")       return <td key={colId} className="border border-[#9ec5e0] px-2 text-right text-[13px] whitespace-nowrap">{formatAmount(thisBillAmount + gstAmount)}</td>;
-                      if (colId === "rate")         return <td key={colId} className="border border-[#9ec5e0] px-2 text-right text-[13px] whitespace-nowrap">TOTAL=</td>;
-                      if (colId === "totalCertAmt") return <td key={colId} className="border border-[#9ec5e0] px-2 text-right text-[13px] whitespace-nowrap">{formatAmount(thisBillAmount + gstAmount)}</td>;
-                      return <td key={colId} className="border border-[#9ec5e0]" />;
+                    {entryOrder.map((colId) => {
+                      switch (colId) {
+                        case "sl":       return <td key={colId} className="border border-[#9ec5e0]" />;
+                        case "type":     return <td key={colId} className="border border-[#9ec5e0]" />;
+                        case "itemCode": return <td key={colId} className="border border-[#9ec5e0]" />;
+                        case "itemName": return <td key={colId} className="border border-[#9ec5e0] px-2 text-right text-[#1c3a5e]">TOTAL</td>;
+                        case "unit":     return <td key={colId} className="border border-[#9ec5e0]" />;
+                        case "qtyGrp":  return (
+                          <>
+                            <td key="foq"  className="border border-[#9ec5e0]" />
+                            <td key="fcq"  className="border border-[#9ec5e0]" />
+                            <td key="fpcq" className="border border-[#9ec5e0]" />
+                            <td key="fceq" className="border border-[#9ec5e0]" />
+                            <td key="ftcq" className="border border-[#9ec5e0]" />
+                          </>
+                        );
+                        case "amtGrp":  return (
+                          <>
+                            <td key="frt"  className="border border-[#9ec5e0] px-2 text-right whitespace-nowrap">TOTAL=</td>
+                            <td key="fpca" className="border border-[#9ec5e0]" />
+                            <td key="fca"  className="border border-[#9ec5e0] px-2 text-right whitespace-nowrap">{formatAmount(thisBillAmount)}</td>
+                            <td key="ftca" className="border border-[#9ec5e0] px-2 text-right whitespace-nowrap">{formatAmount(thisBillAmount)}</td>
+                          </>
+                        );
+                        case "gstGrp":  return (
+                          <>
+                            <td key="fgp"  className="border border-[#9ec5e0]" />
+                            <td key="fga"  className="border border-[#9ec5e0] px-2 text-right whitespace-nowrap">{formatAmount(gstAmount)}</td>
+                            <td key="famt" className="border border-[#9ec5e0] px-2 text-right whitespace-nowrap">{formatAmount(thisBillAmount + gstAmount)}</td>
+                          </>
+                        );
+                        default: return null;
+                      }
                     })}
                   </tr>
                 </tfoot>
-
               </table>
             </div>
           </div>
+          )}
+
+          {/* ── TAB 2: CERTIFICATION STATEMENT ───────────────────────────────── */}
+          {activeTab === "view" && (
+          <div className="border border-[#b5b5b5]">
+            <div className="bg-[#d6e4f5] px-3 py-1.5 border-b border-[#b5b5b5] flex items-center justify-between">
+              <span className="font-bold text-[15px] text-[#1c3a5e]">Certification Statement</span>
+              <button type="button" onClick={handleDownloadPdf}
+                className="flex items-center gap-1.5 px-3 py-1 text-[13px] bg-[#3b6ea5] text-white rounded hover:bg-[#2a5080] transition-colors">
+                <Download size={14} />Download PDF
+              </button>
+            </div>
+            <div className="overflow-x-auto overflow-y-auto lg:max-h-[calc(100vh-300px)]">
+              <table ref={viewRef} className="w-full border-collapse table-fixed text-[13px]" style={{ minWidth: 1300 }}>
+                <thead className="sticky top-0 z-20">
+                  {/* Row 1: group headers driven by viewOrder */}
+                  <tr className="bg-[#1c3a5e] text-white text-center">
+                    {viewOrder.map((colId) => {
+                      const col = CERT_VIEW_COLS.find((c) => c.id === colId);
+                      if (col.colSpan) {
+                        return (
+                          <th key={colId} colSpan={col.colSpan}
+                            {...viewThProps(colId, `border border-[#0f2540] py-1 ${col.groupBg} ${col.thClass}`)}>
+                            {col.label}
+                          </th>
+                        );
+                      }
+                      return (
+                        <th key={colId} rowSpan={2}
+                          {...viewThProps(colId, `border border-[#0f2540] py-1.5 px-2 ${col.thClass}`)}>
+                          {col.label}
+                        </th>
+                      );
+                    })}
+                  </tr>
+                  {/* Row 2: sub-headers for groups */}
+                  <tr className="bg-[#3b6ea5] text-white text-center text-[12px]">
+                    {viewOrder.filter((id) => id === "certQtyGrp" || id === "certAmtGrp").map((colId) =>
+                      colId === "certQtyGrp" ? (
+                        <>
+                          <th key="prevQty-h" className="border border-[#2a5080] py-1 px-1 w-[90px]">Previous</th>
+                          <th key="thisQty-h" className="border border-[#2a5080] py-1 px-1 w-[90px]">This Bill</th>
+                          <th key="cumQty-h"  className="border border-[#2a5080] py-1 px-1 w-[90px]">Cumulative</th>
+                        </>
+                      ) : (
+                        <>
+                          <th key="prevAmt-h" className="border border-[#2a5080] py-1 px-1 w-[105px] bg-[#2d6e47]">Previous</th>
+                          <th key="thisAmt-h" className="border border-[#2a5080] py-1 px-1 w-[105px] bg-[#2d6e47]">This Bill</th>
+                          <th key="cumAmt-h"  className="border border-[#2a5080] py-1 px-1 w-[105px] bg-[#2d6e47]">Cumulative</th>
+                        </>
+                      )
+                    )}
+                  </tr>
+                </thead>
+                <tbody>
+                  {watchedItems.length === 0 && (
+                    <tr>
+                      <td colSpan={viewOrder.reduce((n, id) => n + (CERT_VIEW_COLS.find(c=>c.id===id)?.colSpan||1), 0)}
+                        className="text-center text-[#888] py-8 italic border border-[#ccc]">No items</td>
+                    </tr>
+                  )}
+                  {watchedItems.map((item, index) => {
+                    const preCertQty  = Number(item?.preCertifiedQty    || 0);
+                    const certQty     = Number(item?.certifiedQty       || 0);
+                    const cumQty      = preCertQty + certQty;
+                    const rate        = Number(item?.rate               || 0);
+                    const gstPct      = Number(item?.gstPercent         || 0);
+                    const preCertAmt  = Number(item?.preCertifiedAmount || 0);
+                    const thisAmt     = certQty * rate;
+                    const cumAmt      = preCertAmt + thisAmt;
+                    const gstAmt      = thisAmt * gstPct / 100;
+                    const rowBg       = index % 2 === 0 ? "bg-white" : "bg-[#f5f8fc]";
+
+                    const viewCell = (colId) => {
+                      switch (colId) {
+                        case "sl":       return <td key={colId} className="border border-[#ccc] text-center align-middle font-medium bg-[#edf4fb]">{index + 1}</td>;
+                        case "itemCode": return <td key={colId} className="border border-[#ccc] px-2 align-middle text-[#555]">{item?.itemDisplayCode || item?.itemCode || "—"}</td>;
+                        case "itemName": return (
+                          <td key={colId} className="border border-[#ccc] p-0">
+                            <ExpandableTextCell value={item?.itemName || ""} onChange={() => {}} disabled label="Item Name" placeholder="—" textSize="text-[13px] font-medium" />
+                            {item?.itemDescription && <ExpandableTextCell value={item.itemDescription} onChange={() => {}} disabled label="Description" placeholder="" />}
+                          </td>
+                        );
+                        case "orderQty": return <td key={colId} className="border border-[#ccc] px-2 text-right align-middle text-[#555]">{Number(item?.orderQty||0)>0 ? formatQtyDisplay(Number(item?.orderQty||0)) : "—"}</td>;
+                        case "unit":     return <td key={colId} className="border border-[#ccc] text-center align-middle text-[#555]">{item?.unit || "—"}</td>;
+                        case "rate":     return <td key={colId} className="border border-[#ccc] px-2 text-right align-middle text-[#555]">{formatAmount(rate)}</td>;
+                        case "certQtyGrp": return (
+                          <>
+                            <td key="prevQty" className="border border-[#ccc] px-2 text-right align-middle bg-[#f0f4f8]">{preCertQty>0 ? formatQtyDisplay(preCertQty) : "—"}</td>
+                            <td key="thisQty" className="border border-[#ccc] px-2 text-right align-middle font-medium bg-[#e8f0f8]">{certQty>0 ? formatQtyDisplay(certQty) : "—"}</td>
+                            <td key="cumQty"  className="border border-[#ccc] px-2 text-right align-middle font-semibold bg-[#dce8f5]">{cumQty>0 ? formatQtyDisplay(cumQty) : "—"}</td>
+                          </>
+                        );
+                        case "gstPct":   return <td key={colId} className="border border-[#ccc] px-2 text-right align-middle text-[#555]">{gstPct>0 ? `${gstPct}%` : "—"}</td>;
+                        case "gstAmt":   return <td key={colId} className="border border-[#ccc] px-2 text-right align-middle font-medium">{gstAmt>0 ? formatAmount(gstAmt) : "—"}</td>;
+                        case "certAmtGrp": return (
+                          <>
+                            <td key="prevAmt" className="border border-[#ccc] px-2 text-right align-middle bg-[#f0f7f2]">{preCertAmt>0 ? formatAmount(preCertAmt) : "—"}</td>
+                            <td key="thisAmt" className="border border-[#ccc] px-2 text-right align-middle font-medium bg-[#e4f2ea]">{thisAmt>0 ? formatAmount(thisAmt) : "—"}</td>
+                            <td key="cumAmt"  className="border border-[#ccc] px-2 text-right align-middle font-semibold bg-[#d6edde]">{cumAmt>0 ? formatAmount(cumAmt) : "—"}</td>
+                          </>
+                        );
+                        default: return null;
+                      }
+                    };
+
+                    return (
+                      <tr key={index} className={rowBg}>
+                        {viewOrder.map((colId) => viewCell(colId))}
+                      </tr>
+                    );
+                  })}
+                </tbody>
+                <tfoot className="sticky bottom-0 z-10">
+                  <tr className="bg-[#b7d5f0] font-bold text-[13px]">
+                    {viewOrder.map((colId) => {
+                      switch (colId) {
+                        case "sl":       return <td key={colId} className="border border-[#9ec5e0]" />;
+                        case "itemCode": return <td key={colId} className="border border-[#9ec5e0]" />;
+                        case "itemName": return <td key={colId} className="border border-[#9ec5e0] px-2 text-right text-[#1c3a5e]">TOTAL</td>;
+                        case "orderQty": return <td key={colId} className="border border-[#9ec5e0] px-2 text-right whitespace-nowrap">{formatQtyDisplay(vtotOrderQty)}</td>;
+                        case "unit":     return <td key={colId} className="border border-[#9ec5e0]" />;
+                        case "rate":     return <td key={colId} className="border border-[#9ec5e0]" />;
+                        case "certQtyGrp": return (
+                          <>
+                            <td key="fpQ" className="border border-[#9ec5e0] px-2 text-right whitespace-nowrap">{formatQtyDisplay(vtotPrevQty)}</td>
+                            <td key="ftQ" className="border border-[#9ec5e0] px-2 text-right whitespace-nowrap">{formatQtyDisplay(vtotThisQty)}</td>
+                            <td key="fcQ" className="border border-[#9ec5e0] px-2 text-right whitespace-nowrap">{formatQtyDisplay(vtotCumQty)}</td>
+                          </>
+                        );
+                        case "gstPct": return <td key={colId} className="border border-[#9ec5e0]" />;
+                        case "gstAmt": return <td key={colId} className="border border-[#9ec5e0] px-2 text-right whitespace-nowrap">{formatAmount(vtotGstAmt)}</td>;
+                        case "certAmtGrp": return (
+                          <>
+                            <td key="fpA" className="border border-[#9ec5e0] px-2 text-right whitespace-nowrap">{formatAmount(vtotPrevAmt)}</td>
+                            <td key="ftA" className="border border-[#9ec5e0] px-2 text-right whitespace-nowrap">{formatAmount(vtotThisAmt)}</td>
+                            <td key="fcA" className="border border-[#9ec5e0] px-2 text-right whitespace-nowrap">{formatAmount(vtotCumAmt)}</td>
+                          </>
+                        );
+                        default: return null;
+                      }
+                    })}
+                  </tr>
+                </tfoot>
+              </table>
+            </div>
+          </div>
+          )}
 
           {/* ACTION BUTTONS */}
           {!isViewMode && (

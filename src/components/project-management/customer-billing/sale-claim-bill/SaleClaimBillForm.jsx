@@ -38,8 +38,8 @@ const ENTRY_COLS = [
   { id: "itemCode",    label: "Item Code",                 thClass: "w-[100px] text-left px-2" },
   { id: "itemName",    label: "Item Name & Description",   thClass: "text-left px-2" },
   { id: "unit",        label: "Unit",                      thClass: "w-[60px] text-center" },
-  { id: "orderQty",    label: "Order Qty",                 thClass: "w-[90px] text-right px-2" },
   { id: "rate",        label: "Rate",                      thClass: "w-[90px] text-right px-2" },
+  { id: "orderQty",    label: "Order Qty",                 thClass: "w-[90px] text-right px-2" },
   { id: "claimQty",    label: "Claim Qty",                 thClass: "w-[100px] text-right px-2" },
   { id: "gstPct",      label: "GST %",                     thClass: "w-[80px] text-right px-2" },
 ];
@@ -126,6 +126,7 @@ export default function SaleClaimBillForm({ mode = "create", billId, onAfterSubm
   const [useLocations,  setUseLocations]  = useState([]);
   const [lookupLoading, setLookupLoading] = useState(false);
   const [billUuid,      setBillUuid]      = useState("");
+  const [billingNo,     setBillingNo]     = useState("");
 
   const [file,         setFile]         = useState(null);
   const [existingUrl,  setExistingUrl]  = useState("");
@@ -138,7 +139,7 @@ export default function SaleClaimBillForm({ mode = "create", billId, onAfterSubm
 
   const { tableRef: viewRef, getThProps: viewThProps, columnOrder: viewOrder } = useResizableTable({
     columns:    VIEW_GROUP_COLS,
-    storageKey: "saleClaimBillView",
+    storageKey: "saleClaimBillView2",
   });
 
   const {
@@ -273,6 +274,7 @@ export default function SaleClaimBillForm({ mode = "create", billId, onAfterSubm
         setExistingUrl(d.attachment || "");
         setInitialUrl(d.attachment  || "");
         setBillUuid(d.billingUuid || "");
+        setBillingNo(d.billingNo  || "");
         onUuid?.(d.billingUuid || "");
         const editable = ["draft", "reback"].includes((d.workflowStatus || "").toLowerCase());
         if (mode === "edit" && !editable) {
@@ -363,6 +365,7 @@ export default function SaleClaimBillForm({ mode = "create", billId, onAfterSubm
         mode === "create" ? "Sale Bill created successfully" : "Sale Bill updated successfully",
         { id: tid },
       );
+      if (res.data?.billingNo) setBillingNo(res.data.billingNo);
       if (mode === "create") {
         const newId = res.data?.id;
         if (newId) setTimeout(() => router.push(`/project-management/customer-billing/sale-bill-claim/${newId}`), 400);
@@ -567,12 +570,112 @@ export default function SaleClaimBillForm({ mode = "create", billId, onAfterSubm
     return s + a * Number(it?.gstPercent || 0) / 100;
   }, 0);
 
-  const handlePrint = () => {
-    if (billUuid) {
-      window.open(`/print/sale-claim-bill/${billUuid}`, "_blank");
-    } else {
-      toast.error("Save the bill first to generate a PDF");
-    }
+  const handleDownloadPdf = async () => {
+    if (watchedItems.length === 0) { toast.error("No items to export"); return; }
+    const { default: jsPDF } = await import("jspdf");
+    const { default: autoTable } = await import("jspdf-autotable");
+
+    const doc = new jsPDF({ orientation: "landscape", unit: "mm", format: "a3" });
+
+    const billNo = billingNo || `#${billId}` || "draft";
+    const billDt = watch("billingDate") || "—";
+    doc.setFontSize(14);
+    doc.setTextColor(28, 58, 94);
+    doc.text("Certification Statement", 14, 14);
+    doc.setFontSize(9);
+    doc.setTextColor(80, 80, 80);
+    doc.text(`Bill No: ${billNo}   Date: ${billDt}`, 14, 20);
+
+    const head = [
+      [
+        { content: "SL",        rowSpan: 2, styles: { halign: "center", valign: "middle" } },
+        { content: "Item Code", rowSpan: 2, styles: { halign: "center", valign: "middle" } },
+        { content: "Item Name", rowSpan: 2, styles: { halign: "left",   valign: "middle" } },
+        { content: "Order Qty", rowSpan: 2, styles: { halign: "center", valign: "middle" } },
+        { content: "Unit",      rowSpan: 2, styles: { halign: "center", valign: "middle" } },
+        { content: "Rate",      rowSpan: 2, styles: { halign: "right",  valign: "middle" } },
+        { content: "Claim Quantity", colSpan: 3, styles: { halign: "center", fillColor: [37, 80, 122] } },
+        { content: "GST %",     rowSpan: 2, styles: { halign: "center", valign: "middle" } },
+        { content: "GST Amount",rowSpan: 2, styles: { halign: "right",  valign: "middle" } },
+        { content: "Claim Amount",   colSpan: 3, styles: { halign: "center", fillColor: [26, 77, 46] } },
+      ],
+      [
+        { content: "Prev Certified", styles: { halign: "right", fillColor: [59, 110, 165] } },
+        { content: "This Claim",     styles: { halign: "right", fillColor: [59, 110, 165] } },
+        { content: "Cumulative",     styles: { halign: "right", fillColor: [59, 110, 165] } },
+        { content: "Prev Certified", styles: { halign: "right", fillColor: [45, 110, 71] } },
+        { content: "This Claim",     styles: { halign: "right", fillColor: [45, 110, 71] } },
+        { content: "Cumulative",     styles: { halign: "right", fillColor: [45, 110, 71] } },
+      ],
+    ];
+
+    const body = watchedItems.map((it, i) => {
+      const certQty    = Number(it?.certifiedQty    || 0);
+      const claimQty   = Number(it?.claimQty        || 0);
+      const cumQty     = certQty + claimQty;
+      const rate       = Number(it?.rate            || 0);
+      const gstPct     = Number(it?.gstPercent      || 0);
+      const certAmt    = Number(it?.certifiedAmount || 0);
+      const thisBillAmt= claimQty * rate;
+      const cumAmt     = certAmt + thisBillAmt;
+      const gstAmt     = thisBillAmt * gstPct / 100;
+      return [
+        i + 1,
+        it?.itemDisplayCode || it?.itemCode || "—",
+        `${it?.itemName || ""}${it?.itemDescription ? `\n${it.itemDescription}` : ""}`,
+        Number(it?.orderQty || 0) > 0 ? formatQtyDisplay(Number(it.orderQty)) : "—",
+        it?.unit || "—",
+        formatAmount(rate),
+        certQty    > 0 ? formatQtyDisplay(certQty)    : "—",
+        claimQty   > 0 ? formatQtyDisplay(claimQty)   : "—",
+        formatQtyDisplay(cumQty),
+        gstPct     > 0 ? `${gstPct}%`                 : "—",
+        gstAmt     > 0 ? formatAmount(gstAmt)          : "—",
+        certAmt    > 0 ? formatAmount(certAmt)         : "—",
+        thisBillAmt> 0 ? formatAmount(thisBillAmt)     : "—",
+        cumAmt     > 0 ? formatAmount(cumAmt)          : "—",
+      ];
+    });
+
+    body.push([
+      { content: "TOTAL", colSpan: 6, styles: { fontStyle: "bold", halign: "right", fillColor: [183, 213, 240] } },
+      { content: formatQtyDisplay(vtotPrevQty), styles: { fontStyle: "bold", halign: "right", fillColor: [183, 213, 240] } },
+      { content: formatQtyDisplay(vtotThisQty), styles: { fontStyle: "bold", halign: "right", fillColor: [183, 213, 240] } },
+      { content: formatQtyDisplay(vtotCumQty),  styles: { fontStyle: "bold", halign: "right", fillColor: [183, 213, 240] } },
+      { content: "",                             styles: { fillColor: [183, 213, 240] } },
+      { content: formatAmount(vtotGstAmt),       styles: { fontStyle: "bold", halign: "right", fillColor: [183, 213, 240] } },
+      { content: formatAmount(vtotPrevAmt),      styles: { fontStyle: "bold", halign: "right", fillColor: [183, 213, 240] } },
+      { content: formatAmount(vtotThisAmt),      styles: { fontStyle: "bold", halign: "right", fillColor: [183, 213, 240] } },
+      { content: formatAmount(vtotCumAmt),       styles: { fontStyle: "bold", halign: "right", fillColor: [183, 213, 240] } },
+    ]);
+
+    autoTable(doc, {
+      head,
+      body,
+      startY: 25,
+      theme: "grid",
+      headStyles: { fillColor: [28, 58, 94], textColor: 255, fontStyle: "bold", fontSize: 8, valign: "middle" },
+      bodyStyles: { fontSize: 8, valign: "middle" },
+      columnStyles: {
+        0: { cellWidth: 8,  halign: "center" },
+        1: { cellWidth: 20, halign: "left"   },
+        2: { cellWidth: 55, halign: "left"   },
+        3: { cellWidth: 18, halign: "right"  },
+        4: { cellWidth: 14, halign: "center" },
+        5: { cellWidth: 18, halign: "right"  },
+        6: { cellWidth: 22, halign: "right"  },
+        7: { cellWidth: 22, halign: "right"  },
+        8: { cellWidth: 22, halign: "right"  },
+        9: { cellWidth: 14, halign: "right"  },
+        10:{ cellWidth: 22, halign: "right"  },
+        11:{ cellWidth: 22, halign: "right"  },
+        12:{ cellWidth: 22, halign: "right"  },
+        13:{ cellWidth: 22, halign: "right"  },
+      },
+      alternateRowStyles: { fillColor: [245, 248, 252] },
+    });
+
+    doc.save(`claim-statement-${billNo}.pdf`);
   };
 
   const viewTableJsx = (
@@ -582,7 +685,7 @@ export default function SaleClaimBillForm({ mode = "create", billId, onAfterSubm
           <span className="font-bold text-[15px] text-[#1c3a5e]">Certification Statement</span>
           <button
             type="button"
-            onClick={handlePrint}
+            onClick={handleDownloadPdf}
             className="flex items-center gap-1.5 px-3 py-1 text-[13px] bg-[#3b6ea5] text-white rounded hover:bg-[#2a5080] transition-colors"
           >
             <Download size={14} />
