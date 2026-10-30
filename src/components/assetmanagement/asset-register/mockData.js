@@ -62,6 +62,24 @@ export const ASSET_CATEGORIES = [
   "Office Equipment",
 ];
 
+export const ASSET_GROUPS = [
+  "Heavy Equipment",
+  "Light Equipment",
+  "Computing",
+  "Furniture",
+  "Vehicle",
+  "Electrical",
+  "Civil",
+  "Safety",
+  "Other",
+];
+
+export const OWNERSHIP_TYPES = [
+  { value: "owned",  label: "Owned" },
+  { value: "hired",  label: "Hired" },
+  { value: "leased", label: "Leased" },
+];
+
 // ─── Mock Depreciation Methods ────────────────────────────────────────────────
 export const DEPRECIATION_METHODS = [
   { value: "SLM", label: "Straight Line Method (SLM)" },

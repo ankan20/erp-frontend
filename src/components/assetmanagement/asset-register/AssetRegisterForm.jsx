@@ -16,6 +16,8 @@ import AssetStatusBadge from "./components/AssetStatusBadge";
 import {
   MOCK_ASSETS,
   ASSET_CATEGORIES,
+  ASSET_GROUPS,
+  OWNERSHIP_TYPES,
   DEPRECIATION_METHODS,
   MOCK_LOCATIONS,
   MOCK_COST_CENTERS,
@@ -55,21 +57,33 @@ function SectionTitle({ title, children }) {
 const EMPTY_FORM = {
   assetRegNo: "",
   regDate: new Date().toISOString().split("T")[0],
+  qrCode: "",
+  ownershipType: "owned",
   grnNo: "",
   grnDate: "",
   partyName: "",
   orderNo: "",
+  invoiceNo: "",
   trackingType: "individual",
   assetId: "",
   assetName: "",
+  assetGroup: "",
   category: "",
+  subcategory: "",
   itemCode: "",
   make: "",
   modelNo: "",
   serialNo: "",
+  weight: "",
+  fuelConsumption: "",
   hsnSac: "",
   unit: "",
   batchQty: "",
+  registrationValidity: "",
+  pucValidity: "",
+  mvTaxValidity: "",
+  insuranceValidity: "",
+  warrantyExpiry: "",
   purchaseDate: new Date().toISOString().split("T")[0],
   purchaseValue: "",
   gstAmount: "",
@@ -77,6 +91,7 @@ const EMPTY_FORM = {
   depreciationMethod: "SLM",
   depreciationRate: "",
   usefulLife: "",
+  writtenDownValue: "",
   location: "",
   costCenter: "",
   department: "",
@@ -116,21 +131,33 @@ export default function AssetRegisterForm({ mode = "create", assetId: routeId, o
         setForm({
           assetRegNo: found.assetRegNo,
           regDate: found.regDate,
+          qrCode: found.qrCode || "",
+          ownershipType: found.ownershipType || "owned",
           grnNo: found.grnNo,
           grnDate: found.grnDate,
           partyName: found.partyName,
-          orderNo: "",
+          orderNo: found.orderNo || "",
+          invoiceNo: found.invoiceNo || "",
           trackingType: found.trackingType,
           assetId: found.assetId,
           assetName: found.assetName,
+          assetGroup: found.assetGroup || "",
           category: found.category,
+          subcategory: found.subcategory || "",
           itemCode: found.itemCode,
           make: found.make || "",
           modelNo: found.modelNo || "",
           serialNo: found.serialNo || "",
+          weight: found.weight || "",
+          fuelConsumption: found.fuelConsumption || "",
           hsnSac: found.hsnSac || "",
           unit: found.unit || "",
           batchQty: found.batchQty || "",
+          registrationValidity: found.registrationValidity || "",
+          pucValidity: found.pucValidity || "",
+          mvTaxValidity: found.mvTaxValidity || "",
+          insuranceValidity: found.insuranceValidity || "",
+          warrantyExpiry: found.warrantyExpiry || "",
           purchaseDate: found.purchaseDate,
           purchaseValue: found.purchaseValue,
           gstAmount: found.gstAmount,
@@ -138,13 +165,14 @@ export default function AssetRegisterForm({ mode = "create", assetId: routeId, o
           depreciationMethod: found.depreciationMethod || "SLM",
           depreciationRate: found.depreciationRate || "",
           usefulLife: found.usefulLife || "",
+          writtenDownValue: found.writtenDownValue || "",
           location: found.location || "",
           costCenter: found.costCenter || "",
           department: found.department || "",
           assignedTo: found.assignedTo || "",
           custodian: found.custodian || "",
           status: found.status || "active",
-          remarks: "",
+          remarks: found.remarks || "",
         });
         setBatchItems(found.batchItems || []);
         setActivities(found.activities || []);
@@ -305,6 +333,12 @@ export default function AssetRegisterForm({ mode = "create", assetId: routeId, o
                 ? <DateInput value={form.regDate} onChange={setField("regDate")} />
                 : <DateDisplay value={form.regDate} />}
             </FieldRow>
+            <FieldRow label="QR Code / Barcode">
+              <TextInput value={form.qrCode} onChange={setField("qrCode")} disabled={!isEditing} placeholder="Scan or enter barcode" />
+            </FieldRow>
+            <FieldRow label="Ownership Type" required>
+              <SelectInput value={form.ownershipType} onChange={setField("ownershipType")} options={OWNERSHIP_TYPES} disabled={!isEditing} />
+            </FieldRow>
             <FieldRow label="Project Code">
               <TextInput value={projectCode} readOnly />
             </FieldRow>
@@ -325,8 +359,14 @@ export default function AssetRegisterForm({ mode = "create", assetId: routeId, o
             <FieldRow label="GRN Date">
               <DateDisplay value={form.grnDate} />
             </FieldRow>
-            <FieldRow label="Party / Supplier">
+            <FieldRow label="PO Reference">
+              <TextInput value={form.orderNo} onChange={setField("orderNo")} disabled={!isEditing} placeholder="PO number" />
+            </FieldRow>
+            <FieldRow label="Supplier Name">
               <TextInput value={form.partyName} readOnly />
+            </FieldRow>
+            <FieldRow label="Invoice Number">
+              <TextInput value={form.invoiceNo} onChange={setField("invoiceNo")} disabled={!isEditing} placeholder="Invoice number" />
             </FieldRow>
           </div>
         </div>
@@ -376,6 +416,14 @@ export default function AssetRegisterForm({ mode = "create", assetId: routeId, o
               </div>
             </FieldRow>
 
+            <FieldRow label="Asset Name / Description" required>
+              <TextInput value={form.assetName} onChange={setField("assetName")} disabled={!isEditing} placeholder="Enter asset name" />
+            </FieldRow>
+
+            <FieldRow label="Asset Group">
+              <SelectInput value={form.assetGroup} onChange={setField("assetGroup")} options={ASSET_GROUPS} disabled={!isEditing} />
+            </FieldRow>
+
             <FieldRow label="Asset Category" required>
               <SelectInput
                 value={form.category}
@@ -388,12 +436,8 @@ export default function AssetRegisterForm({ mode = "create", assetId: routeId, o
               />
             </FieldRow>
 
-            <FieldRow label="Asset Name / Description" required>
-              <TextInput value={form.assetName} onChange={setField("assetName")} disabled={!isEditing} placeholder="Enter asset name" />
-            </FieldRow>
-
-            <FieldRow label="Item Code">
-              <TextInput value={form.itemCode} onChange={setField("itemCode")} disabled={!isEditing} placeholder="Item code" />
+            <FieldRow label="Subcategory">
+              <TextInput value={form.subcategory} onChange={setField("subcategory")} disabled={!isEditing} placeholder="Enter subcategory" />
             </FieldRow>
 
             <FieldRow label="Make / Brand">
@@ -416,6 +460,18 @@ export default function AssetRegisterForm({ mode = "create", assetId: routeId, o
               </FieldRow>
             )}
 
+            <FieldRow label="Weight">
+              <TextInput value={form.weight} onChange={setField("weight")} disabled={!isEditing} placeholder="e.g. 500 kg" />
+            </FieldRow>
+
+            <FieldRow label="Fuel Consumption /Hr.">
+              <TextInput value={form.fuelConsumption} onChange={setField("fuelConsumption")} disabled={!isEditing} placeholder="e.g. 5 L/hr" />
+            </FieldRow>
+
+            <FieldRow label="Item Code">
+              <TextInput value={form.itemCode} onChange={setField("itemCode")} disabled={!isEditing} placeholder="Item code" />
+            </FieldRow>
+
             <FieldRow label="HSN / SAC Code">
               <TextInput value={form.hsnSac} onChange={setField("hsnSac")} disabled={!isEditing} placeholder="HSN code" />
             </FieldRow>
@@ -434,6 +490,38 @@ export default function AssetRegisterForm({ mode = "create", assetId: routeId, o
               <BatchAssetTable items={batchItems} onChange={setBatchItems} isEditing={isEditing} />
             </div>
           )}
+        </div>
+
+        {/* ── SECTION: Validity & Compliance ── */}
+        <div className="border border-gray-200 rounded-lg p-4">
+          <SectionTitle title="Validity & Compliance" />
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-x-6 gap-y-3">
+            <FieldRow label="Registration Validity">
+              {isEditing
+                ? <DateInput value={form.registrationValidity} onChange={setField("registrationValidity")} />
+                : <DateDisplay value={form.registrationValidity} />}
+            </FieldRow>
+            <FieldRow label="PUC Validity">
+              {isEditing
+                ? <DateInput value={form.pucValidity} onChange={setField("pucValidity")} />
+                : <DateDisplay value={form.pucValidity} />}
+            </FieldRow>
+            <FieldRow label="MV Tax Validity">
+              {isEditing
+                ? <DateInput value={form.mvTaxValidity} onChange={setField("mvTaxValidity")} />
+                : <DateDisplay value={form.mvTaxValidity} />}
+            </FieldRow>
+            <FieldRow label="Insurance Validity">
+              {isEditing
+                ? <DateInput value={form.insuranceValidity} onChange={setField("insuranceValidity")} />
+                : <DateDisplay value={form.insuranceValidity} />}
+            </FieldRow>
+            <FieldRow label="Warranty Expiry Date">
+              {isEditing
+                ? <DateInput value={form.warrantyExpiry} onChange={setField("warrantyExpiry")} />
+                : <DateDisplay value={form.warrantyExpiry} />}
+            </FieldRow>
+          </div>
         </div>
 
         {/* ── SECTION: Financial Details ── */}
@@ -470,11 +558,14 @@ export default function AssetRegisterForm({ mode = "create", assetId: routeId, o
 
             {form.depreciationMethod !== "NONE" && (
               <>
-                <FieldRow label="Depreciation Rate (%)">
+                <FieldRow label="Depreciation % /Day">
                   <NumberInput value={form.depreciationRate} onChange={setField("depreciationRate")} disabled={!isEditing} placeholder="e.g. 15" />
                 </FieldRow>
                 <FieldRow label="Useful Life (Years)">
                   <NumberInput value={form.usefulLife} onChange={setField("usefulLife")} disabled={!isEditing} placeholder="e.g. 10" />
+                </FieldRow>
+                <FieldRow label="Written-Down Value (₹)">
+                  <AmountField value={form.writtenDownValue} onChange={setField("writtenDownValue")} disabled={!isEditing} placeholder="0.00" />
                 </FieldRow>
               </>
             )}
