@@ -179,7 +179,7 @@ export default function UncertainAllocationForm({ mode = "create", uaId, onAfter
       }
       setClaimBills(list.map((b) => ({
         ...b,
-        displayLabel: b.billingNo,
+        displayLabel: [b.billingNo, b.billingDate].filter(Boolean).join(" | "),
       })));
     } catch {
       toast.error("Failed to load claim bills");
