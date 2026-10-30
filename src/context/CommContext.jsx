@@ -1,7 +1,7 @@
 "use client";
 
 import { createContext, useContext, useState, useEffect, useRef, useCallback } from "react";
-import { getLocalStorage } from "@/lib/localStorage";
+import { getCookie } from "@/lib/cookies";
 import {
   getConversations,
   getUnreadNotifications,
@@ -15,14 +15,15 @@ export function CommProvider({ children }) {
   const [conversations,      setConversations]      = useState([]);
   const [unreadNotifCount,   setUnreadNotifCount]   = useState(0);
   const [unreadPingCount,    setUnreadPingCount]    = useState(0);
-  const [incomingCall,       setIncomingCall]       = useState(null);   // { callId, callType, roomCode, initiatorName }
-  const [activeCall,         setActiveCall]         = useState(null);   // same shape, set when answered
-  const [chatOpen,           setChatOpen]           = useState(false);
+  const [incomingCall,       setIncomingCall]       = useState(null);
+  const [activeCall,         setActiveCall]         = useState(null);
+  // pickerMode: null | "chat" | "call" | "ping"
+  const [pickerMode,         setPickerMode]         = useState(null);
   const [activeChatConvId,   setActiveChatConvId]   = useState(null);
   const pollRef = useRef(null);
 
   const myId = () => {
-    try { return Number(getLocalStorage("userId")) || null; } catch { return null; }
+    try { return Number(getCookie("userId")) || null; } catch { return null; }
   };
 
   const refresh = useCallback(async () => {
@@ -63,13 +64,13 @@ export function CommProvider({ children }) {
     return () => clearInterval(pollRef.current);
   }, [refresh]);
 
-  const openChat = (convId = null) => {
-    setChatOpen(true);
-    setActiveChatConvId(convId);
+  const openPicker = (mode, convId = null) => {
+    setPickerMode(mode);
+    if (convId) setActiveChatConvId(convId);
   };
 
-  const closeChat = () => {
-    setChatOpen(false);
+  const closePicker = () => {
+    setPickerMode(null);
     setActiveChatConvId(null);
   };
 
@@ -90,14 +91,18 @@ export function CommProvider({ children }) {
       unreadPingCount,
       incomingCall,
       activeCall,
-      chatOpen,
+      pickerMode,
       activeChatConvId,
-      openChat,
-      closeChat,
+      openPicker,
+      closePicker,
       answerIncomingCall,
       endActiveCall,
       refresh,
       setActiveChatConvId,
+      // legacy aliases so AppNavbar/other consumers still work
+      chatOpen: pickerMode === "chat",
+      openChat: (convId) => openPicker("chat", convId),
+      closeChat: () => closePicker(),
     }}>
       {children}
     </CommContext.Provider>

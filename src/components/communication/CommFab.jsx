@@ -1,45 +1,56 @@
 "use client";
 
 import { useState } from "react";
-import { MessageCircle, Phone, Bell, X, Zap } from "lucide-react";
+import { MessageCircle, Phone, X, Zap } from "lucide-react";
 import { useComm } from "@/context/CommContext";
 
 export default function CommFab() {
   const [expanded, setExpanded] = useState(false);
-  const { openChat, unreadNotifCount, unreadPingCount } = useComm();
+  const { openPicker, pickerMode, closePicker, unreadNotifCount, unreadPingCount } = useComm();
 
   const totalBadge = unreadNotifCount + unreadPingCount;
 
+  const open = (mode) => {
+    if (pickerMode === mode) { closePicker(); }
+    else { openPicker(mode); }
+    setExpanded(false);
+  };
+
   return (
     <div className="fixed bottom-6 left-5 z-[9990] flex flex-col-reverse items-start gap-3">
-      {/* Sub-action buttons (visible when expanded) */}
       {expanded && (
         <>
           <button
-            onClick={() => { openChat(null); setExpanded(false); }}
-            className="flex items-center gap-2 bg-white border border-[#003b8e] text-[#003b8e]
-              rounded-full pl-3 pr-4 py-2 shadow-md hover:bg-[#003b8e] hover:text-white
-              transition text-sm font-medium"
+            onClick={() => open("chat")}
+            className={`flex items-center gap-2 rounded-full pl-3 pr-4 py-2 shadow-md
+              transition text-sm font-medium border
+              ${pickerMode === "chat"
+                ? "bg-[#003b8e] text-white border-[#003b8e]"
+                : "bg-white border-[#003b8e] text-[#003b8e] hover:bg-[#003b8e] hover:text-white"}`}
           >
             <MessageCircle size={16} />
             <span>Chat</span>
           </button>
 
           <button
-            className="flex items-center gap-2 bg-white border border-emerald-600 text-emerald-700
-              rounded-full pl-3 pr-4 py-2 shadow-md hover:bg-emerald-600 hover:text-white
-              transition text-sm font-medium"
-            onClick={() => setExpanded(false)}
+            onClick={() => open("call")}
+            className={`flex items-center gap-2 rounded-full pl-3 pr-4 py-2 shadow-md
+              transition text-sm font-medium border
+              ${pickerMode === "call"
+                ? "bg-emerald-600 text-white border-emerald-600"
+                : "bg-white border-emerald-600 text-emerald-700 hover:bg-emerald-600 hover:text-white"}`}
           >
             <Phone size={16} />
             <span>Call</span>
           </button>
 
           <button
-            className="flex items-center gap-2 bg-white border border-amber-500 text-amber-600
-              rounded-full pl-3 pr-4 py-2 shadow-md hover:bg-amber-500 hover:text-white
-              transition text-sm font-medium"
-            onClick={() => setExpanded(false)}
+            onClick={() => open("ping")}
+            className={`flex items-center gap-2 rounded-full pl-3 pr-4 py-2 shadow-md
+              transition text-sm font-medium border
+              ${pickerMode === "ping"
+                ? "bg-amber-500 text-white border-amber-500"
+                : "bg-white border-amber-500 text-amber-600 hover:bg-amber-500 hover:text-white"}`}
           >
             <Zap size={16} />
             <span>Ping</span>
