@@ -126,7 +126,7 @@ export default function BRBPrintPage() {
             <div className="flex-1 flex flex-col items-center justify-center">
               <h1 className={`${SIZE.pageTitle} ${WEIGHT.bold} tracking-widest text-gray-900 uppercase`}>E-RECONCILE BILL</h1>
               <p className={`${SIZE.sectionTitle} ${WEIGHT.bold} text-gray-900 tracking-widest`}>
-                [BRB — {data.billingType}]
+                [BY {data.billingType === "GRN" ? "GRN" : "SRN"}]
               </p>
             </div>
             <div className="flex flex-col items-end gap-1 shrink-0">
@@ -224,10 +224,34 @@ export default function BRBPrintPage() {
             </div>
           </div>
 
-          {/* ── AUDIT TRAIL ── */}
-          <div className="px-6 pb-6">
-            <SigRow label="BRB Created By" name={data.createdBy}  dateStr={data.createdAt} />
-            <SigRow label="Approved By"    name={data.approvedBy} dateStr={data.finalApprovedAt} />
+          {/* ── AUDIT TRAIL + PHYSICAL SIGNATURES ── */}
+          <div className="px-6 pt-3 pb-5" style={{ display: "grid", gridTemplateColumns: "auto 1fr 1fr", gridTemplateRows: "auto auto auto", columnGap: "32px", rowGap: 0 }}>
+
+            {/* col 1 spans rows 1-2: audit trail */}
+            <div style={{ gridColumn: 1, gridRow: "1 / 3" }}>
+              <SigRow label="BRB Created By" name={data.createdBy}  dateStr={data.createdAt} />
+              <SigRow label="Approved By"    name={data.approvedBy} dateStr={data.finalApprovedAt} />
+            </div>
+
+            {/* row 1 col 2-3: empty space above line */}
+            <div style={{ gridColumn: 2, gridRow: 1 }} />
+            <div style={{ gridColumn: 3, gridRow: 1 }} />
+
+            {/* row 2 col 2-3: the line, aligned with bottom of Approved By */}
+            <div style={{ gridColumn: 2, gridRow: 2, display: "flex", flexDirection: "column", justifyContent: "flex-end" }}>
+              <div style={{ borderTop: "1px solid #1f2937" }} />
+            </div>
+            <div style={{ gridColumn: 3, gridRow: 2, display: "flex", flexDirection: "column", justifyContent: "flex-end" }}>
+              <div style={{ borderTop: "1px solid #1f2937" }} />
+            </div>
+
+            {/* row 3 col 2-3: labels below the line */}
+            {["Verified By", "Prepared By"].map((lbl, i) => (
+              <p key={lbl} style={{ gridColumn: i + 2, gridRow: 3 }}
+                className={`mt-0.5 text-center ${SIZE.labelText} ${WEIGHT.bold} text-gray-800 uppercase tracking-wider`}
+              >{lbl}</p>
+            ))}
+
           </div>
         </div>
       </div>
