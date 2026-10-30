@@ -43,12 +43,12 @@ const CERT_COLS = [
   { id: "orderQty", label: "Order Qty",               thClass: "w-[85px] text-center" },
   { id: "rate",     label: "Rate",                    thClass: "w-[88px] text-center" },
   { id: "unit",     label: "Unit",                    thClass: "w-[60px] text-center" },
-  { id: "qtyGrp",  label: "Quantity",                 thClass: "text-center", colSpan: 3, groupBg: "bg-[#25507a]" },
+  { id: "qtyGrp",  label: "Quantity",                 thClass: "text-center", colSpan: 4, groupBg: "bg-[#25507a]" },
   { id: "amtGrp",  label: "Amount",                   thClass: "text-center", colSpan: 2, groupBg: "bg-[#1a4d2e]" },
   { id: "gstPct",  label: "GST % ✎",                  thClass: "w-[72px] text-center" },
 ];
-// total leaf cols = 7 fixed + 3 + 2 + 1 = 13
-const CERT_TOTAL_COLS = 13;
+// total leaf cols = 7 fixed + 4 + 2 + 1 = 14
+const CERT_TOTAL_COLS = 14;
 
 // View table group-level columns (certQtyGrp / certAmtGrp each expand to 3 sub-columns)
 const CERT_VIEW_COLS = [
@@ -830,6 +830,7 @@ export default function SaleCertifiedBillForm({ mode = "create", billId, onAfter
                     {entryOrder.filter((id) => ["qtyGrp","amtGrp"].includes(id)).map((colId) => {
                       if (colId === "qtyGrp") return (
                         <React.Fragment key={colId}>
+                          <th className="border border-[#2a5080] py-1 px-1 w-[85px]">Claim Qty</th>
                           <th className="border border-[#2a5080] py-1 px-1 w-[85px]">Pre Cert Qty</th>
                           <th className="border border-[#2a5080] py-1 px-1 w-[88px] bg-[#b06010]">Cert Qty ✎</th>
                           <th className="border border-[#2a5080] py-1 px-1 w-[90px]">Total Cert Qty</th>
@@ -922,6 +923,9 @@ export default function SaleCertifiedBillForm({ mode = "create", billId, onAfter
                           return (
                             <React.Fragment key={colId}>
                               <td className="border border-[#ccc] bg-[#f0f4f8] px-2 text-right align-middle text-[#555] whitespace-nowrap">
+                                {claimQty > 0 ? formatQtyDisplay(claimQty) : "—"}
+                              </td>
+                              <td className="border border-[#ccc] bg-[#f0f4f8] px-2 text-right align-middle text-[#555] whitespace-nowrap">
                                 {preCertifiedQty > 0 ? formatQtyDisplay(preCertifiedQty) : "—"}
                                 <input {...register(`items.${index}.preCertifiedQty`)} type="hidden" />
                               </td>
@@ -978,6 +982,7 @@ export default function SaleCertifiedBillForm({ mode = "create", billId, onAfter
                         case "unit":     return <td key={colId} className="border border-[#9ec5e0]" />;
                         case "qtyGrp":  return (
                           <React.Fragment key={colId}>
+                            <td className="border border-[#9ec5e0]" />
                             <td className="border border-[#9ec5e0]" />
                             <td className="border border-[#9ec5e0]" />
                             <td className="border border-[#9ec5e0]" />

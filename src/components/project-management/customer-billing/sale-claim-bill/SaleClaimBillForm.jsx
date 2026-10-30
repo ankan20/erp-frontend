@@ -548,7 +548,7 @@ export default function SaleClaimBillForm({ mode = "create", billId, onAfterSubm
               {entryOrder.map((colId) => {
                 if (colId === "orderQty") return <td key={colId} className="border border-[#9ec5e0] px-2 text-right whitespace-nowrap">{formatQtyDisplay(watchedItems.reduce((s, it) => s + Number(it?.orderQty || 0), 0))}</td>;
                 if (colId === "claimQty") return <td key={colId} className="border border-[#9ec5e0] px-2 text-right whitespace-nowrap">{formatQtyDisplay(watchedItems.reduce((s, it) => s + Number(it?.claimQty || 0), 0))}</td>;
-                if (colId === "rate")     return <td key={colId} className="border border-[#9ec5e0] px-2 text-right text-[#1c3a5e]">TOTAL</td>;
+                if (colId === "rate")     return <td key={colId} className="border border-[#9ec5e0] px-2 text-right whitespace-nowrap">{formatAmount(watchedItems.reduce((s, it) => s + Number(it?.claimQty || 0) * Number(it?.rate || 0), 0))}</td>;
                 return <td key={colId} className="border border-[#9ec5e0]" />;
               })}
             </tr>
