@@ -791,6 +791,16 @@ export const API_ENDPOINTS = {
     INSIGHTS_PROJECT:      "/ai/insights/project",      // POST { project_code }
     CHAT:                  "/ai/chat",                  // POST { query, module? }
   },
+
+  DELETE_MANAGER: {
+    CHECK:          "/delete-manager/check",       // GET  /<module_code>/<record_id>
+    RAISE_REQUEST:  "/delete-manager/request",     // POST /<module_code>/<record_id>  body: { reason }
+    LIST_REQUESTS:  "/delete-manager/requests",    // GET  ?module_code&project_code&status&page&per_page
+    GET_REQUEST:    "/delete-manager/requests",    // GET  /<dr_id>
+    CANCEL_REQUEST: "/delete-manager/requests",    // DELETE /<dr_id>
+    NOTIFICATIONS:  "/delete-manager/notifications", // GET ?module_code&status&wa_sent_only&page&per_page
+    MY_REQUESTS:    "/delete-manager/my-requests", // GET ?status&module_code&page&per_page
+  },
 };
 
 export default API_BASE_URL;
