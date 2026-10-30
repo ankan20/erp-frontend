@@ -23,6 +23,7 @@ import { API_ENDPOINTS }   from "@/config/api.config";
 import { getLocalStorage } from "@/lib/localStorage";
 import { formatAmount }    from "@/helper/numberFormatter";
 import AmountInput         from "@/components/common/AmountInput";
+import QtyInput            from "@/components/common/QtyInput";
 import ExpandableTextField  from "@/components/common/ExpandableTextField";
 import { useColumnResize } from "@/hooks/useColumnResize";
 
@@ -626,13 +627,22 @@ export default function UncertainAllocationForm({ mode = "create", uaId, onAfter
                                 {(Number(l.boqQty || 0) - Number(l.certifiedQty || 0)).toLocaleString(undefined, { maximumFractionDigits: 4 })}
                               </td>
 
-                              {/* Over Billing */}
+                              {/* Over Billing — allows negative */}
                               <td className={`border border-gray-200 p-0.5 ${OB_CELL}`}>
-                                <AmountInput
+                                <input
+                                  type="text"
+                                  inputMode="decimal"
                                   value={l.overBillingCalculationMistake ?? ""}
                                   disabled={!isEditing}
-                                  onChange={(e) => updateLine(idx, "overBillingCalculationMistake", e.target.value)}
-                                  placeholder="0.00"
+                                  onChange={(e) => {
+                                    const raw = e.target.value;
+                                    const isNeg = raw.startsWith("-");
+                                    const cleaned = raw.replace(/[^\d.]/g, "");
+                                    const [whole, ...rest] = cleaned.split(".");
+                                    const sanitized = rest.length === 0 ? whole : `${whole}.${rest.join("").slice(0, 3)}`;
+                                    updateLine(idx, "overBillingCalculationMistake", isNeg ? (sanitized ? `-${sanitized}` : "-") : sanitized);
+                                  }}
+                                  placeholder="—"
                                   className={`w-full h-[24px] text-[11px] px-1.5 text-right rounded-sm border-0 outline-none focus-visible:ring-0 ${isEditing ? "bg-white/80 focus:bg-white" : "bg-transparent"}`}
                                 />
                               </td>
@@ -640,11 +650,11 @@ export default function UncertainAllocationForm({ mode = "create", uaId, onAfter
                               {/* Uncertified Statement cells */}
                               {["certifiedHoldAmendmentPending", "nonBoqItemsRate", "holdWork", "holdForFullWorkNotCompleted"].map((field) => (
                                 <td key={field} className={`border border-gray-200 p-0.5 ${UC_CELL}`}>
-                                  <AmountInput
+                                  <QtyInput
                                     value={l[field] ?? ""}
                                     disabled={!isEditing}
                                     onChange={(e) => updateLine(idx, field, e.target.value)}
-                                    placeholder="0.00"
+                                    placeholder="—"
                                     className={`w-full h-[24px] text-[11px] px-1.5 text-right rounded-sm border-0 outline-none focus-visible:ring-0 ${isEditing ? "bg-white/80 focus:bg-white" : "bg-transparent"}`}
                                   />
                                 </td>

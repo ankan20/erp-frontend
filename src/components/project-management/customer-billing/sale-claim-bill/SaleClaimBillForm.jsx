@@ -724,7 +724,7 @@ export default function SaleClaimBillForm({ mode = "create", billId, onAfterSubm
                   colId === "certQty" ? (
                     <>
                       <th key="prevQty-h" className="border border-[#2a5080] py-1 px-1 w-[90px]">Previous</th>
-                      <th key="thisQty-h" className="border border-[#2a5080] py-1 px-1 w-[90px]">This Bill</th>
+                      <th key="thisQty-h" className="border border-[#2a5080] py-1 px-1 w-[90px] bg-[#b06010]">This Bill ✎</th>
                       <th key="cumQty-h"  className="border border-[#2a5080] py-1 px-1 w-[90px]">Cumulative</th>
                     </>
                   ) : (
@@ -775,7 +775,13 @@ export default function SaleClaimBillForm({ mode = "create", billId, onAfterSubm
                     case "certQty":  return (
                       <>
                         <td key="prevQty" className="border border-[#ccc] px-2 text-right align-middle bg-[#f0f4f8]">{certQty > 0 ? formatQtyDisplay(certQty) : "—"}</td>
-                        <td key="thisQty" className="border border-[#ccc] px-2 text-right align-middle font-medium bg-[#e8f0f8]">{claimQty > 0 ? formatQtyDisplay(claimQty) : "—"}</td>
+                        <td key="thisQty" className="border border-[#ccc] p-0 align-middle bg-[#fff8f0]">
+                          <Controller control={control} name={`items.${index}.claimQty`}
+                            render={({ field: f }) => (
+                              <QtyInput {...f} onChange={(e) => f.onChange(e.target.value)} disabled={disabled} placeholder="0"
+                                className={`${getInputClass(errors?.items?.[index]?.claimQty, disabled)} border-0 rounded-none w-full h-[30px] text-right pr-2 text-[13px]`} />
+                            )} />
+                        </td>
                         <td key="cumQty"  className="border border-[#ccc] px-2 text-right align-middle font-semibold bg-[#dce8f5]">{cumQty > 0 ? formatQtyDisplay(cumQty) : "—"}</td>
                       </>
                     );
@@ -809,12 +815,12 @@ export default function SaleClaimBillForm({ mode = "create", billId, onAfterSubm
                     case "itemName":return <td key={colId} className="border border-[#9ec5e0] px-2 text-right text-[#1c3a5e]">TOTAL AMOUNT (BASIC)</td>;
                     case "orderQty":return <td key={colId} className="border border-[#9ec5e0] px-2 text-right whitespace-nowrap">{formatQtyDisplay(watchedItems.reduce((s,it)=>s+Number(it?.orderQty||0),0))}</td>;
                     case "unit":    return <td key={colId} className="border border-[#9ec5e0]" />;
-                    case "rate":    return <td key={colId} className="border border-[#9ec5e0]" />;
+                    case "rate":    return <td key={colId} className="border border-[#9ec5e0] px-2 text-right whitespace-nowrap">{formatAmount(watchedItems.reduce((s,it)=>s+Number(it?.orderQty||0)*Number(it?.rate||0),0))}</td>;
                     case "certQty": return (
                       <>
-                        <td key="fprevQty" className="border border-[#9ec5e0] px-2 text-right whitespace-nowrap">{formatQtyDisplay(vtotPrevQty)}</td>
-                        <td key="fthisQty" className="border border-[#9ec5e0] px-2 text-right whitespace-nowrap">{formatQtyDisplay(vtotThisQty)}</td>
-                        <td key="fcumQty"  className="border border-[#9ec5e0] px-2 text-right whitespace-nowrap">{formatQtyDisplay(vtotCumQty)}</td>
+                        <td key="fprevQty" className="border border-[#9ec5e0]" />
+                        <td key="fthisQty" className="border border-[#9ec5e0]" />
+                        <td key="fcumQty"  className="border border-[#9ec5e0]" />
                       </>
                     );
                     case "gstPct":  return <td key={colId} className="border border-[#9ec5e0]" />;
@@ -969,9 +975,7 @@ export default function SaleClaimBillForm({ mode = "create", billId, onAfterSubm
         {/* ── RIGHT PANEL ─────────────────────────────────────────────────────── */}
         <div className="w-full lg:flex-1 min-w-0">
 
-          {tabBarJsx}
-
-          {activeTab === "entry" ? entryTableJsx : viewTableJsx}
+          {viewTableJsx}
 
           {/* ACTION BUTTONS */}
           {!isViewMode && (
