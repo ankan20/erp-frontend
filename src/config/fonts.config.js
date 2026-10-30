@@ -28,8 +28,9 @@ export const APP_FONT_MONO = Geist_Mono({
 export const HEADING_FONT = Playfair_Display({
   variable: "--font-playfair",
   subsets: ["latin"],
-  weight: ["400", "500", "600", "700"],
   display: "swap",
+  // Playfair Display is a variable font (wght 400–900) — no weight array needed.
+  // Turbopack 16 rejects arrays of weights in next/font/google.
 });
 
 export const PRINT_FONT = Geist({
