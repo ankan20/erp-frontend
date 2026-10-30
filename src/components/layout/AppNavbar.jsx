@@ -16,6 +16,7 @@ import SearchableSelect from "@/components/common/SearchableSelect";
 import { apiRequest } from "@/lib/apiClient";
 import { API_ENDPOINTS } from "@/config/api.config";
 import { User, LogOut } from "lucide-react";
+import { useComm } from "@/context/CommContext";
 import { ROLE, roleMap } from "@/config/role.config";
 
 function NavTooltip({ label, children }) {
@@ -45,6 +46,8 @@ export default function AppNavbar() {
   // const projectRef = useRef(null);
   const profileRef = useRef(null);
   const [showProfile, setShowProfile] = useState(false);
+  // CommProvider is always an ancestor in the protected layout — safe to call here
+  const comm = useComm();
 
   // Lazy initialisers read localStorage/cookies once on client mount — no effect needed
   const [projectInfo] = useState(() => {
@@ -327,6 +330,9 @@ export default function AppNavbar() {
             >
               <User size={20} />
             </button>
+            {/* Online indicator */}
+            <span className="absolute bottom-0.5 right-0.5 w-3 h-3 bg-emerald-500 rounded-full
+              border-2 border-white" title="Online" />
 
             {showProfile && (
               <div

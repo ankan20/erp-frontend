@@ -5,6 +5,10 @@ import ProtectedLayoutAuth from "@/components/common/ProtectedLayoutAuth";
 import AppNavbar from "@/components/layout/AppNavbar";
 import AppSidebar from "@/components/layout/AppSidebar";
 import { NavigationHistoryProvider } from "@/context/NavigationHistoryContext";
+import { CommProvider } from "@/context/CommContext";
+import CommFab from "@/components/communication/CommFab";
+import ChatFloat from "@/components/communication/ChatFloat";
+import CallPopup from "@/components/communication/CallPopup";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
 
@@ -16,36 +20,43 @@ export default function ProtectedLayout({ children }) {
   return (
     <NavigationHistoryProvider>
     <ProtectedLayoutAuth>
-      <div className="h-screen flex flex-col bg-[#f5f5f5]">
+      <CommProvider>
+        <div className="h-screen flex flex-col bg-[#f5f5f5]">
 
-        {/* NAVBAR (AUTO HEIGHT) */}
-        <div className="w-full bg-white z-50">
-          <AppNavbar />
-        </div>
-
-        {/* BELOW NAVBAR */}
-        <div className="flex flex-1 overflow-hidden">
-
-          {/* SIDEBAR */}
-          {!isHome && (
-            <div
-              className={`
-                ${collapsed ? "w-[50px]" : "w-[240px]"}
-                transition-all duration-300
-                h-full
-              `}
-            >
-              <AppSidebar collapsed={collapsed} setCollapsed={setCollapsed} />
-            </div>
-          )}
-
-          {/* MAIN CONTENT */}
-          <div className="flex-1 overflow-auto ">
-            {children}
+          {/* NAVBAR (AUTO HEIGHT) */}
+          <div className="w-full bg-white z-50">
+            <AppNavbar />
           </div>
 
+          {/* BELOW NAVBAR */}
+          <div className="flex flex-1 overflow-hidden">
+
+            {/* SIDEBAR */}
+            {!isHome && (
+              <div
+                className={`
+                  ${collapsed ? "w-[50px]" : "w-[240px]"}
+                  transition-all duration-300
+                  h-full
+                `}
+              >
+                <AppSidebar collapsed={collapsed} setCollapsed={setCollapsed} />
+              </div>
+            )}
+
+            {/* MAIN CONTENT */}
+            <div className="flex-1 overflow-auto">
+              {children}
+            </div>
+
+          </div>
         </div>
-      </div>
+
+        {/* ── Communication overlays (global, always on top) ── */}
+        <CommFab />
+        <ChatFloat />
+        <CallPopup />
+      </CommProvider>
     </ProtectedLayoutAuth>
     </NavigationHistoryProvider>
   );
