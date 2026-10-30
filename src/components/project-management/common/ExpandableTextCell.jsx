@@ -10,6 +10,7 @@ export default function ExpandableTextCell({
   placeholder = "—",
   label       = "Description",
   textSize    = "text-[11px]",
+  lineClamp   = 1,
   className   = "",
 }) {
   const [open, setOpen]             = useState(false);
@@ -17,16 +18,22 @@ export default function ExpandableTextCell({
   const textRef     = useRef(null);
   const textareaRef = useRef(null);
 
-  // Detect whether the clamped text is actually truncated
+  // Detect whether the text is actually truncated
   useLayoutEffect(() => {
     const el = textRef.current;
     if (!el) return;
-    const check = () => setIsOverflowing(el.scrollHeight > el.clientHeight + 1);
+    const check = () => {
+      if (lineClamp === 1) {
+        setIsOverflowing(el.scrollWidth > el.clientWidth + 1);
+      } else {
+        setIsOverflowing(el.scrollHeight > el.clientHeight + 1);
+      }
+    };
     check();
     const ro = new ResizeObserver(check);
     ro.observe(el);
     return () => ro.disconnect();
-  }, [value]);
+  }, [value, lineClamp]);
 
   // Close on Escape
   useEffect(() => {
@@ -49,14 +56,18 @@ export default function ExpandableTextCell({
   return (
     <>
       {/* ── CELL CONTENT ───────────────────────────────────────────────── */}
-      <div className={`relative w-full ${className}`}>
+      <div className={`relative w-full overflow-hidden ${className}`}>
         <div
           ref={textRef}
           onClick={() => canOpen && setOpen(true)}
           className={`w-full px-1.5 py-0.5 leading-tight ${isOverflowing ? "pr-5" : "pr-1.5"} ${textSize} ${disabled ? "text-[#9ca3af]" : "text-inherit"} ${canOpen ? "cursor-pointer" : ""}`}
-          style={{
+          style={lineClamp === 1 ? {
+            overflow:     "hidden",
+            whiteSpace:   "nowrap",
+            textOverflow: "ellipsis",
+          } : {
             display:         "-webkit-box",
-            WebkitLineClamp: 1,
+            WebkitLineClamp: lineClamp,
             WebkitBoxOrient: "vertical",
             overflow:        "hidden",
             wordBreak:       "break-word",

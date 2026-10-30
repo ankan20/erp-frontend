@@ -9,9 +9,11 @@ const MIN_COL_PX = 40;
  * Table total width grows/shrinks with the drag; adjacent columns are untouched.
  *
  * Handles:
- *  - Portal/modal tables   (callback ref fires on actual mount)
- *  - Already-fixed tables  (colgroup created lazily on first drag)
- *  - Sticky columns        (never overrides position:sticky with position:relative)
+ *  - Single-row headers        (standard case)
+ *  - Multi-row grouped headers (rowSpan / colSpan — finds all leaf columns)
+ *  - Portal/modal tables       (callback ref fires on actual mount)
+ *  - Already-fixed tables      (colgroup created lazily on first drag)
+ *  - Sticky columns            (never overrides position:sticky)
  *  - Dynamically added columns (MutationObserver re-attaches handles automatically)
  */
 export function useColumnResize() {
@@ -23,23 +25,54 @@ export function useColumnResize() {
 
     const thead = table.querySelector("thead");
     if (!thead) return;
-    // Use the LAST <tr> in thead — for multi-row headers this is the leaf-column row
-    const headerRows = Array.from(thead.querySelectorAll(":scope > tr"));
-    const headerRow  = headerRows[headerRows.length - 1];
-    if (!headerRow) return;
+
+    // ── Leaf-header discovery ─────────────────────────────────────────────────
+    /**
+     * Walk every <tr> in <thead>, tracking a grid of occupied cells caused by
+     * rowSpan / colSpan, and return all <th> cells that span exactly one visual
+     * column (colSpan === 1).  Result is sorted by visual column index.
+     */
+    function getLeafHeaders() {
+      const rows     = Array.from(thead.querySelectorAll(":scope > tr"));
+      const occupied = {};          // "rowIdx,colIdx" → true
+      const result   = [];          // [{ th, colIdx }]
+
+      rows.forEach((row, rowIdx) => {
+        let col = 0;
+        Array.from(row.querySelectorAll(":scope > th")).forEach((th) => {
+          // Advance past cells already occupied by a previous rowSpan
+          while (occupied[`${rowIdx},${col}`]) col++;
+
+          const cs = th.colSpan  || 1;
+          const rs = th.rowSpan  || 1;
+
+          // Mark every cell this th occupies in future rows
+          for (let r = rowIdx + 1; r < rowIdx + rs; r++) {
+            for (let c = col; c < col + cs; c++) {
+              occupied[`${r},${c}`] = true;
+            }
+          }
+
+          // A true leaf column has colSpan === 1 (group headers are skipped)
+          if (cs === 1) result.push({ th, colIdx: col });
+
+          col += cs;
+        });
+      });
+
+      result.sort((a, b) => a.colIdx - b.colIdx);
+      return result;
+    }
 
     // ── Colgroup state (lazy — created on first drag only) ────────────────────
     let colgroup        = null;
     let createdColgroup = false;
 
-    function getThList() {
-      return Array.from(headerRow.querySelectorAll(":scope > th"));
-    }
     function getColList() {
       return colgroup ? Array.from(colgroup.querySelectorAll("col")) : [];
     }
 
-    /** Create (or update) the colgroup to match the current number of <th>s. */
+    /** Create (or update) the colgroup to match the current number of leaf columns. */
     function ensureColgroup() {
       if (!colgroup) {
         colgroup = table.querySelector(":scope > colgroup");
@@ -49,10 +82,9 @@ export function useColumnResize() {
           createdColgroup = true;
         }
       }
-      // Sync col count with current th count
-      const ths  = getThList();
-      const cols = getColList();
-      while (cols.length < ths.length) {
+      const leafCount = getLeafHeaders().length;
+      const cols      = getColList();
+      while (cols.length < leafCount) {
         const col = document.createElement("col");
         colgroup.appendChild(col);
         cols.push(col);
@@ -62,11 +94,11 @@ export function useColumnResize() {
     /** Snapshot every column's rendered width, then lock table-layout. */
     function initColWidths() {
       ensureColgroup();
-      const ths  = getThList();
-      const cols = getColList();
-      cols.forEach((col, i) => {
-        if (!col.style.width && ths[i]) {
-          col.style.width = ths[i].getBoundingClientRect().width + "px";
+      const leaves = getLeafHeaders();
+      const cols   = getColList();
+      leaves.forEach(({ th }, i) => {
+        if (!cols[i].style.width) {
+          cols[i].style.width = th.getBoundingClientRect().width + "px";
         }
       });
       table.style.width       = table.getBoundingClientRect().width + "px";
@@ -105,8 +137,7 @@ export function useColumnResize() {
     // ── Handle injection ──────────────────────────────────────────────────────
     const handleCleanups = [];
 
-    function attachHandle(th) {
-      // position:sticky already creates a positioning context — don't override it
+    function attachHandle(th, colIdx) {
       const computedPos = getComputedStyle(th).position;
       const isSticky    = computedPos === "sticky";
       const prevPos     = th.style.position;
@@ -130,9 +161,7 @@ export function useColumnResize() {
         if (table.style.tableLayout !== "fixed") initColWidths();
         ensureColgroup();
 
-        const ths = getThList();
-        const idx = ths.indexOf(th);
-        const col = getColList()[idx];
+        const col = getColList()[colIdx];
         if (!col) return;
 
         dragging        = true;
@@ -142,7 +171,6 @@ export function useColumnResize() {
         startTableWidth = table.getBoundingClientRect().width;
         activeCol       = col;
 
-        // Make sure this col has a width locked in before dragging starts
         if (!col.style.width) col.style.width = startColWidth + "px";
 
         indicator = document.createElement("div");
@@ -171,23 +199,25 @@ export function useColumnResize() {
       };
     }
 
-    /** Tear down all handles and re-create them for the current set of <th>s. */
+    /** Tear down all handles and re-create them for the current set of leaf <th>s. */
     function setupHandles() {
       handleCleanups.forEach(fn => fn());
       handleCleanups.length = 0;
 
-      const ths = getThList();
-      ths.forEach((th, i) => {
-        if (i === ths.length - 1) return; // last column gets no handle
-        handleCleanups.push(attachHandle(th));
+      const leaves = getLeafHeaders();
+      leaves.forEach(({ th, colIdx }, i) => {
+        if (i === leaves.length - 1) return; // last column gets no handle
+        handleCleanups.push(attachHandle(th, colIdx));
       });
     }
 
     setupHandles();
 
-    // Re-run whenever columns are added/removed (e.g. dynamic CC columns)
+    // Re-run whenever any header row changes (covers dynamic column add/remove)
     const mo = new MutationObserver(setupHandles);
-    mo.observe(headerRow, { childList: true });
+    Array.from(thead.querySelectorAll(":scope > tr")).forEach((row) => {
+      mo.observe(row, { childList: true });
+    });
 
     cleanupRef.current = () => {
       mo.disconnect();
