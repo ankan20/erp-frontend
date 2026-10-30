@@ -14,6 +14,8 @@ import SaveDraftButton  from "@/components/common/SaveDraftButton";
 import EditButton       from "@/components/common/EditButton";
 import SearchableSelect from "@/components/common/SearchableSelect";
 import AmountInput      from "@/components/common/AmountInput";
+import PMSection        from "@/components/project-management/common/PMSection";
+import PMFormRow        from "@/components/project-management/common/PMFormRow";
 import PMTextarea       from "@/components/project-management/common/PMTextarea";
 import PMDateInput      from "@/components/project-management/common/PMDateInput";
 
@@ -169,53 +171,43 @@ export default function JournalEntryForm({ mode = "create", journalId, onAfterSu
   return (
     <div className="max-w-[1200px] mx-auto p-4 space-y-3">
 
-      {/* ── 1. TOP META ROW ──────────────────────────────────────────────── */}
-      <div className="flex flex-wrap items-end gap-6 px-1 pb-3 border-b border-gray-200">
-        {/* Doc No */}
-        <div>
-          <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-widest mb-1">ERP Doc. No</p>
-          <div className="h-[34px] min-w-[160px] px-3 flex items-center rounded-md border border-dashed border-gray-300 bg-gray-50 text-[12px] text-gray-500 font-mono">
-            {erpVoucherNo || <span className="text-gray-400 italic text-[11px]">Auto-generated</span>}
-          </div>
-        </div>
-
-        {/* Entry Date */}
-        <div>
-          <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-widest mb-1">Entry Date</p>
+      {/* ── 1. ENTRY DETAILS ─────────────────────────────────────────────── */}
+      <PMSection title="Entry Details:">
+        <PMFormRow label="ERP Doc. No" labelWidth="sm:w-[150px] sm:min-w-[150px]">
+          <input
+            value={erpVoucherNo || "[Auto]"} disabled readOnly
+            className="w-full h-[30px] text-[13px] rounded-sm border border-[#7fa37f] bg-[#edf8ed] text-gray-500 px-2 outline-none max-w-[200px]"
+          />
+        </PMFormRow>
+        <PMFormRow label="Entry Date" labelWidth="sm:w-[150px] sm:min-w-[150px]">
           <Controller name="entryDate" control={control} render={({ field }) => (
-            <PMDateInput {...field} disabled={disabled} className="h-[34px] min-w-[160px]" />
+            <PMDateInput {...field} disabled={disabled} className="max-w-[200px]" />
           )} />
-        </div>
-
-        {/* Status */}
+        </PMFormRow>
         {mode !== "create" && (
-          <div>
-            <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-widest mb-1">Status</p>
-            <div className="h-[34px] flex items-center">
-              {isSubmitted
-                ? <span className="px-3 py-1 rounded-md text-[11px] font-semibold bg-green-50 text-green-700 border border-green-200">Submitted</span>
-                : <span className="px-3 py-1 rounded-md text-[11px] font-semibold bg-amber-50 text-amber-700 border border-amber-200">Draft</span>
-              }
-            </div>
-          </div>
+          <PMFormRow label="Status" labelWidth="sm:w-[150px] sm:min-w-[150px]">
+            {isSubmitted
+              ? <span className="px-2 py-0.5 rounded text-[11px] font-semibold bg-green-50 text-green-700 border border-green-200">Submitted</span>
+              : <span className="px-2 py-0.5 rounded text-[11px] font-semibold bg-amber-50 text-amber-700 border border-amber-200">Draft</span>
+            }
+          </PMFormRow>
         )}
+      </PMSection>
 
-        {/* Add Dr Line — spacer + button on the right */}
+      {/* ── 2. JOURNAL LINES ─────────────────────────────────────────────── */}
+      <PMSection title="Journal Lines:">
         {!disabled && (
-          <div className="ml-auto">
+          <div className="flex justify-end px-1 pb-2">
             <button
               type="button"
               onClick={() => appendDr({ ...BLANK_DR })}
-              className="h-[34px] flex items-center gap-2 px-4 text-[12px] font-medium bg-blue-600 text-white rounded-md hover:bg-blue-700 active:bg-blue-800 transition shadow-sm"
+              className="flex items-center gap-1 text-[12px] px-2 py-0.5 bg-[#25507a] text-white rounded hover:bg-[#1c3a5e] transition"
             >
-              <Plus size={14} /> Add Debit Line
+              <Plus size={13} /> Add Dr Line
             </button>
           </div>
         )}
-      </div>
-
-      {/* ── 2. JOURNAL LINES ─────────────────────────────────────────────── */}
-      <div className="rounded-lg border border-gray-200 overflow-hidden shadow-sm">
+      <div className="overflow-hidden">
         <div className="overflow-x-auto">
           <table ref={tableRef} className="w-full min-w-[820px] border-collapse text-[12.5px]">
 
@@ -313,24 +305,6 @@ export default function JournalEntryForm({ mode = "create", journalId, onAfterSu
                 );
               })}
 
-              {/* ── DR TOTAL ──────────────────────────────────────────── */}
-              <tr className="bg-red-50/60 border-t border-red-100">
-                <td colSpan={!disabled ? 5 : 4} className="px-3 py-1.5 text-right text-[11px] font-semibold text-gray-500 uppercase tracking-wider">
-                  Total Debit
-                </td>
-                <td className="px-3 py-1.5 text-right text-[13px] font-bold text-red-600 tabular-nums">
-                  {formatAmount(totalDebit)}
-                </td>
-                <td colSpan={!disabled ? 3 : 2} />
-              </tr>
-
-              {/* ── SEPARATOR ─────────────────────────────────────────── */}
-              <tr>
-                <td colSpan={!disabled ? 9 : 8} className="p-0">
-                  <div className="h-px bg-gradient-to-r from-transparent via-gray-300 to-transparent mx-4" />
-                </td>
-              </tr>
-
               {/* ── CR ROW ────────────────────────────────────────────── */}
               {(() => {
                 const crClosing = Number(watchedCrLine.openingBalance || 0) + totalCredit;
@@ -416,19 +390,21 @@ export default function JournalEntryForm({ mode = "create", journalId, onAfterSu
           </table>
         </div>
       </div>
+      </PMSection>
 
       {/* ── 3. REMARKS ────────────────────────────────────────────────────── */}
-      <div>
-        <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-widest mb-1.5">Remarks / Narration</p>
-        <Controller name="remarks" control={control} render={({ field }) => (
-          <PMTextarea
-            value={field.value || ""} onChange={field.onChange}
-            disabled={disabled}
-            placeholder="Enter narration or remarks…"
-            rows={2} maxRows={6}
-          />
-        )} />
-      </div>
+      <PMSection title="Remarks:">
+        <PMFormRow label="Remarks" labelWidth="sm:w-[150px] sm:min-w-[150px]">
+          <Controller name="remarks" control={control} render={({ field }) => (
+            <PMTextarea
+              value={field.value || ""} onChange={field.onChange}
+              disabled={disabled}
+              placeholder="Enter narration or remarks…"
+              rows={2} maxRows={6}
+            />
+          )} />
+        </PMFormRow>
+      </PMSection>
 
       {/* ── 4. ACTIONS ────────────────────────────────────────────────────── */}
       {!isViewMode && (
