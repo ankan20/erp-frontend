@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import SearchSection from "@/components/common/SearchSection";
 import DataTable from "@/components/common/DataTable";
+import { useDeletePendingIds } from "@/hooks/useDeletePendingIds";
 import { apiRequest } from "@/lib/apiClient";
 import { API_ENDPOINTS } from "@/config/api.config";
 import { Loader2 } from "lucide-react";
@@ -178,6 +179,8 @@ export default function Page() {
 
   const actions = getPageActions({ router });
 
+  const pendingDeleteIds = useDeletePendingIds("SERVICE_ORDER", access.allowed);
+
   if (!access.allowed) return <PageNotAvailable />;
 
   if (loading) {
@@ -208,6 +211,7 @@ export default function Page() {
             onRowClick={(row) => {
               router.push(`/resource-management/procurement/order/service-order/${row.id}`);
             }}
+          pendingDeleteIds={pendingDeleteIds}
           />
 
           {/* SUMMARY BUTTON + MODAL */}

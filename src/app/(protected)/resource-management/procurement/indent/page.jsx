@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import SearchSection from "@/components/common/SearchSection";
 import DataTable from "@/components/common/DataTable";
+import { useDeletePendingIds } from "@/hooks/useDeletePendingIds";
 import { apiRequest } from "@/lib/apiClient";
 import { API_ENDPOINTS } from "@/config/api.config";
 import { Loader2 } from "lucide-react";
@@ -148,6 +149,8 @@ export default function Page() {
     router,
   });
 
+  const pendingDeleteIds = useDeletePendingIds("INDENT", access.allowed);
+
   if (!access.allowed) {
     return <PageNotAvailable />;
   }
@@ -190,6 +193,7 @@ export default function Page() {
             onRowClick={(row) => {
               router.push(`/resource-management/procurement/indent/${row.id}`);
             }}
+          pendingDeleteIds={pendingDeleteIds}
           />
         </div>
       </HeaderWrapper>

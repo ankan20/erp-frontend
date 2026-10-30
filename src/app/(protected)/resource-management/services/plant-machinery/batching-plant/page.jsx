@@ -6,6 +6,7 @@ import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
 
 import DataTable from "@/components/common/DataTable";
+import { useDeletePendingIds } from "@/hooks/useDeletePendingIds";
 import SearchSection from "@/components/common/SearchSection";
 import PageHeader from "@/components/layout/PageHeader";
 import HeaderWrapper from "@/components/layout/HeaderWrapper";
@@ -102,6 +103,8 @@ export default function Page() {
 
   const actions = getPageActions({ router });
 
+  const pendingDeleteIds = useDeletePendingIds("BATCHING_PLANT", access.allowed);
+
   if (!access.allowed) return <PageNotAvailable />;
 
   if (loading) {
@@ -128,6 +131,7 @@ export default function Page() {
           columns={columns}
           data={filtered}
           onRowClick={(row) => router.push(`/resource-management/services/plant-machinery/batching-plant/${row.id}`)}
+        pendingDeleteIds={pendingDeleteIds}
         />
       </div>
     </HeaderWrapper>

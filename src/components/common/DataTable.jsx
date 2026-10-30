@@ -54,6 +54,7 @@ export default function DataTable({
   data = [],
   onRowClick,
   storageKey,          // optional override; defaults to current pathname
+  pendingDeleteIds,    // Set<number> — rows with pending delete requests get an orange dot
 }) {
   const pathname = usePathname();
   const tableKey = `table-state:${storageKey ?? pathname}`;
@@ -442,12 +443,15 @@ export default function DataTable({
                 </td>
               </tr>
             ) : (
-              sortedData.map((row, rowIndex) => (
+              sortedData.map((row, rowIndex) => {
+                const hasPendingDelete = pendingDeleteIds?.has(Number(row.id));
+                return (
                 <tr
                   key={rowIndex}
                   className={`
-                    ${rowIndex % 2 === 0 ? "bg-[#f2f2f2]" : "bg-white"}
-                    hover:bg-[#e6e6e6]
+                    ${hasPendingDelete
+                      ? "bg-orange-50 hover:bg-orange-100 border-l-2 border-l-orange-400"
+                      : rowIndex % 2 === 0 ? "bg-[#f2f2f2] hover:bg-[#e6e6e6]" : "bg-white hover:bg-[#e6e6e6]"}
                   `}
                 >
                   {columns.map((col, colIndex) => {
@@ -487,8 +491,18 @@ export default function DataTable({
                             : isStatus
                               ? <StatusBadge value={row[col.accessor]} />
                               : rawText;
+
+                          // Blinking orange dot on sl column for pending delete rows
+                          const slDot = (hasPendingDelete && colIndex === 0) ? (
+                            <span className="relative flex h-2 w-2 shrink-0 mr-1">
+                              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-orange-400 opacity-75" />
+                              <span className="relative inline-flex rounded-full h-2 w-2 bg-orange-500" />
+                            </span>
+                          ) : null;
+
                           const inner = (
-                            <div className={isExpanded ? "whitespace-normal break-words" : "truncate whitespace-nowrap overflow-hidden"}>
+                            <div className={`flex items-center gap-0.5 ${isExpanded ? "whitespace-normal break-words" : "truncate whitespace-nowrap overflow-hidden"}`}>
+                              {slDot}
                               {content}
                             </div>
                           );
@@ -506,7 +520,8 @@ export default function DataTable({
                     );
                   })}
                 </tr>
-              ))
+                );
+              })
             )}
           </tbody>
 

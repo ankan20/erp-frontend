@@ -7,6 +7,7 @@ import { toast }               from "sonner";
 
 import SearchSection    from "@/components/common/SearchSection";
 import DataTable        from "@/components/common/DataTable";
+import { useDeletePendingIds } from "@/hooks/useDeletePendingIds";
 import PageHeader       from "@/components/layout/PageHeader";
 import HeaderWrapper    from "@/components/layout/HeaderWrapper";
 import PageNotAvailable from "@/components/common/PageNotAvailable";
@@ -130,6 +131,8 @@ export default function Page() {
 
   const actions = getPageActions({ router });
 
+  const pendingDeleteIds = useDeletePendingIds("PURCHASE_BILL", access.allowed);
+
   if (!access.allowed) return <PageNotAvailable />;
 
   if (loading) {
@@ -164,6 +167,7 @@ export default function Page() {
             if (row._type === "bill")    router.push(`/finance-management/account/purchases/bill/${row._id}`);
             if (row._type === "voucher") router.push(`/finance-management/account/purchases/voucher/${row._id}`);
           }}
+        pendingDeleteIds={pendingDeleteIds}
         />
 
         {/* Summary totals */}

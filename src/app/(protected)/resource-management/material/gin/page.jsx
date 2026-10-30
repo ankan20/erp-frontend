@@ -7,6 +7,7 @@ import { toast } from "sonner";
 
 import SearchSection from "@/components/common/SearchSection";
 import DataTable from "@/components/common/DataTable";
+import { useDeletePendingIds } from "@/hooks/useDeletePendingIds";
 import PageHeader from "@/components/layout/PageHeader";
 import HeaderWrapper from "@/components/layout/HeaderWrapper";
 import PageNotAvailable from "@/components/common/PageNotAvailable";
@@ -115,6 +116,8 @@ export default function Page() {
 
   const actions = getPageActions({ router });
 
+  const pendingDeleteIds = useDeletePendingIds("GIN", access.allowed);
+
   if (!access.allowed) return <PageNotAvailable />;
 
   if (loading) {
@@ -152,6 +155,7 @@ export default function Page() {
               router.push(`/resource-management/material/gin/${row.id}`);
             }
           }}
+        pendingDeleteIds={pendingDeleteIds}
         />
       </div>
     </HeaderWrapper>

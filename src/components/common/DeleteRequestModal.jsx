@@ -101,68 +101,26 @@ export default function DeleteRequestModal({
     }
   };
 
-  // ── Render: pending request (read-only) ──────────────────────────
-  if (pending_request) {
-    const pr = pending_request;
-    const statusClass = STATUS_COLORS[pr.status] || "text-gray-600";
-    return (
-      <Overlay onClose={onClose}>
-        <ModalBox title={`Delete Request — ${moduleLabel}`} onClose={onClose}>
-          <div className="space-y-4 text-sm">
-            <InfoRow label="Document" value={pr.record_no || record_no} />
-            <InfoRow label="Raised at" value={pr.requested_at ? new Date(pr.requested_at).toLocaleString() : "—"} />
-            <InfoRow label="Reason" value={pr.reason || "—"} />
-
-            <div className="flex items-center gap-2">
-              <span className="text-gray-500 font-medium w-28">Status</span>
-              <span className={`px-2 py-0.5 rounded border text-xs font-semibold ${statusClass}`}>
-                {pr.status}
-              </span>
-            </div>
-
-            {pr.blocked_by_modules?.length > 0 && (
-              <div>
-                <p className="text-gray-500 font-medium mb-1">Waiting for</p>
-                <ul className="list-disc list-inside space-y-0.5 text-gray-700">
-                  {pr.blocked_by_modules.map((m) => (
-                    <li key={m}>{MODULE_LABELS[m] || m}</li>
-                  ))}
-                </ul>
-              </div>
-            )}
-
-            {pr.blocked_by_docs && (
-              <div>
-                <p className="text-gray-500 font-medium mb-1">Blocking documents</p>
-                <p className="text-gray-700 break-words">{pr.blocked_by_docs}</p>
-              </div>
-            )}
-
-            {pr.wa_sent && (
-              <p className="text-xs text-green-600 flex items-center gap-1">
-                <CheckCircle2 className="h-3.5 w-3.5" />
-                WhatsApp notification sent
-                {pr.wa_sent_at ? ` on ${new Date(pr.wa_sent_at).toLocaleString()}` : ""}
-              </p>
-            )}
-          </div>
-
-          <div className="mt-6 flex justify-end">
-            <button
-              type="button"
-              onClick={onClose}
-              className="px-4 py-2 rounded-md bg-gray-100 hover:bg-gray-200 text-gray-700 text-sm font-medium transition"
-            >
-              Close
-            </button>
-          </div>
-        </ModalBox>
-      </Overlay>
-    );
-  }
-
   // ── Render: can delete immediately ───────────────────────────────
+  // Checked FIRST — even if a pending_request exists but blockers are cleared,
+  // show the confirm dialog so the user can manually perform the delete.
   if (can_delete_now) {
+    const handleConfirmDelete = async () => {
+      setLoading(true);
+      try {
+        await apiRequest({
+          url:    `${API_ENDPOINTS.DELETE_MANAGER.RAISE_REQUEST}/${moduleCode}/${recordId}`,
+          method: "POST",
+          data:   { reason: "Direct delete — no blocking records." },
+        });
+        onImmediateDelete?.();
+      } catch (err) {
+        toast.error(err.message || "Failed to delete record");
+      } finally {
+        setLoading(false);
+      }
+    };
+
     return (
       <Overlay onClose={onClose}>
         <ModalBox title={`Delete ${moduleLabel}`} onClose={onClose}>
@@ -178,17 +136,74 @@ export default function DeleteRequestModal({
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 rounded-md bg-gray-100 hover:bg-gray-200 text-gray-700 text-sm font-medium transition"
+              disabled={loading}
+              className="px-4 py-2 rounded-md bg-gray-100 hover:bg-gray-200 text-gray-700 text-sm font-medium transition disabled:opacity-60"
             >
               Cancel
             </button>
             <button
               type="button"
-              onClick={onImmediateDelete}
-              className="px-4 py-2 rounded-md bg-red-500 hover:bg-red-600 text-white text-sm font-medium flex items-center gap-2 transition"
+              onClick={handleConfirmDelete}
+              disabled={loading}
+              className="px-4 py-2 rounded-md bg-red-500 hover:bg-red-600 text-white text-sm font-medium flex items-center gap-2 transition disabled:opacity-60 disabled:cursor-not-allowed"
             >
-              <Trash2 className="h-4 w-4" />
-              Yes, Delete
+              {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
+              {loading ? "Deleting..." : "Yes, Delete"}
+            </button>
+          </div>
+        </ModalBox>
+      </Overlay>
+    );
+  }
+
+  // ── Render: pending request exists and still blocked (read-only) ──
+  if (pending_request) {
+    const pr = pending_request;
+    const statusClass = STATUS_COLORS[pr.status] || "text-gray-600";
+    return (
+      <Overlay onClose={onClose}>
+        <ModalBox title={`Delete Request — ${moduleLabel}`} onClose={onClose}>
+          <div className="space-y-4 text-sm">
+            <InfoRow label="Document" value={pr.record_no || record_no} />
+            <InfoRow label="Raised at" value={pr.requested_at ? new Date(pr.requested_at).toLocaleString() : "—"} />
+            <InfoRow label="Reason" value={pr.reason || "—"} />
+            <div className="flex items-center gap-2">
+              <span className="text-gray-500 font-medium w-28">Status</span>
+              <span className={`px-2 py-0.5 rounded border text-xs font-semibold ${statusClass}`}>
+                {pr.status}
+              </span>
+            </div>
+            {pr.blocked_by_modules?.length > 0 && (
+              <div>
+                <p className="text-gray-500 font-medium mb-1">Waiting for</p>
+                <ul className="list-disc list-inside space-y-0.5 text-gray-700">
+                  {pr.blocked_by_modules.map((m) => (
+                    <li key={m}>{MODULE_LABELS[m] || m}</li>
+                  ))}
+                </ul>
+              </div>
+            )}
+            {pr.blocked_by_docs && (
+              <div>
+                <p className="text-gray-500 font-medium mb-1">Blocking documents</p>
+                <p className="text-gray-700 break-words">{pr.blocked_by_docs}</p>
+              </div>
+            )}
+            {pr.wa_sent && (
+              <p className="text-xs text-green-600 flex items-center gap-1">
+                <CheckCircle2 className="h-3.5 w-3.5" />
+                WhatsApp notification sent
+                {pr.wa_sent_at ? ` on ${new Date(pr.wa_sent_at).toLocaleString()}` : ""}
+              </p>
+            )}
+          </div>
+          <div className="mt-6 flex justify-end">
+            <button
+              type="button"
+              onClick={onClose}
+              className="px-4 py-2 rounded-md bg-gray-100 hover:bg-gray-200 text-gray-700 text-sm font-medium transition"
+            >
+              Close
             </button>
           </div>
         </ModalBox>
