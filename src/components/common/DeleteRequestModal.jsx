@@ -163,6 +163,22 @@ export default function DeleteRequestModal({
 
   // ── Render: can delete immediately ───────────────────────────────
   if (can_delete_now) {
+    const handleConfirmDelete = async () => {
+      setLoading(true);
+      try {
+        await apiRequest({
+          url:    `${API_ENDPOINTS.DELETE_MANAGER.RAISE_REQUEST}/${moduleCode}/${recordId}`,
+          method: "POST",
+          data:   { reason: "Direct delete — no blocking records." },
+        });
+        onImmediateDelete?.();
+      } catch (err) {
+        toast.error(err.message || "Failed to delete record");
+      } finally {
+        setLoading(false);
+      }
+    };
+
     return (
       <Overlay onClose={onClose}>
         <ModalBox title={`Delete ${moduleLabel}`} onClose={onClose}>
@@ -178,17 +194,19 @@ export default function DeleteRequestModal({
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 rounded-md bg-gray-100 hover:bg-gray-200 text-gray-700 text-sm font-medium transition"
+              disabled={loading}
+              className="px-4 py-2 rounded-md bg-gray-100 hover:bg-gray-200 text-gray-700 text-sm font-medium transition disabled:opacity-60"
             >
               Cancel
             </button>
             <button
               type="button"
-              onClick={onImmediateDelete}
-              className="px-4 py-2 rounded-md bg-red-500 hover:bg-red-600 text-white text-sm font-medium flex items-center gap-2 transition"
+              onClick={handleConfirmDelete}
+              disabled={loading}
+              className="px-4 py-2 rounded-md bg-red-500 hover:bg-red-600 text-white text-sm font-medium flex items-center gap-2 transition disabled:opacity-60 disabled:cursor-not-allowed"
             >
-              <Trash2 className="h-4 w-4" />
-              Yes, Delete
+              {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
+              {loading ? "Deleting..." : "Yes, Delete"}
             </button>
           </div>
         </ModalBox>
