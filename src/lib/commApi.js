@@ -34,4 +34,5 @@ export const pollSignals     = (callId) => apiRequest({ url: `${C}/calls/${callI
 export const getIncomingCalls = () => apiRequest({ url: `${C}/calls/incoming` });
 
 // ─── Directory ─────────────────────────────────────────────────────────────
-export const getDirectory = (search) => apiRequest({ url: `${C}/directory`, params: search ? { search } : {} });
+export const getDirectory   = (search) => apiRequest({ url: `${C}/directory`, params: search ? { search } : {} });
+export const sendHeartbeat  = ()       => apiRequest({ url: `${C}/heartbeat`, method: "POST" });

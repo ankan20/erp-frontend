@@ -7,6 +7,7 @@ import {
   getUnreadNotifications,
   getUnreadPingCount,
   getIncomingCalls,
+  sendHeartbeat,
 } from "@/lib/commApi";
 
 const CommContext = createContext(null);
@@ -61,7 +62,12 @@ export function CommProvider({ children }) {
   useEffect(() => {
     refresh();
     pollRef.current = setInterval(refresh, 5000);
-    return () => clearInterval(pollRef.current);
+    // Heartbeat every 30s so server knows we're online
+    const hbRef = setInterval(() => {
+      if (myId()) sendHeartbeat().catch(() => {});
+    }, 30000);
+    sendHeartbeat().catch(() => {}); // immediate on mount
+    return () => { clearInterval(pollRef.current); clearInterval(hbRef); };
   }, [refresh]);
 
   const openPicker = (mode, convId = null) => {
