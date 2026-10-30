@@ -288,7 +288,7 @@ export default function AssetRegisterForm({ mode = "create", assetId: routeId, o
               {isEditing ? (
                 <>
                   <EditButton onClick={() => setIsEditing(false)}>Cancel</EditButton>
-                  <SaveButton onClick={handleSave} loading={saving} />
+                  <SaveButton onClick={handleSave} loading={saving} disabled={false} />
                 </>
               ) : (
                 <EditButton onClick={() => setIsEditing(true)} />
@@ -636,9 +636,8 @@ export default function AssetRegisterForm({ mode = "create", assetId: routeId, o
 
         {/* ── Save button (create mode) ── */}
         {mode === "create" && (
-          <div className="flex justify-end gap-3 pt-2">
-            <EditButton onClick={() => router.push("/asset-management/asset-register")}>Cancel</EditButton>
-            <SaveButton onClick={handleSave} loading={saving} />
+          <div className="flex justify-end pt-2">
+            <SaveButton onClick={handleSave} loading={saving} disabled={false} />
           </div>
         )}
 

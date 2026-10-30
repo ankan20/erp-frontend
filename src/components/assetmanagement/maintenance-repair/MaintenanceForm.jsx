@@ -139,7 +139,7 @@ export default function MaintenanceForm({ mode = "create", docId }) {
             {activeTab === "details" && statusActions}
             {activeTab === "details" && ["reported", "scheduled"].includes(record?.status) && (
               isEditing
-                ? <><button onClick={() => setIsEditing(false)} className="px-3 py-1.5 text-sm border rounded hover:bg-gray-100 cursor-pointer">Cancel</button><SaveButton onClick={handleSave} loading={saving} /></>
+                ? <><button onClick={() => setIsEditing(false)} className="px-3 py-1.5 text-sm border rounded hover:bg-gray-100 cursor-pointer">Cancel</button><SaveButton onClick={handleSave} loading={saving} disabled={false} /></>
                 : <EditButton onClick={() => setIsEditing(true)} />
             )}
           </div>
@@ -251,7 +251,7 @@ export default function MaintenanceForm({ mode = "create", docId }) {
           {mode === "create" && (
             <div className="flex justify-end gap-3 pt-2">
               <EditButton onClick={() => router.push("/asset-management/maintenance-repair")}>Cancel</EditButton>
-              <SaveButton onClick={handleSave} loading={saving} />
+              <SaveButton onClick={handleSave} loading={saving} disabled={false} />
             </div>
           )}
         </>
