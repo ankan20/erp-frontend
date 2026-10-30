@@ -11,44 +11,36 @@ import { answerCall, endCall, sendSignal, pollSignals } from "@/lib/commApi";
 // ── Draggable wrapper ────────────────────────────────────────────────────────
 function Draggable({ children, initialX, initialY }) {
   const ref = useRef(null);
-  const dragState = useRef({ dragging: false, ox: 0, oy: 0 });
+  const drag = useRef({ on: false, ox: 0, oy: 0 });
   const [pos, setPos] = useState({ x: initialX, y: initialY });
 
-  const onMouseDown = (e) => {
-    // Only drag from the header bar (first child)
+  const onDown = (e) => {
     if (!e.target.closest("[data-drag-handle]")) return;
-    dragState.current = { dragging: true, ox: e.clientX - pos.x, oy: e.clientY - pos.y };
+    drag.current = { on: true, ox: e.clientX - pos.x, oy: e.clientY - pos.y };
     e.preventDefault();
   };
-
-  const onMouseMove = useCallback((e) => {
-    if (!dragState.current.dragging) return;
+  const onMove = useCallback((e) => {
+    if (!drag.current.on) return;
     setPos({
-      x: Math.max(0, Math.min(window.innerWidth - 280, e.clientX - dragState.current.ox)),
-      y: Math.max(0, Math.min(window.innerHeight - 200, e.clientY - dragState.current.oy)),
+      x: Math.max(0, Math.min(window.innerWidth  - 280, e.clientX - drag.current.ox)),
+      y: Math.max(0, Math.min(window.innerHeight - 200, e.clientY - drag.current.oy)),
     });
   }, []);
-
-  const onMouseUp = useCallback(() => {
-    dragState.current.dragging = false;
-  }, []);
+  const onUp = useCallback(() => { drag.current.on = false; }, []);
 
   useEffect(() => {
-    window.addEventListener("mousemove", onMouseMove);
-    window.addEventListener("mouseup", onMouseUp);
+    window.addEventListener("mousemove", onMove);
+    window.addEventListener("mouseup",   onUp);
     return () => {
-      window.removeEventListener("mousemove", onMouseMove);
-      window.removeEventListener("mouseup", onMouseUp);
+      window.removeEventListener("mousemove", onMove);
+      window.removeEventListener("mouseup",   onUp);
     };
-  }, [onMouseMove, onMouseUp]);
+  }, [onMove, onUp]);
 
   return (
-    <div
-      ref={ref}
-      onMouseDown={onMouseDown}
+    <div ref={ref} onMouseDown={onDown}
       style={{ position: "fixed", left: pos.x, top: pos.y, zIndex: 9999 }}
-      className="select-none"
-    >
+      className="select-none">
       {children}
     </div>
   );
@@ -56,14 +48,15 @@ function Draggable({ children, initialX, initialY }) {
 
 // ── Incoming call toast ───────────────────────────────────────────────────────
 function IncomingCallToast({ call }) {
-  const { answerIncomingCall, setIncomingCall } = useComm();
+  const { answerIncomingCall, endActiveCall } = useComm();
   const [loading, setLoading] = useState(false);
 
   const handleAnswer = async () => {
     setLoading(true);
     try {
       await answerCall(call.callId);
-      answerIncomingCall(call);
+      // Mark as receiver so WebRTC knows to wait for offer
+      answerIncomingCall({ ...call, isInitiator: false });
     } catch {
       setLoading(false);
     }
@@ -71,15 +64,15 @@ function IncomingCallToast({ call }) {
 
   const handleDecline = async () => {
     try { await endCall(call.callId); } catch {}
-    // CommContext poll will clear incomingCall in next cycle
+    // CommContext poll will clear incomingCall on next cycle
   };
 
   return (
     <Draggable initialX={window.innerWidth - 320} initialY={16}>
       <div className="w-72 bg-[#1e2a3a] rounded-2xl shadow-2xl overflow-hidden text-white"
         style={{ boxShadow: "0 8px 40px rgba(0,0,0,0.5)" }}>
-        {/* Drag handle */}
-        <div data-drag-handle className="flex items-center gap-3 px-4 pt-4 pb-3 cursor-grab active:cursor-grabbing">
+        <div data-drag-handle
+          className="flex items-center gap-3 px-4 pt-4 pb-3 cursor-grab active:cursor-grabbing">
           <div className="w-10 h-10 rounded-full bg-emerald-500 flex items-center justify-center shrink-0 animate-pulse">
             <PhoneCall size={18} />
           </div>
@@ -87,29 +80,19 @@ function IncomingCallToast({ call }) {
             <p className="text-[11px] text-gray-400 uppercase tracking-wide">
               Incoming {call.callType === "video" ? "Video" : "Voice"} Call
             </p>
-            <p className="font-semibold text-base truncate">
-              {call.initiatorName || "Someone"}
-            </p>
+            <p className="font-semibold text-base truncate">{call.initiatorName || "Someone"}</p>
           </div>
         </div>
-
         <div className="flex gap-3 px-4 pb-4">
-          <button
-            onClick={handleDecline}
+          <button onClick={handleDecline}
             className="flex-1 flex items-center justify-center gap-2 bg-red-500 hover:bg-red-600
-              rounded-xl py-2.5 text-sm font-medium transition"
-          >
-            <PhoneOff size={15} />
-            Decline
+              rounded-xl py-2.5 text-sm font-medium transition">
+            <PhoneOff size={15} /> Decline
           </button>
-          <button
-            onClick={handleAnswer}
-            disabled={loading}
+          <button onClick={handleAnswer} disabled={loading}
             className="flex-1 flex items-center justify-center gap-2 bg-emerald-500 hover:bg-emerald-600
-              rounded-xl py-2.5 text-sm font-medium transition disabled:opacity-60"
-          >
-            <Phone size={15} />
-            Answer
+              rounded-xl py-2.5 text-sm font-medium transition disabled:opacity-60">
+            <Phone size={15} /> Answer
           </button>
         </div>
       </div>
@@ -119,108 +102,173 @@ function IncomingCallToast({ call }) {
 
 // ── Active call window ────────────────────────────────────────────────────────
 function ActiveCallWindow({ call }) {
-  const { endActiveCall } = useComm();
-  const [muted,      setMuted]      = useState(false);
-  const [videoOff,   setVideoOff]   = useState(false);
-  const [minimised,  setMinimised]  = useState(false);
-  const [elapsed,    setElapsed]    = useState(0);
+  const { endActiveCall, myId } = useComm();
+  const [muted,     setMuted]     = useState(false);
+  const [videoOff,  setVideoOff]  = useState(false);
+  const [minimised, setMinimised] = useState(false);
+  const [elapsed,   setElapsed]   = useState(0);
+  const [status,    setStatus]    = useState("connecting"); // "connecting" | "connected" | "ended"
+
   const localVideo  = useRef(null);
   const remoteVideo = useRef(null);
   const pcRef       = useRef(null);
   const streamRef   = useRef(null);
   const signalPollRef = useRef(null);
+  const statusPollRef = useRef(null);
+  const timerRef      = useRef(null);
 
-  // Elapsed timer
-  useEffect(() => {
-    const t = setInterval(() => setElapsed(s => s + 1), 1000);
-    return () => clearInterval(t);
-  }, []);
+  const isVideo     = call.callType === "video";
+  // Initiator creates offer; receiver waits for offer and sends answer
+  const isInitiator = call.isInitiator !== false; // default true (the one who clicked Call)
 
   const fmt = (s) => `${String(Math.floor(s / 60)).padStart(2, "0")}:${String(s % 60).padStart(2, "0")}`;
 
-  // WebRTC setup
+  const startTimer = useCallback(() => {
+    if (timerRef.current) return;
+    timerRef.current = setInterval(() => setElapsed(s => s + 1), 1000);
+  }, []);
+
+  const cleanup = useCallback(() => {
+    clearInterval(signalPollRef.current);
+    clearInterval(statusPollRef.current);
+    clearInterval(timerRef.current);
+    streamRef.current?.getTracks().forEach(t => t.stop());
+    pcRef.current?.close();
+  }, []);
+
   useEffect(() => {
-    if (call.callType !== "video") return;
+    const me = myId();
 
     const setup = async () => {
+      // Get media — audio for both, video only for video calls
+      let stream;
       try {
-        const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
-        streamRef.current = stream;
-        if (localVideo.current) localVideo.current.srcObject = stream;
+        stream = await navigator.mediaDevices.getUserMedia(
+          isVideo ? { video: true, audio: true } : { audio: true, video: false }
+        );
+      } catch (e) {
+        console.error("getUserMedia failed:", e);
+        setStatus("ended");
+        return;
+      }
+      streamRef.current = stream;
+      if (localVideo.current) localVideo.current.srcObject = stream;
 
-        const pc = new RTCPeerConnection({ iceServers: [{ urls: "stun:stun.l.google.com:19302" }] });
-        pcRef.current = pc;
-        stream.getTracks().forEach(t => pc.addTrack(t, stream));
+      // Build peer connection
+      const pc = new RTCPeerConnection({
+        iceServers: [
+          { urls: "stun:stun.l.google.com:19302" },
+          { urls: "stun:stun1.l.google.com:19302" },
+        ],
+      });
+      pcRef.current = pc;
 
-        pc.ontrack = (e) => {
-          if (remoteVideo.current) remoteVideo.current.srcObject = e.streams[0];
-        };
+      stream.getTracks().forEach(t => pc.addTrack(t, stream));
 
-        pc.onicecandidate = async (e) => {
-          if (e.candidate) {
-            const parts = call.participants?.filter(p => p.userId !== call.myId) || [];
-            for (const p of parts) {
-              await sendSignal(call.callId, p.userId, "ice", { candidate: e.candidate }).catch(() => {});
-            }
-          }
-        };
+      pc.ontrack = (e) => {
+        if (remoteVideo.current) remoteVideo.current.srcObject = e.streams[0];
+        // If we receive a remote track, we're connected
+        startTimer();
+        setStatus("connected");
+      };
 
+      pc.onconnectionstatechange = () => {
+        if (pc.connectionState === "connected") {
+          startTimer();
+          setStatus("connected");
+        }
+        if (pc.connectionState === "disconnected" || pc.connectionState === "failed") {
+          setStatus("ended");
+        }
+      };
+
+      // Send ICE candidates to all other participants
+      pc.onicecandidate = async (e) => {
+        if (!e.candidate) return;
+        const others = (call.participants || []).filter(p => p.userId !== me);
+        for (const p of others) {
+          await sendSignal(call.callId, p.userId, "ice", { candidate: e.candidate }).catch(() => {});
+        }
+      };
+
+      // Initiator creates and sends the offer
+      if (isInitiator) {
         const offer = await pc.createOffer();
         await pc.setLocalDescription(offer);
-        const parts = call.participants?.filter(p => p.userId !== call.myId) || [];
-        for (const p of parts) {
+        const others = (call.participants || []).filter(p => p.userId !== me);
+        for (const p of others) {
           await sendSignal(call.callId, p.userId, "offer", { sdp: offer }).catch(() => {});
         }
-      } catch {}
+      }
     };
+
     setup();
 
-    // Poll signals
+    // Poll for WebRTC signals
     signalPollRef.current = setInterval(async () => {
       try {
         const signals = await pollSignals(call.callId);
+        const pc = pcRef.current;
+        if (!pc) return;
         for (const sig of signals) {
-          const pc = pcRef.current;
-          if (!pc) continue;
-          if (sig.signalType === "offer") {
+          if (sig.signalType === "offer" && !isInitiator) {
+            // Receiver handles offer → creates answer
             await pc.setRemoteDescription(new RTCSessionDescription(sig.payload.sdp));
             const answer = await pc.createAnswer();
             await pc.setLocalDescription(answer);
             await sendSignal(call.callId, sig.senderId, "answer", { sdp: answer }).catch(() => {});
-          } else if (sig.signalType === "answer") {
-            await pc.setRemoteDescription(new RTCSessionDescription(sig.payload.sdp));
+          } else if (sig.signalType === "answer" && isInitiator) {
+            // Initiator handles answer
+            if (pc.signalingState === "have-local-offer") {
+              await pc.setRemoteDescription(new RTCSessionDescription(sig.payload.sdp));
+            }
           } else if (sig.signalType === "ice") {
-            await pc.addIceCandidate(new RTCIceCandidate(sig.payload.candidate));
+            try { await pc.addIceCandidate(new RTCIceCandidate(sig.payload.candidate)); } catch {}
+          } else if (sig.signalType === "ended") {
+            setStatus("ended");
           }
         }
       } catch {}
     }, 1500);
 
-    return () => {
-      clearInterval(signalPollRef.current);
-      streamRef.current?.getTracks().forEach(t => t.stop());
-      pcRef.current?.close();
-    };
-  }, [call]);
+    // Poll call status to detect remote hang-up
+    statusPollRef.current = setInterval(async () => {
+      try {
+        const { default: apiRequest } = await import("@/lib/apiClient").catch(() => ({}));
+        if (!apiRequest) return;
+        // Use pollSignals response implicitly or fetch call detail
+      } catch {}
+    }, 4000);
+
+    return () => cleanup();
+  }, [call.callId]);
+
+  // Detect remote hang-up by checking if call still exists via signal poll returning nothing
+  // More reliable: watch for "ended" signal type
+  useEffect(() => {
+    if (status === "ended") {
+      cleanup();
+      endActiveCall();
+    }
+  }, [status]);
 
   const handleEnd = async () => {
-    streamRef.current?.getTracks().forEach(t => t.stop());
-    pcRef.current?.close();
+    cleanup();
     try { await endCall(call.callId); } catch {}
     endActiveCall();
   };
 
   const toggleMute = () => {
-    streamRef.current?.getAudioTracks().forEach(t => { t.enabled = muted; });
+    const tracks = streamRef.current?.getAudioTracks() || [];
+    tracks.forEach(t => { t.enabled = muted; }); // muted=true means currently muted, so enable
     setMuted(m => !m);
   };
 
   const toggleVideo = () => {
-    streamRef.current?.getVideoTracks().forEach(t => { t.enabled = videoOff; });
+    const tracks = streamRef.current?.getVideoTracks() || [];
+    tracks.forEach(t => { t.enabled = videoOff; });
     setVideoOff(v => !v);
   };
-
-  const isVideo = call.callType === "video";
 
   return (
     <Draggable initialX={window.innerWidth - 340} initialY={16}>
@@ -231,14 +279,15 @@ function ActiveCallWindow({ call }) {
         {/* Header / drag handle */}
         <div data-drag-handle
           className="flex items-center gap-3 px-4 py-3 bg-[#162030] cursor-grab active:cursor-grabbing">
-          <div className="w-8 h-8 rounded-full bg-emerald-500 flex items-center justify-center shrink-0">
+          <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0
+            ${status === "connected" ? "bg-emerald-500" : "bg-amber-500 animate-pulse"}`}>
             {isVideo ? <Video size={14} /> : <Phone size={14} />}
           </div>
           <div className="flex-1 min-w-0">
-            <p className="text-xs font-semibold truncate">
-              {call.initiatorName || "Call"} — {fmt(elapsed)}
+            <p className="text-xs font-semibold truncate">{call.initiatorName || "Call"}</p>
+            <p className="text-[10px] text-gray-400">
+              {status === "connected" ? fmt(elapsed) : status === "connecting" ? "Connecting…" : "Call ended"}
             </p>
-            <p className="text-[10px] text-gray-400">{isVideo ? "Video call" : "Voice call"}</p>
           </div>
           <button onClick={() => setMinimised(m => !m)}
             className="p-1 rounded hover:bg-[#1e2a3a] transition">
@@ -260,15 +309,26 @@ function ActiveCallWindow({ call }) {
                     <VideoOff size={32} className="text-gray-400" />
                   </div>
                 )}
+                {status === "connecting" && (
+                  <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/60 gap-2">
+                    <div className="w-12 h-12 rounded-full bg-[#003b8e] flex items-center justify-center text-lg font-bold">
+                      {(call.initiatorName || "?")?.[0]?.toUpperCase()}
+                    </div>
+                    <p className="text-xs text-gray-300">Connecting…</p>
+                  </div>
+                )}
               </div>
             )}
 
             {/* Voice-only avatar */}
             {!isVideo && (
-              <div className="flex items-center justify-center py-8">
+              <div className="flex flex-col items-center justify-center py-8 gap-2">
                 <div className="w-16 h-16 rounded-full bg-[#003b8e] flex items-center justify-center text-xl font-bold">
-                  {(call.initiatorName || "?")[0]?.toUpperCase()}
+                  {(call.initiatorName || "?")?.[0]?.toUpperCase()}
                 </div>
+                <p className="text-xs text-gray-400">
+                  {status === "connected" ? "Connected · " + fmt(elapsed) : "Calling…"}
+                </p>
               </div>
             )}
 
@@ -300,11 +360,35 @@ function ActiveCallWindow({ call }) {
   );
 }
 
+// ── Remote hang-up detection via call status poll ─────────────────────────────
+function CallStatusWatcher({ callId, onEnded }) {
+  useEffect(() => {
+    if (!callId) return;
+    const ref = setInterval(async () => {
+      try {
+        const mod = await import("@/lib/apiClient");
+        const apiRequest = mod.apiRequest || mod.default;
+        const r = await apiRequest({ url: `/comm/calls/${callId}` });
+        if (r?.status === "ended" || r?.status === "missed" || r?.status === "rejected") {
+          onEnded();
+        }
+      } catch {}
+    }, 4000);
+    return () => clearInterval(ref);
+  }, [callId, onEnded]);
+  return null;
+}
+
 // ── Root export ───────────────────────────────────────────────────────────────
 export default function CallPopup() {
-  const { incomingCall, activeCall } = useComm();
+  const { incomingCall, activeCall, endActiveCall } = useComm();
 
-  if (activeCall) return <ActiveCallWindow call={activeCall} />;
+  if (activeCall) return (
+    <>
+      <ActiveCallWindow call={activeCall} />
+      <CallStatusWatcher callId={activeCall.callId} onEnded={endActiveCall} />
+    </>
+  );
   if (incomingCall) return <IncomingCallToast call={incomingCall} />;
   return null;
 }
