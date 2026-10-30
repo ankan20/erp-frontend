@@ -13,6 +13,7 @@ import HistoryTimelineSheet from "@/components/common/HistoryTimelineSheet";
 import { API_ENDPOINTS } from "@/config/api.config";
 import GINForm from "@/components/resource/gin/GINForm";
 import { useMyApprovalStatus } from "@/hooks/useMyApprovalStatus";
+import { useDeletePending } from "@/hooks/useDeletePending";
 
 export default function Page() {
   const router  = useRouter();
@@ -29,6 +30,8 @@ export default function Page() {
     access.canApprove,
   );
 
+
+  const { isPendingDeletion, pendingInfo, dismissDeletion } = useDeletePending("GIN", ginId, access.allowed);
   if (!access.allowed) return <PageNotAvailable />;
 
   const actions = getPageActions({
@@ -44,6 +47,8 @@ export default function Page() {
       header={<PageHeader actions={actions} />}
       pendingApproval={isPendingForMe ? `Your approval is required at Level ${myLevel} for this GIN.` : null}
       onDismissApproval={isPendingForMe ? dismiss : undefined}
+      pendingDeletion={isPendingDeletion ? pendingInfo : null}
+      onDismissDeletion={dismissDeletion}
     >
       <GINForm mode={access.mode} ginId={ginId} onUuid={setUuid} onAfterSubmit={refresh} />
 

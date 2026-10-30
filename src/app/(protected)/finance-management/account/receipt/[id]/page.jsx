@@ -18,11 +18,15 @@ import { getfmtDisplaydate } from "@/helper/getfmtDisplayDate";
 import { formatAmount }     from "@/helper/numberFormatter";
 import SaleReceiptParentForm from "@/components/finance/account/sale/SaleReceiptParentForm";
 
+import { useDeletePending } from "@/hooks/useDeletePending";
+
 export default function Page() {
   const router = useRouter();
   const { id } = useParams();
   const access = getPageAccess({ pageCode: "receipt", pageType: "EDIT" });
 
+
+  const { isPendingDeletion, pendingInfo, dismissDeletion } = useDeletePending("SALE_RECEIPT", id, access.allowed);
   const [billings,        setBillings]        = useState([]);
   const [billingsLoading, setBillingsLoading] = useState(true);
   const projectCode = getLocalStorage("projectInfo")?.projectCode || "";
@@ -102,6 +106,8 @@ export default function Page() {
                 type="button"
                 onClick={() => router.push(`/finance-management/account/receipt-billing/new?receiptId=${id}`)}
                 className="inline-flex items-center gap-1 text-[12px] px-2.5 py-1 rounded-sm border border-[#3b6ea5] text-[#3b6ea5] hover:bg-[#3b6ea5] hover:text-white transition"
+              pendingDeletion={isPendingDeletion ? pendingInfo : null}
+              onDismissDeletion={dismissDeletion}
               >
                 <Plus size={13} />
                 Add Billing

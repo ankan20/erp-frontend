@@ -2,7 +2,14 @@
 
 import { X } from "lucide-react";
 
-export default function HeaderWrapper({ header, children, pendingApproval, onDismissApproval }) {
+export default function HeaderWrapper({
+  header,
+  children,
+  pendingApproval,
+  onDismissApproval,
+  pendingDeletion,
+  onDismissDeletion,
+}) {
   return (
     <div className="h-full flex flex-col overflow-hidden">
 
@@ -27,6 +34,32 @@ export default function HeaderWrapper({ header, children, pendingApproval, onDis
             <button
               onClick={onDismissApproval}
               className="ml-2 text-green-500 hover:text-green-800 transition-colors cursor-pointer"
+              aria-label="Dismiss"
+            >
+              <X className="w-3.5 h-3.5" />
+            </button>
+          )}
+        </div>
+      )}
+
+      {/* PENDING DELETION BANNER */}
+      {pendingDeletion && (
+        <div className="shrink-0 bg-orange-50 border-b border-orange-300 px-5 py-2 flex items-center gap-2.5">
+          <span className="relative flex h-2.5 w-2.5 shrink-0">
+            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-orange-400 opacity-75" />
+            <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-orange-500" />
+          </span>
+          <p className="text-sm font-medium text-orange-700 flex-1">
+            {typeof pendingDeletion === "string"
+              ? pendingDeletion
+              : pendingDeletion?.blockedBy
+                ? `Deletion pending — waiting for ${pendingDeletion.blockedBy} to be deleted first. Manager notified via WhatsApp.`
+                : "Deletion requested — waiting for linked records to be cleared."}
+          </p>
+          {onDismissDeletion && (
+            <button
+              onClick={onDismissDeletion}
+              className="ml-2 text-orange-400 hover:text-orange-700 transition-colors cursor-pointer"
               aria-label="Dismiss"
             >
               <X className="w-3.5 h-3.5" />

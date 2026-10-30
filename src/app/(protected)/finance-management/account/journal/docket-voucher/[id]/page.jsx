@@ -15,6 +15,7 @@ import { getPageActions }   from "@/components/common/PageActionButtons";
 import { getPageAccess }    from "@/helper/getPageAccess";
 import { API_ENDPOINTS }    from "@/config/api.config";
 import { useMyApprovalStatus } from "@/hooks/useMyApprovalStatus";
+import { useDeletePending } from "@/hooks/useDeletePending";
 import DocketVoucherForm    from "@/components/finance/account/petty-cash/DocketVoucherForm";
 
 const BASE_PATH = "/finance-management/account/journal/docket-voucher";
@@ -35,6 +36,8 @@ export default function Page() {
     access.canApprove,
   );
 
+
+  const { isPendingDeletion, pendingInfo, dismissDeletion } = useDeletePending("DOCKET_VOUCHER", id, access.allowed);
   if (!access.allowed) return <PageNotAvailable />;
 
   const actions = getPageActions({
@@ -54,6 +57,8 @@ export default function Page() {
           : null
       }
       onDismissApproval={isPendingForMe ? dismiss : undefined}
+      pendingDeletion={isPendingDeletion ? pendingInfo : null}
+      onDismissDeletion={dismissDeletion}
     >
       <DocketVoucherForm
         key={refreshKey}

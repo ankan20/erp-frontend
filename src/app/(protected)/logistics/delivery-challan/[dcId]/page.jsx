@@ -13,6 +13,7 @@ import HistoryTimelineSheet from "@/components/common/HistoryTimelineSheet";
 import { API_ENDPOINTS } from "@/config/api.config";
 import DCForm from "@/components/resource/logistics/delivery-challan/DCForm";
 import { useMyApprovalStatus } from "@/hooks/useMyApprovalStatus";
+import { useDeletePending } from "@/hooks/useDeletePending";
 
 export default function Page() {
   const router   = useRouter();
@@ -28,6 +29,8 @@ export default function Page() {
     access.canApprove,
   );
 
+
+  const { isPendingDeletion, pendingInfo, dismissDeletion } = useDeletePending("DC", dcId, access.allowed);
   if (!access.allowed) return <PageNotAvailable />;
 
   const actions = getPageActions({
@@ -42,6 +45,8 @@ export default function Page() {
       header={<PageHeader actions={actions} />}
       pendingApproval={isPendingForMe ? `Your approval is required at Level ${myLevel} for this Delivery Challan.` : null}
       onDismissApproval={isPendingForMe ? dismiss : undefined}
+      pendingDeletion={isPendingDeletion ? pendingInfo : null}
+      onDismissDeletion={dismissDeletion}
     >
       <DCForm mode={access.mode} dcId={dcId} onAfterSubmit={refresh} />
 

@@ -13,6 +13,7 @@ import HistoryTimelineSheet from "@/components/common/HistoryTimelineSheet";
 import { API_ENDPOINTS } from "@/config/api.config";
 import BRRForm from "@/components/resource/brr/BRRForm";
 import { useMyApprovalStatus } from "@/hooks/useMyApprovalStatus";
+import { useDeletePending } from "@/hooks/useDeletePending";
 
 // Categories that route to GRN (BRG) billing; rest go to SRN (BRS)
 const GRN_CATEGORIES = ["Purchases_Order", "Site_Transfer_Order", "Customer_Supply_Order"];
@@ -35,6 +36,8 @@ export default function Page() {
     access.canApprove,
   );
 
+
+  const { isPendingDeletion, pendingInfo, dismissDeletion } = useDeletePending("BRR", brrId, access.allowed);
   if (!access.allowed) return <PageNotAvailable />;
 
   const actions = getPageActions({
@@ -60,6 +63,8 @@ export default function Page() {
       header={<PageHeader actions={actions} />}
       pendingApproval={isPendingForMe ? `Your approval is required at Level ${myLevel} for this BRR.` : null}
       onDismissApproval={isPendingForMe ? dismiss : undefined}
+      pendingDeletion={isPendingDeletion ? pendingInfo : null}
+      onDismissDeletion={dismissDeletion}
     >
       <BRRForm
         mode={access.mode}

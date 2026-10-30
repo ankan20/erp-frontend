@@ -16,6 +16,7 @@ import { API_ENDPOINTS } from "@/config/api.config";
 import { useState } from "react";
 import HistoryTimelineSheet from "@/components/common/HistoryTimelineSheet";
 import { useMyApprovalStatus } from "@/hooks/useMyApprovalStatus";
+import { useDeletePending } from "@/hooks/useDeletePending";
 
 export default function Page() {
   const router = useRouter();
@@ -34,6 +35,8 @@ export default function Page() {
     access.canApprove,
   );
 
+
+  const { isPendingDeletion, pendingInfo, dismissDeletion } = useDeletePending("INDENT", indentId, access.allowed);
   if (!access.allowed) {
     return <PageNotAvailable />;
   }
@@ -51,6 +54,8 @@ export default function Page() {
       header={<PageHeader actions={actions} />}
       pendingApproval={isPendingForMe ? `Your approval is required at Level ${myLevel} for this Indent.` : null}
       onDismissApproval={isPendingForMe ? dismiss : undefined}
+      pendingDeletion={isPendingDeletion ? pendingInfo : null}
+      onDismissDeletion={dismissDeletion}
     >
       <IndentForm
         mode={access.mode}

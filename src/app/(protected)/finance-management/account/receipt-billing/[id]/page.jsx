@@ -12,6 +12,7 @@ import { getPageActions }   from "@/components/common/PageActionButtons";
 import { getPageAccess }    from "@/helper/getPageAccess";
 import { API_ENDPOINTS }    from "@/config/api.config";
 import { useMyApprovalStatus } from "@/hooks/useMyApprovalStatus";
+import { useDeletePending } from "@/hooks/useDeletePending";
 import SaleReceiptBillingForm from "@/components/finance/account/sale/SaleReceiptBillingForm";
 
 export default function Page() {
@@ -29,6 +30,8 @@ export default function Page() {
     access.canApprove,
   );
 
+
+  const { isPendingDeletion, pendingInfo, dismissDeletion } = useDeletePending("SALE_RECEIPT_BILLING", id, access.allowed);
   if (!access.allowed) return <PageNotAvailable />;
 
   const actions = getPageActions({
@@ -44,6 +47,8 @@ export default function Page() {
       header={<PageHeader actions={actions} />}
       pendingApproval={isPendingForMe ? `Your approval is required at Level ${myLevel} for this Sale Receipt Billing.` : null}
       onDismissApproval={isPendingForMe ? dismiss : undefined}
+      pendingDeletion={isPendingDeletion ? pendingInfo : null}
+      onDismissDeletion={dismissDeletion}
     >
       <SaleReceiptBillingForm
         mode={access.mode}

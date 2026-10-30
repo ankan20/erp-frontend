@@ -11,6 +11,7 @@ import { getPageAccess }     from "@/helper/getPageAccess";
 import ApprovalActionModal   from "@/components/common/ApprovalActionModal";
 import HistoryTimelineSheet  from "@/components/common/HistoryTimelineSheet";
 import { useMyApprovalStatus } from "@/hooks/useMyApprovalStatus";
+import { useDeletePending } from "@/hooks/useDeletePending";
 import { API_ENDPOINTS }     from "@/config/api.config";
 import HindranceRegisterForm from "@/components/project-management/register/hindrance/HindranceRegisterForm";
 
@@ -28,6 +29,8 @@ export default function Page() {
     access.canApprove,
   );
 
+
+  const { isPendingDeletion, pendingInfo, dismissDeletion } = useDeletePending("HINDRANCE_REGISTER", id, access.allowed);
   if (!access.allowed) return <PageNotAvailable />;
 
   const actions = getPageActions({
@@ -46,6 +49,8 @@ export default function Page() {
           : null
       }
       onDismissApproval={isPendingForMe ? dismiss : undefined}
+      pendingDeletion={isPendingDeletion ? pendingInfo : null}
+      onDismissDeletion={dismissDeletion}
     >
       <HindranceRegisterForm mode={access.mode} hindranceId={id} onAfterSubmit={refresh} />
 
