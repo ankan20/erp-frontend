@@ -33,6 +33,28 @@ import { zodDate } from "@/lib/dateUtils";
 
 const BILL_MODE = "sale_certified_bill";
 
+// ── COLUMN DEFINITIONS ────────────────────────────────────────────────────────
+const CERT_COLS = [
+  { id: "sl",           label: "SL no",                   thClass: "w-[44px] text-center" },
+  { id: "type",         label: "Type",                    thClass: "w-[90px] text-center" },
+  { id: "itemCode",     label: "Item Code",               thClass: "w-[110px] text-left px-2" },
+  { id: "itemName",     label: "Item Name & Description", thClass: "text-left px-2" },
+  { id: "unit",         label: "Unit",                    thClass: "w-[60px] text-center" },
+  { id: "orderQty",     label: "Order Qty",               thClass: "w-[85px] text-right px-2 min-w-[100px]" },
+  { id: "claimQty",     label: "Claim Qty",               thClass: "w-[85px] text-right px-2 min-w-[100px]" },
+  { id: "preCertQty",   label: "Pre Cert Qty",            thClass: "w-[90px] text-right px-2 min-w-[95px]" },
+  { id: "certQty",      label: "Cert Qty",                thClass: "w-[90px] text-right px-2" },
+  { id: "totalCertQty", label: "Total Cert Qty",          thClass: "w-[95px] text-right px-2 min-w-[95px]" },
+  { id: "rate",         label: "Rate",                    thClass: "w-[90px] text-right px-2 min-w-[110px]" },
+  { id: "preCertAmt",   label: "Pre Cert Amt",            thClass: "w-[115px] text-right px-2 min-w-[120px]" },
+  { id: "certAmt",      label: "Cert Amt",                thClass: "w-[100px] text-right px-2" },
+  { id: "totalCertAmt", label: "Total Cert Amt",          thClass: "w-[110px] text-right px-2 min-w-[115px]" },
+  { id: "gstPct",       label: "GST %",                   thClass: "w-[90px] text-right px-2" },
+  { id: "gstAmt",       label: "GST Amt",                 thClass: "w-[100px] text-right px-2 min-w-[120px]" },
+  { id: "amount",       label: "Amount",                  thClass: "w-[105px] text-right px-2 min-w-[120px]" },
+];
+const CERT_COL_IDS = CERT_COLS.map((c) => c.id);
+
 // ── SCHEMA ────────────────────────────────────────────────────────────────────
 const itemSchema = z.object({
   type:              z.string().optional().default("non-boq"),
@@ -42,11 +64,13 @@ const itemSchema = z.object({
   itemName:          z.string().optional(),
   itemDescription:   z.string().optional(),
   unit:              z.string().optional(),
-  orderQty:          z.coerce.number().min(0).optional(),
-  claimQty:          z.coerce.number().min(0).optional(),
-  certifiedQty:      z.coerce.number().min(0).optional(),
-  rate:              z.coerce.number().min(0).optional(),
-  gstPercent:        z.coerce.number().min(0).optional(),
+  orderQty:            z.coerce.number().min(0).optional(),
+  claimQty:            z.coerce.number().min(0).optional(),
+  preCertifiedQty:     z.coerce.number().min(0).optional(),
+  certifiedQty:        z.coerce.number().min(0).optional(),
+  preCertifiedAmount:  z.coerce.number().min(0).optional(),
+  rate:                z.coerce.number().min(0).optional(),
+  gstPercent:          z.coerce.number().min(0).optional(),
 });
 
 const schema = z.object({
@@ -67,11 +91,13 @@ const DEFAULT_ITEM = {
   itemName:          "",
   itemDescription:   "",
   unit:              "",
-  orderQty:          "",
-  claimQty:          "",
-  certifiedQty:      "",
-  rate:              "",
-  gstPercent:        "",
+  orderQty:           "",
+  claimQty:           "",
+  preCertifiedQty:    0,
+  certifiedQty:       "",
+  preCertifiedAmount: 0,
+  rate:               "",
+  gstPercent:         "",
 };
 
 const defaultValues = {
@@ -101,6 +127,7 @@ export default function SaleCertifiedBillForm({ mode = "create", billId, onAfter
   const [saleOrderOpts,   setSaleOrderOpts]   = useState([]);
   const [claimBillOpts,   setClaimBillOpts]   = useState([]);
   const [claimBillLoading, setClaimBillLoading] = useState(false);
+  const [prevCertBillOpts, setPrevCertBillOpts] = useState([]);
   const [useLocations,    setUseLocations]    = useState([]);
   const [lookupLoading,   setLookupLoading]   = useState(false);
 
@@ -108,6 +135,39 @@ export default function SaleCertifiedBillForm({ mode = "create", billId, onAfter
   const [existingUrl,  setExistingUrl]  = useState("");
   const [initialUrl,   setInitialUrl]   = useState("");
   const [fileResetKey, setFileResetKey] = useState(0);
+
+  // ── COLUMN ORDER (drag-to-reorder, saved per user) ───────────────────────────
+  const colLsKey = `colOrder_saleCertBill_${getLocalStorage("userName") || "default"}`;
+  const [columnOrder, setColumnOrder] = useState(() => {
+    try {
+      const saved = JSON.parse(localStorage.getItem(colLsKey) || "null");
+      if (Array.isArray(saved) && saved.length === CERT_COL_IDS.length &&
+          CERT_COL_IDS.every((id) => saved.includes(id))) return saved;
+    } catch {}
+    return [...CERT_COL_IDS];
+  });
+  const [dragColId,  setDragColId]  = useState(null);
+  const [overColId,  setOverColId]  = useState(null);
+
+  const saveColOrder = (order) => {
+    try { localStorage.setItem(colLsKey, JSON.stringify(order)); } catch {}
+  };
+  const onColDragStart = (colId) => setDragColId(colId);
+  const onColDragOver  = (e, colId) => { e.preventDefault(); setOverColId(colId); };
+  const onColDrop      = (e, targetId) => {
+    e.preventDefault();
+    if (!dragColId || dragColId === targetId) { setDragColId(null); setOverColId(null); return; }
+    const next = [...columnOrder];
+    const from = next.indexOf(dragColId);
+    const to   = next.indexOf(targetId);
+    next.splice(from, 1);
+    next.splice(to, 0, dragColId);
+    setColumnOrder(next);
+    saveColOrder(next);
+    setDragColId(null);
+    setOverColId(null);
+  };
+  const onColDragEnd   = () => { setDragColId(null); setOverColId(null); };
 
   const {
     register, control, handleSubmit, reset, getValues, setValue, watch,
@@ -188,6 +248,7 @@ export default function SaleCertifiedBillForm({ mode = "create", billId, onAfter
     setValue("items",         [],    { shouldDirty: true });
     setValue("preCertifiedAmount", "", { shouldDirty: true });
     setClaimBillOpts([]);
+    setPrevCertBillOpts([]);
     fetchClaimBills(value);
   }, [setValue, fetchClaimBills]);
 
@@ -207,23 +268,41 @@ export default function SaleCertifiedBillForm({ mode = "create", billId, onAfter
       }
       const mapLookupItem = (it, type) => ({
         type,
-        ogSaleOrderItemId: it.id || it.ogSaleOrderItemId || null,
-        itemDisplayCode:   it.itemDisplayCode || it.itemCode    || "",
-        itemCode:          it.itemCode        || "",
-        itemName:          it.itemName        || "",
-        itemDescription:   it.itemDescription || it.description || "",
-        unit:              it.unit            || "",
-        orderQty:          it.orderQty        ?? "",
-        claimQty:          it.claimQty        ?? "",
-        certifiedQty:      it.claimQty        ?? "",
-        rate:              it.rate            || "",
-        gstPercent:        it.gstPercent      || it.gst  || "",
+        ogSaleOrderItemId:  it.id || it.ogSaleOrderItemId || null,
+        itemDisplayCode:    it.itemDisplayCode || it.itemCode    || "",
+        itemCode:           it.itemCode        || "",
+        itemName:           it.itemName        || "",
+        itemDescription:    it.itemDescription || it.description || "",
+        unit:               it.unit            || "",
+        orderQty:           it.orderQty        ?? "",
+        claimQty:           it.claimQty        ?? "",
+        preCertifiedQty:    it.preCertifiedQty ?? 0,
+        certifiedQty:       it.claimQty        ?? "",
+        preCertifiedAmount: it.preCertifiedAmount ?? 0,
+        rate:               it.rate            || "",
+        gstPercent:         it.gstPercent      || it.gst  || "",
       });
       const items = [
         ...(d.boqItems || []).map((it) => mapLookupItem(it, "boq")),
         ...(d.items    || []).map((it) => mapLookupItem(it, "non-boq")),
       ];
       if (items.length) setValue("items", items, { shouldDirty: true });
+
+      // fetch prev approved cert bills for reference dropdown
+      try {
+        const certRes = await apiRequest({
+          url:    `${API_ENDPOINTS.PROJECT.SALE_CERTIFIED_BILL.CERT_BILLS_FOR_CLAIM}?claimBillId=${encodeURIComponent(id)}`,
+          method: "GET",
+        });
+        setPrevCertBillOpts(
+          (Array.isArray(certRes.data) ? certRes.data : []).map((b) => ({
+            ...b,
+            displayLabel: b.billingNo,
+          }))
+        );
+      } catch {
+        setPrevCertBillOpts([]);
+      }
     } catch {
       toast.error("Failed to load claim bill details");
     } finally {
@@ -244,17 +323,19 @@ export default function SaleCertifiedBillForm({ mode = "create", billId, onAfter
         const d = res.data;
         const mapDetailItem = (it, type) => ({
           type,
-          ogSaleOrderItemId: it.ogSaleOrderItemId || null,
-          itemDisplayCode:   it.itemDisplayCode   || it.itemCode || "",
-          itemCode:          it.itemCode           || "",
-          itemName:          it.itemName           || "",
-          itemDescription:   it.itemDescription   || "",
-          unit:              it.unit               || "",
-          orderQty:          it.orderQty           || "",
-          claimQty:          it.claimQty           || "",
-          certifiedQty:      it.certifiedQty       || "",
-          rate:              it.rate               || "",
-          gstPercent:        it.gstPercent         || "",
+          ogSaleOrderItemId:  it.ogSaleOrderItemId || null,
+          itemDisplayCode:    it.itemDisplayCode   || it.itemCode || "",
+          itemCode:           it.itemCode           || "",
+          itemName:           it.itemName           || "",
+          itemDescription:    it.itemDescription   || "",
+          unit:               it.unit               || "",
+          orderQty:           it.orderQty           || "",
+          claimQty:           it.claimQty           || "",
+          preCertifiedQty:    it.preCertifiedQty    ?? 0,
+          certifiedQty:       it.certifiedQty       || "",
+          preCertifiedAmount: it.preCertifiedAmount ?? 0,
+          rate:               it.rate               || "",
+          gstPercent:         it.gstPercent         || "",
         });
         const formatted = {
           claimBillId:        d.claimBillId         || null,
@@ -272,6 +353,16 @@ export default function SaleCertifiedBillForm({ mode = "create", billId, onAfter
         reset(formatted);
         setInitialData(formatted);
         if (d.ogSaleOrderNo) fetchClaimBills(d.ogSaleOrderNo);
+        if (d.claimBillId) {
+          apiRequest({
+            url:    `${API_ENDPOINTS.PROJECT.SALE_CERTIFIED_BILL.CERT_BILLS_FOR_CLAIM}?claimBillId=${d.claimBillId}`,
+            method: "GET",
+          }).then((r) => {
+            setPrevCertBillOpts(
+              (Array.isArray(r.data) ? r.data : []).map((b) => ({ ...b, displayLabel: b.billingNo }))
+            );
+          }).catch(() => setPrevCertBillOpts([]));
+        }
         onUuid?.(d.billingUuid || "");
         setExistingUrl(d.attachment || "");
         setInitialUrl(d.attachment  || "");
@@ -457,6 +548,22 @@ export default function SaleCertifiedBillForm({ mode = "create", billId, onAfter
               </div>
             </PMFormRow>
 
+            {prevCertBillOpts.length > 0 && (() => {
+              const latest = prevCertBillOpts[prevCertBillOpts.length - 1];
+              return (
+                <PMFormRow label="Latest Cert Bill" labelWidth="sm:w-[140px] sm:min-w-[140px]">
+                  <a
+                    href={`/project-management/customer-billing/sale-bill-certified/${latest.id}`}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="text-[13px] text-blue-600 underline hover:text-blue-800 font-medium"
+                  >
+                    {latest.billingNo}
+                  </a>
+                </PMFormRow>
+              );
+            })()}
+
             <PMFormRow label="Bill Date" required={!disabled} labelWidth="sm:w-[140px] sm:min-w-[140px]">
               <PMDateInput
                 {...register("billingDate")}
@@ -566,200 +673,178 @@ export default function SaleCertifiedBillForm({ mode = "create", billId, onAfter
             </div>
 
             <div className="overflow-x-auto overflow-y-auto lg:max-h-[calc(100vh-260px)]">
-              <table ref={tableRef} className="w-full border-collapse text-sm" style={{ minWidth: 1260 }}>
+              <table ref={tableRef} className="w-full border-collapse text-sm" style={{ minWidth: 1700 }}>
 
+                {/* ── DYNAMIC DRAGGABLE HEADERS ── */}
                 <thead className="sticky top-0 z-20">
                   <tr className="bg-[#3b6ea5] text-white">
-                    <th className="border border-[#2a5080] w-[44px] text-center text-[13px] py-1.5">SL no</th>
-                    <th className="border border-[#2a5080] w-[90px] text-center text-[13px] py-1.5">Type</th>
-                    <th className="border border-[#2a5080] w-[110px] text-left px-2 text-[13px] py-1.5">Item Code</th>
-                    <th className="border border-[#2a5080] text-left px-2 text-[13px] py-1.5">Item Name &amp; Description</th>
-                    <th className="border border-[#2a5080] w-[60px] text-center text-[13px] py-1.5">Unit</th>
-                    <th className="border border-[#2a5080] w-[85px] text-right px-2 text-[13px] py-1.5 min-w-[100px]">Order Qty</th>
-                    <th className="border border-[#2a5080] w-[85px] text-right px-2 text-[13px] py-1.5 min-w-[100px]">Claim Qty</th>
-                    <th className="border border-[#2a5080] w-[90px] text-right px-2 text-[13px] py-1.5">Certified Qty</th>
-                    <th className="border border-[#2a5080] w-[90px] text-right px-2 text-[13px] py-1.5 min-w-[110px]">Rate</th>
-                    <th className="border border-[#2a5080] w-[100px] text-right px-2 text-[13px] py-1.5">Basic Amt</th>
-                    <th className="border border-[#2a5080] w-[90px] text-right px-2 text-[13px] py-1.5">GST %</th>
-                    <th className="border border-[#2a5080] w-[100px] text-right px-2 text-[13px] py-1.5 min-w-[120px]">GST Amt</th>
-                    <th className="border border-[#2a5080] w-[105px] text-right px-2 text-[13px] py-1.5 min-w-[120px]">Amount</th>
+                    {columnOrder.map((colId) => {
+                      const col = CERT_COLS.find((c) => c.id === colId);
+                      const isOver     = overColId  === colId && dragColId !== colId;
+                      const isDragging = dragColId  === colId;
+                      return (
+                        <th
+                          key={colId}
+                          draggable
+                          onDragStart={() => onColDragStart(colId)}
+                          onDragOver={(e) => onColDragOver(e, colId)}
+                          onDrop={(e) => onColDrop(e, colId)}
+                          onDragEnd={onColDragEnd}
+                          className={`border border-[#2a5080] text-[13px] py-1.5 select-none cursor-grab active:cursor-grabbing ${col.thClass} ${isDragging ? "opacity-40" : ""} ${isOver ? "border-l-4 border-l-yellow-300" : ""}`}
+                          title="Drag to reorder"
+                        >
+                          {col.label}
+                        </th>
+                      );
+                    })}
                   </tr>
                 </thead>
 
                 <tbody>
                   {fields.length === 0 && (
                     <tr>
-                      <td
-                        colSpan={12}
-                        className="text-center text-[13px] text-[#888] py-8 italic border border-[#ccc]"
-                      >
+                      <td colSpan={CERT_COL_IDS.length} className="text-center text-[13px] text-[#888] py-8 italic border border-[#ccc]">
                         Select an order, then a claim bill above to populate items
                       </td>
                     </tr>
                   )}
                   {fields.map((field, index) => {
-                    const item         = watchedItems[index] || {};
-                    const orderQty     = Number(item.orderQty     || 0);
-                    const claimQty     = Number(item.claimQty     || 0);
-                    const certifiedQty = Number(item.certifiedQty || 0);
-                    const rate         = Number(item.rate         || 0);
-                    const gstPct       = Number(item.gstPercent   || 0);
-                    const amount       = certifiedQty * rate;
-                    const gstAmt       = amount * gstPct / 100;
-                    const overQty      = !disabled && certifiedQty > claimQty && claimQty > 0;
+                    const item               = watchedItems[index] || {};
+                    const orderQty           = Number(item.orderQty           || 0);
+                    const claimQty           = Number(item.claimQty           || 0);
+                    const preCertifiedQty    = Number(item.preCertifiedQty    || 0);
+                    const certifiedQty       = Number(item.certifiedQty       || 0);
+                    const totalCertQty       = preCertifiedQty + certifiedQty;
+                    const preCertifiedAmount = Number(item.preCertifiedAmount || 0);
+                    const rate               = Number(item.rate               || 0);
+                    const gstPct             = Number(item.gstPercent         || 0);
+                    const certAmt            = certifiedQty * rate;
+                    const totalCertAmt       = preCertifiedAmount + certAmt;
+                    const gstAmt             = certAmt * gstPct / 100;
+                    const overQty            = !disabled && certifiedQty > claimQty && claimQty > 0;
+
+                    const renderCell = (colId) => {
+                      switch (colId) {
+                        case "sl":
+                          return <td key={colId} className="border border-[#ccc] text-center bg-[#edf4fb] text-[13px] font-medium align-middle">{index + 1}</td>;
+                        case "type":
+                          return (
+                            <td key={colId} className="border border-[#ccc] text-center text-[13px] align-middle text-[#555]">
+                              {watch(`items.${index}.type`) === "boq" ? "BOQ" : "Non-BOQ"}
+                              <input {...register(`items.${index}.type`)} type="hidden" />
+                            </td>
+                          );
+                        case "itemCode":
+                          return (
+                            <td key={colId} className="border border-[#ccc] p-0 align-middle">
+                              <input {...register(`items.${index}.itemDisplayCode`)} disabled placeholder="—"
+                                className={`${getInputClass(false, true)} border-0 rounded-none w-full h-[30px] text-[13px] px-1`} />
+                              <input {...register(`items.${index}.itemCode`)} type="hidden" />
+                              <input {...register(`items.${index}.ogSaleOrderItemId`)} type="hidden" />
+                            </td>
+                          );
+                        case "itemName":
+                          return (
+                            <td key={colId} className="border border-[#ccc] p-0">
+                              <Controller name={`items.${index}.itemName`} control={control}
+                                render={({ field: f }) => <ExpandableTextCell value={f.value || ""} onChange={f.onChange} disabled={true} label="Item Name" placeholder="—" textSize="text-[13px]" />} />
+                              <Controller name={`items.${index}.itemDescription`} control={control}
+                                render={({ field: f }) => <ExpandableTextCell value={f.value || ""} onChange={f.onChange} disabled={true} label="Item Description" placeholder="—" />} />
+                            </td>
+                          );
+                        case "unit":
+                          return (
+                            <td key={colId} className="border border-[#ccc] p-0 align-middle">
+                              <input {...register(`items.${index}.unit`)} disabled placeholder="—"
+                                className={`${getInputClass(false, true)} border-0 rounded-none w-full h-[30px] text-[13px] text-center`} />
+                            </td>
+                          );
+                        case "orderQty":
+                          return (
+                            <td key={colId} className="border border-[#ccc] bg-[#f0f4f8] px-2 text-[13px] text-right align-middle text-[#555] whitespace-nowrap">
+                              {orderQty > 0 ? formatQtyDisplay(orderQty) : "—"}
+                              <input {...register(`items.${index}.orderQty`)} type="hidden" />
+                            </td>
+                          );
+                        case "claimQty":
+                          return (
+                            <td key={colId} className="border border-[#ccc] bg-[#f0f4f8] px-2 text-[13px] text-right align-middle text-[#555] whitespace-nowrap">
+                              {claimQty > 0 ? formatQtyDisplay(claimQty) : "—"}
+                              <input {...register(`items.${index}.claimQty`)} type="hidden" />
+                            </td>
+                          );
+                        case "preCertQty":
+                          return (
+                            <td key={colId} className="border border-[#ccc] bg-[#f0f4f8] px-2 text-[13px] text-right align-middle text-[#555] whitespace-nowrap">
+                              {preCertifiedQty > 0 ? formatQtyDisplay(preCertifiedQty) : "—"}
+                              <input {...register(`items.${index}.preCertifiedQty`)} type="hidden" />
+                            </td>
+                          );
+                        case "certQty":
+                          return (
+                            <td key={colId} className="border border-[#ccc] p-0 align-middle">
+                              <Controller control={control} name={`items.${index}.certifiedQty`}
+                                render={({ field: f }) => (
+                                  <QtyInput {...f} onChange={(e) => f.onChange(e.target.value)} disabled={disabled} placeholder="0"
+                                    title={overQty ? `Above claim qty (${claimQty})` : undefined}
+                                    className={`${overQty ? "border-orange-400 bg-orange-50 text-orange-700" : getInputClass(errors?.items?.[index]?.certifiedQty, disabled)} border-0 rounded-none w-full h-[30px] text-[13px] text-right pr-2`} />
+                                )} />
+                            </td>
+                          );
+                        case "totalCertQty":
+                          return <td key={colId} className="border border-[#ccc] bg-[#edf8f0] px-2 text-[13px] font-medium text-right align-middle whitespace-nowrap">{totalCertQty > 0 ? formatQtyDisplay(totalCertQty) : "—"}</td>;
+                        case "rate":
+                          return (
+                            <td key={colId} className="border border-[#ccc] p-0 align-middle">
+                              <AmountInput {...register(`items.${index}.rate`)} value={item.rate ?? ""} disabled={disabled} placeholder="0"
+                                className={`${getInputClass(false, disabled)} border-0 rounded-none w-full h-[30px] text-[13px] text-right pr-2`} />
+                            </td>
+                          );
+                        case "preCertAmt":
+                          return (
+                            <td key={colId} className="border border-[#ccc] bg-[#f0f4f8] px-2 text-[13px] text-right align-middle text-[#555] whitespace-nowrap">
+                              {preCertifiedAmount > 0 ? formatAmount(preCertifiedAmount) : "—"}
+                              <input {...register(`items.${index}.preCertifiedAmount`)} type="hidden" />
+                            </td>
+                          );
+                        case "certAmt":
+                          return <td key={colId} className="border border-[#ccc] bg-[#edf8ed] px-2 text-[13px] font-medium text-right align-middle whitespace-nowrap">{formatAmount(certAmt)}</td>;
+                        case "totalCertAmt":
+                          return <td key={colId} className="border border-[#ccc] bg-[#edf8f0] px-2 text-[13px] font-medium text-right align-middle whitespace-nowrap">{formatAmount(totalCertAmt)}</td>;
+                        case "gstPct":
+                          return (
+                            <td key={colId} className="border border-[#ccc] p-0 align-middle">
+                              <GstInput {...register(`items.${index}.gstPercent`)} value={item.gstPercent ?? ""} disabled={disabled} placeholder="0"
+                                className={`${getInputClass(false, disabled)} border-0 rounded-none w-full h-[30px] text-[13px] text-right pr-2`} />
+                            </td>
+                          );
+                        case "gstAmt":
+                          return <td key={colId} className="border border-[#ccc] bg-[#edf8ed] px-2 text-[13px] font-medium text-right align-middle whitespace-nowrap">{formatAmount(gstAmt)}</td>;
+                        case "amount":
+                          return <td key={colId} className="border border-[#ccc] bg-[#edf8ed] px-2 text-[13px] font-medium text-right align-middle whitespace-nowrap">{formatAmount(certAmt + gstAmt)}</td>;
+                        default: return null;
+                      }
+                    };
 
                     return (
                       <tr key={field.id} className={index % 2 === 0 ? "bg-white" : "bg-[#f5f8fc]"}>
-
-                        {/* SL */}
-                        <td className="border border-[#ccc] text-center bg-[#edf4fb] text-[13px] font-medium align-middle">
-                          {index + 1}
-                        </td>
-
-                        {/* TYPE — read-only */}
-                        <td className="border border-[#ccc] text-center text-[13px] align-middle text-[#555]">
-                          {watch(`items.${index}.type`) === "boq" ? "BOQ" : "Non-BOQ"}
-                          <input {...register(`items.${index}.type`)} type="hidden" />
-                        </td>
-
-                        {/* ITEM CODE — read-only */}
-                        <td className="border border-[#ccc] p-0 align-middle">
-                          <input
-                            {...register(`items.${index}.itemDisplayCode`)}
-                            disabled placeholder="—"
-                            className={`${getInputClass(false, true)} border-0 rounded-none w-full h-[30px] text-[13px] px-1`}
-                          />
-                          <input {...register(`items.${index}.itemCode`)}          type="hidden" />
-                          <input {...register(`items.${index}.ogSaleOrderItemId`)} type="hidden" />
-                        </td>
-
-                        {/* ITEM NAME & DESCRIPTION — name read-only, desc expandable */}
-                        <td className="border border-[#ccc] p-0">
-                          <Controller
-                            name={`items.${index}.itemName`}
-                            control={control}
-                            render={({ field }) => (
-                              <ExpandableTextCell
-                                value={field.value || ""}
-                                onChange={field.onChange}
-                                disabled={true}
-                                label="Item Name"
-                                placeholder="—"
-                                textSize="text-[13px]"
-                              />
-                            )}
-                          />
-                          <Controller
-                            name={`items.${index}.itemDescription`}
-                            control={control}
-                            render={({ field }) => (
-                              <ExpandableTextCell
-                                value={field.value || ""}
-                                onChange={field.onChange}
-                                disabled={true}
-                                label="Item Description"
-                                placeholder="—"
-                              />
-                            )}
-                          />
-                        </td>
-
-                        {/* UNIT — read-only */}
-                        <td className="border border-[#ccc] p-0 align-middle">
-                          <input
-                            {...register(`items.${index}.unit`)}
-                            disabled placeholder="—"
-                            className={`${getInputClass(false, true)} border-0 rounded-none w-full h-[30px] text-[13px] text-center`}
-                          />
-                        </td>
-
-                        {/* ORDER QTY — read-only reference */}
-                        <td className="border border-[#ccc] bg-[#f0f4f8] px-2 text-[13px] text-right align-middle text-[#555] whitespace-nowrap">
-                          {orderQty > 0 ? formatQtyDisplay(orderQty) : "—"}
-                          <input {...register(`items.${index}.orderQty`)} type="hidden" />
-                        </td>
-
-                        {/* CLAIM QTY — read-only reference from claim bill */}
-                        <td className="border border-[#ccc] bg-[#f0f4f8] px-2 text-[13px] text-right align-middle text-[#555] whitespace-nowrap">
-                          {claimQty > 0 ? formatQtyDisplay(claimQty) : "—"}
-                          <input {...register(`items.${index}.claimQty`)} type="hidden" />
-                        </td>
-
-                        {/* CERTIFIED QTY — editable; orange highlight when above claimQty */}
-                        <td className="border border-[#ccc] p-0 align-middle">
-                          <Controller
-                            control={control}
-                            name={`items.${index}.certifiedQty`}
-                            render={({ field: f }) => (
-                              <QtyInput
-                                {...f}
-                                onChange={(e) => f.onChange(e.target.value)}
-                                disabled={disabled}
-                                placeholder="0"
-                                title={overQty ? `Above claim qty (${claimQty})` : undefined}
-                                className={`${overQty ? "border-orange-400 bg-orange-50 text-orange-700" : getInputClass(errors?.items?.[index]?.certifiedQty, disabled)} border-0 rounded-none w-full h-[30px] text-[13px] text-right pr-2`}
-                              />
-                            )}
-                          />
-                        </td>
-
-                        {/* RATE — editable */}
-                        <td className="border border-[#ccc] p-0 align-middle">
-                          <AmountInput
-                            {...register(`items.${index}.rate`)}
-                            value={item.rate ?? ""}
-                            disabled={disabled}
-                            placeholder="0"
-                            className={`${getInputClass(false, disabled)} border-0 rounded-none w-full h-[30px] text-[13px] text-right pr-2`}
-                          />
-                        </td>
-
-                        {/* BASIC AMOUNT */}
-                        <td className="border border-[#ccc] bg-[#edf8ed] px-2 text-[13px] font-medium text-right align-middle whitespace-nowrap">
-                          {formatAmount(amount)}
-                        </td>
-
-                        {/* GST % */}
-                        <td className="border border-[#ccc] p-0 align-middle">
-                          <GstInput
-                            {...register(`items.${index}.gstPercent`)}
-                            value={item.gstPercent ?? ""}
-                            disabled={disabled}
-                            placeholder="0"
-                            className={`${getInputClass(false, disabled)} border-0 rounded-none w-full h-[30px] text-[13px] text-right pr-2`}
-                          />
-                        </td>
-
-                        {/* GST AMOUNT */}
-                        <td className="border border-[#ccc] bg-[#edf8ed] px-2 text-[13px] font-medium text-right align-middle whitespace-nowrap">
-                          {formatAmount(gstAmt)}
-                        </td>
-
-                        {/* AMOUNT — basic + GST, i.e. the line total */}
-                        <td className="border border-[#ccc] bg-[#edf8ed] px-2 text-[13px] font-medium text-right align-middle whitespace-nowrap">
-                          {formatAmount(amount + gstAmt)}
-                        </td>
-
+                        {columnOrder.map(renderCell)}
                       </tr>
                     );
                   })}
                 </tbody>
 
+                {/* ── DYNAMIC TFOOT ── */}
                 <tfoot className="sticky bottom-0 z-10 bg-[#b7d5f0]">
                   <tr className="font-bold">
-                    <td className="border border-[#9ec5e0]" />
-                    <td className="border border-[#9ec5e0]" />
-                    <td className="border border-[#9ec5e0]" />
-                    <td className="border border-[#9ec5e0]" />
-                    <td className="border border-[#9ec5e0]" />
-                    <td className="border border-[#9ec5e0]" />
-                    <td className="border border-[#9ec5e0]" />
-                    <td className="border border-[#9ec5e0]" />
-                    <td className="border border-[#9ec5e0] px-2 text-right text-[13px] whitespace-nowrap">TOTAL=</td>
-                    <td className="border border-[#9ec5e0] px-2 text-right text-[13px] whitespace-nowrap">{formatAmount(thisBillAmount)}</td>
-                    <td className="border border-[#9ec5e0]" />
-                    <td className="border border-[#9ec5e0] px-2 text-right text-[13px] whitespace-nowrap">{formatAmount(gstAmount)}</td>
-                    <td className="border border-[#9ec5e0] px-2 text-right text-[13px] whitespace-nowrap">{formatAmount(thisBillAmount + gstAmount)}</td>
+                    {columnOrder.map((colId) => {
+                      if (colId === "certAmt")      return <td key={colId} className="border border-[#9ec5e0] px-2 text-right text-[13px] whitespace-nowrap">{formatAmount(thisBillAmount)}</td>;
+                      if (colId === "gstAmt")       return <td key={colId} className="border border-[#9ec5e0] px-2 text-right text-[13px] whitespace-nowrap">{formatAmount(gstAmount)}</td>;
+                      if (colId === "amount")       return <td key={colId} className="border border-[#9ec5e0] px-2 text-right text-[13px] whitespace-nowrap">{formatAmount(thisBillAmount + gstAmount)}</td>;
+                      if (colId === "rate")         return <td key={colId} className="border border-[#9ec5e0] px-2 text-right text-[13px] whitespace-nowrap">TOTAL=</td>;
+                      if (colId === "totalCertAmt") return <td key={colId} className="border border-[#9ec5e0] px-2 text-right text-[13px] whitespace-nowrap">{formatAmount(thisBillAmount + gstAmount)}</td>;
+                      return <td key={colId} className="border border-[#9ec5e0]" />;
+                    })}
                   </tr>
                 </tfoot>
 

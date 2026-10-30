@@ -29,6 +29,7 @@ import { apiRequest } from "@/lib/apiClient";
 import { API_ENDPOINTS } from "@/config/api.config";
 import { getLocalStorage } from "@/lib/localStorage";
 import { zodDate } from "@/lib/dateUtils";
+import AiPanel from "@/components/ai/AiPanel";
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -496,6 +497,64 @@ export default function SaleBillForm({
     }
   };
 
+  // ── AI: auto-fill all fillable header fields including Sale Order ──
+  const handleAiApply = (fields, _suggestion) => {
+    const filled = [];
+
+    // 1. Mode → Sale Invoice (only set if blank)
+    if (!getValues("mode")) {
+      setValue("mode", "Sale Invoice", { shouldDirty: true });
+      filled.push("Mode");
+    }
+
+    // 2. Invoice Date → today (only set if blank)
+    if (!getValues("invoiceDate")) {
+      const today = new Date().toISOString().split("T")[0];
+      setValue("invoiceDate", today, { shouldValidate: true, shouldDirty: true });
+      filled.push("Invoice Date");
+    }
+
+    // 3. Sale Order — find in loaded options and trigger the full selection handler
+    const aiOrderNo = fields?.og_sale_order_no;
+    if (aiOrderNo && !getValues("ogSaleOrderNo")) {
+      const matchedOpt = saleOrderOpts.find((o) => o.ogSaleOrderNo === aiOrderNo);
+      if (matchedOpt) {
+        handleOrderSelect(aiOrderNo, matchedOpt);
+        filled.push(`Sale Order: ${aiOrderNo}`);
+      }
+    }
+
+    // 4. GST type from history
+    const gstType = fields?.gst_type || "IGST";
+    if (gstType === "IGST") {
+      setValue("gstLines", DEFAULT_GST_LINES.map((l, i) => ({ ...l, isSelected: i === 0 })), { shouldDirty: true });
+    } else {
+      setValue("gstLines", DEFAULT_GST_LINES.map((l, i) => ({ ...l, isSelected: i > 0 })), { shouldDirty: true });
+    }
+    filled.push(`GST: ${gstType}`);
+
+    // 5. Update amounts on already-loaded items (when certified bill is already selected)
+    const currentItems = getValues("items") || [];
+    if (currentItems.length > 0 && fields?.cc_code && fields?.basic_amount) {
+      const idx = currentItems.findIndex((it) => it.ccCode === fields.cc_code);
+      if (idx >= 0) {
+        const updated = [...currentItems];
+        updated[idx] = { ...updated[idx], basicAmount: fields.basic_amount };
+        setValue("items", updated, { shouldValidate: true, shouldDirty: true });
+        filled.push(`${fields.cc_code} amount`);
+      }
+    }
+
+    if (filled.length === 0) {
+      toast.info("Nothing new to fill — all fields already set.", { duration: 3000 });
+      return;
+    }
+
+    const needsCertBill = !getValues("certifiedBillId");
+    const hint = needsCertBill ? " · Now select a Certified Bill to load items" : "";
+    toast.success(`AI filled: ${filled.join(", ")}${hint}`, { duration: 5000 });
+  };
+
   if (isLoading) {
     return (
       <div className="flex justify-center items-center h-[300px]">
@@ -853,6 +912,16 @@ export default function SaleBillForm({
           )}
         </div>
       </div>
+
+      {/* ── AI Assistant Panel ── */}
+      <AiPanel
+        projectCode={projectCode}
+        endpoint={API_ENDPOINTS.AI.SUGGEST_SALE_BILL}
+        method="POST"
+        onApply={handleAiApply}
+        applyLabel="Use this suggestion"
+        title="Sale Bill AI"
+      />
     </div>
   );
 }

@@ -22,6 +22,7 @@ import BudgetCcMatrix   from "./BudgetCcMatrix";
 
 import { apiRequest }        from "@/lib/apiClient";
 import { API_ENDPOINTS }     from "@/config/api.config";
+import AiPanel               from "@/components/ai/AiPanel";
 import { getLocalStorage }   from "@/lib/localStorage";
 import { formatAmount }      from "@/helper/numberFormatter";
 import { zodDate } from "@/lib/dateUtils";
@@ -653,6 +654,18 @@ export default function BudgetMasterForm({ mode = "create", budgetId, onAfterSub
           )}
         </div>
       </div>
+
+      {/* ── AI Assistant Panel ── */}
+      <AiPanel
+        projectCode={projectCode}
+        endpoint={API_ENDPOINTS.AI.INSIGHTS_PROJECT}
+        method="POST"
+        onApply={(suggestion) =>
+          toast.info("AI budget analysis ready — check the AI panel for overrun details.", { duration: 4000 })
+        }
+        applyLabel="View analysis"
+        title="Budget AI"
+      />
     </div>
   );
 }
