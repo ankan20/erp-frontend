@@ -6,7 +6,7 @@ import { useFormWithToast as useForm } from "@/hooks/useFormWithToast";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
-import { Loader2, PanelLeftClose, PanelLeftOpen, Download, ClipboardList, TableProperties } from "lucide-react";
+import { Loader2, PanelLeftClose, PanelLeftOpen, Download } from "lucide-react";
 import { useRouter } from "next/navigation";
 
 import SaveButton       from "@/components/common/SaveButton";
@@ -17,6 +17,7 @@ import FileUploadInput  from "@/components/project-management/common/FileUploadI
 import PMSection        from "@/components/project-management/common/PMSection";
 import PMFormRow        from "@/components/project-management/common/PMFormRow";
 import PMDateInput      from "@/components/project-management/common/PMDateInput";
+import PMInput         from "@/components/project-management/common/PMInput";
 import PMTextarea          from "@/components/project-management/common/PMTextarea";
 import ExpandableTextCell  from "@/components/project-management/common/ExpandableTextCell";
 import QtyInput            from "@/components/common/QtyInput";
@@ -86,7 +87,7 @@ const schema = z.object({
   claimBillId:        z.coerce.number().min(1, "Claim Bill is required"),
   ogSaleOrderNo:      z.string().min(1, "Order No is required"),
   billingDate: zodDate(z, "billingDate", true),
-  userBillNo:         z.string().optional(),
+  billingNo:          z.string().min(1, "Bill No is required"),
   note:               z.string().optional(),
   jobLocation:        z.string().min(1, "Job Location is required"),
   preCertifiedAmount: z.coerce.number().min(0).optional(),
@@ -114,7 +115,7 @@ const defaultValues = {
   claimBillId:        null,
   ogSaleOrderNo:      "",
   billingDate:        "",
-  userBillNo:         "",
+  billingNo:          "",
   note:               "",
   jobLocation:        "",
   preCertifiedAmount: "",
@@ -128,7 +129,6 @@ export default function SaleCertifiedBillForm({ mode = "create", billId, onAfter
   const projectCode = getLocalStorage("projectInfo")?.projectCode || "";
 
   // ── STATE
-  const [activeTab,     setActiveTab]     = useState("entry");
   const [isEditing,     setIsEditing]     = useState(mode === "create");
   const [isSubmitted,   setIsSubmitted]   = useState(false);
   const [allowSubmit,   setAllowSubmit]   = useState(mode === "edit");
@@ -149,10 +149,7 @@ export default function SaleCertifiedBillForm({ mode = "create", billId, onAfter
   const [initialUrl,   setInitialUrl]   = useState("");
   const [fileResetKey, setFileResetKey] = useState(0);
 
-  // ── RESIZABLE + DRAGGABLE TABLES ─────────────────────────────────────────────
-  const { columnOrder: entryOrder, tableRef: entryRef, getThProps: entryThProps } =
-    useResizableTable({ columns: CERT_COLS, storageKey: "saleCertBillEntry2" });
-
+  // ── RESIZABLE TABLE ───────────────────────────────────────────────────────────
   const { tableRef: viewRef, getThProps: viewThProps, columnOrder: viewOrder } =
     useResizableTable({ columns: CERT_VIEW_COLS, storageKey: "saleCertBillView" });
 
@@ -176,7 +173,8 @@ export default function SaleCertifiedBillForm({ mode = "create", billId, onAfter
     const amt = Number(item?.certifiedQty || 0) * Number(item?.rate || 0);
     return sum + amt * Number(item?.gstPercent || 0) / 100;
   }, 0);
-  const totalBillAmount = thisBillAmount + Number(watchedPreCertified || 0);
+  const totalBillAmount       = thisBillAmount + gstAmount;
+  const cumulativeCertAmount  = thisBillAmount + Number(watchedPreCertified || 0);
 
   // ── FETCH APPROVED OG SALE ORDERS ────────────────────────────────────────────
   useEffect(() => {
@@ -207,7 +205,7 @@ export default function SaleCertifiedBillForm({ mode = "create", billId, onAfter
       setClaimBillOpts(
         (Array.isArray(res.data) ? res.data : []).map((b) => ({
           ...b,
-          displayLabel: b.userBillNo || b.billingNo,
+          displayLabel: b.billingNo,
         }))
       );
     } catch {
@@ -328,7 +326,7 @@ export default function SaleCertifiedBillForm({ mode = "create", billId, onAfter
           claimBillId:        d.claimBillId         || null,
           ogSaleOrderNo:      d.ogSaleOrderNo        || "",
           billingDate:        d.billingDate           || "",
-          userBillNo:         d.userBillNo            || "",
+          billingNo:          d.billingNo             || "",
           note:               d.note                  || "",
           jobLocation:        d.jobLocation           || "",
           preCertifiedAmount: d.preCertifiedAmount    || "",
@@ -399,7 +397,7 @@ export default function SaleCertifiedBillForm({ mode = "create", billId, onAfter
     if (mode === "create") fd.append("projectCode", projectCode);
     fd.append("claimBillId", v.claimBillId || "");
     fd.append("billingDate", v.billingDate  || "");
-    fd.append("userBillNo",  v.userBillNo   || "");
+    fd.append("billingNo",   v.billingNo    || "");
     fd.append("note",        v.note         || "");
     fd.append("jobLocation", v.jobLocation  || "");
     const serializeItems = (list) =>
@@ -626,7 +624,7 @@ export default function SaleCertifiedBillForm({ mode = "create", billId, onAfter
         <div className={`w-full lg:w-[385px] lg:shrink-0 space-y-2 ${!sidebarOpen ? "lg:hidden" : ""}`}>
           <PMSection title="Certified Bill Details:">
 
-            <PMFormRow label="Order No" required={!disabled} labelWidth="sm:w-[140px] sm:min-w-[140px]">
+            <PMFormRow label="Order No" required labelWidth="sm:w-[140px] sm:min-w-[140px]">
               <div className="flex-1">
                 <SearchableSelect
                   options={saleOrderOpts}
@@ -655,7 +653,7 @@ export default function SaleCertifiedBillForm({ mode = "create", billId, onAfter
                   placeholder={!watch("ogSaleOrderNo") ? "Select order first" : "Select Claim Bill"}
                   labelKey="displayLabel"
                   valueKey="id"
-                  searchKeys={["billingNo", "userBillNo", "note", "displayLabel"]}
+                  searchKeys={["billingNo", "note", "displayLabel"]}
                 />
                 {errors.claimBillId && (
                   <p className="text-[11px] text-red-500 mt-0.5">{errors.claimBillId.message}</p>
@@ -679,8 +677,22 @@ export default function SaleCertifiedBillForm({ mode = "create", billId, onAfter
               );
             })()}
 
-            <PMFormRow label="Bill No" labelWidth="sm:w-[140px] sm:min-w-[140px]">
-              <PMInput {...register("userBillNo")} disabled={disabled} placeholder="Enter bill number" expandable={false} />
+            <PMFormRow label="Bill No" required labelWidth="sm:w-[140px] sm:min-w-[140px]">
+              <Controller
+                control={control}
+                name="billingNo"
+                render={({ field, fieldState }) => (
+                  <PMInput
+                    value={field.value || ""}
+                    onChange={field.onChange}
+                    onBlur={field.onBlur}
+                    disabled={disabled}
+                    placeholder="Enter bill number"
+                    hasError={fieldState.error}
+                    expandable={false}
+                  />
+                )}
+              />
             </PMFormRow>
 
             <PMFormRow label="Bill Date" required={!disabled} labelWidth="sm:w-[140px] sm:min-w-[140px]">
@@ -731,18 +743,12 @@ export default function SaleCertifiedBillForm({ mode = "create", billId, onAfter
               />
             </div>
 
-            <PMFormRow label="Pre Certified" labelWidth="sm:w-[140px] sm:min-w-[140px]">
-              <div className="max-w-[180px]">
-                <input
-                  type="text"
-                  value={formatAmount(watch("preCertifiedAmount") || 0)}
-                  disabled readOnly
-                  className="w-full h-[30px] text-[13px] rounded-sm border border-[#b5b5b5] bg-[#f5f5f5] text-right px-2 text-[#555] outline-none"
-                />
-              </div>
-            </PMFormRow>
+            {/* ── This Bill (Basic) Summary ─────────────────────────────────────── */}
+            <p className="text-[12px] font-semibold text-[#1c3a5e] border-b border-[#5f8fbe] pb-0.5 mt-3 mb-1">
+              This Bill (Basic) Summary
+            </p>
 
-            <PMFormRow label="This Bill Amount" labelWidth="sm:w-[140px] sm:min-w-[140px]">
+            <PMFormRow label="This Bill (Basic)" labelWidth="sm:w-[155px] sm:min-w-[155px]">
               <div className="max-w-[180px]">
                 <input type="text" value={formatAmount(thisBillAmount)} disabled readOnly
                   className="w-full h-[30px] text-[13px] rounded-sm border border-[#5f8fbe] bg-[#d6e8f9] text-right px-2 font-semibold text-[#1c3a5e] outline-none"
@@ -750,7 +756,7 @@ export default function SaleCertifiedBillForm({ mode = "create", billId, onAfter
               </div>
             </PMFormRow>
 
-            <PMFormRow label="GST Amount" labelWidth="sm:w-[140px] sm:min-w-[140px]">
+            <PMFormRow label="GST Amount" labelWidth="sm:w-[155px] sm:min-w-[155px]">
               <div className="max-w-[180px]">
                 <input type="text" value={formatAmount(gstAmount)} disabled readOnly
                   className="w-full h-[30px] text-[13px] rounded-sm border border-[#5f8fbe] bg-[#d6e8f9] text-right px-2 font-semibold text-[#1c3a5e] outline-none"
@@ -758,10 +764,39 @@ export default function SaleCertifiedBillForm({ mode = "create", billId, onAfter
               </div>
             </PMFormRow>
 
-            <PMFormRow label="Total Bill Amount" labelWidth="sm:w-[140px] sm:min-w-[140px]">
+            <PMFormRow label="Total Bill Amount" labelWidth="sm:w-[155px] sm:min-w-[155px]">
               <div className="max-w-[180px]">
                 <input type="text" value={formatAmount(totalBillAmount)} disabled readOnly
                   className="w-full h-[30px] text-[13px] rounded-sm border border-[#5f8fbe] bg-[#d6e8f9] text-right px-2 font-semibold text-[#1c3a5e] outline-none"
+                />
+              </div>
+            </PMFormRow>
+
+            {/* ── Total Bill (Basic) Amount Summary ────────────────────────────── */}
+            <p className="text-[12px] font-semibold text-[#1c3a5e] border-b border-[#5f8fbe] pb-0.5 mt-3 mb-1">
+              Total Bill (Basic) Amount Summary
+            </p>
+
+            <PMFormRow label="Pre Certified Amount" labelWidth="sm:w-[155px] sm:min-w-[155px]">
+              <div className="max-w-[180px]">
+                <input type="text" value={formatAmount(watch("preCertifiedAmount") || 0)} disabled readOnly
+                  className="w-full h-[30px] text-[13px] rounded-sm border border-[#5f8fbe] bg-[#d6e8f9] text-right px-2 font-semibold text-[#1c3a5e] outline-none"
+                />
+              </div>
+            </PMFormRow>
+
+            <PMFormRow label="This Bill Amount" labelWidth="sm:w-[155px] sm:min-w-[155px]">
+              <div className="max-w-[180px]">
+                <input type="text" value={formatAmount(thisBillAmount)} disabled readOnly
+                  className="w-full h-[30px] text-[13px] rounded-sm border border-[#5f8fbe] bg-[#d6e8f9] text-right px-2 font-semibold text-[#1c3a5e] outline-none"
+                />
+              </div>
+            </PMFormRow>
+
+            <PMFormRow label="Cumulative Bill Amount" labelWidth="sm:w-[155px] sm:min-w-[155px]">
+              <div className="max-w-[180px]">
+                <input type="text" value={formatAmount(cumulativeCertAmount)} disabled readOnly
+                  className="w-full h-[30px] text-[13px] rounded-sm border border-[#3b6ea5] bg-[#c2d8ef] text-right px-2 font-semibold text-[#1c3a5e] outline-none"
                 />
               </div>
             </PMFormRow>
@@ -784,26 +819,7 @@ export default function SaleCertifiedBillForm({ mode = "create", billId, onAfter
         {/* ── RIGHT PANEL: TWO TABS ───────────────────────────────────────────── */}
         <div className="w-full lg:flex-1 min-w-0">
 
-          {/* Tab bar */}
-          <div className="flex border-b border-[#c8d8ea] mb-2">
-            {[
-              { id: "entry", label: "Entry",                  icon: <ClipboardList size={14} /> },
-              { id: "view",  label: "Certification Statement", icon: <TableProperties size={14} /> },
-            ].map((tab) => (
-              <button key={tab.id} type="button" onClick={() => setActiveTab(tab.id)}
-                className={`flex items-center gap-1.5 px-4 py-2 text-[13px] font-medium border-b-2 transition-colors ${
-                  activeTab === tab.id
-                    ? "border-[#3b6ea5] text-[#3b6ea5]"
-                    : "border-transparent text-[#666] hover:text-[#3b6ea5]"
-                }`}
-              >
-                {tab.icon}{tab.label}
-              </button>
-            ))}
-          </div>
-
-          {/* ── TAB 1: ENTRY ─────────────────────────────────────────────────── */}
-          {activeTab === "entry" && (
+          {false && (
           <div className="border border-[#b5b5b5]">
             <div className="bg-[#d6e4f5] px-3 py-1.5 border-b border-[#b5b5b5] font-bold text-[15px] text-[#1c3a5e]">
               Certified Sale — Entry
@@ -1011,8 +1027,8 @@ export default function SaleCertifiedBillForm({ mode = "create", billId, onAfter
           </div>
           )}
 
-          {/* ── TAB 2: CERTIFICATION STATEMENT ───────────────────────────────── */}
-          {activeTab === "view" && (
+          {/* ── CERTIFICATION STATEMENT ──────────────────────────────────────── */}
+          {(
           <div className="border border-[#b5b5b5]">
             <div className="bg-[#d6e4f5] px-3 py-1.5 border-b border-[#b5b5b5] flex items-center justify-between">
               <span className="font-bold text-[15px] text-[#1c3a5e]">Certification Statement</span>
@@ -1048,17 +1064,17 @@ export default function SaleCertifiedBillForm({ mode = "create", billId, onAfter
                   <tr className="bg-[#3b6ea5] text-white text-center text-[12px]">
                     {viewOrder.filter((id) => id === "certQtyGrp" || id === "certAmtGrp").map((colId) =>
                       colId === "certQtyGrp" ? (
-                        <>
-                          <th key="prevQty-h" className="border border-[#2a5080] py-1 px-1 w-[90px]">Previous</th>
-                          <th key="thisQty-h" className="border border-[#2a5080] py-1 px-1 w-[90px]">This Bill</th>
-                          <th key="cumQty-h"  className="border border-[#2a5080] py-1 px-1 w-[90px]">Cumulative</th>
-                        </>
+                        <React.Fragment key="certQtyGrp">
+                          <th className="border border-[#2a5080] py-1 px-1 w-[90px]">Previous</th>
+                          <th className="border border-[#2a5080] py-1 px-1 w-[90px]">This Bill</th>
+                          <th className="border border-[#2a5080] py-1 px-1 w-[90px]">Cumulative</th>
+                        </React.Fragment>
                       ) : (
-                        <>
-                          <th key="prevAmt-h" className="border border-[#2a5080] py-1 px-1 w-[105px] bg-[#2d6e47]">Previous</th>
-                          <th key="thisAmt-h" className="border border-[#2a5080] py-1 px-1 w-[105px] bg-[#2d6e47]">This Bill</th>
-                          <th key="cumAmt-h"  className="border border-[#2a5080] py-1 px-1 w-[105px] bg-[#2d6e47]">Cumulative</th>
-                        </>
+                        <React.Fragment key="certAmtGrp">
+                          <th className="border border-[#2a5080] py-1 px-1 w-[105px] bg-[#2d6e47]">Previous</th>
+                          <th className="border border-[#2a5080] py-1 px-1 w-[105px] bg-[#2d6e47]">This Bill</th>
+                          <th className="border border-[#2a5080] py-1 px-1 w-[105px] bg-[#2d6e47]">Cumulative</th>
+                        </React.Fragment>
                       )
                     )}
                   </tr>
@@ -1070,7 +1086,8 @@ export default function SaleCertifiedBillForm({ mode = "create", billId, onAfter
                         className="text-center text-[#888] py-8 italic border border-[#ccc]">No items</td>
                     </tr>
                   )}
-                  {watchedItems.map((item, index) => {
+                  {fields.map((field, index) => {
+                    const item        = watchedItems[index] || {};
                     const preCertQty  = Number(item?.preCertifiedQty    || 0);
                     const certQty     = Number(item?.certifiedQty       || 0);
                     const cumQty      = preCertQty + certQty;
@@ -1096,27 +1113,46 @@ export default function SaleCertifiedBillForm({ mode = "create", billId, onAfter
                         case "unit":     return <td key={colId} className="border border-[#ccc] text-center align-middle text-[#555]">{item?.unit || "—"}</td>;
                         case "rate":     return <td key={colId} className="border border-[#ccc] px-2 text-right align-middle text-[#555]">{formatAmount(rate)}</td>;
                         case "certQtyGrp": return (
-                          <>
-                            <td key="prevQty" className="border border-[#ccc] px-2 text-right align-middle bg-[#f0f4f8]">{preCertQty>0 ? formatQtyDisplay(preCertQty) : "—"}</td>
-                            <td key="thisQty" className="border border-[#ccc] px-2 text-right align-middle font-medium bg-[#e8f0f8]">{certQty>0 ? formatQtyDisplay(certQty) : "—"}</td>
-                            <td key="cumQty"  className="border border-[#ccc] px-2 text-right align-middle font-semibold bg-[#dce8f5]">{cumQty>0 ? formatQtyDisplay(cumQty) : "—"}</td>
-                          </>
+                          <React.Fragment key={colId}>
+                            <td className="border border-[#ccc] px-2 text-right align-middle bg-[#f0f4f8]">
+                              {preCertQty>0 ? formatQtyDisplay(preCertQty) : "—"}
+                              <input {...register(`items.${index}.preCertifiedQty`)} type="hidden" />
+                              <input {...register(`items.${index}.preCertifiedAmount`)} type="hidden" />
+                              <input {...register(`items.${index}.claimQty`)} type="hidden" />
+                            </td>
+                            <td className="border border-[#ccc] p-0 align-middle bg-[#fff8f0]">
+                              <Controller control={control} name={`items.${index}.certifiedQty`}
+                                render={({ field: f }) => (
+                                  <QtyInput {...f} onChange={(e) => f.onChange(e.target.value)} disabled={disabled}
+                                    placeholder="0"
+                                    className={`border-0 rounded-none w-full h-[30px] text-right pr-2 ${disabled ? "bg-[#e8f0f8] text-[#555]" : "bg-[#fff8f0]"}`} />
+                                )} />
+                            </td>
+                            <td className="border border-[#ccc] px-2 text-right align-middle font-semibold bg-[#dce8f5]">
+                              {cumQty>0 ? formatQtyDisplay(cumQty) : "—"}
+                            </td>
+                          </React.Fragment>
                         );
-                        case "gstPct":   return <td key={colId} className="border border-[#ccc] px-2 text-right align-middle text-[#555]">{gstPct>0 ? `${gstPct}%` : "—"}</td>;
+                        case "gstPct":   return (
+                          <td key={colId} className="border border-[#ccc] p-0 align-middle">
+                            <GstInput {...register(`items.${index}.gstPercent`)} value={item.gstPercent ?? ""} disabled={disabled} placeholder="0"
+                              className={`border-0 rounded-none w-full h-[30px] text-right pr-2 ${disabled ? "bg-transparent text-[#555]" : "bg-[#faf0ff]"}`} />
+                          </td>
+                        );
                         case "gstAmt":   return <td key={colId} className="border border-[#ccc] px-2 text-right align-middle font-medium">{gstAmt>0 ? formatAmount(gstAmt) : "—"}</td>;
                         case "certAmtGrp": return (
-                          <>
-                            <td key="prevAmt" className="border border-[#ccc] px-2 text-right align-middle bg-[#f0f7f2]">{preCertAmt>0 ? formatAmount(preCertAmt) : "—"}</td>
-                            <td key="thisAmt" className="border border-[#ccc] px-2 text-right align-middle font-medium bg-[#e4f2ea]">{thisAmt>0 ? formatAmount(thisAmt) : "—"}</td>
-                            <td key="cumAmt"  className="border border-[#ccc] px-2 text-right align-middle font-semibold bg-[#d6edde]">{cumAmt>0 ? formatAmount(cumAmt) : "—"}</td>
-                          </>
+                          <React.Fragment key={colId}>
+                            <td className="border border-[#ccc] px-2 text-right align-middle bg-[#f0f7f2]">{preCertAmt>0 ? formatAmount(preCertAmt) : "—"}</td>
+                            <td className="border border-[#ccc] px-2 text-right align-middle font-medium bg-[#e4f2ea]">{thisAmt>0 ? formatAmount(thisAmt) : "—"}</td>
+                            <td className="border border-[#ccc] px-2 text-right align-middle font-semibold bg-[#d6edde]">{cumAmt>0 ? formatAmount(cumAmt) : "—"}</td>
+                          </React.Fragment>
                         );
                         default: return null;
                       }
                     };
 
                     return (
-                      <tr key={index} className={rowBg}>
+                      <tr key={field.id} className={rowBg}>
                         {viewOrder.map((colId) => viewCell(colId))}
                       </tr>
                     );
@@ -1131,22 +1167,22 @@ export default function SaleCertifiedBillForm({ mode = "create", billId, onAfter
                         case "itemName": return <td key={colId} className="border border-[#9ec5e0] px-2 text-right text-[#1c3a5e]">TOTAL</td>;
                         case "orderQty": return <td key={colId} className="border border-[#9ec5e0] px-2 text-right whitespace-nowrap">{formatQtyDisplay(vtotOrderQty)}</td>;
                         case "unit":     return <td key={colId} className="border border-[#9ec5e0]" />;
-                        case "rate":     return <td key={colId} className="border border-[#9ec5e0]" />;
+                        case "rate":     return <td key={colId} className="border border-[#9ec5e0] px-2 text-right whitespace-nowrap">{formatAmount(watchedItems.reduce((s,it)=>s+Number(it?.orderQty||0)*Number(it?.rate||0),0))}</td>;
                         case "certQtyGrp": return (
-                          <>
-                            <td key="fpQ" className="border border-[#9ec5e0] px-2 text-right whitespace-nowrap">{formatQtyDisplay(vtotPrevQty)}</td>
-                            <td key="ftQ" className="border border-[#9ec5e0] px-2 text-right whitespace-nowrap">{formatQtyDisplay(vtotThisQty)}</td>
-                            <td key="fcQ" className="border border-[#9ec5e0] px-2 text-right whitespace-nowrap">{formatQtyDisplay(vtotCumQty)}</td>
-                          </>
+                          <React.Fragment key={colId}>
+                            <td className="border border-[#9ec5e0]" />
+                            <td className="border border-[#9ec5e0]" />
+                            <td className="border border-[#9ec5e0]" />
+                          </React.Fragment>
                         );
                         case "gstPct": return <td key={colId} className="border border-[#9ec5e0]" />;
                         case "gstAmt": return <td key={colId} className="border border-[#9ec5e0] px-2 text-right whitespace-nowrap">{formatAmount(vtotGstAmt)}</td>;
                         case "certAmtGrp": return (
-                          <>
-                            <td key="fpA" className="border border-[#9ec5e0] px-2 text-right whitespace-nowrap">{formatAmount(vtotPrevAmt)}</td>
-                            <td key="ftA" className="border border-[#9ec5e0] px-2 text-right whitespace-nowrap">{formatAmount(vtotThisAmt)}</td>
-                            <td key="fcA" className="border border-[#9ec5e0] px-2 text-right whitespace-nowrap">{formatAmount(vtotCumAmt)}</td>
-                          </>
+                          <React.Fragment key={colId}>
+                            <td className="border border-[#9ec5e0] px-2 text-right whitespace-nowrap">{formatAmount(vtotPrevAmt)}</td>
+                            <td className="border border-[#9ec5e0] px-2 text-right whitespace-nowrap">{formatAmount(vtotThisAmt)}</td>
+                            <td className="border border-[#9ec5e0] px-2 text-right whitespace-nowrap">{formatAmount(vtotCumAmt)}</td>
+                          </React.Fragment>
                         );
                         default: return null;
                       }

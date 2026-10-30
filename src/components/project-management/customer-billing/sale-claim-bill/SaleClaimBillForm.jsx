@@ -79,7 +79,7 @@ const itemSchema = z.object({
 const schema = z.object({
   ogSaleOrderNo:      z.string().min(1, "Order No is required"),
   billingDate: zodDate(z, "billingDate", true),
-  userBillNo:         z.string().optional(),
+  billingNo:          z.string().min(1, "Bill No is required"),
   note:               z.string().optional(),
   jobLocation:        z.string().min(1, "Job Location is required"),
   preCertifiedAmount: z.coerce.number().min(0).optional(),
@@ -105,7 +105,7 @@ const DEFAULT_ITEM = {
 const defaultValues = {
   ogSaleOrderNo:      "",
   billingDate:        "",
-  userBillNo:         "",
+  billingNo:          "",
   note:               "",
   jobLocation:        "",
   preCertifiedAmount: "",
@@ -129,7 +129,7 @@ export default function SaleClaimBillForm({ mode = "create", billId, onAfterSubm
   const [useLocations,  setUseLocations]  = useState([]);
   const [lookupLoading, setLookupLoading] = useState(false);
   const [billUuid,      setBillUuid]      = useState("");
-  const [billingNo,     setBillingNo]     = useState("");
+  const [displayBillNo, setDisplayBillNo] = useState("");
 
   const [file,         setFile]         = useState(null);
   const [existingUrl,  setExistingUrl]  = useState("");
@@ -263,7 +263,7 @@ export default function SaleClaimBillForm({ mode = "create", billId, onAfterSubm
         const formatted = {
           ogSaleOrderNo:      d.ogSaleOrderNo      || "",
           billingDate:        d.billingDate         || "",
-          userBillNo:         d.userBillNo          || "",
+          billingNo:          d.billingNo           || "",
           note:               d.note                || "",
           jobLocation:        d.jobLocation         || "",
           preCertifiedAmount: d.preCertifiedAmount  || "",
@@ -278,7 +278,7 @@ export default function SaleClaimBillForm({ mode = "create", billId, onAfterSubm
         setExistingUrl(d.attachment || "");
         setInitialUrl(d.attachment  || "");
         setBillUuid(d.billingUuid || "");
-        setBillingNo(d.billingNo  || "");
+        setDisplayBillNo(d.billingNo  || "");
         onUuid?.(d.billingUuid || "");
         const editable = ["draft", "reback"].includes((d.workflowStatus || "").toLowerCase());
         if (mode === "edit" && !editable) {
@@ -323,7 +323,7 @@ export default function SaleClaimBillForm({ mode = "create", billId, onAfterSubm
     if (mode === "create") fd.append("projectCode", projectCode);
     fd.append("ogSaleOrderNo", v.ogSaleOrderNo || "");
     fd.append("billingDate",   v.billingDate   || "");
-    fd.append("userBillNo",    v.userBillNo    || "");
+    fd.append("billingNo",     v.billingNo     || "");
     fd.append("note",          v.note          || "");
     fd.append("jobLocation",   v.jobLocation   || "");
     const serializeItems = (list) =>
@@ -370,7 +370,7 @@ export default function SaleClaimBillForm({ mode = "create", billId, onAfterSubm
         mode === "create" ? "Sale Bill created successfully" : "Sale Bill updated successfully",
         { id: tid },
       );
-      if (res.data?.billingNo) setBillingNo(res.data.billingNo);
+      if (res.data?.billingNo) setDisplayBillNo(res.data.billingNo);
       if (mode === "create") {
         const newId = res.data?.id;
         if (newId) setTimeout(() => router.push(`/project-management/customer-billing/sale-bill-claim/${newId}`), 400);
@@ -582,7 +582,7 @@ export default function SaleClaimBillForm({ mode = "create", billId, onAfterSubm
 
     const doc = new jsPDF({ orientation: "landscape", unit: "mm", format: "a3" });
 
-    const billNo = billingNo || `#${billId}` || "draft";
+    const billNo = displayBillNo || getValues("billingNo") || `#${billId}` || "draft";
     const billDt = watch("billingDate") || "—";
     doc.setFontSize(14);
     doc.setTextColor(28, 58, 94);
@@ -778,26 +778,26 @@ export default function SaleClaimBillForm({ mode = "create", billId, onAfterSubm
                     case "unit":     return <td key={colId} className="border border-[#ccc] text-center align-middle text-[#555]">{item?.unit || "—"}</td>;
                     case "rate":     return <td key={colId} className="border border-[#ccc] px-2 text-right align-middle text-[#555]">{formatAmount(rate)}</td>;
                     case "certQty":  return (
-                      <>
-                        <td key="prevQty" className="border border-[#ccc] px-2 text-right align-middle bg-[#f0f4f8]">{certQty > 0 ? formatQtyDisplay(certQty) : "—"}</td>
-                        <td key="thisQty" className="border border-[#ccc] p-0 align-middle bg-[#fff8f0]">
+                      <React.Fragment key="certQty">
+                        <td className="border border-[#ccc] px-2 text-right align-middle bg-[#f0f4f8]">{certQty > 0 ? formatQtyDisplay(certQty) : "—"}</td>
+                        <td className="border border-[#ccc] p-0 align-middle bg-[#fff8f0]">
                           <Controller control={control} name={`items.${index}.claimQty`}
                             render={({ field: f }) => (
                               <QtyInput {...f} onChange={(e) => f.onChange(e.target.value)} disabled={disabled} placeholder="0"
                                 className={`${getInputClass(errors?.items?.[index]?.claimQty, disabled)} border-0 rounded-none w-full h-[30px] text-right pr-2 text-[13px]`} />
                             )} />
                         </td>
-                        <td key="cumQty"  className="border border-[#ccc] px-2 text-right align-middle font-semibold bg-[#dce8f5]">{cumQty > 0 ? formatQtyDisplay(cumQty) : "—"}</td>
-                      </>
+                        <td className="border border-[#ccc] px-2 text-right align-middle font-semibold bg-[#dce8f5]">{cumQty > 0 ? formatQtyDisplay(cumQty) : "—"}</td>
+                      </React.Fragment>
                     );
                     case "gstPct":  return <td key={colId} className="border border-[#ccc] px-2 text-right align-middle text-[#555]">{gstPct > 0 ? `${gstPct}%` : "—"}</td>;
                     case "gstAmt":  return <td key={colId} className="border border-[#ccc] px-2 text-right align-middle font-medium">{gstAmt > 0 ? formatAmount(gstAmt) : "—"}</td>;
                     case "certAmt": return (
-                      <>
-                        <td key="prevAmt" className="border border-[#ccc] px-2 text-right align-middle bg-[#f0f7f2]">{certAmt > 0 ? formatAmount(certAmt) : "—"}</td>
-                        <td key="thisAmt" className="border border-[#ccc] px-2 text-right align-middle font-medium bg-[#e4f2ea]">{thisBillAmt > 0 ? formatAmount(thisBillAmt) : "—"}</td>
-                        <td key="cumAmt"  className="border border-[#ccc] px-2 text-right align-middle font-semibold bg-[#d6edde]">{cumAmt > 0 ? formatAmount(cumAmt) : "—"}</td>
-                      </>
+                      <React.Fragment key="certAmt">
+                        <td className="border border-[#ccc] px-2 text-right align-middle bg-[#f0f7f2]">{certAmt > 0 ? formatAmount(certAmt) : "—"}</td>
+                        <td className="border border-[#ccc] px-2 text-right align-middle font-medium bg-[#e4f2ea]">{thisBillAmt > 0 ? formatAmount(thisBillAmt) : "—"}</td>
+                        <td className="border border-[#ccc] px-2 text-right align-middle font-semibold bg-[#d6edde]">{cumAmt > 0 ? formatAmount(cumAmt) : "—"}</td>
+                      </React.Fragment>
                     );
                     default: return null;
                   }
@@ -822,20 +822,20 @@ export default function SaleClaimBillForm({ mode = "create", billId, onAfterSubm
                     case "unit":    return <td key={colId} className="border border-[#9ec5e0]" />;
                     case "rate":    return <td key={colId} className="border border-[#9ec5e0] px-2 text-right whitespace-nowrap">{formatAmount(watchedItems.reduce((s,it)=>s+Number(it?.orderQty||0)*Number(it?.rate||0),0))}</td>;
                     case "certQty": return (
-                      <>
-                        <td key="fprevQty" className="border border-[#9ec5e0]" />
-                        <td key="fthisQty" className="border border-[#9ec5e0]" />
-                        <td key="fcumQty"  className="border border-[#9ec5e0]" />
-                      </>
+                      <React.Fragment key="certQty-f">
+                        <td className="border border-[#9ec5e0]" />
+                        <td className="border border-[#9ec5e0]" />
+                        <td className="border border-[#9ec5e0]" />
+                      </React.Fragment>
                     );
                     case "gstPct":  return <td key={colId} className="border border-[#9ec5e0]" />;
                     case "gstAmt":  return <td key={colId} className="border border-[#9ec5e0] px-2 text-right whitespace-nowrap">{formatAmount(vtotGstAmt)}</td>;
                     case "certAmt": return (
-                      <>
-                        <td key="fprevAmt" className="border border-[#9ec5e0] px-2 text-right whitespace-nowrap">{formatAmount(vtotPrevAmt)}</td>
-                        <td key="fthisAmt" className="border border-[#9ec5e0] px-2 text-right whitespace-nowrap">{formatAmount(vtotThisAmt)}</td>
-                        <td key="fcumAmt"  className="border border-[#9ec5e0] px-2 text-right whitespace-nowrap">{formatAmount(vtotCumAmt)}</td>
-                      </>
+                      <React.Fragment key="certAmt-f">
+                        <td className="border border-[#9ec5e0] px-2 text-right whitespace-nowrap">{formatAmount(vtotPrevAmt)}</td>
+                        <td className="border border-[#9ec5e0] px-2 text-right whitespace-nowrap">{formatAmount(vtotThisAmt)}</td>
+                        <td className="border border-[#9ec5e0] px-2 text-right whitespace-nowrap">{formatAmount(vtotCumAmt)}</td>
+                      </React.Fragment>
                     );
                     default: return null;
                   }
@@ -865,7 +865,7 @@ export default function SaleClaimBillForm({ mode = "create", billId, onAfterSubm
         <div className={`w-full lg:w-[385px] lg:shrink-0 space-y-2 ${!sidebarOpen ? "lg:hidden" : ""}`}>
           <PMSection title="Sale Bill Details:">
 
-            <PMFormRow label="Order No" required={!disabled} labelWidth="sm:w-[140px] sm:min-w-[140px]">
+            <PMFormRow label="Order No" required labelWidth="sm:w-[140px] sm:min-w-[140px]">
               <div className="flex-1">
                 <SearchableSelect
                   options={saleOrderOpts}
@@ -881,8 +881,22 @@ export default function SaleClaimBillForm({ mode = "create", billId, onAfterSubm
             </PMFormRow>
 
             <div>
-            <PMFormRow label="Bill No" labelWidth="sm:w-[140px] sm:min-w-[140px]">
-              <PMInput {...register("userBillNo")} disabled={disabled} placeholder="Enter bill number" expandable={false} />
+            <PMFormRow label="Bill No" required labelWidth="sm:w-[140px] sm:min-w-[140px]">
+              <Controller
+                control={control}
+                name="billingNo"
+                render={({ field, fieldState }) => (
+                  <PMInput
+                    value={field.value || ""}
+                    onChange={field.onChange}
+                    onBlur={field.onBlur}
+                    disabled={disabled}
+                    placeholder="Enter bill number"
+                    hasError={fieldState.error}
+                    expandable={false}
+                  />
+                )}
+              />
             </PMFormRow>
 
             <PMFormRow label="Bill Date" required={!disabled} labelWidth="sm:w-[140px] sm:min-w-[140px]">
@@ -970,7 +984,7 @@ export default function SaleClaimBillForm({ mode = "create", billId, onAfterSubm
                   type="text"
                   value={formatAmount(watch("preCertifiedAmount") || 0)}
                   disabled readOnly
-                  className="w-full h-[30px] text-[13px] rounded-sm border border-[#b5b5b5] bg-[#f5f5f5] text-right px-2 text-[#555] outline-none"
+                  className="w-full h-[30px] text-[13px] rounded-sm border border-[#5f8fbe] bg-[#d6e8f9] text-right px-2 font-semibold text-[#1c3a5e] outline-none"
                 />
               </div>
             </PMFormRow>
