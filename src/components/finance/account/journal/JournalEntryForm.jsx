@@ -70,9 +70,8 @@ export default function JournalEntryForm({ mode = "create", journalId, onAfterSu
     register, control, handleSubmit, reset, watch, setValue,
     formState: { isSubmitting },
   } = useForm({ resolver: zodResolver(schema), defaultValues: DEFAULT_VALUES });
+const { fields: drFields, append: appendDr, remove: removeDr } = useFieldArray({ control, name: "drLines" });
   const { tableRef } = useColumnResize();
-
-  const { fields: drFields, append: appendDr, remove: removeDr } = useFieldArray({ control, name: "drLines" });
 
   const watchedDrLines = watch("drLines") || [];
   const watchedCrLine  = watch("crLine")  || {};
@@ -173,56 +172,56 @@ export default function JournalEntryForm({ mode = "create", journalId, onAfterSu
 
       {/* ── 1. ENTRY DETAILS ─────────────────────────────────────────────── */}
       <PMSection title="Entry Details:">
-        <PMFormRow label="ERP Doc. No" labelWidth="sm:w-[150px] sm:min-w-[150px]">
-          <input
-            value={erpVoucherNo || "[Auto]"} disabled readOnly
-            className="w-full h-[30px] text-[13px] rounded-sm border border-[#7fa37f] bg-[#edf8ed] text-gray-500 px-2 outline-none max-w-[200px]"
-          />
-        </PMFormRow>
-        <PMFormRow label="Entry Date" labelWidth="sm:w-[150px] sm:min-w-[150px]">
-          <Controller name="entryDate" control={control} render={({ field }) => (
-            <PMDateInput {...field} disabled={disabled} className="max-w-[200px]" />
-          )} />
-        </PMFormRow>
-        {mode !== "create" && (
-          <PMFormRow label="Status" labelWidth="sm:w-[150px] sm:min-w-[150px]">
-            {isSubmitted
-              ? <span className="px-2 py-0.5 rounded text-[11px] font-semibold bg-green-50 text-green-700 border border-green-200">Submitted</span>
-              : <span className="px-2 py-0.5 rounded text-[11px] font-semibold bg-amber-50 text-amber-700 border border-amber-200">Draft</span>
-            }
+        <div className="flex flex-wrap gap-x-8 gap-y-1 pb-1">
+          <PMFormRow label="ERP Doc. No" labelWidth="sm:w-[150px] sm:min-w-[150px]">
+            <input
+              value={erpVoucherNo || "[Auto]"} disabled readOnly
+              className="w-full h-[30px] text-[13px] rounded-sm border border-[#7fa37f] bg-[#edf8ed] text-gray-500 px-2 outline-none max-w-[200px]"
+            />
           </PMFormRow>
-        )}
+          <PMFormRow label="Entry Date" labelWidth="sm:w-[130px] sm:min-w-[130px]">
+            <Controller name="entryDate" control={control} render={({ field }) => (
+              <PMDateInput {...field} disabled={disabled} className="max-w-[200px]" />
+            )} />
+          </PMFormRow>
+          {mode !== "create" && (
+            <PMFormRow label="Status" labelWidth="sm:w-[100px] sm:min-w-[100px]">
+              {isSubmitted
+                ? <span className="px-2 py-0.5 rounded text-[11px] font-semibold bg-green-50 text-green-700 border border-green-200">Submitted</span>
+                : <span className="px-2 py-0.5 rounded text-[11px] font-semibold bg-amber-50 text-amber-700 border border-amber-200">Draft</span>
+              }
+            </PMFormRow>
+          )}
+        </div>
       </PMSection>
 
       {/* ── 2. JOURNAL LINES ─────────────────────────────────────────────── */}
       <PMSection title="Journal Lines:">
-        {!disabled && (
-          <div className="flex justify-end px-1 pb-2">
-            <button
-              type="button"
-              onClick={() => appendDr({ ...BLANK_DR })}
-              className="flex items-center gap-1 text-[12px] px-2 py-0.5 bg-[#25507a] text-white rounded hover:bg-[#1c3a5e] transition"
-            >
-              <Plus size={13} /> Add Dr Line
-            </button>
-          </div>
-        )}
       <div className="overflow-hidden">
         <div className="overflow-x-auto">
-          <table ref={tableRef} className="w-full min-w-[820px] border-collapse text-[12.5px]">
+          <table ref={tableRef} className="w-full min-w-[600px] border-collapse text-[12.5px]">
 
             {/* Column headers */}
             <thead>
-              <tr className="bg-gray-50 border-b border-gray-200">
-                <th className="w-[42px] px-3 py-2.5 text-center text-[10px] font-semibold text-gray-400 uppercase tracking-wider">#</th>
-                <th className="w-[44px] px-2 py-2.5 text-center text-[10px] font-semibold text-gray-400 uppercase tracking-wider">Type</th>
-                <th className="w-[100px] px-2 py-2.5 text-left text-[10px] font-semibold text-gray-400 uppercase tracking-wider">Account Type</th>
-                <th className="px-3 py-2.5 text-left text-[10px] font-semibold text-gray-400 uppercase tracking-wider">Particulars</th>
-                <th className="w-[130px] px-3 py-2.5 text-right text-[10px] font-semibold text-gray-400 uppercase tracking-wider">Opening</th>
-                <th className="w-[140px] px-3 py-2.5 text-right text-[10px] font-semibold text-gray-400 uppercase tracking-wider">Debit</th>
-                <th className="w-[140px] px-3 py-2.5 text-right text-[10px] font-semibold text-gray-400 uppercase tracking-wider">Credit</th>
-                <th className="w-[120px] px-3 py-2.5 text-right text-[10px] font-semibold text-gray-400 uppercase tracking-wider">Closing</th>
-                {!disabled && <th className="w-[36px]" />}
+              <tr className="bg-[#dce8f5] border-b-2 border-[#b8d0e8]">
+                <th className="w-[42px] px-3 py-2 text-center text-[10px] font-semibold text-[#2d5a8a] uppercase tracking-wider border-r border-[#b8d0e8]">#</th>
+                <th className="w-[44px] px-2 py-2 text-center text-[10px] font-semibold text-[#2d5a8a] uppercase tracking-wider border-r border-[#b8d0e8]">Dr/Cr</th>
+                <th className="w-[110px] px-2 py-2 text-left text-[10px] font-semibold text-[#2d5a8a] uppercase tracking-wider border-r border-[#b8d0e8]">Type</th>
+                <th className="px-3 py-2 text-left text-[10px] font-semibold text-[#2d5a8a] uppercase tracking-wider border-r border-[#b8d0e8]">Particulars</th>
+                <th className="w-[140px] px-3 py-2 text-right text-[10px] font-semibold text-[#2d5a8a] uppercase tracking-wider border-r border-[#b8d0e8]">Debit</th>
+                <th className="w-[140px] px-3 py-2 text-right text-[10px] font-semibold text-[#2d5a8a] uppercase tracking-wider border-r border-[#b8d0e8]">Credit</th>
+                {!disabled && (
+                  <th className="w-[80px] px-2 py-2 text-right">
+                    <button
+                      type="button"
+                      onClick={() => appendDr({ ...BLANK_DR })}
+                      className="flex items-center gap-1 text-[11px] px-2 py-0.5 bg-[#25507a] text-white rounded hover:bg-[#1c3a5e] transition ml-auto"
+                    >
+                      <Plus size={12} /> Add Dr
+                    </button>
+                  </th>
+                )}
+                {disabled && <th className="w-[36px]" />}
               </tr>
             </thead>
 
@@ -230,22 +229,13 @@ export default function JournalEntryForm({ mode = "create", journalId, onAfterSu
 
               {/* ── DR ROWS ───────────────────────────────────────────── */}
               {drFields.map((field, idx) => {
-                const line    = watchedDrLines[idx] || {};
-                const closing = Number(line.openingBalance || 0) - Number(line.debitAmount || 0);
+                const line = watchedDrLines[idx] || {};
                 return (
-                  <tr key={field.id} className="group bg-white hover:bg-blue-50/40 transition-colors">
-
-                    {/* # */}
-                    <td className="px-3 py-1 text-center">
-                      <span className="text-[11px] text-gray-400">{idx + 1}</span>
-                    </td>
-
-                    {/* Dr badge */}
+                  <tr key={field.id} className="group bg-white hover:bg-blue-50/30 transition-colors border-b border-gray-100">
+                    <td className="px-3 py-1 text-center text-[11px] text-gray-400">{idx + 1}</td>
                     <td className="px-2 py-1 text-center">
                       <span className="inline-block px-1.5 py-0.5 rounded text-[10px] font-bold bg-red-50 text-red-500 border border-red-100">Dr</span>
                     </td>
-
-                    {/* Type select */}
                     <td className="py-1 pr-1">
                       <Controller name={`drLines.${idx}.type`} control={control} render={({ field: f }) => (
                         <select value={f.value} disabled={disabled}
@@ -257,121 +247,65 @@ export default function JournalEntryForm({ mode = "create", journalId, onAfterSu
                         </select>
                       )} />
                     </td>
-
-                    {/* Particulars */}
                     <td className="py-1 pr-1">
                       <AccountSelect name={`drLines.${idx}.accountId`} lineType={line.type} />
                     </td>
-
-                    {/* Opening */}
-                    <td className="py-1 pr-1">
-                      <AmountInput {...register(`drLines.${idx}.openingBalance`)} value={line.openingBalance}
-                        disabled={disabled} placeholder="0.00"
-                        className={`${amountBase} ${!disabled ? "hover:bg-gray-50" : ""}`}
-                      />
-                    </td>
-
-                    {/* Debit */}
                     <td className="py-1 pr-1">
                       <AmountInput {...register(`drLines.${idx}.debitAmount`)} value={line.debitAmount}
                         disabled={disabled} placeholder="0.00"
                         className={`${amountBase} font-semibold text-red-600 ${!disabled ? "hover:bg-red-50/60" : ""}`}
                       />
                     </td>
-
-                    {/* Credit — locked */}
                     <td className="py-1 pr-1">
                       <div className={`${readonlyAmt} text-gray-300`}>—</div>
                     </td>
-
-                    {/* Closing */}
-                    <td className="py-1 pr-1">
-                      <div className={readonlyAmt}>{formatAmount(closing)}</div>
+                    <td className="px-1 text-center">
+                      {!disabled && drFields.length > 1 && (
+                        <button type="button" onClick={() => removeDr(idx)}
+                          className="opacity-0 group-hover:opacity-100 p-1 rounded text-gray-300 hover:text-red-500 hover:bg-red-50 transition"
+                        >
+                          <Trash2 size={13} />
+                        </button>
+                      )}
                     </td>
-
-                    {/* Remove */}
-                    {!disabled && (
-                      <td className="px-1 text-center">
-                        {drFields.length > 1 && (
-                          <button type="button" onClick={() => removeDr(idx)}
-                            className="opacity-0 group-hover:opacity-100 p-1 rounded text-gray-300 hover:text-red-500 hover:bg-red-50 transition"
-                          >
-                            <Trash2 size={13} />
-                          </button>
-                        )}
-                      </td>
-                    )}
                   </tr>
                 );
               })}
 
               {/* ── CR ROW ────────────────────────────────────────────── */}
-              {(() => {
-                const crClosing = Number(watchedCrLine.openingBalance || 0) + totalCredit;
-                return (
-                  <tr className="bg-green-50/40 hover:bg-green-50/70 transition-colors">
-
-                    {/* # */}
-                    <td className="px-3 py-1 text-center">
-                      <span className="text-[11px] text-gray-400">{drFields.length + 1}</span>
-                    </td>
-
-                    {/* Cr badge */}
-                    <td className="px-2 py-1 text-center">
-                      <span className="inline-block px-1.5 py-0.5 rounded text-[10px] font-bold bg-green-50 text-green-600 border border-green-100">Cr</span>
-                    </td>
-
-                    {/* Type */}
-                    <td className="py-1 pr-1">
-                      <Controller name="crLine.type" control={control} render={({ field: f }) => (
-                        <select value={f.value} disabled={disabled}
-                          onChange={(e) => { f.onChange(e.target.value); setValue("crLine.accountId", null); }}
-                          className={typeSel}
-                        >
-                          <option value="CC">CC Code</option>
-                          <option value="Vendor">Vendor</option>
-                        </select>
-                      )} />
-                    </td>
-
-                    {/* Particulars */}
-                    <td className="py-1 pr-1">
-                      <AccountSelect name="crLine.accountId" lineType={watchedCrLine.type} />
-                    </td>
-
-                    {/* Opening */}
-                    <td className="py-1 pr-1">
-                      <AmountInput {...register("crLine.openingBalance")} value={watchedCrLine.openingBalance}
-                        disabled={disabled} placeholder="0.00"
-                        className={`${amountBase} ${!disabled ? "hover:bg-gray-50" : ""}`}
-                      />
-                    </td>
-
-                    {/* Debit — locked */}
-                    <td className="py-1 pr-1">
-                      <div className={`${readonlyAmt} text-gray-300`}>—</div>
-                    </td>
-
-                    {/* Credit auto */}
-                    <td className="py-1 pr-1">
-                      <div className={`${readonlyAmt} font-semibold text-green-700`} title="Auto — equals total debit">
-                        {formatAmount(totalCredit)}
-                      </div>
-                    </td>
-
-                    {/* Closing */}
-                    <td className="py-1 pr-1">
-                      <div className={readonlyAmt}>{formatAmount(crClosing)}</div>
-                    </td>
-
-                    {!disabled && <td />}
-                  </tr>
-                );
-              })()}
+              <tr className="bg-green-50/40 hover:bg-green-50/70 transition-colors border-b border-gray-100">
+                <td className="px-3 py-1 text-center text-[11px] text-gray-400">{drFields.length + 1}</td>
+                <td className="px-2 py-1 text-center">
+                  <span className="inline-block px-1.5 py-0.5 rounded text-[10px] font-bold bg-green-50 text-green-600 border border-green-100">Cr</span>
+                </td>
+                <td className="py-1 pr-1">
+                  <Controller name="crLine.type" control={control} render={({ field: f }) => (
+                    <select value={f.value} disabled={disabled}
+                      onChange={(e) => { f.onChange(e.target.value); setValue("crLine.accountId", null); }}
+                      className={typeSel}
+                    >
+                      <option value="CC">CC Code</option>
+                      <option value="Vendor">Vendor</option>
+                    </select>
+                  )} />
+                </td>
+                <td className="py-1 pr-1">
+                  <AccountSelect name="crLine.accountId" lineType={watchedCrLine.type} />
+                </td>
+                <td className="py-1 pr-1">
+                  <div className={`${readonlyAmt} text-gray-300`}>—</div>
+                </td>
+                <td className="py-1 pr-1">
+                  <div className={`${readonlyAmt} font-semibold text-green-700`} title="Auto — equals total debit">
+                    {formatAmount(totalCredit)}
+                  </div>
+                </td>
+                <td />
+              </tr>
 
               {/* ── GRAND TOTAL ───────────────────────────────────────── */}
-              <tr className="bg-gray-50 border-t-2 border-gray-200">
-                <td colSpan={!disabled ? 5 : 4} className="px-3 py-2 text-right text-[11px] font-bold text-gray-600 uppercase tracking-wider">
+              <tr className="bg-[#dce8f5] border-t-2 border-[#b8d0e8]">
+                <td colSpan={4} className="px-3 py-2 text-right text-[11px] font-bold text-[#2d5a8a] uppercase tracking-wider">
                   Grand Total
                 </td>
                 <td className="px-3 py-2 text-right text-[13px] font-bold text-gray-800 tabular-nums">
@@ -380,10 +314,7 @@ export default function JournalEntryForm({ mode = "create", journalId, onAfterSu
                 <td className="px-3 py-2 text-right text-[13px] font-bold text-gray-800 tabular-nums">
                   {formatAmount(totalCredit)}
                 </td>
-                <td className="px-3 py-2 text-right text-[12px] text-gray-400 tabular-nums">
-                  —
-                </td>
-                {!disabled && <td />}
+                <td />
               </tr>
 
             </tbody>
@@ -392,18 +323,16 @@ export default function JournalEntryForm({ mode = "create", journalId, onAfterSu
       </div>
       </PMSection>
 
-      {/* ── 3. REMARKS ────────────────────────────────────────────────────── */}
-      <PMSection title="Remarks:">
-        <PMFormRow label="Remarks" labelWidth="sm:w-[150px] sm:min-w-[150px]">
-          <Controller name="remarks" control={control} render={({ field }) => (
-            <PMTextarea
-              value={field.value || ""} onChange={field.onChange}
-              disabled={disabled}
-              placeholder="Enter narration or remarks…"
-              rows={2} maxRows={6}
-            />
-          )} />
-        </PMFormRow>
+      {/* ── 3. NARRATION ─────────────────────────────────────────────────── */}
+      <PMSection title="Narration:">
+        <Controller name="remarks" control={control} render={({ field }) => (
+          <PMTextarea
+            value={field.value || ""} onChange={field.onChange}
+            disabled={disabled}
+            placeholder="Enter narration or remarks…"
+            rows={2} maxRows={6}
+          />
+        )} />
       </PMSection>
 
       {/* ── 4. ACTIONS ────────────────────────────────────────────────────── */}
