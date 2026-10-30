@@ -50,10 +50,10 @@ export default function Page() {
         const list = (res.data || []).map((r, i) => ({
           id:             r.id,
           sl:             i + 1,
-          billingNo:      r.billingNo            || "",
+          billingNo:      r.userBillNo || r.billingNo || "",
           date:           getfmtDisplaydate(r.billingDate) || "",
           orderNo:        r.ogSaleOrderNo        || "",
-          title:          r.title               || "",
+          note:           r.note                || "",
           thisBillClaim:  fmtNum(r.thisBillClaim),
           gstAmount:      fmtNum(r.gstAmount),
           totalClaim:     fmtNum(r.totalClaim),
@@ -99,10 +99,10 @@ export default function Page() {
 
   const columns = [
     { header: "Sl. no",        accessor: "sl",            width: "65px"  },
-    { header: "Billing No",    accessor: "billingNo",     width: "120px" },
+    { header: "Bill No",       accessor: "billingNo",     width: "120px" },
     { header: "Bill Date",     accessor: "date",          width: "110px" },
     { header: "Order No",      accessor: "orderNo",       width: "120px" },
-    { header: "Title",         accessor: "title"                         },
+    { header: "Note",          accessor: "note"                          },
     { header: "This Bill",     accessor: "thisBillClaim", width: "130px", align: "right" },
     { header: "GST Amount",    accessor: "gstAmount",     width: "120px", align: "right" },
     { header: "Total Claim",   accessor: "totalClaim",    width: "120px", align: "right" },

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import { useFieldArray, Controller } from "react-hook-form";
 import { useFormWithToast as useForm } from "@/hooks/useFormWithToast";
 import { z } from "zod";
@@ -17,6 +17,7 @@ import FileUploadInput  from "@/components/project-management/common/FileUploadI
 import PMSection        from "@/components/project-management/common/PMSection";
 import PMFormRow        from "@/components/project-management/common/PMFormRow";
 import PMDateInput      from "@/components/project-management/common/PMDateInput";
+import PMInput         from "@/components/project-management/common/PMInput";
 import PMTextarea          from "@/components/project-management/common/PMTextarea";
 import ExpandableTextCell  from "@/components/project-management/common/ExpandableTextCell";
 import QtyInput            from "@/components/common/QtyInput";
@@ -78,7 +79,8 @@ const itemSchema = z.object({
 const schema = z.object({
   ogSaleOrderNo:      z.string().min(1, "Order No is required"),
   billingDate: zodDate(z, "billingDate", true),
-  title:              z.string().min(1, "Title is required"),
+  userBillNo:         z.string().optional(),
+  note:               z.string().optional(),
   jobLocation:        z.string().min(1, "Job Location is required"),
   preCertifiedAmount: z.coerce.number().min(0).optional(),
   items:              z.array(itemSchema).min(1),
@@ -103,7 +105,8 @@ const DEFAULT_ITEM = {
 const defaultValues = {
   ogSaleOrderNo:      "",
   billingDate:        "",
-  title:              "",
+  userBillNo:         "",
+  note:               "",
   jobLocation:        "",
   preCertifiedAmount: "",
   items:              [],
@@ -173,7 +176,7 @@ export default function SaleClaimBillForm({ mode = "create", billId, onAfterSubm
       .then((res) => {
         const orders = (Array.isArray(res.data) ? res.data : []).map((o) => ({
           ...o,
-          displayLabel: o.orderTitle ? `${o.ogSaleOrderNo} — ${o.orderTitle}` : o.ogSaleOrderNo,
+          displayLabel: o.orderNo || o.ogSaleOrderNo,
         }));
         setSaleOrderOpts(orders);
       })
@@ -260,7 +263,8 @@ export default function SaleClaimBillForm({ mode = "create", billId, onAfterSubm
         const formatted = {
           ogSaleOrderNo:      d.ogSaleOrderNo      || "",
           billingDate:        d.billingDate         || "",
-          title:              d.title               || "",
+          userBillNo:         d.userBillNo          || "",
+          note:               d.note                || "",
           jobLocation:        d.jobLocation         || "",
           preCertifiedAmount: d.preCertifiedAmount  || "",
           items: [
@@ -319,7 +323,8 @@ export default function SaleClaimBillForm({ mode = "create", billId, onAfterSubm
     if (mode === "create") fd.append("projectCode", projectCode);
     fd.append("ogSaleOrderNo", v.ogSaleOrderNo || "");
     fd.append("billingDate",   v.billingDate   || "");
-    fd.append("title",         v.title         || "");
+    fd.append("userBillNo",    v.userBillNo    || "");
+    fd.append("note",          v.note          || "");
     fd.append("jobLocation",   v.jobLocation   || "");
     const serializeItems = (list) =>
       JSON.stringify(
@@ -722,17 +727,17 @@ export default function SaleClaimBillForm({ mode = "create", billId, onAfterSubm
               <tr className="bg-[#3b6ea5] text-white text-center text-[12px]">
                 {viewOrder.filter((id) => id === "certQty" || id === "certAmt").map((colId) =>
                   colId === "certQty" ? (
-                    <>
-                      <th key="prevQty-h" className="border border-[#2a5080] py-1 px-1 w-[90px]">Previous</th>
-                      <th key="thisQty-h" className="border border-[#2a5080] py-1 px-1 w-[90px] bg-[#b06010]">This Bill ✎</th>
-                      <th key="cumQty-h"  className="border border-[#2a5080] py-1 px-1 w-[90px]">Cumulative</th>
-                    </>
+                    <React.Fragment key="certQty-sub">
+                      <th className="border border-[#2a5080] py-1 px-1 w-[90px]">Previous</th>
+                      <th className="border border-[#2a5080] py-1 px-1 w-[90px] bg-[#b06010]">This Bill ✎</th>
+                      <th className="border border-[#2a5080] py-1 px-1 w-[90px]">Cumulative</th>
+                    </React.Fragment>
                   ) : (
-                    <>
-                      <th key="prevAmt-h" className="border border-[#2a5080] py-1 px-1 w-[105px] bg-[#2d6e47]">Previous</th>
-                      <th key="thisAmt-h" className="border border-[#2a5080] py-1 px-1 w-[105px] bg-[#2d6e47]">This Bill</th>
-                      <th key="cumAmt-h"  className="border border-[#2a5080] py-1 px-1 w-[105px] bg-[#2d6e47]">Cumulative</th>
-                    </>
+                    <React.Fragment key="certAmt-sub">
+                      <th className="border border-[#2a5080] py-1 px-1 w-[105px] bg-[#2d6e47]">Previous</th>
+                      <th className="border border-[#2a5080] py-1 px-1 w-[105px] bg-[#2d6e47]">This Bill</th>
+                      <th className="border border-[#2a5080] py-1 px-1 w-[105px] bg-[#2d6e47]">Cumulative</th>
+                    </React.Fragment>
                   )
                 )}
               </tr>
@@ -870,9 +875,14 @@ export default function SaleClaimBillForm({ mode = "create", billId, onAfterSubm
                   placeholder={lookupLoading ? "Loading…" : "Select Order"}
                   labelKey="displayLabel"
                   valueKey="ogSaleOrderNo"
-                  searchKeys={["ogSaleOrderNo", "orderTitle", "displayLabel"]}
+                  searchKeys={["ogSaleOrderNo", "orderNo", "orderTitle", "displayLabel"]}
                 />
               </div>
+            </PMFormRow>
+
+            <div>
+            <PMFormRow label="Bill No" labelWidth="sm:w-[140px] sm:min-w-[140px]">
+              <PMInput {...register("userBillNo")} disabled={disabled} placeholder="Enter bill number" expandable={false} />
             </PMFormRow>
 
             <PMFormRow label="Bill Date" required={!disabled} labelWidth="sm:w-[140px] sm:min-w-[140px]">
@@ -883,29 +893,6 @@ export default function SaleClaimBillForm({ mode = "create", billId, onAfterSubm
                 className="max-w-[200px]"
               />
             </PMFormRow>
-
-            <div>
-              <span className="text-[13px] text-[#444444]">
-                Title{!disabled && <span className="text-red-500 ml-0.5">*</span>}
-              </span>
-              <Controller
-                name="title"
-                control={control}
-                render={({ field, fieldState }) => (
-                  <PMTextarea
-                    value={field.value || ""}
-                    onChange={field.onChange}
-                    onBlur={field.onBlur}
-                    hasError={fieldState.error}
-                    disabled={disabled}
-                    title="Title"
-                    placeholder="Text"
-                    rows={2}
-                    maxRows={5}
-                  />
-                )}
-              />
-            </div>
 
             <PMFormRow label="Job Location" required={!disabled} labelWidth="sm:w-[140px] sm:min-w-[140px]">
               <div className="flex-1">
@@ -922,16 +909,31 @@ export default function SaleClaimBillForm({ mode = "create", billId, onAfterSubm
               </div>
             </PMFormRow>
 
-            <PMFormRow label="Pre Certified" labelWidth="sm:w-[140px] sm:min-w-[140px]">
-              <div className="max-w-[180px]">
-                <input
-                  type="text"
-                  value={formatAmount(watch("preCertifiedAmount") || 0)}
-                  disabled readOnly
-                  className="w-full h-[30px] text-[13px] rounded-sm border border-[#b5b5b5] bg-[#f5f5f5] text-right px-2 text-[#555] outline-none"
-                />
-              </div>
-            </PMFormRow>
+            <div>
+              <span className="text-[13px] text-[#444444]">Note</span>
+              <Controller
+                name="note"
+                control={control}
+                render={({ field, fieldState }) => (
+                  <PMTextarea
+                    value={field.value || ""}
+                    onChange={field.onChange}
+                    onBlur={field.onBlur}
+                    hasError={fieldState.error}
+                    disabled={disabled}
+                    title="Note"
+                    placeholder="Text"
+                    rows={2}
+                    maxRows={5}
+                  />
+                )}
+              />
+            </div>
+
+            {/* ── This Bill (Basic) Summary ─────────────────────────────────────── */}
+            <p className="text-[12px] font-semibold text-[#1c3a5e] border-b border-[#5f8fbe] pb-0.5 mt-3 mb-1">
+              This Bill (Basic) Summary
+            </p>
 
             <PMFormRow label="This Bill (Basic)" labelWidth="sm:w-[140px] sm:min-w-[140px]">
               <div className="max-w-[180px]">
@@ -949,10 +951,44 @@ export default function SaleClaimBillForm({ mode = "create", billId, onAfterSubm
               </div>
             </PMFormRow>
 
-            <PMFormRow label="Total Claim" labelWidth="sm:w-[140px] sm:min-w-[140px]">
+            <PMFormRow label="Total Bill Amount" labelWidth="sm:w-[140px] sm:min-w-[140px]">
               <div className="max-w-[180px]">
                 <input type="text" value={formatAmount(totalClaim)} disabled readOnly
                   className="w-full h-[30px] text-[13px] rounded-sm border border-[#5f8fbe] bg-[#d6e8f9] text-right px-2 font-semibold text-[#1c3a5e] outline-none"
+                />
+              </div>
+            </PMFormRow>
+
+            {/* ── Total Bill (Basic) Amount Summary ────────────────────────────── */}
+            <p className="text-[12px] font-semibold text-[#1c3a5e] border-b border-[#5f8fbe] pb-0.5 mt-3 mb-1">
+              Total Bill (Basic) Amount Summary
+            </p>
+
+            <PMFormRow label="Pre Certified Amount" labelWidth="sm:w-[155px] sm:min-w-[155px]">
+              <div className="max-w-[180px]">
+                <input
+                  type="text"
+                  value={formatAmount(watch("preCertifiedAmount") || 0)}
+                  disabled readOnly
+                  className="w-full h-[30px] text-[13px] rounded-sm border border-[#b5b5b5] bg-[#f5f5f5] text-right px-2 text-[#555] outline-none"
+                />
+              </div>
+            </PMFormRow>
+
+            <PMFormRow label="This Bill Amount" labelWidth="sm:w-[155px] sm:min-w-[155px]">
+              <div className="max-w-[180px]">
+                <input type="text" value={formatAmount(totalClaim)} disabled readOnly
+                  className="w-full h-[30px] text-[13px] rounded-sm border border-[#5f8fbe] bg-[#d6e8f9] text-right px-2 font-semibold text-[#1c3a5e] outline-none"
+                />
+              </div>
+            </PMFormRow>
+
+            <PMFormRow label="Cumulative Bill Amount" labelWidth="sm:w-[155px] sm:min-w-[155px]">
+              <div className="max-w-[180px]">
+                <input type="text"
+                  value={formatAmount((parseFloat(watch("preCertifiedAmount") || 0) + parseFloat(totalClaim || 0)))}
+                  disabled readOnly
+                  className="w-full h-[30px] text-[13px] rounded-sm border border-[#3b6ea5] bg-[#c2d8ef] text-right px-2 font-semibold text-[#1c3a5e] outline-none"
                 />
               </div>
             </PMFormRow>
@@ -967,6 +1003,8 @@ export default function SaleClaimBillForm({ mode = "create", billId, onAfterSubm
                 onClearExisting={() => setExistingUrl("")}
                 resetKey={fileResetKey}
               />
+            </div>
+
             </div>
 
           </PMSection>

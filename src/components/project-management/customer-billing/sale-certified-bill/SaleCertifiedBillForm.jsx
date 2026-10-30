@@ -86,7 +86,8 @@ const schema = z.object({
   claimBillId:        z.coerce.number().min(1, "Claim Bill is required"),
   ogSaleOrderNo:      z.string().min(1, "Order No is required"),
   billingDate: zodDate(z, "billingDate", true),
-  title:              z.string().min(1, "Title is required"),
+  userBillNo:         z.string().optional(),
+  note:               z.string().optional(),
   jobLocation:        z.string().min(1, "Job Location is required"),
   preCertifiedAmount: z.coerce.number().min(0).optional(),
   items:              z.array(itemSchema).min(1),
@@ -113,7 +114,8 @@ const defaultValues = {
   claimBillId:        null,
   ogSaleOrderNo:      "",
   billingDate:        "",
-  title:              "",
+  userBillNo:         "",
+  note:               "",
   jobLocation:        "",
   preCertifiedAmount: "",
   items:              [],
@@ -186,7 +188,7 @@ export default function SaleCertifiedBillForm({ mode = "create", billId, onAfter
       .then((res) => {
         const orders = (Array.isArray(res.data) ? res.data : []).map((o) => ({
           ...o,
-          displayLabel: o.orderTitle ? `${o.ogSaleOrderNo} — ${o.orderTitle}` : o.ogSaleOrderNo,
+          displayLabel: o.orderNo || o.ogSaleOrderNo,
         }));
         setSaleOrderOpts(orders);
       })
@@ -205,7 +207,7 @@ export default function SaleCertifiedBillForm({ mode = "create", billId, onAfter
       setClaimBillOpts(
         (Array.isArray(res.data) ? res.data : []).map((b) => ({
           ...b,
-          displayLabel: b.title ? `${b.billingNo} — ${b.title}` : b.billingNo,
+          displayLabel: b.userBillNo || b.billingNo,
         }))
       );
     } catch {
@@ -326,7 +328,8 @@ export default function SaleCertifiedBillForm({ mode = "create", billId, onAfter
           claimBillId:        d.claimBillId         || null,
           ogSaleOrderNo:      d.ogSaleOrderNo        || "",
           billingDate:        d.billingDate           || "",
-          title:              d.title                 || "",
+          userBillNo:         d.userBillNo            || "",
+          note:               d.note                  || "",
           jobLocation:        d.jobLocation           || "",
           preCertifiedAmount: d.preCertifiedAmount    || "",
           items: [
@@ -396,7 +399,8 @@ export default function SaleCertifiedBillForm({ mode = "create", billId, onAfter
     if (mode === "create") fd.append("projectCode", projectCode);
     fd.append("claimBillId", v.claimBillId || "");
     fd.append("billingDate", v.billingDate  || "");
-    fd.append("title",       v.title        || "");
+    fd.append("userBillNo",  v.userBillNo   || "");
+    fd.append("note",        v.note         || "");
     fd.append("jobLocation", v.jobLocation  || "");
     const serializeItems = (list) =>
       JSON.stringify(
@@ -632,7 +636,7 @@ export default function SaleCertifiedBillForm({ mode = "create", billId, onAfter
                   placeholder="Select Order"
                   labelKey="displayLabel"
                   valueKey="ogSaleOrderNo"
-                  searchKeys={["ogSaleOrderNo", "orderTitle", "displayLabel"]}
+                  searchKeys={["ogSaleOrderNo", "orderNo", "orderTitle", "displayLabel"]}
                 />
                 {errors.ogSaleOrderNo && (
                   <p className="text-[11px] text-red-500 mt-0.5">{errors.ogSaleOrderNo.message}</p>
@@ -651,7 +655,7 @@ export default function SaleCertifiedBillForm({ mode = "create", billId, onAfter
                   placeholder={!watch("ogSaleOrderNo") ? "Select order first" : "Select Claim Bill"}
                   labelKey="displayLabel"
                   valueKey="id"
-                  searchKeys={["billingNo", "title", "displayLabel"]}
+                  searchKeys={["billingNo", "userBillNo", "note", "displayLabel"]}
                 />
                 {errors.claimBillId && (
                   <p className="text-[11px] text-red-500 mt-0.5">{errors.claimBillId.message}</p>
@@ -675,6 +679,10 @@ export default function SaleCertifiedBillForm({ mode = "create", billId, onAfter
               );
             })()}
 
+            <PMFormRow label="Bill No" labelWidth="sm:w-[140px] sm:min-w-[140px]">
+              <PMInput {...register("userBillNo")} disabled={disabled} placeholder="Enter bill number" expandable={false} />
+            </PMFormRow>
+
             <PMFormRow label="Bill Date" required={!disabled} labelWidth="sm:w-[140px] sm:min-w-[140px]">
               <PMDateInput
                 {...register("billingDate")}
@@ -683,29 +691,6 @@ export default function SaleCertifiedBillForm({ mode = "create", billId, onAfter
                 className="max-w-[200px]"
               />
             </PMFormRow>
-
-            <div>
-              <span className="text-[13px] text-[#444444]">
-                Title{!disabled && <span className="text-red-500 ml-0.5">*</span>}
-              </span>
-              <Controller
-                name="title"
-                control={control}
-                render={({ field, fieldState }) => (
-                  <PMTextarea
-                    value={field.value || ""}
-                    onChange={field.onChange}
-                    onBlur={field.onBlur}
-                    hasError={fieldState.error}
-                    disabled={disabled}
-                    title="Title"
-                    placeholder="Text"
-                    rows={2}
-                    maxRows={5}
-                  />
-                )}
-              />
-            </div>
 
             <PMFormRow label="Job Location" required={!disabled} labelWidth="sm:w-[140px] sm:min-w-[140px]">
               <div className="flex-1">
@@ -724,6 +709,27 @@ export default function SaleCertifiedBillForm({ mode = "create", billId, onAfter
                 )}
               </div>
             </PMFormRow>
+
+            <div>
+              <span className="text-[13px] text-[#444444]">Note</span>
+              <Controller
+                name="note"
+                control={control}
+                render={({ field, fieldState }) => (
+                  <PMTextarea
+                    value={field.value || ""}
+                    onChange={field.onChange}
+                    onBlur={field.onBlur}
+                    hasError={fieldState.error}
+                    disabled={disabled}
+                    title="Note"
+                    placeholder="Text"
+                    rows={2}
+                    maxRows={5}
+                  />
+                )}
+              />
+            </div>
 
             <PMFormRow label="Pre Certified" labelWidth="sm:w-[140px] sm:min-w-[140px]">
               <div className="max-w-[180px]">

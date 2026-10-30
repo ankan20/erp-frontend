@@ -179,7 +179,7 @@ export default function UncertainAllocationForm({ mode = "create", uaId, onAfter
       }
       setClaimBills(list.map((b) => ({
         ...b,
-        displayLabel: b.title ? `${b.billingNo} — ${b.title}` : b.billingNo,
+        displayLabel: b.userBillNo || b.billingNo,
       })));
     } catch {
       toast.error("Failed to load claim bills");
@@ -434,7 +434,7 @@ export default function UncertainAllocationForm({ mode = "create", uaId, onAfter
                     placeholder={selectedSoId ? (itemsLoading ? "Loading items…" : "Select claim bill…") : "Select a sale order first"}
                     labelKey="displayLabel"
                     valueKey="billingId"
-                    searchKeys={["displayLabel", "billingNo", "title"]}
+                    searchKeys={["displayLabel", "billingNo", "userBillNo", "note"]}
                     disabled={!selectedSoId || itemsLoading}
                     loading={billsLoading}
                   />
@@ -564,12 +564,12 @@ export default function UncertainAllocationForm({ mode = "create", uaId, onAfter
                         <tr key={`grp-${group.billingId ?? group.soNo}`} className="bg-[#1e3a5f]">
                           <td colSpan={TOTAL_COLS} className="px-3 py-[5px] text-white text-[11px] font-semibold">
                             <span className="opacity-70 mr-1">Bill:</span>
-                            <span className="mr-3 text-yellow-300">{group.billingNo}</span>
+                            <span className="mr-3 text-yellow-300">{group.userBillNo || group.billingNo}</span>
                             <span className="opacity-50 mr-2">|</span>
                             <span className="opacity-70 mr-1">SO:</span>
                             <span className="mr-2">{group.soNo}</span>
                             <span className="opacity-50 mr-2">|</span>
-                            <span>{group.title}</span>
+                            <span>{group.note}</span>
                             <span className="ml-4 opacity-70 text-[10px]">
                               Claim: {formatAmount(groupTotal.claim)} &nbsp;|&nbsp;
                               Certified: {formatAmount(groupTotal.certified)} &nbsp;|&nbsp;

@@ -100,7 +100,7 @@ async function downloadDocx(data, qrCanvasRef) {
     new TableCell({ children: paras, width: { size: w, type: WidthType.DXA }, borders: nilBorders, margins: { top: 40, bottom: 40, left: 60, right: 60 } });
 
   const leftInfo  = [
-    ["Bill No",         data.billingNo],
+    ["Bill No",         data.userBillNo || data.billingNo],
     ["Bill Date",       fmt.date(data.billingDate)],
     ["Sale Order No",   data.ogSaleOrderNo],
     ["Project Code",    data.projectCode],
@@ -109,7 +109,7 @@ async function downloadDocx(data, qrCanvasRef) {
     ["Order Title",     data.orderTitle],
     ["Job Location",    data.jobLocation],
     ["Status",          data.workflowStatus],
-    ["Title",           data.title],
+    ["Note",            data.note],
   ];
 
   const infoTable = new Table({
@@ -255,7 +255,7 @@ async function downloadDocx(data, qrCanvasRef) {
   const blob = await Packer.toBlob(doc);
   const url  = URL.createObjectURL(blob);
   const a    = document.createElement("a");
-  a.href = url; a.download = `SaleClaimBill_${data.billingNo}.docx`; a.click();
+  a.href = url; a.download = `SaleClaimBill_${data.userBillNo || data.billingNo}.docx`; a.click();
   URL.revokeObjectURL(url);
 }
 
@@ -304,7 +304,7 @@ export default function SaleClaimBillPrintPage() {
   return (
     <>
       <PrintTopBar
-        title={`Sale Claim Bill — ${data.billingNo}`}
+        title={`Sale Claim Bill — ${data.userBillNo || data.billingNo}`}
         onDownloadPDF={printAsPDF}
         onDownloadDocx={() => downloadDocx(data, qrCanvasRef)}
       />
@@ -346,7 +346,7 @@ export default function SaleClaimBillPrintPage() {
           {/* ── INFO SECTION ───────────────────────────────────────────── */}
           <div className="grid grid-cols-2 px-6 py-3" style={{ gridTemplateColumns: "55% 45%" }}>
             <div>
-              <InfoRow label="Bill No"        value={data.billingNo} />
+              <InfoRow label="Bill No"        value={data.userBillNo || data.billingNo} />
               <InfoRow label="Bill Date"      value={fmt.date(data.billingDate)} />
               <InfoRow label="Sale Order No"  value={data.ogSaleOrderNo} />
               <InfoRow label="Project Code"   value={data.projectCode} />
@@ -354,7 +354,7 @@ export default function SaleClaimBillPrintPage() {
             <div className="pl-6">
               <InfoRow label="Order Title"    value={data.orderTitle} />
               <InfoRow label="Job Location"   value={data.jobLocation} />
-              <InfoRow label="Title"          value={data.title} />
+              <InfoRow label="Note"           value={data.note} />
               <InfoRow label="Status"         value={data.workflowStatus} />
             </div>
           </div>
