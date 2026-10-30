@@ -139,15 +139,20 @@ function ActiveCallWindow({ call }) {
   useEffect(() => {
     const me = myId();
 
+    const log = (...a) => console.log("[WebRTC]", ...a);
+
     const setup = async () => {
+      log("setup start — isInitiator:", isInitiator, "callId:", call.callId, "me:", me, "participants:", call.participants);
+
       // Get media — audio for both, video only for video calls
       let stream;
       try {
         stream = await navigator.mediaDevices.getUserMedia(
           isVideo ? { video: true, audio: true } : { audio: true, video: false }
         );
+        log("getUserMedia OK, tracks:", stream.getTracks().map(t => t.kind));
       } catch (e) {
-        console.error("getUserMedia failed:", e);
+        console.error("[WebRTC] getUserMedia FAILED:", e.name, e.message);
         setStatus("ended");
         return;
       }
@@ -166,39 +171,43 @@ function ActiveCallWindow({ call }) {
       stream.getTracks().forEach(t => pc.addTrack(t, stream));
 
       pc.ontrack = (e) => {
+        log("ontrack fired — streams:", e.streams.length);
         if (remoteVideo.current) remoteVideo.current.srcObject = e.streams[0];
-        // If we receive a remote track, we're connected
         startTimer();
         setStatus("connected");
       };
 
       pc.onconnectionstatechange = () => {
-        if (pc.connectionState === "connected") {
-          startTimer();
-          setStatus("connected");
-        }
-        if (pc.connectionState === "disconnected" || pc.connectionState === "failed") {
-          setStatus("ended");
-        }
+        log("connectionState →", pc.connectionState);
+        if (pc.connectionState === "connected") { startTimer(); setStatus("connected"); }
+        if (pc.connectionState === "disconnected" || pc.connectionState === "failed") setStatus("ended");
       };
 
-      // Send ICE candidates to all other participants
       pc.onicecandidate = async (e) => {
         if (!e.candidate) return;
         const others = (call.participants || []).filter(p => p.userId !== me);
+        log("ICE candidate → sending to", others.map(p => p.userId));
         for (const p of others) {
-          await sendSignal(call.callId, p.userId, "ice", { candidate: e.candidate }).catch(() => {});
+          await sendSignal(call.callId, p.userId, "ice", { candidate: e.candidate }).catch(err => log("ICE send error:", err));
         }
       };
 
+      pc.onsignalingstatechange = () => log("signalingState →", pc.signalingState);
+      pc.onicegatheringstatechange = () => log("iceGatheringState →", pc.iceGatheringState);
+
       // Initiator creates and sends the offer
       if (isInitiator) {
+        log("creating offer…");
         const offer = await pc.createOffer();
         await pc.setLocalDescription(offer);
         const others = (call.participants || []).filter(p => p.userId !== me);
+        log("sending offer to:", others.map(p => p.userId));
         for (const p of others) {
-          await sendSignal(call.callId, p.userId, "offer", { sdp: offer }).catch(() => {});
+          const r = await sendSignal(call.callId, p.userId, "offer", { sdp: offer }).catch(e => ({ error: e.message }));
+          log("offer send result:", r);
         }
+      } else {
+        log("receiver role — waiting for offer via signal poll");
       }
     };
 
@@ -208,9 +217,10 @@ function ActiveCallWindow({ call }) {
     signalPollRef.current = setInterval(async () => {
       try {
         const signals = await pollSignals(call.callId);
+        if (signals?.length) console.log("[WebRTC] signals received:", signals.map(s => s.signalType));
         const pc = pcRef.current;
         if (!pc) return;
-        for (const sig of signals) {
+        for (const sig of signals || []) {
           if (sig.signalType === "offer" && !isInitiator) {
             // Receiver handles offer → creates answer
             await pc.setRemoteDescription(new RTCSessionDescription(sig.payload.sdp));
