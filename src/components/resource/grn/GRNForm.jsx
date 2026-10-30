@@ -342,7 +342,7 @@ export default function GRNForm({ mode = "create", grnId, onUuid, onAfterSubmit 
       if (res?.data?.uuid && onUuid) onUuid(res.data.uuid);
 
       {
-        const url = res?.data?.attachedDoc || "";
+        const url = res?.data?.attachedDoc ?? existingFileUrl;
         setExistingFileUrl(url);
         setInitialFileUrl(url);
         setAttachedFile(null);
