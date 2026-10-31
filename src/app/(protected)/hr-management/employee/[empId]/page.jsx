@@ -263,7 +263,7 @@ export default function EmployeeDetailPage() {
     const token = typeof window !== "undefined" ? localStorage.getItem("token") : null;
     try {
       const r = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL || "http://132.154.156.82/api"}${API_ENDPOINTS.HR.EMPLOYEE.UPLOAD_DOC}${empId}/upload-doc`,
+        `${process.env.NEXT_PUBLIC_API_URL || "https://132.154.156.82/api"}${API_ENDPOINTS.HR.EMPLOYEE.UPLOAD_DOC}${empId}/upload-doc`,
         { method: "POST", headers: token ? { Authorization: `Bearer ${token}` } : {}, body: fd }
       );
       const json = await r.json();
