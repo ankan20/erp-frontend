@@ -60,7 +60,7 @@ const DEFAULT_GST_LINES = [
 ];
 
 const schema = z.object({
-  ogSaleOrderNo:   z.string().default(""),
+  erpDocNumber:   z.string().default(""),
   saleOrderDate: zodDate(z, "saleOrderDate"),
   certifiedBillId: z.coerce.number().min(1, "Certified Bill is required"),
   billAbstractNo:  z.string().default(""),
@@ -81,7 +81,7 @@ const schema = z.object({
 });
 
 const DEFAULT_VALUES = {
-  ogSaleOrderNo: "", saleOrderDate: "", certifiedBillId: null,
+  erpDocNumber: "", saleOrderDate: "", certifiedBillId: null,
   billAbstractNo: "", billAbstractDate: "",
   invoiceNo: "", invoiceDate: "", billToAddress: "", shipToAddress: "",
   paymentMode: "Bank", cashAcId: null, bankAcId: null,
@@ -132,7 +132,7 @@ export default function SaleReceiptForm({ mode = "create", receiptId, onAfterSub
   const watchedItems    = watch("items")    || [];
   const watchedGst      = watch("gstLines") || DEFAULT_GST_LINES;
   const paymentMode     = watch("paymentMode");
-  const ogSaleOrderNo   = watch("ogSaleOrderNo");
+  const erpDocNumber   = watch("erpDocNumber");
   const certifiedBillId = watch("certifiedBillId");
   const discount        = Number(watch("discount") || 0);
 
@@ -154,7 +154,7 @@ export default function SaleReceiptForm({ mode = "create", receiptId, onAfterSub
       .then((res) => {
         const opts = (res.data || []).map((o) => ({
           ...o,
-          displayLabel: o.orderTitle ? `${o.ogSaleOrderNo} — ${o.orderTitle}` : o.ogSaleOrderNo,
+          displayLabel: o.orderTitle ? `${o.erpDocNumber} — ${o.orderTitle}` : o.erpDocNumber,
         }));
         setSaleOrderOpts(opts);
       })
@@ -172,7 +172,7 @@ export default function SaleReceiptForm({ mode = "create", receiptId, onAfterSub
       setBillsLoading(true);
       try {
         const res = await apiRequest({
-          url: `${API_ENDPOINTS.FINANCE.SALE_RECEIPT.CERTIFIED_BILLS}?ogSaleOrderNo=${encodeURIComponent(orderNo)}&projectCode=${projectCode}`,
+          url: `${API_ENDPOINTS.FINANCE.SALE_RECEIPT.CERTIFIED_BILLS}?erpDocNumber=${encodeURIComponent(orderNo)}&projectCode=${projectCode}`,
           method: "GET",
         });
         setCertBillOpts(res.data || []);
@@ -182,7 +182,7 @@ export default function SaleReceiptForm({ mode = "create", receiptId, onAfterSub
     [projectCode],
   );
 
-  useEffect(() => { fetchCertBills(ogSaleOrderNo); }, [ogSaleOrderNo, fetchCertBills]);
+  useEffect(() => { fetchCertBills(erpDocNumber); }, [erpDocNumber, fetchCertBills]);
 
   // ── Fetch Receipt Items when Certified Bill selected (create only) ─────────
   const fetchReceiptItems = useCallback(
@@ -233,7 +233,7 @@ export default function SaleReceiptForm({ mode = "create", receiptId, onAfterSub
       .then((res) => {
         const d = res.data || {};
         reset({
-          ogSaleOrderNo:    d.ogSaleOrderNo    || "",
+          erpDocNumber:    d.erpDocNumber    || "",
           saleOrderDate:    d.saleOrderDate    || "",
           certifiedBillId:  d.certifiedBillId  || null,
           billAbstractNo:   d.billAbstractNo   || d.certifiedBillNo || "",
@@ -437,13 +437,13 @@ export default function SaleReceiptForm({ mode = "create", receiptId, onAfterSub
 
           <PMSection title="Sale Order Details:">
             <PMFormRow label="Sale Order No" required={!disabled} labelWidth="sm:w-[150px] sm:min-w-[150px]">
-              <Controller name="ogSaleOrderNo" control={control} render={({ field }) => (
+              <Controller name="erpDocNumber" control={control} render={({ field }) => (
                 <SearchableSelect
                   options={saleOrderOpts}
                   value={field.value || ""}
                   disabled={disabled}
                   onChange={(v, opt) => {
-                    field.onChange(opt?.ogSaleOrderNo || v || "");
+                    field.onChange(opt?.erpDocNumber || v || "");
                     setValue("saleOrderDate", opt?.ogSaleOrderDate || "");
                     // reset cert bill fields when order changes
                     setValue("certifiedBillId", null);
@@ -454,8 +454,8 @@ export default function SaleReceiptForm({ mode = "create", receiptId, onAfterSub
                   }}
                   placeholder="Select Sale Order"
                   labelKey="displayLabel"
-                  valueKey="ogSaleOrderNo"
-                  searchKeys={["displayLabel", "ogSaleOrderNo", "orderTitle"]}
+                  valueKey="erpDocNumber"
+                  searchKeys={["displayLabel", "erpDocNumber", "orderTitle"]}
                 />
               )} />
             </PMFormRow>
@@ -468,7 +468,7 @@ export default function SaleReceiptForm({ mode = "create", receiptId, onAfterSub
                 <SearchableSelect
                   options={certBillOpts}
                   value={field.value ? String(field.value) : ""}
-                  disabled={disabled || !watch("ogSaleOrderNo")}
+                  disabled={disabled || !watch("erpDocNumber")}
                   onChange={(v, opt) => {
                     field.onChange(v ? Number(v) : null);
                     setValue("billAbstractNo",   opt?.billingNo   || "");

@@ -100,7 +100,7 @@ async function downloadDocx(data, uuid, qrCanvasRef) {
     ...(data.billToAddress ? [["Bill To",       data.billToAddress]]        : []),
   ];
   const rightInfo = [
-    ["Sale Order No",    data.ogSaleOrderNo || "-"],
+    ["Sale Order No",    data.erpDocNumber || "-"],
     ["Sale Order Date",  fmt.date(data.saleOrderDate)],
     ["Certified Bill",   data.certifiedBillNo || "-"],
     ["Bill Abstract No", data.billAbstractNo || "-"],
@@ -318,7 +318,7 @@ export default function SaleReceiptBillingPrintPage() {
               )}
             </div>
             <div className="space-y-0.5 pl-6">
-              <InfoRow label="Sale Order No"    value={data.ogSaleOrderNo} />
+              <InfoRow label="Sale Order No"    value={data.erpDocNumber} />
               <InfoRow label="Sale Order Date"  value={fmt.date(data.saleOrderDate)} />
               <InfoRow label="Certified Bill"   value={data.certifiedBillNo} />
               <InfoRow label="Bill Abstract No" value={data.billAbstractNo} />

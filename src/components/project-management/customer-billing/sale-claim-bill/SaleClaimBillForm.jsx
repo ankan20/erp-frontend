@@ -77,7 +77,7 @@ const itemSchema = z.object({
 });
 
 const schema = z.object({
-  ogSaleOrderNo:      z.string().min(1, "Order No is required"),
+  erpDocNumber:      z.string().min(1, "Order No is required"),
   billingDate: zodDate(z, "billingDate", true),
   billingNo:          z.string().min(1, "Bill No is required"),
   note:               z.string().optional(),
@@ -103,7 +103,7 @@ const DEFAULT_ITEM = {
 };
 
 const defaultValues = {
-  ogSaleOrderNo:      "",
+  erpDocNumber:      "",
   billingDate:        "",
   billingNo:          "",
   note:               "",
@@ -176,7 +176,7 @@ export default function SaleClaimBillForm({ mode = "create", billId, onAfterSubm
       .then((res) => {
         const orders = (Array.isArray(res.data) ? res.data : []).map((o) => ({
           ...o,
-          displayLabel: o.orderNo || o.ogSaleOrderNo,
+          displayLabel: o.orderNo || o.erpDocNumber,
         }));
         setSaleOrderOpts(orders);
       })
@@ -196,12 +196,12 @@ export default function SaleClaimBillForm({ mode = "create", billId, onAfterSubm
 
   // ── ORDER SELECTION ───────────────────────────────────────────────────────────
   const handleOrderSelect = useCallback(async (value) => {
-    setValue("ogSaleOrderNo", value, { shouldDirty: true });
+    setValue("erpDocNumber", value, { shouldDirty: true });
     if (!value || !projectCode) return;
     setLookupLoading(true);
     try {
       const res = await apiRequest({
-        url:    `${API_ENDPOINTS.PROJECT.SALE_CLAIM_BILL.ORDER_LOOKUP}?ogSaleOrderNo=${encodeURIComponent(value)}&projectCode=${projectCode}&mode=${BILL_MODE}`,
+        url:    `${API_ENDPOINTS.PROJECT.SALE_CLAIM_BILL.ORDER_LOOKUP}?erpDocNumber=${encodeURIComponent(value)}&projectCode=${projectCode}&mode=${BILL_MODE}`,
         method: "GET",
       });
       const d = res.data || {};
@@ -261,7 +261,7 @@ export default function SaleClaimBillForm({ mode = "create", billId, onAfterSubm
           gstPercent:        it.gstPercent         || "",
         });
         const formatted = {
-          ogSaleOrderNo:      d.ogSaleOrderNo      || "",
+          erpDocNumber:      d.erpDocNumber      || "",
           billingDate:        d.billingDate         || "",
           billingNo:          d.billingNo           || "",
           note:               d.note                || "",
@@ -321,7 +321,7 @@ export default function SaleClaimBillForm({ mode = "create", billId, onAfterSubm
     const fd = new FormData();
     fd.append("mode",          BILL_MODE);
     if (mode === "create") fd.append("projectCode", projectCode);
-    fd.append("ogSaleOrderNo", v.ogSaleOrderNo || "");
+    fd.append("erpDocNumber", v.erpDocNumber || "");
     fd.append("billingDate",   v.billingDate   || "");
     fd.append("billingNo",     v.billingNo     || "");
     fd.append("note",          v.note          || "");
@@ -869,13 +869,13 @@ export default function SaleClaimBillForm({ mode = "create", billId, onAfterSubm
               <div className="flex-1">
                 <SearchableSelect
                   options={saleOrderOpts}
-                  value={watch("ogSaleOrderNo") || ""}
+                  value={watch("erpDocNumber") || ""}
                   disabled={disabled || lookupLoading}
                   onChange={(value) => handleOrderSelect(value)}
                   placeholder={lookupLoading ? "Loading…" : "Select Order"}
                   labelKey="displayLabel"
-                  valueKey="ogSaleOrderNo"
-                  searchKeys={["ogSaleOrderNo", "orderNo", "orderTitle", "displayLabel"]}
+                  valueKey="erpDocNumber"
+                  searchKeys={["erpDocNumber", "orderNo", "orderTitle", "displayLabel"]}
                 />
               </div>
             </PMFormRow>

@@ -224,7 +224,7 @@ export default function BudgetMasterForm({ mode = "create", budgetId, onAfterSub
           list.map((o) => ({
             ...o,
             id: o.id ?? o.saleOrderId ?? o.ogSaleOrderId,
-            displayLabel: o.orderNo || o.ogSaleOrderNo || o.saleOrderNo,
+            displayLabel: o.orderNo || o.erpDocNumber || o.saleOrderNo,
           })),
         );
       })
@@ -283,7 +283,7 @@ export default function BudgetMasterForm({ mode = "create", budgetId, onAfterSub
       setValue("orderValueExclGst", ov, { shouldDirty: false });
 
       setOrderInfo({
-        no:    option?.ogSaleOrderNo || option?.saleOrderNo || d.ogSaleOrderNo || "",
+        no:    option?.erpDocNumber || option?.saleOrderNo || d.erpDocNumber || "",
         title: option?.orderTitle    || option?.saleOrderTitle || d.orderTitle || "",
       });
 
@@ -522,13 +522,13 @@ export default function BudgetMasterForm({ mode = "create", budgetId, onAfterSub
                     placeholder="Select approved sale order…"
                     labelKey="displayLabel"
                     valueKey="id"
-                    searchKeys={["displayLabel", "ogSaleOrderNo", "orderNo", "orderTitle"]}
+                    searchKeys={["displayLabel", "erpDocNumber", "orderNo", "orderTitle"]}
                     className={errors.saleOrderId ? "border-red-500" : ""}
                   />
                 )}
               />
             </PMFormRow>
-            <PMFormRow label="Sale Order No" labelWidth="sm:w-[150px] sm:min-w-[150px]">
+            <PMFormRow label="ERP Doc No" labelWidth="sm:w-[150px] sm:min-w-[150px]">
               <PMInput value={orderInfo.no || ""} disabled readOnly placeholder="[Auto]" />
             </PMFormRow>
             <PMFormRow label="Order Title" labelWidth="sm:w-[150px] sm:min-w-[150px]">

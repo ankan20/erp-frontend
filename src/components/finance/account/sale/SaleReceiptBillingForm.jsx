@@ -61,7 +61,7 @@ const DEFAULT_GST_LINES = [
 ];
 
 const schema = z.object({
-  ogSaleOrderNo:    z.string().default(""),
+  erpDocNumber:    z.string().default(""),
   saleOrderDate: zodDate(z, "saleOrderDate"),
   certifiedBillId:  z.coerce.number().nullable().optional(),  // set from invoice lookup, not user-selected
   certifiedBillNo:  z.string().default(""),                   // display only, not in payload
@@ -78,7 +78,7 @@ const schema = z.object({
 });
 
 const DEFAULT_VALUES = {
-  ogSaleOrderNo: "", saleOrderDate: "", certifiedBillId: null, certifiedBillNo: "",
+  erpDocNumber: "", saleOrderDate: "", certifiedBillId: null, certifiedBillNo: "",
   billAbstractNo: "", billAbstractDate: "",
   invoiceNo: "", invoiceDate: "", billToAddress: "", shipToAddress: "",
   discount: 0, roundOff: 0,
@@ -112,7 +112,7 @@ export default function SaleReceiptBillingForm({
   const [invoiceOpts,          setInvoiceOpts]          = useState([]);  // filtered by selected order
   const [invoicesLoading,      setInvoicesLoading]      = useState(false);
   const [invoiceLookupLoading, setInvoiceLookupLoading] = useState(false);
-  const skipClearOnOrderChange = useRef(false);          // prevents clearing when lookup sets ogSaleOrderNo
+  const skipClearOnOrderChange = useRef(false);          // prevents clearing when lookup sets erpDocNumber
 
   const {
     register, control, handleSubmit, reset, setValue, watch, getValues,
@@ -126,7 +126,7 @@ export default function SaleReceiptBillingForm({
 
   const watchedItems  = watch("items")    || [];
   const watchedGst    = watch("gstLines") || DEFAULT_GST_LINES;
-  const ogSaleOrderNo = watch("ogSaleOrderNo");
+  const erpDocNumber = watch("erpDocNumber");
   const discount      = Number(watch("discount") || 0);
 
   const basicTotal   = watchedItems.reduce((s, it) => s + Number(it?.currentAmount || 0), 0);
@@ -182,7 +182,7 @@ export default function SaleReceiptBillingForm({
         setSaleOrderOpts(
           (res.data || []).map((o) => ({
             ...o,
-            displayLabel: o.orderTitle ? `${o.ogSaleOrderNo} — ${o.orderTitle}` : o.ogSaleOrderNo,
+            displayLabel: o.orderTitle ? `${o.erpDocNumber} — ${o.orderTitle}` : o.erpDocNumber,
           })),
         );
       })
@@ -210,18 +210,18 @@ export default function SaleReceiptBillingForm({
 
   // ── Filter invoice list client-side when sale order changes ───────────────
   useEffect(() => {
-    if (!ogSaleOrderNo) {
+    if (!erpDocNumber) {
       setInvoiceOpts(allInvoiceOpts);   // no filter — show all
     } else {
-      setInvoiceOpts(allInvoiceOpts.filter((inv) => inv.saleOrderNo === ogSaleOrderNo));
+      setInvoiceOpts(allInvoiceOpts.filter((inv) => inv.saleOrderNo === erpDocNumber));
     }
-  }, [ogSaleOrderNo, allInvoiceOpts]);
+  }, [erpDocNumber, allInvoiceOpts]);
 
   // ── Clear invoice-dependent fields when user manually changes sale order ───
-  // Skipped when lookup sets ogSaleOrderNo (lookup handles its own field fills)
+  // Skipped when lookup sets erpDocNumber (lookup handles its own field fills)
   useEffect(() => {
     if (skipClearOnOrderChange.current) { skipClearOnOrderChange.current = false; return; }
-    if (!ogSaleOrderNo) return;
+    if (!erpDocNumber) return;
     setValue("invoiceNo",        "");
     setValue("invoiceDate",      "");
     setValue("certifiedBillId",  null);
@@ -232,7 +232,7 @@ export default function SaleReceiptBillingForm({
     setValue("shipToAddress",    "");
     replaceItems([{ slNo: 1, ccCode: "", ccName: "", bookedAmount: 0, receivedAmount: 0, balanceAmount: 0, currentAmount: 0 }]);
     replaceGst(DEFAULT_GST_LINES);
-  }, [ogSaleOrderNo]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [erpDocNumber]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── Invoice selected → invoice-lookup fills everything (order, cert bill, items, GST) ─
   // No separate receipt-items or certified-bills API calls needed — invoice-lookup returns all of it.
@@ -247,7 +247,7 @@ export default function SaleReceiptBillingForm({
       const d = res.data || {};
       // Auto-select sale order from lookup — skip the clear-on-change effect
       skipClearOnOrderChange.current = true;
-      setValue("ogSaleOrderNo",    d.ogSaleOrderNo    || "");
+      setValue("erpDocNumber",    d.erpDocNumber    || "");
       setValue("saleOrderDate",    d.saleOrderDate    || "");
       setValue("invoiceNo",        d.invoiceNo        || saleBillNo);
       setValue("invoiceDate",      d.invoiceDate      || "");
@@ -271,10 +271,10 @@ export default function SaleReceiptBillingForm({
     apiRequest({ url: `${API_ENDPOINTS.FINANCE.SALE_RECEIPT_BILLING.GET_BY_ID}${billingId}`, method: "GET" })
       .then((res) => {
         const d = res.data || {};
-        // Prevent the clear-on-order-change effect from wiping items/GST after reset sets ogSaleOrderNo
+        // Prevent the clear-on-order-change effect from wiping items/GST after reset sets erpDocNumber
         skipClearOnOrderChange.current = true;
         reset({
-          ogSaleOrderNo:    d.ogSaleOrderNo    || "",
+          erpDocNumber:    d.erpDocNumber    || "",
           saleOrderDate:    d.saleOrderDate    || "",
           certifiedBillId:  d.certifiedBillId  || null,
           certifiedBillNo:  d.certifiedBillNo  || "",
@@ -447,19 +447,19 @@ export default function SaleReceiptBillingForm({
               </PMFormRow>
             )}
             <PMFormRow label="Sale Order No" required={!disabled} labelWidth="sm:w-[150px] sm:min-w-[150px]">
-              <Controller name="ogSaleOrderNo" control={control} render={({ field }) => (
+              <Controller name="erpDocNumber" control={control} render={({ field }) => (
                 <SearchableSelect
                   options={saleOrderOpts}
                   value={field.value || ""}
                   disabled={disabled}
                   onChange={(v, opt) => {
-                    field.onChange(opt?.ogSaleOrderNo || v || "");
+                    field.onChange(opt?.erpDocNumber || v || "");
                     setValue("saleOrderDate", opt?.ogSaleOrderDate || "");
                   }}
                   placeholder="Select Sale Order"
                   labelKey="displayLabel"
-                  valueKey="ogSaleOrderNo"
-                  searchKeys={["displayLabel", "ogSaleOrderNo", "orderTitle"]}
+                  valueKey="erpDocNumber"
+                  searchKeys={["displayLabel", "erpDocNumber", "orderTitle"]}
                 />
               )} />
             </PMFormRow>

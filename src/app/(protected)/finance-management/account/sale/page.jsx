@@ -53,7 +53,7 @@ export default function Page() {
           sl:             i + 1,
           invoiceNo:      r.saleBillNo         || "",
           invDate:        getfmtDisplaydate(r.invoiceDate) || "",
-          saleOrderNo:    r.saleOrderNo        || r.ogSaleOrderNo || "",
+          saleOrderNo:    r.saleOrderNo        || r.erpDocNumber || "",
           billAbstractNo: r.certifiedBillNo     || "",
           basic:          fmtNum(r.basicAmount),
           gst:            fmtNum(r.gstAmount),

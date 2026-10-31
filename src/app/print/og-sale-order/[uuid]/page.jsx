@@ -135,7 +135,7 @@ async function downloadDocx(data, qrCanvasRef) {
   const infoCell = (paras, w) =>
     new TableCell({ children: paras, width: { size: w, type: WidthType.DXA }, borders: nilBorders, margins: { top: 40, bottom: 40, left: 60, right: 60 } });
 
-  const leftInfo  = [["Sale Order No", data.ogSaleOrderNo], ["Order Date", fmt.date(data.ogSaleOrderDate)], ["Ref. Order No", data.orderNo]];
+  const leftInfo  = [["Sale Order No", data.erpDocNumber], ["Order Date", fmt.date(data.ogSaleOrderDate)], ["Ref. Order No", data.orderNo]];
   const rightInfo = [["Order Title", data.orderTitle], ["Order Validity", fmt.date(data.orderValidity)], ["Project Code", data.projectCode]];
 
   const infoTable = new Table({
@@ -340,7 +340,7 @@ async function downloadDocx(data, qrCanvasRef) {
   const blob = await Packer.toBlob(doc);
   const url  = URL.createObjectURL(blob);
   const a    = document.createElement("a");
-  a.href = url; a.download = `SaleOrder_${data.ogSaleOrderNo}.docx`; a.click();
+  a.href = url; a.download = `SaleOrder_${data.erpDocNumber}.docx`; a.click();
   URL.revokeObjectURL(url);
 }
 
@@ -388,7 +388,7 @@ export default function OGSaleOrderPrintPage() {
   return (
     <>
       <PrintTopBar
-        title={`Sale Order — ${data.ogSaleOrderNo}`}
+        title={`Sale Order — ${data.erpDocNumber}`}
         onDownloadPDF={printAsPDF}
         onDownloadDocx={() => downloadDocx(data, qrCanvasRef)}
       />
@@ -430,7 +430,7 @@ export default function OGSaleOrderPrintPage() {
           {/* ── INFO SECTION ───────────────────────────────── */}
           <div className="grid grid-cols-2 px-6 py-3" style={{ gridTemplateColumns: "55% 45%" }}>
             <div>
-              <InfoRow label="Sale Order No"  value={data.ogSaleOrderNo} />
+              <InfoRow label="Sale Order No"  value={data.erpDocNumber} />
               <InfoRow label="Order Date"     value={fmt.date(data.ogSaleOrderDate)} />
               <InfoRow label="Ref. Order No"  value={data.orderNo} />
               <InfoRow label="Project Code"   value={data.projectCode} />
