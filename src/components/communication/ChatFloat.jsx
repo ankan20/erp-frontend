@@ -16,6 +16,8 @@ import {
   getTyping,
   sendPing,
   startCall,
+  getReceivedPings,
+  markAllPingsRead,
 } from "@/lib/commApi";
 
 const PING_TYPES = [
@@ -27,9 +29,53 @@ const PING_TYPES = [
   { value: "attention",        label: "Attention Required", color: "bg-amber-500" },
 ];
 
+// ── Pings I received (opening this list marks them read) ─────────────────────
+function ReceivedPings() {
+  const { refresh } = useComm();
+  const [pings, setPings] = useState(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    getReceivedPings()
+      .then(r => {
+        if (cancelled) return;
+        setPings(Array.isArray(r) ? r.slice(0, 5) : []);
+        if (Array.isArray(r) && r.some(p => !p.isRead)) {
+          markAllPingsRead().then(() => refresh()).catch(() => {});
+        }
+      })
+      .catch(() => { if (!cancelled) setPings([]); });
+    return () => { cancelled = true; };
+  }, []);
+
+  if (!pings?.length) return null;
+
+  return (
+    <div className="px-3 pt-2 pb-1 border-b border-gray-100 max-h-40 overflow-y-auto">
+      <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide mb-1">Received</p>
+      {pings.map(p => (
+        <div key={p.id} className={`flex items-start gap-2 py-1.5 px-1 rounded ${!p.isRead ? "bg-amber-50" : ""}`}>
+          <Zap size={13} className={`mt-0.5 shrink-0 ${!p.isRead ? "text-amber-500" : "text-gray-300"}`} />
+          <div className="flex-1 min-w-0">
+            <p className="text-xs">
+              <span className="font-semibold">{p.senderName || "Someone"}</span>
+              <span className="text-gray-500"> · {p.pingLabel}</span>
+            </p>
+            {p.message && <p className="text-[11px] text-gray-500 truncate">{p.message}</p>}
+          </div>
+          <span className="text-[10px] text-gray-400 shrink-0">{p.createdAt?.slice(11, 16)}</span>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 // ── Shared user directory list ───────────────────────────────────────────────
 function UserDirectory({ mode, onSelect }) {
   const { conversations } = useComm();
+  const recent = [...(Array.isArray(conversations) ? conversations : [])]
+    .sort((a, b) => (b.unreadCount || 0) - (a.unreadCount || 0))
+    .slice(0, 5);
   const [search, setSearch]   = useState("");
   const [users, setUsers]     = useState([]);
   const [loading, setLoading] = useState(false);
@@ -68,11 +114,13 @@ function UserDirectory({ mode, onSelect }) {
         <span className="text-xs font-semibold text-gray-500">{modeLabel}</span>
       </div>
 
-      {/* Recent conversations (chat mode only) */}
-      {mode === "chat" && conversations.length > 0 && (
+      {mode === "ping" && <ReceivedPings />}
+
+      {/* Recent conversations (chat mode only) — unread first */}
+      {mode === "chat" && recent.length > 0 && (
         <div className="px-3 pt-2 pb-1 border-b border-gray-100">
           <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide mb-1">Recent</p>
-          {conversations.slice(0, 3).map(c => (
+          {recent.map(c => (
             <button
               key={c.conversationId}
               onClick={() => onSelect({ convId: c.conversationId, name: c.name })}
@@ -169,7 +217,7 @@ function UserDirectory({ mode, onSelect }) {
 
 // ── Chat window ──────────────────────────────────────────────────────────────
 function ChatWindow({ convId: initialConvId, userId, userName, onBack }) {
-  const { myId } = useComm();
+  const { myId, refresh } = useComm();
   const [convId,   setConvId]   = useState(initialConvId || null);
   const [messages, setMessages] = useState([]);
   const [input,    setInput]    = useState("");
@@ -197,6 +245,8 @@ function ChatWindow({ convId: initialConvId, userId, userName, onBack }) {
           setMessages(msgs);
           setLastId(msgs.length ? msgs[msgs.length - 1].id : null);
         }
+        // Loading history marks it read on the server — update the badge now
+        refresh();
       } catch {}
       if (!cancelled) setLoading(false);
     }
@@ -219,6 +269,7 @@ function ChatWindow({ convId: initialConvId, userId, userName, onBack }) {
             return toAdd.length ? [...prev, ...toAdd] : prev;
           });
           setLastId(newMsgs[newMsgs.length - 1].id);
+          refresh();
         }
         const t = await getTyping(convId);
         setTyping(Array.isArray(t) ? t : []);

@@ -19,6 +19,7 @@ export const sendPing          = (receiverId, pingType, message) => apiRequest({
 export const getReceivedPings  = (unreadOnly = false) => apiRequest({ url: `${C}/pings/received`, params: unreadOnly ? { unreadOnly: "true" } : {} });
 export const getUnreadPingCount = () => apiRequest({ url: `${C}/pings/unread-count` });
 export const markPingRead      = (id) => apiRequest({ url: `${C}/pings/${id}/read`, method: "POST" });
+export const markAllPingsRead  = ()   => apiRequest({ url: `${C}/pings/read-all`, method: "POST" });
 
 // ─── Notifications ─────────────────────────────────────────────────────────
 export const getUnreadNotifications = () => apiRequest({ url: `${C}/notifications`, params: { unreadOnly: "true" } });

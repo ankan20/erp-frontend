@@ -94,10 +94,14 @@ export function CommProvider({ children }) {
     setActiveCall(null);
   };
 
+  const unreadMessageCount = (Array.isArray(conversations) ? conversations : [])
+    .reduce((sum, c) => sum + (c.unreadCount || 0), 0);
+
   return (
     <CommContext.Provider value={{
       myId,
       conversations,
+      unreadMessageCount,
       unreadNotifCount,
       unreadPingCount,
       incomingCall,

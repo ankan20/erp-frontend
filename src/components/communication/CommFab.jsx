@@ -6,9 +6,9 @@ import { useComm } from "@/context/CommContext";
 
 export default function CommFab() {
   const [expanded, setExpanded] = useState(false);
-  const { openPicker, pickerMode, closePicker, unreadNotifCount, unreadPingCount } = useComm();
+  const { openPicker, pickerMode, closePicker, unreadMessageCount, unreadPingCount } = useComm();
 
-  const totalBadge = unreadNotifCount + unreadPingCount;
+  const totalBadge = unreadMessageCount + unreadPingCount;
 
   const open = (mode) => {
     if (pickerMode === mode) { closePicker(); }
@@ -30,6 +30,11 @@ export default function CommFab() {
           >
             <MessageCircle size={16} />
             <span>Chat</span>
+            {unreadMessageCount > 0 && (
+              <span className="ml-1 min-w-[18px] h-[18px] px-1 rounded-full bg-red-500 text-white text-[10px] font-bold flex items-center justify-center">
+                {unreadMessageCount > 99 ? "99+" : unreadMessageCount}
+              </span>
+            )}
           </button>
 
           <button
@@ -54,6 +59,11 @@ export default function CommFab() {
           >
             <Zap size={16} />
             <span>Ping</span>
+            {unreadPingCount > 0 && (
+              <span className="ml-1 min-w-[18px] h-[18px] px-1 rounded-full bg-red-500 text-white text-[10px] font-bold flex items-center justify-center">
+                {unreadPingCount > 99 ? "99+" : unreadPingCount}
+              </span>
+            )}
           </button>
         </>
       )}
