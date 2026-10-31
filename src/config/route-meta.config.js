@@ -702,7 +702,7 @@ export const routeMetaConfig = [
   // Journal Voucher
   {
     basePath: "/finance-management/account/journal/vouchering",
-    breadcrumbs: ["Finance Management", "Accounts", "Journal", "Journal Voucher", "List"],
+    breadcrumbs: ["Finance Management", "Accounts", "Journal", "Bulk Docket", "List"],
   },
   {
     basePath: "/finance-management/account/journal/vouchering/new",

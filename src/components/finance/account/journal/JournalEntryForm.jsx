@@ -7,18 +7,18 @@ import { z }                            from "zod";
 import { zodResolver }                  from "@hookform/resolvers/zod";
 import { toast }                        from "sonner";
 import { useRouter }                    from "next/navigation";
-import { Plus, Trash2 }                 from "lucide-react";
+import { Plus, Trash2, X }              from "lucide-react";
 
-import SaveButton       from "@/components/common/SaveButton";
-import SaveDraftButton  from "@/components/common/SaveDraftButton";
-import EditButton       from "@/components/common/EditButton";
+import SaveButton          from "@/components/common/SaveButton";
+import SaveDraftButton     from "@/components/common/SaveDraftButton";
+import EditButton          from "@/components/common/EditButton";
 import DeleteRequestButton from "@/components/common/DeleteRequestButton";
-import SearchableSelect from "@/components/common/SearchableSelect";
-import AmountInput      from "@/components/common/AmountInput";
-import PMSection        from "@/components/project-management/common/PMSection";
-import PMFormRow        from "@/components/project-management/common/PMFormRow";
-import PMTextarea       from "@/components/project-management/common/PMTextarea";
-import PMDateInput      from "@/components/project-management/common/PMDateInput";
+import SearchableSelect    from "@/components/common/SearchableSelect";
+import AmountInput         from "@/components/common/AmountInput";
+import PMSection           from "@/components/project-management/common/PMSection";
+import PMFormRow           from "@/components/project-management/common/PMFormRow";
+import PMTextarea          from "@/components/project-management/common/PMTextarea";
+import PMDateInput         from "@/components/project-management/common/PMDateInput";
 
 import { apiRequest }      from "@/lib/apiClient";
 import { API_ENDPOINTS }   from "@/config/api.config";
@@ -26,6 +26,14 @@ import { getLocalStorage } from "@/lib/localStorage";
 import { formatAmount }    from "@/helper/numberFormatter";
 import { useColumnResize } from "@/hooks/useColumnResize";
 import { zodDate }         from "@/lib/dateUtils";
+
+// ─── Constants ────────────────────────────────────────────────────────────────
+
+const MODES = [
+  { value: "new_voucher", label: "New Voucher",  prefix: "JV" },
+  { value: "bulk_docket", label: "Bulk Docket",  prefix: "BD" },
+  { value: "adjustment",  label: "Adjustment",   prefix: "JE" },
+];
 
 // ─── Schema ───────────────────────────────────────────────────────────────────
 
@@ -58,27 +66,38 @@ export default function JournalEntryForm({ mode = "create", journalId, onAfterSu
   const isViewMode  = mode === "view" || mode === "approver";
   const projectCode = getLocalStorage("projectInfo")?.projectCode || "";
 
-  const [isEditing,    setIsEditing]    = useState(mode === "create");
-  const [isSubmitted,  setIsSubmitted]  = useState(false);
-  const [allowSubmit,  setAllowSubmit]  = useState(mode === "edit");
-  const [erpVoucherNo, setErpVoucherNo] = useState("");
-  const [ccCodeList,   setCcCodeList]   = useState([]);
-  const [vendorList,   setVendorList]   = useState([]);
+  const [isEditing,       setIsEditing]       = useState(mode === "create");
+  const [isSubmitted,     setIsSubmitted]     = useState(false);
+  const [allowSubmit,     setAllowSubmit]     = useState(mode === "edit");
+  const [erpVoucherNo,    setErpVoucherNo]    = useState("");
+  const [workflowStatus,  setWorkflowStatus]  = useState("");
+  const [entryMode,       setEntryMode]       = useState("new_voucher");
+  const [ccCodeList,      setCcCodeList]      = useState([]);
+  const [vendorList,      setVendorList]      = useState([]);
+
+  // Bulk docket state
+  const [docketList,         setDocketList]         = useState([]);  // all approved dockets
+  const [selectedDocketIds,  setSelectedDocketIds]  = useState([]);  // selected docket ids
+  const [docketSearch,       setDocketSearch]       = useState("");
 
   const {
     register, control, handleSubmit, reset, watch, setValue,
     formState: { isSubmitting },
   } = useForm({ resolver: zodResolver(schema), defaultValues: DEFAULT_VALUES });
-const { fields: drFields, append: appendDr, remove: removeDr } = useFieldArray({ control, name: "drLines" });
+
+  const { fields: drFields, append: appendDr, remove: removeDr, replace: replaceDr } = useFieldArray({ control, name: "drLines" });
   const { tableRef } = useColumnResize();
 
   const watchedDrLines = watch("drLines") || [];
   const watchedCrLine  = watch("crLine")  || {};
   const disabled       = isViewMode || !isEditing || isSubmitting || isSubmitted;
+  const isBulkDocket   = entryMode === "bulk_docket";
+  const drDisabled     = disabled || (isBulkDocket && isEditing && !isSubmitted);
 
   const totalDebit  = watchedDrLines.reduce((s, l) => s + Number(l.debitAmount || 0), 0);
   const totalCredit = totalDebit;
 
+  // Load CC codes and vendors
   useEffect(() => {
     if (!projectCode) return;
     apiRequest({ url: `${API_ENDPOINTS.MASTER.GET_ALL_CC_CODE}?projectCode=${projectCode}`, method: "GET" })
@@ -89,6 +108,15 @@ const { fields: drFields, append: appendDr, remove: removeDr } = useFieldArray({
       .catch(() => {});
   }, [projectCode]);
 
+  // Load approved dockets when mode = bulk_docket
+  useEffect(() => {
+    if (!projectCode || entryMode !== "bulk_docket") return;
+    apiRequest({ url: `${API_ENDPOINTS.FINANCE.JOURNAL_ENTRY.APPROVED_DOCKETS}?projectCode=${projectCode}`, method: "GET" })
+      .then((res) => setDocketList(res.data?.list || []))
+      .catch(() => {});
+  }, [projectCode, entryMode]);
+
+  // Load existing entry
   useEffect(() => {
     if (!journalId || mode === "create") return;
     apiRequest({ url: `${API_ENDPOINTS.FINANCE.JOURNAL_ENTRY.GET_BY_ID}${journalId}`, method: "GET" })
@@ -104,10 +132,48 @@ const { fields: drFields, append: appendDr, remove: removeDr } = useFieldArray({
         const locked = d.workflowStatus && !["Draft", "Reback"].includes(d.workflowStatus);
         setIsSubmitted(locked);
         setAllowSubmit(!locked);
+        setWorkflowStatus(d.workflowStatus || "");
+        setEntryMode(d.entryMode || "new_voucher");
         if (d.journalUuid && onUuid) onUuid(d.journalUuid);
       })
       .catch(() => toast.error("Failed to load journal entry"));
   }, [journalId, mode]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // When docket selection changes → rebuild DR lines from selected dockets
+  useEffect(() => {
+    if (entryMode !== "bulk_docket" || !isEditing) return;
+    if (selectedDocketIds.length === 0) {
+      replaceDr([{ ...BLANK_DR }]);
+      return;
+    }
+    const newLines = [];
+    for (const did of selectedDocketIds) {
+      const docket = docketList.find((d) => d.id === did);
+      if (!docket) continue;
+      for (const line of docket.lines) {
+        // Find the CC code id from our ccCodeList
+        const cc = ccCodeList.find((c) => c.ccCode === line.ccCode);
+        newLines.push({
+          type:        "CC",
+          accountId:   cc?.ccId ?? null,
+          debitAmount: line.amount,
+        });
+      }
+    }
+    replaceDr(newLines.length ? newLines : [{ ...BLANK_DR }]);
+  }, [selectedDocketIds, docketList, ccCodeList, entryMode]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const toggleDocket = (id) => {
+    setSelectedDocketIds((prev) =>
+      prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]
+    );
+  };
+
+  const filteredDockets = docketList.filter((d) =>
+    !docketSearch ||
+    d.voucherNo.toLowerCase().includes(docketSearch.toLowerCase()) ||
+    (d.voucherDate || "").includes(docketSearch)
+  );
 
   const onSave = async (v) => {
     for (let i = 0; i < v.drLines.length; i++) {
@@ -119,7 +185,10 @@ const { fields: drFields, append: appendDr, remove: removeDr } = useFieldArray({
     const url    = mode === "create" ? API_ENDPOINTS.FINANCE.JOURNAL_ENTRY.CREATE : `${API_ENDPOINTS.FINANCE.JOURNAL_ENTRY.EDIT}${journalId}`;
     const method = mode === "create" ? "POST" : "PUT";
     const payload = {
-      projectCode, entryDate: v.entryDate || "", remarks: v.remarks || "",
+      projectCode,
+      entryMode,
+      entryDate: v.entryDate || "",
+      remarks:   v.remarks || "",
       lines: [
         ...v.drLines.map((l, i) => ({ slNo: i + 1, drCr: "Dr", ccId: l.type === "CC" ? Number(l.accountId) : null, vendorId: l.type === "Vendor" ? Number(l.accountId) : null, debitAmount: Number(l.debitAmount || 0), creditAmount: 0 })),
         { slNo: v.drLines.length + 1, drCr: "Cr", ccId: v.crLine.type === "CC" ? Number(v.crLine.accountId) : null, vendorId: v.crLine.type === "Vendor" ? Number(v.crLine.accountId) : null, debitAmount: 0, creditAmount: drTotal },
@@ -150,14 +219,14 @@ const { fields: drFields, append: appendDr, remove: removeDr } = useFieldArray({
   const readonlyAmt = "h-[30px] flex items-center justify-end px-2 text-[12.5px] tabular-nums text-gray-600";
   const typeSel     = `h-[30px] w-full text-[12px] px-1.5 border-0 outline-none bg-transparent ${!disabled ? "focus:bg-white focus:ring-1 focus:ring-blue-300 rounded cursor-pointer" : "text-gray-600"}`;
 
-  const AccountSelect = ({ name, lineType }) => {
+  const AccountSelect = ({ name, lineType, isDisabled }) => {
     const opts  = lineType === "Vendor" ? vendorList  : ccCodeList;
     const vKey  = lineType === "Vendor" ? "ledgerId"  : "ccId";
     const sKeys = lineType === "Vendor" ? ["displayLabel","ledgerCode","ledgerName"] : ["displayLabel","ccCode","ccName"];
     return (
       <Controller name={name} control={control} render={({ field: f }) => (
         <SearchableSelect
-          options={opts} value={f.value ? String(f.value) : ""} disabled={disabled}
+          options={opts} value={f.value ? String(f.value) : ""} disabled={isDisabled ?? disabled}
           onChange={(v) => f.onChange(v ? Number(v) : null)}
           placeholder={lineType === "Vendor" ? "Select vendor…" : "Select CC code…"}
           labelKey="displayLabel" valueKey={vKey} searchKeys={sKeys} compact
@@ -166,35 +235,147 @@ const { fields: drFields, append: appendDr, remove: removeDr } = useFieldArray({
     );
   };
 
+  const modeLabel = MODES.find((m) => m.value === entryMode)?.label || "New Voucher";
+
   return (
     <div className="max-w-[1200px] mx-auto p-4 space-y-3">
 
       {/* ── 1. ENTRY DETAILS ─────────────────────────────────────────────── */}
       <PMSection title="Entry Details:">
-        <div className="flex flex-wrap gap-x-8 gap-y-1 pb-1">
-          <PMFormRow label="ERP Doc. No" labelWidth="sm:w-[150px] sm:min-w-[150px]">
-            <input
-              value={erpVoucherNo || "[Auto]"} disabled readOnly
-              className="w-full h-[30px] text-[13px] rounded-sm border border-[#7fa37f] bg-[#edf8ed] text-gray-500 px-2 outline-none max-w-[200px]"
-            />
-          </PMFormRow>
-          <PMFormRow label="Entry Date" labelWidth="sm:w-[130px] sm:min-w-[130px]">
+        <div className="flex flex-col gap-y-2 pb-1">
+
+          {/* ERP Doc No + Mode on same row for larger screens */}
+          <div className="flex flex-col sm:flex-row sm:items-center sm:gap-8 gap-y-2">
+            <PMFormRow label="ERP Doc. No" labelWidth="sm:w-[150px] sm:min-w-[150px]">
+              <input
+                value={erpVoucherNo || "[Auto]"} disabled readOnly
+                className="w-full h-[30px] text-[13px] rounded-sm border border-[#7fa37f] bg-[#edf8ed] text-gray-500 px-2 outline-none max-w-[200px]"
+              />
+            </PMFormRow>
+
+            {/* Mode — radio on create, label on view/edit */}
+            <div className="flex items-center gap-2">
+              <span className="text-[12.5px] font-semibold text-gray-600 whitespace-nowrap">Mode :</span>
+              {mode === "create" ? (
+                <div className="flex items-center gap-4">
+                  {MODES.map((m) => (
+                    <label key={m.value} className="flex items-center gap-1.5 cursor-pointer">
+                      <input
+                        type="radio"
+                        name="entryMode"
+                        value={m.value}
+                        checked={entryMode === m.value}
+                        onChange={() => {
+                          setEntryMode(m.value);
+                          setSelectedDocketIds([]);
+                          replaceDr([{ ...BLANK_DR }]);
+                        }}
+                        className="accent-[#25507a]"
+                      />
+                      <span className="text-[12.5px] text-gray-700">{m.label}</span>
+                      <span className="text-[11px] text-gray-400">({m.prefix}…)</span>
+                    </label>
+                  ))}
+                </div>
+              ) : (
+                <span className="text-[12.5px] text-gray-700 font-medium">{modeLabel}</span>
+              )}
+            </div>
+          </div>
+
+          {/* Entry Date */}
+          <PMFormRow label="Entry Date" labelWidth="sm:w-[150px] sm:min-w-[150px]">
             <Controller name="entryDate" control={control} render={({ field }) => (
               <PMDateInput {...field} disabled={disabled} className="max-w-[200px]" />
             )} />
           </PMFormRow>
-          {mode !== "create" && (
-            <PMFormRow label="Status" labelWidth="sm:w-[100px] sm:min-w-[100px]">
-              {isSubmitted
-                ? <span className="px-2 py-0.5 rounded text-[11px] font-semibold bg-green-50 text-green-700 border border-green-200">Submitted</span>
-                : <span className="px-2 py-0.5 rounded text-[11px] font-semibold bg-amber-50 text-amber-700 border border-amber-200">Draft</span>
-              }
+
+          {/* Status */}
+          {mode !== "create" && workflowStatus && (
+            <PMFormRow label="Status" labelWidth="sm:w-[150px] sm:min-w-[150px]">
+              <span className={`px-2 py-0.5 rounded text-[11px] font-semibold border ${
+                workflowStatus === "Approved"  ? "bg-green-50 text-green-700 border-green-200" :
+                workflowStatus === "Submitted" ? "bg-blue-50 text-blue-700 border-blue-200"   :
+                workflowStatus === "Reback"    ? "bg-red-50 text-red-700 border-red-200"      :
+                                                 "bg-amber-50 text-amber-700 border-amber-200"
+              }`}>{workflowStatus}</span>
             </PMFormRow>
           )}
         </div>
       </PMSection>
 
-      {/* ── 2. JOURNAL LINES ─────────────────────────────────────────────── */}
+      {/* ── 2. BULK DOCKET SELECTOR (only in bulk_docket mode + editing) ─── */}
+      {isBulkDocket && !disabled && (
+        <PMSection title="Select Docket Vouchers:">
+          <div className="space-y-2 pb-2">
+            <input
+              type="text"
+              placeholder="Search by voucher no or date…"
+              value={docketSearch}
+              onChange={(e) => setDocketSearch(e.target.value)}
+              className="w-full max-w-[360px] h-[30px] text-[12.5px] border border-gray-300 rounded px-2 outline-none focus:ring-1 focus:ring-blue-300"
+            />
+
+            {/* Selected chips */}
+            {selectedDocketIds.length > 0 && (
+              <div className="flex flex-wrap gap-1.5">
+                {selectedDocketIds.map((id) => {
+                  const d = docketList.find((x) => x.id === id);
+                  return (
+                    <span key={id} className="flex items-center gap-1 bg-[#25507a] text-white text-[11px] px-2 py-0.5 rounded-full">
+                      {d?.voucherNo || id}
+                      <button type="button" onClick={() => toggleDocket(id)} className="hover:text-red-200">
+                        <X size={11} />
+                      </button>
+                    </span>
+                  );
+                })}
+              </div>
+            )}
+
+            {/* Docket list */}
+            <div className="border border-gray-200 rounded max-h-[220px] overflow-y-auto">
+              {filteredDockets.length === 0 ? (
+                <p className="text-[12px] text-gray-400 px-3 py-3">No approved dockets found.</p>
+              ) : (
+                <table className="w-full text-[12px]">
+                  <thead className="bg-[#dce8f5] sticky top-0">
+                    <tr>
+                      <th className="w-8 px-2 py-1.5" />
+                      <th className="px-3 py-1.5 text-left text-[10px] font-semibold text-[#2d5a8a] uppercase">Voucher No</th>
+                      <th className="px-3 py-1.5 text-left text-[10px] font-semibold text-[#2d5a8a] uppercase">Date</th>
+                      <th className="px-3 py-1.5 text-right text-[10px] font-semibold text-[#2d5a8a] uppercase">Total</th>
+                      <th className="px-3 py-1.5 text-left text-[10px] font-semibold text-[#2d5a8a] uppercase">Lines</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-100">
+                    {filteredDockets.map((d) => {
+                      const checked = selectedDocketIds.includes(d.id);
+                      return (
+                        <tr
+                          key={d.id}
+                          onClick={() => toggleDocket(d.id)}
+                          className={`cursor-pointer transition-colors ${checked ? "bg-blue-50" : "hover:bg-gray-50"}`}
+                        >
+                          <td className="px-2 py-1.5 text-center">
+                            <input type="checkbox" readOnly checked={checked} className="accent-[#25507a]" />
+                          </td>
+                          <td className="px-3 py-1.5 font-medium text-[#25507a]">{d.voucherNo}</td>
+                          <td className="px-3 py-1.5 text-gray-600">{d.voucherDate || "-"}</td>
+                          <td className="px-3 py-1.5 text-right tabular-nums">{formatAmount(d.totalAmount)}</td>
+                          <td className="px-3 py-1.5 text-gray-500">{d.lines.map((l) => `${l.ccCode} ${formatAmount(l.amount)}`).join(", ")}</td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              )}
+            </div>
+          </div>
+        </PMSection>
+      )}
+
+      {/* ── 3. JOURNAL LINES ─────────────────────────────────────────────── */}
       <PMSection title="Journal Lines:">
       <div className="overflow-hidden">
         <div className="overflow-x-auto">
@@ -209,7 +390,7 @@ const { fields: drFields, append: appendDr, remove: removeDr } = useFieldArray({
                 <th className="px-3 py-2 text-left text-[10px] font-semibold text-[#2d5a8a] uppercase tracking-wider border-r border-[#b8d0e8]">Particulars</th>
                 <th className="w-[140px] px-3 py-2 text-right text-[10px] font-semibold text-[#2d5a8a] uppercase tracking-wider border-r border-[#b8d0e8]">Debit</th>
                 <th className="w-[140px] px-3 py-2 text-right text-[10px] font-semibold text-[#2d5a8a] uppercase tracking-wider border-r border-[#b8d0e8]">Credit</th>
-                {!disabled && (
+                {!disabled && !isBulkDocket && (
                   <th className="w-[80px] px-2 py-2 text-right">
                     <button
                       type="button"
@@ -220,7 +401,7 @@ const { fields: drFields, append: appendDr, remove: removeDr } = useFieldArray({
                     </button>
                   </th>
                 )}
-                {disabled && <th className="w-[36px]" />}
+                {(disabled || isBulkDocket) && <th className="w-[36px]" />}
               </tr>
             </thead>
 
@@ -228,7 +409,8 @@ const { fields: drFields, append: appendDr, remove: removeDr } = useFieldArray({
 
               {/* ── DR ROWS ───────────────────────────────────────────── */}
               {drFields.map((field, idx) => {
-                const line = watchedDrLines[idx] || {};
+                const line       = watchedDrLines[idx] || {};
+                const rowDisabled = drDisabled;
                 return (
                   <tr key={field.id} className="group bg-white hover:bg-blue-50/30 transition-colors border-b border-gray-100">
                     <td className="px-3 py-1 text-center text-[11px] text-gray-400">{idx + 1}</td>
@@ -237,7 +419,7 @@ const { fields: drFields, append: appendDr, remove: removeDr } = useFieldArray({
                     </td>
                     <td className="py-1 pr-1">
                       <Controller name={`drLines.${idx}.type`} control={control} render={({ field: f }) => (
-                        <select value={f.value} disabled={disabled}
+                        <select value={f.value} disabled={rowDisabled}
                           onChange={(e) => { f.onChange(e.target.value); setValue(`drLines.${idx}.accountId`, null); }}
                           className={typeSel}
                         >
@@ -247,19 +429,19 @@ const { fields: drFields, append: appendDr, remove: removeDr } = useFieldArray({
                       )} />
                     </td>
                     <td className="py-1 pr-1">
-                      <AccountSelect name={`drLines.${idx}.accountId`} lineType={line.type} />
+                      <AccountSelect name={`drLines.${idx}.accountId`} lineType={line.type} isDisabled={rowDisabled} />
                     </td>
                     <td className="py-1 pr-1">
                       <AmountInput {...register(`drLines.${idx}.debitAmount`)} value={line.debitAmount}
-                        disabled={disabled} placeholder="0.00"
-                        className={`${amountBase} font-semibold text-red-600 ${!disabled ? "hover:bg-red-50/60" : ""}`}
+                        disabled={rowDisabled} placeholder="0.00"
+                        className={`${amountBase} font-semibold text-red-600 ${!rowDisabled ? "hover:bg-red-50/60" : ""}`}
                       />
                     </td>
                     <td className="py-1 pr-1">
                       <div className={`${readonlyAmt} text-gray-300`}>—</div>
                     </td>
                     <td className="px-1 text-center">
-                      {!disabled && drFields.length > 1 && (
+                      {!rowDisabled && !isBulkDocket && drFields.length > 1 && (
                         <button type="button" onClick={() => removeDr(idx)}
                           className="opacity-0 group-hover:opacity-100 p-1 rounded text-gray-300 hover:text-red-500 hover:bg-red-50 transition"
                         >
@@ -322,7 +504,7 @@ const { fields: drFields, append: appendDr, remove: removeDr } = useFieldArray({
       </div>
       </PMSection>
 
-      {/* ── 3. NARRATION ─────────────────────────────────────────────────── */}
+      {/* ── 4. NARRATION ─────────────────────────────────────────────────── */}
       <PMSection title="Narration:">
         <Controller name="remarks" control={control} render={({ field }) => (
           <PMTextarea
@@ -334,7 +516,7 @@ const { fields: drFields, append: appendDr, remove: removeDr } = useFieldArray({
         )} />
       </PMSection>
 
-      {/* ── 4. ACTIONS ────────────────────────────────────────────────────── */}
+      {/* ── 5. ACTIONS ────────────────────────────────────────────────────── */}
       {!isViewMode && (
         <div className="flex items-center justify-end gap-2 pt-1 border-t border-gray-100">
           {mode !== "create" && !isSubmitted && (
@@ -343,14 +525,14 @@ const { fields: drFields, append: appendDr, remove: removeDr } = useFieldArray({
             </EditButton>
           )}
 
-
           {mode === "edit" && !isEditing && (
             <DeleteRequestButton
               moduleCode="JOURNAL_ENTRY"
               recordId={Number(journalId)}
               onDeleted={() => router.back()}
             />
-          )}          {isEditing && (
+          )}
+          {isEditing && (
             <SaveDraftButton onClick={() => handleSubmit(onSave)()} loading={isSubmitting} disabled={isSubmitting} />
           )}
           <SaveButton

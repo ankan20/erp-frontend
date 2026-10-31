@@ -68,7 +68,7 @@ async function downloadListPDF(list, projectCode) {
   let y = 14;
 
   doc.setFontSize(13); doc.setFont("helvetica", "bold");
-  doc.text("Journal Voucher List", pageW / 2, y, { align: "center" });
+  doc.text("Bulk Docket List", pageW / 2, y, { align: "center" });
   y += 6;
   doc.setFontSize(8); doc.setFont("helvetica", "italic");
   doc.text(`Project: ${projectCode}   |   Generated: ${new Date().toLocaleString("en-IN")}`, pageW / 2, y, { align: "center" });
@@ -94,7 +94,7 @@ async function downloadListPDF(list, projectCode) {
     margin: { left: 10, right: 10 },
   });
 
-  doc.save(`JournalVoucher_List_${new Date().toISOString().slice(0, 10)}.pdf`);
+  doc.save(`BulkDocket_List_${new Date().toISOString().slice(0, 10)}.pdf`);
 }
 
 // ─── Main page ────────────────────────────────────────────────────────────────
@@ -129,7 +129,7 @@ export default function Page() {
       setList(res.data?.list || []);
       setPagination(res.data?.pagination || null);
     } catch {
-      toast.error("Failed to fetch Journal Voucher list");
+      toast.error("Failed to fetch Bulk Docket list");
     } finally {
       setLoading(false);
     }

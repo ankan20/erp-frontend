@@ -789,7 +789,7 @@ export default function JournalVoucherForm({ mode = "create", voucherId, onUuid,
             loading={false}
             disabled={!allowSubmit || isEditing || isSubmitted || mode === "create"}
             requireConfirmation
-            confirmationTitle="Submit Journal Voucher?"
+            confirmationTitle="Submit Bulk Docket?"
             confirmationMessage="Once submitted, this journal voucher will be sent for approval."
           >
             Submit

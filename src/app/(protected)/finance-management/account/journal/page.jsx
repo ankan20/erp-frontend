@@ -37,11 +37,13 @@ export default function Page() {
       method: "GET",
     })
       .then((res) => {
+        const modeLabel = { new_voucher: "New Voucher", bulk_docket: "Bulk Docket", adjustment: "Adjustment" };
         const rows = (res.data?.list || []).map((r, i) => ({
           sl:             i + 1,
           _id:            r.id,
           voucherNo:      r.voucherNo      || "",
           date:           getfmtDisplaydate(r.entryDate) || "",
+          mode:           modeLabel[r.entryMode] || r.entryMode || "New Voucher",
           crName:         r.crName || "-",
           amount:         formatAmount(r.totalCredit  || 0),
           workflowStatus: r.workflowStatus || "",
@@ -59,7 +61,7 @@ export default function Page() {
     if (search) {
       const q = search.toLowerCase();
       filtered = filtered.filter((item) =>
-        ["voucherNo", "workflowStatus", "crName"].some(
+        ["voucherNo", "workflowStatus", "crName", "mode"].some(
           (k) => String(item[k]).toLowerCase().includes(q),
         ),
       );
@@ -81,7 +83,8 @@ export default function Page() {
     { header: "Sl. no",     accessor: "sl",             width: "60px"  },
     { header: "Voucher No", accessor: "voucherNo",      width: "130px" },
     { header: "Date",       accessor: "date",           width: "110px" },
-    { header: "Name",       accessor: "crName",         width: "220px" },
+    { header: "Mode",       accessor: "mode",           width: "120px" },
+    { header: "Name",       accessor: "crName",         width: "200px" },
     { header: "Amount",     accessor: "amount",         width: "120px", align: "right" },
     { header: "Status",     accessor: "workflowStatus", width: "120px" },
   ];

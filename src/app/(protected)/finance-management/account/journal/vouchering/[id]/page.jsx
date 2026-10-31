@@ -47,7 +47,7 @@ export default function Page() {
       header={<PageHeader actions={actions} />}
       pendingApproval={
         isPendingForMe
-          ? `Your approval is required at Level ${myLevel} for this Journal Voucher.`
+          ? `Your approval is required at Level ${myLevel} for this Bulk Docket.`
           : null
       }
       onDismissApproval={isPendingForMe ? dismiss : undefined}
@@ -76,7 +76,7 @@ export default function Page() {
       <HistoryTimelineSheet
         open={openTimeline}
         onClose={() => setOpenTimeline(false)}
-        title="Journal Voucher History"
+        title="Bulk Docket History"
         api={API_ENDPOINTS.FINANCE.JOURNAL_VOUCHERING.HISTORY}
         entityId={id}
       />
