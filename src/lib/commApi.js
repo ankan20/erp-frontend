@@ -32,6 +32,7 @@ export const answerCall      = (id) => apiRequest({ url: `${C}/calls/${id}/answe
 export const endCall         = (id) => apiRequest({ url: `${C}/calls/${id}/end`, method: "POST" });
 export const sendSignal      = (callId, receiverId, signalType, payload) => apiRequest({ url: `${C}/calls/${callId}/signal`, method: "POST", data: { receiverId, signalType, payload } });
 export const pollSignals     = (callId) => apiRequest({ url: `${C}/calls/${callId}/signals` });
+export const getTurnCredentials = () => apiRequest({ url: `${C}/turn-credentials` });
 export const getIncomingCalls = () => apiRequest({ url: `${C}/calls/incoming` });
 
 // ─── Directory ─────────────────────────────────────────────────────────────

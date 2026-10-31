@@ -6,7 +6,7 @@ import {
   Video, VideoOff, Minimize2, Maximize2, AlertTriangle,
 } from "lucide-react";
 import { useComm } from "@/context/CommContext";
-import { answerCall, endCall, sendSignal, pollSignals } from "@/lib/commApi";
+import { answerCall, endCall, sendSignal, pollSignals, getTurnCredentials } from "@/lib/commApi";
 import { apiRequest } from "@/lib/apiClient";
 import { getCookie } from "@/lib/cookies";
 import { getLocalStorage } from "@/lib/localStorage";
@@ -89,6 +89,7 @@ function useWebRTC({ call, isInitiator, onConnected, onEnded }) {
   const [localStream,  setLocalStream]  = useState(null);
   const [remoteStream, setRemoteStream] = useState(null);
   const [mediaError,   setMediaError]   = useState(null);
+  const [stage,        setStage]        = useState(isInitiator ? "Starting…" : "Waiting for caller's offer…");
   const streamRef = useRef(null);
   const pcRef     = useRef(null);
   const isVideo   = call.callType === "video";
@@ -109,8 +110,18 @@ function useWebRTC({ call, isInitiator, onConnected, onEnded }) {
       streamRef.current = stream;
       setLocalStream(stream);
 
-      const pc = new RTCPeerConnection({ iceServers: ICE_SERVERS });
+      let turn = [];
+      try {
+        const r = await getTurnCredentials();
+        if (Array.isArray(r?.iceServers)) turn = r.iceServers;
+      } catch {}
+      if (cancelled) { stream?.getTracks().forEach(t => t.stop()); return; }
+
+      const pc = new RTCPeerConnection({ iceServers: [...ICE_SERVERS, ...turn] });
       pcRef.current = pc;
+      pc.oniceconnectionstatechange = () => {
+        if (!cancelled) setStage(`Network: ${pc.iceConnectionState}${turn.length ? "" : " (no TURN)"}`);
+      };
 
       if (stream) {
         stream.getTracks().forEach(t => pc.addTrack(t, stream));
@@ -135,9 +146,11 @@ function useWebRTC({ call, isInitiator, onConnected, onEnded }) {
         await pc.setLocalDescription(await pc.createOffer());
         await waitIce(pc);
         if (cancelled) return;
+        let sent = 0;
         for (const uid of others) {
-          await sendSignal(callId, uid, "offer", { sdp: pc.localDescription }).catch(() => {});
+          try { await sendSignal(callId, uid, "offer", { sdp: pc.localDescription }); sent++; } catch {}
         }
+        setStage(sent ? "Offer sent — waiting for answer…" : "Could not send offer to server");
       }
 
       pollTimer = setInterval(async () => {
@@ -152,17 +165,27 @@ function useWebRTC({ call, isInitiator, onConnected, onEnded }) {
           const offer = [...sigs].reverse().find(s => s.signalType === "offer");
           if (offer && pc.signalingState === "stable") {
             try {
+              setStage("Offer received — answering…");
               await pc.setRemoteDescription(offer.payload.sdp);
               await pc.setLocalDescription(await pc.createAnswer());
               await waitIce(pc);
               await sendSignal(callId, offer.senderId, "answer", { sdp: pc.localDescription });
-            } catch (e) { console.error("[call] offer handling failed", e); }
+              setStage("Answer sent — connecting…");
+            } catch (e) {
+              console.error("[call] offer handling failed", e);
+              setStage(`Answer failed: ${e?.message || e}`);
+            }
           }
         } else {
           const answer = [...sigs].reverse().find(s => s.signalType === "answer");
           if (answer && pc.signalingState === "have-local-offer") {
-            try { await pc.setRemoteDescription(answer.payload.sdp); }
-            catch (e) { console.error("[call] answer handling failed", e); }
+            try {
+              await pc.setRemoteDescription(answer.payload.sdp);
+              setStage("Answer received — connecting…");
+            } catch (e) {
+              console.error("[call] answer handling failed", e);
+              setStage(`Answer apply failed: ${e?.message || e}`);
+            }
           }
         }
       }, 1200);
@@ -188,7 +211,7 @@ function useWebRTC({ call, isInitiator, onConnected, onEnded }) {
     return enabled;
   };
 
-  return { localStream, remoteStream, mediaError, toggleTrack };
+  return { localStream, remoteStream, mediaError, stage, toggleTrack };
 }
 
 // Attaches a MediaStream to a <video>/<audio> element whenever either changes
@@ -283,7 +306,7 @@ function ActiveCallWindow({ call }) {
 
   const onEnded = useCallback((notifyServer) => finish(notifyServer), [finish]);
 
-  const { localStream, remoteStream, mediaError, toggleTrack } =
+  const { localStream, remoteStream, mediaError, stage, toggleTrack } =
     useWebRTC({ call, isInitiator, onConnected, onEnded });
 
   // Remote audio always plays through a dedicated element (survives minimise and voice calls)
@@ -363,6 +386,7 @@ function ActiveCallWindow({ call }) {
                       {(peerName || "?")[0]?.toUpperCase()}
                     </div>
                     <p className="text-xs text-gray-300 animate-pulse">{isInitiator ? "Ringing…" : "Connecting…"}</p>
+                    <p className="text-[10px] text-gray-500 px-4 text-center">{stage}</p>
                   </div>
                 )}
               </div>
@@ -372,6 +396,7 @@ function ActiveCallWindow({ call }) {
                   {(peerName || "?")[0]?.toUpperCase()}
                 </div>
                 <p className="text-xs text-gray-400">{connected ? fmt(elapsed) : isInitiator ? "Ringing…" : "Connecting…"}</p>
+                {!connected && <p className="text-[10px] text-gray-500 px-4 text-center">{stage}</p>}
               </div>
             )}
 
