@@ -641,6 +641,16 @@ export default function ChatFloat() {
     }
   }, [activeChatConvId]);
 
+  // Clicking outside the panel (and outside the FAB) closes it
+  useEffect(() => {
+    if (!pickerMode) return;
+    const onDown = (e) => {
+      if (!e.target.closest?.("[data-comm-ui]")) closePicker();
+    };
+    document.addEventListener("pointerdown", onDown, true);
+    return () => document.removeEventListener("pointerdown", onDown, true);
+  }, [pickerMode, closePicker]);
+
   if (!pickerMode) return null;
 
   const headerColor =
@@ -668,8 +678,8 @@ export default function ChatFloat() {
   };
 
   return (
-    <div
-      className="fixed bottom-20 left-5 w-[320px] h-[480px] bg-white rounded-2xl shadow-2xl
+    <div data-comm-ui
+      className="fixed bottom-[60px] left-[7px] w-[320px] h-[480px] max-h-[calc(100vh-80px)] bg-white rounded-2xl shadow-2xl
         border border-gray-200 flex flex-col overflow-hidden z-[9991]"
       style={{ boxShadow: "0 8px 40px rgba(0,0,0,0.18)" }}
     >
