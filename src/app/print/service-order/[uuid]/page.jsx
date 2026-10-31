@@ -449,10 +449,9 @@ export default function ServiceOrderPrintPage() {
                     <div className="overflow-x-auto">
                       <table className="w-full border-collapse" style={{ tableLayout: "auto" }}>
                         <colgroup>
-                          <col style={{ width: "4%" }}  /><col style={{ width: "26%" }} /><col style={{ width: "8%" }} />
-                          <col style={{ width: "8%" }}  /><col style={{ width: "6%" }}  /><col style={{ width: "11%" }} />
-                          <col style={{ width: "11%" }} /><col style={{ width: "6%" }}  /><col style={{ width: "11%" }} />
-                          <col style={{ width: "9%" }} />
+                          <col style={{ width: "4%" }}  /><col style={{ width: "36%" }} /><col style={{ width: "9%" }} />
+                          <col style={{ width: "7%" }}  /><col style={{ width: "11%" }}  /><col style={{ width: "15%" }} />
+                          <col style={{ width: "18%" }} />
                         </colgroup>
                         <thead>
                           <tr className={COLOR.tableHeadBg}>
@@ -463,10 +462,7 @@ export default function ServiceOrderPrintPage() {
                               { label: "Unit"            },
                               { label: "Order\nQty"      },
                               { label: "Unit Rate\n(INR)"},
-                              { label: "Basic\nAmount"   },
-                              { label: "GST\n%"          },
-                              { label: "GST\nAmount"     },
-                              { label: "Total\nAmount"   },
+                              { label: "Amount"          },
                             ].map(({ label }) => (
                               <th key={label} style={{ whiteSpace: "pre-line" }}
                                 className={`border ${COLOR.tableBorder} px-1 py-1.5 ${SIZE.tableHead} ${WEIGHT.bold} text-gray-900 text-center`}>
@@ -476,7 +472,10 @@ export default function ServiceOrderPrintPage() {
                           </tr>
                         </thead>
                         <tbody>
-                          {items.map((item, idx) => (
+                          {items.map((item, idx) => {
+                            const gstPct = Number(item.gstPercent || 0);
+                            const gstAmt = Number(item.gstAmount || 0);
+                            return (
                             <tr key={idx} style={{ breakInside: "avoid" }}>
                               <td className={`border ${COLOR.tableBorder} px-1 py-1.5 ${SIZE.tableCell} text-center`}>{idx + 1}.</td>
                               <td className={`border ${COLOR.tableBorder} px-1 py-1.5`}>
@@ -488,21 +487,25 @@ export default function ServiceOrderPrintPage() {
                               <td className={`border ${COLOR.tableBorder} px-1 py-1.5 ${SIZE.tableCell} text-center`} style={{ whiteSpace: "nowrap" }}>{item.hsnSac || "-"}</td>
                               <td className={`border ${COLOR.tableBorder} px-1 py-1.5 ${SIZE.tableCell} text-center`} style={{ whiteSpace: "nowrap" }}>{item.unit || "-"}</td>
                               <td className={`border ${COLOR.tableBorder} px-1 py-1.5 ${SIZE.tableCell} text-center`} style={{ whiteSpace: "nowrap" }}>{item.qty ?? "-"}</td>
-                              <td className={`border ${COLOR.tableBorder} px-1 py-1.5 ${SIZE.tableCell} text-right`} style={{ whiteSpace: "nowrap" }}><FmtNum value={item.rate} /></td>
-                              <td className={`border ${COLOR.tableBorder} px-1 py-1.5 ${SIZE.tableCell} text-right`} style={{ whiteSpace: "nowrap" }}><FmtNum value={item.basicAmount} /></td>
-                              <td className={`border ${COLOR.tableBorder} px-1 py-1.5 ${SIZE.tableCell} text-center`} style={{ whiteSpace: "nowrap" }}>{item.gstPercent != null && Number(item.gstPercent) !== 0 ? `${item.gstPercent}%` : "-"}</td>
-                              <td className={`border ${COLOR.tableBorder} px-1 py-1.5 ${SIZE.tableCell} text-right`} style={{ whiteSpace: "nowrap" }}>{!item.gstAmount || Number(item.gstAmount) === 0 ? "-" : <FmtNum value={item.gstAmount} />}</td>
-                              <td className={`border ${COLOR.tableBorder} px-1 py-1.5 ${SIZE.tableCell} text-right`} style={{ whiteSpace: "nowrap" }}><FmtNum value={item.lineTotal} /></td>
+                              <td className={`border ${COLOR.tableBorder} px-1 py-1.5 ${SIZE.tableCell} text-center`} style={{ whiteSpace: "nowrap" }}>
+                                <FmtNum value={item.rate} />
+                                {gstPct > 0 && <p className="text-gray-400 mt-0.5 text-center" style={{ fontSize: "11px" }}>GST @{gstPct}%</p>}
+                              </td>
+                              <td className={`border ${COLOR.tableBorder} px-1 py-1.5 ${SIZE.tableCell} text-right`} style={{ whiteSpace: "nowrap" }}>
+                                <FmtNum value={item.basicAmount} />
+                                {gstAmt > 0 && <p className="text-gray-400 mt-0.5 text-right" style={{ fontSize: "11px" }}><FmtNum value={gstAmt} /></p>}
+                              </td>
                             </tr>
-                          ))}
+                            );
+                          })}
 
                           {/* ── TOTAL row ── */}
                           <tr className={COLOR.signatureBg}>
                             <td colSpan={6} className={`border ${COLOR.tableBorder} px-2 py-1.5 ${SIZE.tableCell} ${WEIGHT.bold} text-right`}>TOTAL</td>
-                            <td className={`border ${COLOR.tableBorder} px-1 py-1.5 ${SIZE.tableCell} ${WEIGHT.bold} text-right`}><FmtNum value={fin.basicAmount} /></td>
-                            <td className={`border ${COLOR.tableBorder} px-1 py-1.5`} />
-                            <td className={`border ${COLOR.tableBorder} px-1 py-1.5 ${SIZE.tableCell} ${WEIGHT.bold} text-right`}><FmtNum value={fin.gstAmount} /></td>
-                            <td className={`border ${COLOR.tableBorder} px-1 py-1.5 ${SIZE.tableCell} ${WEIGHT.bold} text-right`}><FmtNum value={fin.totalAmount} /></td>
+                            <td className={`border ${COLOR.tableBorder} px-1 py-1.5 ${SIZE.tableCell} ${WEIGHT.bold} text-right`}>
+                              <FmtNum value={fin.basicAmount} />
+                              {fin.gstAmount > 0 && <p className="text-gray-300 mt-0.5 text-right font-normal" style={{ fontSize: "11px" }}><FmtNum value={fin.gstAmount} /></p>}
+                            </td>
                           </tr>
 
                           {/* ── Summary rows ── */}
@@ -513,8 +516,8 @@ export default function ServiceOrderPrintPage() {
                             ["IGST @",             igstAmt || null],
                           ].map(([label, val]) => (
                             <tr key={label}>
-                              <td colSpan={5} style={{ borderLeft: "1px solid #b0b0b0", borderTop: "none", borderBottom: "none", borderRight: "none", padding: 0 }} />
-                              <td colSpan={4} style={{ borderLeft: "1px solid #b0b0b0", borderTop: "none", borderBottom: "none", borderRight: "none", padding: "2px 6px" }}
+                              <td colSpan={4} style={{ borderLeft: "1px solid #b0b0b0", borderTop: "none", borderBottom: "none", borderRight: "none", padding: 0 }} />
+                              <td colSpan={2} style={{ borderLeft: "1px solid #b0b0b0", borderTop: "none", borderBottom: "none", borderRight: "none", padding: "2px 6px" }}
                                 className={`${SIZE.tableCell} text-left text-gray-700`}>{label}</td>
                               <td style={{ borderLeft: "1px solid #b0b0b0", borderRight: "1px solid #b0b0b0", borderTop: "none", borderBottom: "none", padding: "2px 4px" }}
                                 className={`${SIZE.tableCell} text-right`}>{val != null ? <FmtNum value={val} /> : "-"}</td>
@@ -523,8 +526,8 @@ export default function ServiceOrderPrintPage() {
 
                           {/* ── Total Order Amount ── */}
                           <tr>
-                            <td colSpan={5} style={{ borderLeft: "1px solid #b0b0b0", borderTop: "none", borderBottom: "1px solid #b0b0b0", borderRight: "none", padding: 0 }} />
-                            <td colSpan={4}
+                            <td colSpan={4} style={{ borderLeft: "1px solid #b0b0b0", borderTop: "none", borderBottom: "1px solid #b0b0b0", borderRight: "none", padding: 0 }} />
+                            <td colSpan={2}
                               style={{ border: "1px solid #b0b0b0", padding: "4px 6px", fontWeight: 700, backgroundColor: "#d9d9d9" }}
                               className={`${SIZE.tableCell} text-left`}>Total Order Amount</td>
                             <td style={{ border: "1px solid #b0b0b0", padding: "4px 4px", fontWeight: 700, backgroundColor: "#d9d9d9" }}
@@ -533,7 +536,7 @@ export default function ServiceOrderPrintPage() {
 
                           {/* ── Order Value in words ── */}
                           <tr>
-                            <td colSpan={10} style={{ borderLeft: "1px solid #b0b0b0", borderRight: "1px solid #b0b0b0", borderBottom: "1px solid #b0b0b0", borderTop: "none", padding: "4px 8px" }}
+                            <td colSpan={7} style={{ borderLeft: "1px solid #b0b0b0", borderRight: "1px solid #b0b0b0", borderBottom: "1px solid #b0b0b0", borderTop: "none", padding: "4px 8px" }}
                               className={SIZE.labelText}>
                               <span style={{ fontWeight: 700 }}>Order Value in words:</span>{" "}{toWordsRupees(fin.totalAmount)}
                             </td>
