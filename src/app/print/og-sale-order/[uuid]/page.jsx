@@ -135,7 +135,7 @@ async function downloadDocx(data, qrCanvasRef) {
   const infoCell = (paras, w) =>
     new TableCell({ children: paras, width: { size: w, type: WidthType.DXA }, borders: nilBorders, margins: { top: 40, bottom: 40, left: 60, right: 60 } });
 
-  const leftInfo  = [["Sale Order No", data.erpDocNumber], ["Order Date", fmt.date(data.ogSaleOrderDate)], ["Ref. Order No", data.orderNo]];
+  const leftInfo  = [["ERP Doc No", data.erpDocNumber], ["Order Date", fmt.date(data.ogSaleOrderDate)], ["Ref. Order No", data.orderNo]];
   const rightInfo = [["Order Title", data.orderTitle], ["Order Validity", fmt.date(data.orderValidity)], ["Project Code", data.projectCode]];
 
   const infoTable = new Table({
@@ -430,7 +430,7 @@ export default function OGSaleOrderPrintPage() {
           {/* ── INFO SECTION ───────────────────────────────── */}
           <div className="grid grid-cols-2 px-6 py-3" style={{ gridTemplateColumns: "55% 45%" }}>
             <div>
-              <InfoRow label="Sale Order No"  value={data.erpDocNumber} />
+              <InfoRow label="ERP Doc No"  value={data.erpDocNumber} />
               <InfoRow label="Order Date"     value={fmt.date(data.ogSaleOrderDate)} />
               <InfoRow label="Ref. Order No"  value={data.orderNo} />
               <InfoRow label="Project Code"   value={data.projectCode} />

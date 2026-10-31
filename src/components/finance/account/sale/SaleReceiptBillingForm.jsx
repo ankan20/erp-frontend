@@ -446,7 +446,7 @@ export default function SaleReceiptBillingForm({
                 <PMInput value={srbNo || "[Auto]"} disabled readOnly />
               </PMFormRow>
             )}
-            <PMFormRow label="Sale Order No" required={!disabled} labelWidth="sm:w-[150px] sm:min-w-[150px]">
+            <PMFormRow label="ERP Doc No" required={!disabled} labelWidth="sm:w-[150px] sm:min-w-[150px]">
               <Controller name="erpDocNumber" control={control} render={({ field }) => (
                 <SearchableSelect
                   options={saleOrderOpts}

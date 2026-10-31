@@ -363,7 +363,7 @@ export default function OGSaleOrderForm({ mode = "create", saleOrderId, onAfterS
           {/* SECTION 1 — Order Details */}
           <PMSection title="Order Details:">
             <div className="hidden">
-              <PMFormRow label="Sale Order Number" labelWidth="sm:w-[130px] sm:min-w-[130px]">
+              <PMFormRow label="ERP Doc No" labelWidth="sm:w-[130px] sm:min-w-[130px]">
                 <PMInput
                   {...register("erpDocNumber")}
                   disabled

@@ -673,7 +673,7 @@ export default function SaleBillForm({
           {/* ── Section 3: Sale Order ────────────────────────────────────────── */}
           <PMSection title="Sale Order:">
             <PMFormRow
-              label="Sale Order No."
+              label="ERP Doc No"
               required={!disabled}
               labelWidth="sm:w-[150px] sm:min-w-[150px]"
             >
