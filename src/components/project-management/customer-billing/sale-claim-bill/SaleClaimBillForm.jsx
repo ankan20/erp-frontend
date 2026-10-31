@@ -78,9 +78,9 @@ const itemSchema = z.object({
 });
 
 const schema = z.object({
-  erpDocNumber:      z.string().min(1, "Order No is required"),
+  ogSaleOrderNo:     z.string().min(1, "Order No is required"),
   billingDate: zodDate(z, "billingDate", true),
-  billingNo:          z.string().min(1, "Bill No is required"),
+  erpNo:              z.string().optional(),
   note:               z.string().optional(),
   jobLocation:        z.string().min(1, "Job Location is required"),
   preCertifiedAmount: z.coerce.number().min(0).optional(),
@@ -104,9 +104,9 @@ const DEFAULT_ITEM = {
 };
 
 const defaultValues = {
-  erpDocNumber:      "",
+  ogSaleOrderNo:     "",
   billingDate:        "",
-  billingNo:          "",
+  erpNo:              "",
   note:               "",
   jobLocation:        "",
   preCertifiedAmount: "",
@@ -130,7 +130,7 @@ export default function SaleClaimBillForm({ mode = "create", billId, onAfterSubm
   const [useLocations,  setUseLocations]  = useState([]);
   const [lookupLoading, setLookupLoading] = useState(false);
   const [billUuid,      setBillUuid]      = useState("");
-  const [displayBillNo, setDisplayBillNo] = useState("");
+  const [displayErpNo, setDisplayErpNo] = useState("");
 
   const [file,         setFile]         = useState(null);
   const [existingUrl,  setExistingUrl]  = useState("");
@@ -177,7 +177,7 @@ export default function SaleClaimBillForm({ mode = "create", billId, onAfterSubm
       .then((res) => {
         const orders = (Array.isArray(res.data) ? res.data : []).map((o) => ({
           ...o,
-          displayLabel: o.orderNo || o.erpDocNumber,
+          displayLabel: o.orderNo || o.erpNo,
         }));
         setSaleOrderOpts(orders);
       })
@@ -197,12 +197,12 @@ export default function SaleClaimBillForm({ mode = "create", billId, onAfterSubm
 
   // ── ORDER SELECTION ───────────────────────────────────────────────────────────
   const handleOrderSelect = useCallback(async (value) => {
-    setValue("erpDocNumber", value, { shouldDirty: true });
+    setValue("ogSaleOrderNo", value, { shouldDirty: true });
     if (!value || !projectCode) return;
     setLookupLoading(true);
     try {
       const res = await apiRequest({
-        url:    `${API_ENDPOINTS.PROJECT.SALE_CLAIM_BILL.ORDER_LOOKUP}?erpDocNumber=${encodeURIComponent(value)}&projectCode=${projectCode}&mode=${BILL_MODE}`,
+        url:    `${API_ENDPOINTS.PROJECT.SALE_CLAIM_BILL.ORDER_LOOKUP}?ogSaleOrderNo=${encodeURIComponent(value)}&projectCode=${projectCode}&mode=${BILL_MODE}`,
         method: "GET",
       });
       const d = res.data || {};
@@ -262,9 +262,9 @@ export default function SaleClaimBillForm({ mode = "create", billId, onAfterSubm
           gstPercent:        it.gstPercent         || "",
         });
         const formatted = {
-          erpDocNumber:      d.erpDocNumber      || "",
+          ogSaleOrderNo:     d.ogSaleOrderNo     || "",
           billingDate:        d.billingDate         || "",
-          billingNo:          d.billingNo           || "",
+          erpNo:              d.erpNo               || "",
           note:               d.note                || "",
           jobLocation:        d.jobLocation         || "",
           preCertifiedAmount: d.preCertifiedAmount  || "",
@@ -279,7 +279,7 @@ export default function SaleClaimBillForm({ mode = "create", billId, onAfterSubm
         setExistingUrl(d.attachment || "");
         setInitialUrl(d.attachment  || "");
         setBillUuid(d.billingUuid || "");
-        setDisplayBillNo(d.billingNo  || "");
+        setDisplayErpNo(d.erpNo  || "");
         onUuid?.(d.billingUuid || "");
         const editable = ["draft", "reback"].includes((d.workflowStatus || "").toLowerCase());
         if (mode === "edit" && !editable) {
@@ -322,9 +322,8 @@ export default function SaleClaimBillForm({ mode = "create", billId, onAfterSubm
     const fd = new FormData();
     fd.append("mode",          BILL_MODE);
     if (mode === "create") fd.append("projectCode", projectCode);
-    fd.append("erpDocNumber", v.erpDocNumber || "");
+    fd.append("ogSaleOrderNo", v.ogSaleOrderNo || "");
     fd.append("billingDate",   v.billingDate   || "");
-    fd.append("billingNo",     v.billingNo     || "");
     fd.append("note",          v.note          || "");
     fd.append("jobLocation",   v.jobLocation   || "");
     const serializeItems = (list) =>
@@ -371,7 +370,7 @@ export default function SaleClaimBillForm({ mode = "create", billId, onAfterSubm
         mode === "create" ? "Sale Bill created successfully" : "Sale Bill updated successfully",
         { id: tid },
       );
-      if (res.data?.billingNo) setDisplayBillNo(res.data.billingNo);
+      if (res.data?.erpNo) setDisplayErpNo(res.data.erpNo);
       if (mode === "create") {
         const newId = res.data?.id;
         if (newId) setTimeout(() => router.push(`/project-management/customer-billing/sale-bill-claim/${newId}`), 400);
@@ -583,7 +582,7 @@ export default function SaleClaimBillForm({ mode = "create", billId, onAfterSubm
 
     const doc = new jsPDF({ orientation: "landscape", unit: "mm", format: "a3" });
 
-    const billNo = displayBillNo || getValues("billingNo") || `#${billId}` || "draft";
+    const billNo = displayErpNo || getValues("erpNo") || `#${billId}` || "draft";
     const billDt = watch("billingDate") || "—";
     doc.setFontSize(14);
     doc.setTextColor(28, 58, 94);
@@ -870,33 +869,26 @@ export default function SaleClaimBillForm({ mode = "create", billId, onAfterSubm
               <div className="flex-1">
                 <SearchableSelect
                   options={saleOrderOpts}
-                  value={watch("erpDocNumber") || ""}
+                  value={watch("ogSaleOrderNo") || ""}
                   disabled={disabled || lookupLoading}
                   onChange={(value) => handleOrderSelect(value)}
                   placeholder={lookupLoading ? "Loading…" : "Select Order"}
                   labelKey="displayLabel"
-                  valueKey="erpDocNumber"
-                  searchKeys={["erpDocNumber", "orderNo", "orderTitle", "displayLabel"]}
+                  valueKey="erpNo"
+                  searchKeys={["erpNo", "orderNo", "orderTitle", "displayLabel"]}
                 />
               </div>
             </PMFormRow>
 
             <div>
-            <PMFormRow label="Bill No" required labelWidth="sm:w-[140px] sm:min-w-[140px]">
-              <Controller
-                control={control}
-                name="billingNo"
-                render={({ field, fieldState }) => (
-                  <PMInput
-                    value={field.value || ""}
-                    onChange={field.onChange}
-                    onBlur={field.onBlur}
-                    disabled={disabled}
-                    placeholder="Enter bill number"
-                    hasError={fieldState.error}
-                    expandable={false}
-                  />
-                )}
+            <PMFormRow label="ERP No" labelWidth="sm:w-[140px] sm:min-w-[140px]">
+              <input
+                type="text"
+                value={displayErpNo || ""}
+                readOnly
+                disabled
+                placeholder="Auto-generated on save"
+                className="flex-1 h-[30px] text-[13px] rounded-sm border border-[#c9d5e0] bg-[#f0f4f8] px-2 text-[#555] outline-none w-full"
               />
             </PMFormRow>
 
