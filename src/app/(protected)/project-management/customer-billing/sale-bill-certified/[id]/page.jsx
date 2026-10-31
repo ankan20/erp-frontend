@@ -12,6 +12,7 @@ import { getPageActions }  from "@/components/common/PageActionButtons";
 import { getPageAccess }   from "@/helper/getPageAccess";
 import { API_ENDPOINTS }   from "@/config/api.config";
 import { useMyApprovalStatus } from "@/hooks/useMyApprovalStatus";
+import { useDeletePending }    from "@/hooks/useDeletePending";
 import SaleCertifiedBillForm from "@/components/project-management/customer-billing/sale-certified-bill/SaleCertifiedBillForm";
 
 export default function Page() {
@@ -28,6 +29,8 @@ export default function Page() {
     id,
     access.canApprove,
   );
+
+  const { isPendingDeletion, pendingInfo, dismissDeletion } = useDeletePending("BILLING", id, access.allowed);
 
   if (!access.allowed) return <PageNotAvailable />;
 
@@ -48,6 +51,8 @@ export default function Page() {
           : null
       }
       onDismissApproval={isPendingForMe ? dismiss : undefined}
+      pendingDeletion={isPendingDeletion ? pendingInfo : null}
+      onDismissDeletion={dismissDeletion}
     >
       <SaleCertifiedBillForm mode={access.mode} billId={id} onAfterSubmit={refresh} onUuid={setUuid} />
 
