@@ -101,7 +101,7 @@ async function downloadDocx(data, qrCanvasRef) {
   const infoCell = (paras, w) =>
     new TableCell({ children: paras, width: { size: w, type: WidthType.DXA }, borders: nilBorders, margins: { top: 40, bottom: 40, left: 60, right: 60 } });
 
-  const leftInfo  = [["UA No", data.uaNo], ["Date", fmt.date(data.uaDate)], ["Project", data.projectCode]];
+  const leftInfo  = [["ERP Doc No", data.uaNo], ["Date", fmt.date(data.uaDate)], ["Project", data.projectCode]];
   const rightInfo = [["Status", data.workflowStatus], ["Remarks", data.remarks || "-"], ["", ""]];
 
   const infoTable = new Table({
@@ -305,7 +305,7 @@ export default function UncertifiedStatementPrintPage() {
           {/* ── INFO SECTION ───────────────────────────────────────────── */}
           <div className="grid grid-cols-2 px-6 py-3" style={{ gridTemplateColumns: "50% 50%" }}>
             <div>
-              <InfoRow label="UA No"        value={data.uaNo} />
+              <InfoRow label="ERP Doc No"    value={data.uaNo} />
               <InfoRow label="Date"         value={fmt.date(data.uaDate)} />
               <InfoRow label="Project Code" value={data.projectCode} />
             </div>

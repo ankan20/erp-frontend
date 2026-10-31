@@ -62,13 +62,14 @@ export default function UncertainAllocationForm({ mode = "create", uaId, onAfter
   const [locked,  setLocked]  = useState(false);
   const [uaNo,    setUaNo]    = useState("");
 
+
   // lines: array of item-level rows grouped by billingId
   const [lines,            setLines]           = useState([]);
   // sale order lookup
   const [saleOrders,       setSaleOrders]       = useState([]);
   const [lookupLoading,    setLookupLoading]    = useState(false);
   const [selectedSoId,     setSelectedSoId]     = useState("");
-  // claim bill lookup (filtered by selected SO)
+  // bill lookup (filtered by selected SO — claim or certified based on billType)
   const [claimBills,       setClaimBills]       = useState([]);
   const [billsLoading,     setBillsLoading]     = useState(false);
   const [selectedBillId,   setSelectedBillId]   = useState("");
@@ -161,7 +162,7 @@ export default function UncertainAllocationForm({ mode = "create", uaId, onAfter
     }
   }, [mode]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // ── Step 1: SO selected → load its claim bills ────────────────────────────
+  // ── Step 1: SO selected → load its certified bills ───────────────────────
   const handleSoSelect = async (soId) => {
     if (!soId) return;
     setSelectedSoId(String(soId));
@@ -169,39 +170,37 @@ export default function UncertainAllocationForm({ mode = "create", uaId, onAfter
     setClaimBills([]);
     setBillsLoading(true);
     try {
-      const result = await apiRequest({
-        url: `${UA.CLAIM_BILLS}${soId}`,
-        method: "GET",
-      });
+      const result = await apiRequest({ url: `${UA.CERTIFIED_BILLS}${soId}`, method: "GET" });
       const list = Array.isArray(result.data) ? result.data : [];
       if (!list.length) {
-        toast.warning("No approved claim bills found for this sale order");
+        toast.warning("No approved certified bills found for this sale order");
       }
       setClaimBills(list.map((b) => ({
         ...b,
         displayLabel: [b.billingNo, b.billingDate].filter(Boolean).join(" | "),
       })));
     } catch {
-      toast.error("Failed to load claim bills");
+      toast.error("Failed to load certified bills");
     } finally {
       setBillsLoading(false);
     }
   };
 
-  // ── Step 2: Claim bill selected → populate table rows ─────────────────────
+  // ── Step 2: Bill selected → populate table rows ───────────────────────────
   const handleBillSelect = async (billId) => {
     if (!billId) return;
     const billIdNum = Number(billId);
     if (addedBillIds.has(billIdNum)) {
-      toast.warning("This claim bill is already added");
+      toast.warning("This bill is already added");
       setSelectedBillId(String(billIdNum));
       return;
     }
     setItemsLoading(true);
     setSelectedBillId(String(billIdNum));
     try {
+      const endpoint = UA.CERTIFIED_BILL_ITEMS;
       const result = await apiRequest({
-        url: `${UA.CLAIM_BILL_ITEMS}${billIdNum}`,
+        url: `${endpoint}${billIdNum}`,
         method: "GET",
       });
       const d = result.data;
@@ -394,7 +393,7 @@ export default function UncertainAllocationForm({ mode = "create", uaId, onAfter
         <div className={`w-full lg:w-[385px] lg:shrink-0 space-y-2 ${!sidebarOpen ? "lg:hidden" : ""}`}>
 
           <PMSection title="Statement Details:">
-            <PMFormRow label="UA No" labelWidth="sm:w-[130px] sm:min-w-[130px]">
+            <PMFormRow label="ERP Doc No" labelWidth="sm:w-[130px] sm:min-w-[130px]">
               <PMInput value={uaNo || "[Auto]"} disabled readOnly expandable={false} />
             </PMFormRow>
             <PMFormRow label="Date" required={!disabled} labelWidth="sm:w-[130px] sm:min-w-[130px]">
@@ -426,12 +425,16 @@ export default function UncertainAllocationForm({ mode = "create", uaId, onAfter
                   />
                 </PMFormRow>
 
-                <PMFormRow label="Claim Bill" labelWidth="sm:w-[130px] sm:min-w-[130px]">
+                <PMFormRow label="Certified Bill" labelWidth="sm:w-[130px] sm:min-w-[130px]">
                   <SearchableSelect
                     options={claimBills}
                     value={selectedBillId}
                     onChange={(val) => { if (val) handleBillSelect(val); }}
-                    placeholder={selectedSoId ? (itemsLoading ? "Loading items…" : "Select claim bill…") : "Select a sale order first"}
+                    placeholder={
+                      selectedSoId
+                        ? (itemsLoading ? "Loading items…" : "Select certified bill…")
+                        : "Select a sale order first"
+                    }
                     labelKey="displayLabel"
                     valueKey="billingId"
                     searchKeys={["displayLabel", "billingNo", "note"]}
@@ -439,7 +442,9 @@ export default function UncertainAllocationForm({ mode = "create", uaId, onAfter
                     loading={billsLoading}
                   />
                   {selectedSoId && !billsLoading && claimBills.length === 0 && (
-                    <span className="text-[12px] text-orange-500 italic mt-1">No approved claim bills for this sale order</span>
+                    <span className="text-[12px] text-orange-500 italic mt-1">
+                      No approved certified bills for this sale order
+                    </span>
                   )}
                 </PMFormRow>
               </>
