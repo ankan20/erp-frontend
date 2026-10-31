@@ -47,9 +47,14 @@ export function CommProvider({ children }) {
         setUnreadPingCount(pingRes.value?.count ?? 0);
 
       if (callRes.status === "fulfilled") {
-        const calls = callRes.value?.data || callRes.value || [];
+        const calls = Array.isArray(callRes.value) ? callRes.value
+          : Array.isArray(callRes.value?.data) ? callRes.value.data : [];
         if (calls.length > 0 && !activeCall) {
-          setIncomingCall(calls[0]);
+          setIncomingCall(prev => {
+            // Only update if it's a different call to avoid toast flicker
+            if (prev?.callId === calls[0]?.callId) return prev;
+            return calls[0];
+          });
         } else if (calls.length === 0) {
           setIncomingCall(null);
         }

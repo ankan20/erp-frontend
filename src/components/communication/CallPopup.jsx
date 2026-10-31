@@ -7,6 +7,8 @@ import {
 } from "lucide-react";
 import { useComm } from "@/context/CommContext";
 import { answerCall, endCall, sendSignal, pollSignals } from "@/lib/commApi";
+import { apiRequest } from "@/lib/apiClient";
+import { getCookie } from "@/lib/cookies";
 
 // ── Draggable wrapper ────────────────────────────────────────────────────────
 function Draggable({ children, initialX, initialY }) {
@@ -67,7 +69,7 @@ function useWebRTC({ call, isInitiator, localVideoRef, remoteVideoRef, onConnect
     // ── Get the list of "other" participant IDs ──────────────────────────────
     // For initiator: call.participants only has target user(s)
     // For receiver:  call.participants has everyone; exclude self
-    const myId = Number(document.cookie.match(/(?:^|;\s*)userId=(\d+)/)?.[1] || 0);
+    const myId = Number(getCookie("userId") || 0);
     const others = (call.participants || [])
       .map(p => Number(p.userId || p.user_id))
       .filter(id => id && id !== myId);
@@ -367,11 +369,10 @@ export default function CallPopup() {
     if (!activeCall?.callId) return;
     const ref = setInterval(async () => {
       try {
-        const { apiRequest } = await import("@/lib/apiClient").then(m => ({ apiRequest: m.default || m.apiRequest }));
         const r = await apiRequest({ url: `/comm/calls/${activeCall.callId}` });
         if (r?.status === "ended" || r?.status === "missed" || r?.status === "rejected") endActiveCall();
       } catch {}
-    }, 4000);
+    }, 3000);
     return () => clearInterval(ref);
   }, [activeCall?.callId, endActiveCall]);
 
