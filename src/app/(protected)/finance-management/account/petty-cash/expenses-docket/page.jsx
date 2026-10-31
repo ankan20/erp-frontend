@@ -119,7 +119,7 @@ export default function DocketVoucherListPage() {
           showDateRange
           actions={
             access.canAdd
-              ? [{ label: "+ Voucher Docket", onClick: () => router.push("/finance-management/account/petty-cash/docket-voucher/new") }]
+              ? [{ label: "+ Expenses Docket", onClick: () => router.push("/finance-management/account/petty-cash/expenses-docket/new") }]
               : []
           }
         />
@@ -129,7 +129,7 @@ export default function DocketVoucherListPage() {
           data={filteredData}
           onRowClick={(row) => {
             if (!access.canOpenDetails) return;
-            router.push(`/finance-management/account/petty-cash/docket-voucher/${row._id}`);
+            router.push(`/finance-management/account/petty-cash/expenses-docket/${row._id}`);
           }}
         pendingDeleteIds={pendingDeleteIds}
         />
