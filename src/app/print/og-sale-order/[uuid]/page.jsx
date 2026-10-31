@@ -478,13 +478,13 @@ export default function OGSaleOrderPrintPage() {
                       <td className={`border ${COLOR.tableBorder} px-1 py-1.5 ${SIZE.tableCell} text-center`} style={{ whiteSpace: "nowrap" }}>
                         {item.rowType}
                       </td>
-                      <td className={`border ${COLOR.tableBorder} px-1 py-1.5 ${SIZE.tableCell}`} style={{ whiteSpace: "nowrap" }}>{item.itemCode || "-"}</td>
+                      <td className={`border ${COLOR.tableBorder} px-1 py-1.5 ${SIZE.tableCell} text-center`} style={{ whiteSpace: "nowrap" }}>{item.itemCode || "-"}</td>
                       <td className={`border ${COLOR.tableBorder} px-1 py-1.5`}>
                         <p className={ITEM_NAME}>{item.itemName || "-"}</p>
                         {item.itemDescription && <p className={ITEM_SUB}>{item.itemDescription}</p>}
                       </td>
                       <td className={`border ${COLOR.tableBorder} px-1 py-1.5 ${SIZE.tableCell} text-center`} style={{ whiteSpace: "nowrap" }}>{item.unit || "-"}</td>
-                      <td className={`border ${COLOR.tableBorder} px-1 py-1.5 ${SIZE.tableCell} text-right`} style={{ whiteSpace: "nowrap" }}>{item.orderQty ?? "-"}</td>
+                      <td className={`border ${COLOR.tableBorder} px-1 py-1.5 ${SIZE.tableCell} text-right`} style={{ whiteSpace: "nowrap" }}><FmtNum value={item.orderQty} decimals={3} /></td>
                       <td className={`border ${COLOR.tableBorder} px-1 py-1.5 ${SIZE.tableCell} text-right`} style={{ whiteSpace: "nowrap" }}><FmtNum value={item.rate} /></td>
                       <td className={`border ${COLOR.tableBorder} px-1 py-1.5 ${SIZE.tableCell} text-center`} style={{ whiteSpace: "nowrap" }}>
                         {item.gstPercent != null ? `${item.gstPercent}%` : "-"}
