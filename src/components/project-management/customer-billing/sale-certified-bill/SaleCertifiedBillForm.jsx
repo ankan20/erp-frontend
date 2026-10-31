@@ -18,7 +18,6 @@ import FileUploadInput  from "@/components/project-management/common/FileUploadI
 import PMSection        from "@/components/project-management/common/PMSection";
 import PMFormRow        from "@/components/project-management/common/PMFormRow";
 import PMDateInput      from "@/components/project-management/common/PMDateInput";
-import PMInput         from "@/components/project-management/common/PMInput";
 import PMTextarea          from "@/components/project-management/common/PMTextarea";
 import ExpandableTextCell  from "@/components/project-management/common/ExpandableTextCell";
 import QtyInput            from "@/components/common/QtyInput";
@@ -84,9 +83,9 @@ const itemSchema = z.object({
 
 const schema = z.object({
   claimBillId:        z.coerce.number().min(1, "Claim Bill is required"),
-  erpDocNumber:      z.string().min(1, "Order No is required"),
+  ogSaleOrderNo:     z.string().min(1, "Order No is required"),
   billingDate: zodDate(z, "billingDate", true),
-  billingNo:          z.string().min(1, "Bill No is required"),
+  erpNo:              z.string().optional(),
   note:               z.string().optional(),
   jobLocation:        z.string().min(1, "Job Location is required"),
   preCertifiedAmount: z.coerce.number().min(0).optional(),
@@ -112,9 +111,9 @@ const DEFAULT_ITEM = {
 
 const defaultValues = {
   claimBillId:        null,
-  erpDocNumber:      "",
+  ogSaleOrderNo:     "",
   billingDate:        "",
-  billingNo:          "",
+  erpNo:              "",
   note:               "",
   jobLocation:        "",
   preCertifiedAmount: "",
@@ -141,7 +140,7 @@ export default function SaleCertifiedBillForm({ mode = "create", billId, onAfter
   const [useLocations,    setUseLocations]    = useState([]);
   const [lookupLoading,   setLookupLoading]   = useState(false);
   const [billUuid,        setBillUuid]        = useState("");
-  const [billingNo,       setBillingNo]       = useState("");
+  const [erpNo,           setErpNo]           = useState("");
 
   const [file,         setFile]         = useState(null);
   const [existingUrl,  setExistingUrl]  = useState("");
@@ -193,18 +192,18 @@ export default function SaleCertifiedBillForm({ mode = "create", billId, onAfter
   }, [projectCode]);
 
   // ── FETCH CLAIM BILLS FOR A GIVEN OG SALE ORDER ───────────────────────────────
-  const fetchClaimBills = useCallback(async (erpDocNumber) => {
-    if (!erpDocNumber || !projectCode) { setClaimBillOpts([]); return; }
+  const fetchClaimBills = useCallback(async (ogSaleOrderNo) => {
+    if (!ogSaleOrderNo || !projectCode) { setClaimBillOpts([]); return; }
     setClaimBillLoading(true);
     try {
       const res = await apiRequest({
-        url:    `${API_ENDPOINTS.PROJECT.SALE_CLAIM_BILL.LIST}?projectCode=${projectCode}&mode=sale_claim_bill&workflowStatus=Approved&erpDocNumber=${encodeURIComponent(erpDocNumber)}`,
+        url:    `${API_ENDPOINTS.PROJECT.SALE_CLAIM_BILL.LIST}?projectCode=${projectCode}&mode=sale_claim_bill&workflowStatus=Approved&ogSaleOrderNo=${encodeURIComponent(ogSaleOrderNo)}`,
         method: "GET",
       });
       setClaimBillOpts(
         (Array.isArray(res.data) ? res.data : []).map((b) => ({
           ...b,
-          displayLabel: b.billingNo,
+          displayLabel: [b.billingNo, b.erpNo].filter(Boolean).join(" - ") || `Bill #${b.id}`,
         }))
       );
     } catch {
@@ -227,7 +226,7 @@ export default function SaleCertifiedBillForm({ mode = "create", billId, onAfter
 
   // ── OG SALE ORDER SELECTION — fetches claim bills for that order ─────────────
   const handleOrderSelect = useCallback((value) => {
-    setValue("erpDocNumber", value, { shouldDirty: true });
+    setValue("ogSaleOrderNo", value, { shouldDirty: true });
     setValue("claimBillId",   null,  { shouldDirty: true });
     setValue("items",         [],    { shouldDirty: true });
     setValue("preCertifiedAmount", "", { shouldDirty: true });
@@ -281,7 +280,7 @@ export default function SaleCertifiedBillForm({ mode = "create", billId, onAfter
         setPrevCertBillOpts(
           (Array.isArray(certRes.data) ? certRes.data : []).map((b) => ({
             ...b,
-            displayLabel: b.billingNo,
+            displayLabel: b.erpNo,
           }))
         );
       } catch {
@@ -323,9 +322,9 @@ export default function SaleCertifiedBillForm({ mode = "create", billId, onAfter
         });
         const formatted = {
           claimBillId:        d.claimBillId         || null,
-          erpDocNumber:      d.erpDocNumber        || "",
+          ogSaleOrderNo:     d.ogSaleOrderNo       || "",
           billingDate:        d.billingDate           || "",
-          billingNo:          d.billingNo             || "",
+          erpNo:              d.erpNo                 || "",
           note:               d.note                  || "",
           jobLocation:        d.jobLocation           || "",
           preCertifiedAmount: d.preCertifiedAmount    || "",
@@ -337,20 +336,20 @@ export default function SaleCertifiedBillForm({ mode = "create", billId, onAfter
         if (!formatted.items.length) formatted.items = [{ ...DEFAULT_ITEM }];
         reset(formatted);
         setInitialData(formatted);
-        if (d.erpDocNumber) fetchClaimBills(d.erpDocNumber);
+        if (d.ogSaleOrderNo) fetchClaimBills(d.ogSaleOrderNo);
         if (d.claimBillId) {
           apiRequest({
             url:    `${API_ENDPOINTS.PROJECT.SALE_CERTIFIED_BILL.CERT_BILLS_FOR_CLAIM}?claimBillId=${d.claimBillId}`,
             method: "GET",
           }).then((r) => {
             setPrevCertBillOpts(
-              (Array.isArray(r.data) ? r.data : []).map((b) => ({ ...b, displayLabel: b.billingNo }))
+              (Array.isArray(r.data) ? r.data : []).map((b) => ({ ...b, displayLabel: b.erpNo }))
             );
           }).catch(() => setPrevCertBillOpts([]));
         }
         onUuid?.(d.billingUuid || "");
         setBillUuid(d.billingUuid || "");
-        setBillingNo(d.billingNo || "");
+        setErpNo(d.erpNo || "");
         setExistingUrl(d.attachment || "");
         setInitialUrl(d.attachment  || "");
         const editable = ["draft", "reback"].includes((d.workflowStatus || "").toLowerCase());
@@ -396,7 +395,6 @@ export default function SaleCertifiedBillForm({ mode = "create", billId, onAfter
     if (mode === "create") fd.append("projectCode", projectCode);
     fd.append("claimBillId", v.claimBillId || "");
     fd.append("billingDate", v.billingDate  || "");
-    fd.append("billingNo",   v.billingNo    || "");
     fd.append("note",        v.note         || "");
     fd.append("jobLocation", v.jobLocation  || "");
     const serializeItems = (list) =>
@@ -446,7 +444,7 @@ export default function SaleCertifiedBillForm({ mode = "create", billId, onAfter
       if (mode === "create") {
         const newId = res.data?.id;
         if (res.data?.billingUuid) setBillUuid(res.data.billingUuid);
-        if (res.data?.billingNo)   setBillingNo(res.data.billingNo);
+        if (res.data?.erpNo)       setErpNo(res.data.erpNo);
         if (newId) setTimeout(() => router.push(`/project-management/customer-billing/sale-bill-certified/${newId}`), 400);
       }
     } catch (err) {
@@ -495,14 +493,14 @@ export default function SaleCertifiedBillForm({ mode = "create", billId, onAfter
     const doc = new jsPDF({ orientation: "landscape", unit: "mm", format: "a3" });
 
     // Header info
-    const billNo = billingNo || `#${billId}` || "draft";
+    const pdfBillNo = erpNo || `#${billId}` || "draft";
     const billDt = watch("billingDate") || "—";
     doc.setFontSize(14);
     doc.setTextColor(28, 58, 94);
     doc.text("Certification Statement", 14, 14);
     doc.setFontSize(9);
     doc.setTextColor(80, 80, 80);
-    doc.text(`Bill No: ${billNo}   Date: ${billDt}`, 14, 20);
+    doc.text(`Bill No: ${pdfBillNo}   Date: ${billDt}`, 14, 20);
 
     const head = [
       [
@@ -593,7 +591,7 @@ export default function SaleCertifiedBillForm({ mode = "create", billId, onAfter
       alternateRowStyles: { fillColor: [245, 248, 252] },
     });
 
-    doc.save(`certification-statement-${billNo}.pdf`);
+    doc.save(`certification-statement-${pdfBillNo}.pdf`);
   };
 
   // ── LOADING ───────────────────────────────────────────────────────────────────
@@ -627,7 +625,7 @@ export default function SaleCertifiedBillForm({ mode = "create", billId, onAfter
               <div className="flex-1">
                 <SearchableSelect
                   options={saleOrderOpts}
-                  value={watch("erpDocNumber") || ""}
+                  value={watch("ogSaleOrderNo") || ""}
                   disabled={disabled}
                   onChange={(value) => handleOrderSelect(value)}
                   placeholder="Select Order"
@@ -635,10 +633,21 @@ export default function SaleCertifiedBillForm({ mode = "create", billId, onAfter
                   valueKey="erpDocNumber"
                   searchKeys={["erpDocNumber", "orderNo", "orderTitle", "displayLabel"]}
                 />
-                {errors.erpDocNumber && (
-                  <p className="text-[11px] text-red-500 mt-0.5">{errors.erpDocNumber.message}</p>
+                {errors.ogSaleOrderNo && (
+                  <p className="text-[11px] text-red-500 mt-0.5">{errors.ogSaleOrderNo.message}</p>
                 )}
               </div>
+            </PMFormRow>
+
+            <PMFormRow label="ERP No" labelWidth="sm:w-[140px] sm:min-w-[140px]">
+              <input
+                type="text"
+                value={erpNo || ""}
+                readOnly
+                disabled
+                placeholder="Auto-generated on save"
+                className="flex-1 h-[30px] text-[13px] rounded-sm border border-[#c9d5e0] bg-[#f0f4f8] px-2 text-[#555] outline-none w-full"
+              />
             </PMFormRow>
 
             <PMFormRow label="Claim Bill" required={!disabled} labelWidth="sm:w-[140px] sm:min-w-[140px]">
@@ -646,13 +655,13 @@ export default function SaleCertifiedBillForm({ mode = "create", billId, onAfter
                 <SearchableSelect
                   options={claimBillOpts}
                   value={watch("claimBillId") || ""}
-                  disabled={disabled || lookupLoading || claimBillLoading || !watch("erpDocNumber")}
+                  disabled={disabled || lookupLoading || claimBillLoading || !watch("ogSaleOrderNo")}
                   loading={claimBillLoading || lookupLoading}
                   onChange={(value) => handleClaimBillSelect(value)}
-                  placeholder={!watch("erpDocNumber") ? "Select order first" : "Select Claim Bill"}
+                  placeholder={!watch("ogSaleOrderNo") ? "Select order first" : "Select Claim Bill"}
                   labelKey="displayLabel"
                   valueKey="id"
-                  searchKeys={["billingNo", "note", "displayLabel"]}
+                  searchKeys={["billingNo", "erpNo", "note", "displayLabel"]}
                 />
                 {errors.claimBillId && (
                   <p className="text-[11px] text-red-500 mt-0.5">{errors.claimBillId.message}</p>
@@ -670,29 +679,11 @@ export default function SaleCertifiedBillForm({ mode = "create", billId, onAfter
                     rel="noreferrer"
                     className="text-[13px] text-blue-600 underline hover:text-blue-800 font-medium"
                   >
-                    {latest.billingNo}
+                    {latest.erpNo}
                   </a>
                 </PMFormRow>
               );
             })()}
-
-            <PMFormRow label="Bill No" required labelWidth="sm:w-[140px] sm:min-w-[140px]">
-              <Controller
-                control={control}
-                name="billingNo"
-                render={({ field, fieldState }) => (
-                  <PMInput
-                    value={field.value || ""}
-                    onChange={field.onChange}
-                    onBlur={field.onBlur}
-                    disabled={disabled}
-                    placeholder="Enter bill number"
-                    hasError={fieldState.error}
-                    expandable={false}
-                  />
-                )}
-              />
-            </PMFormRow>
 
             <PMFormRow label="Bill Date" required={!disabled} labelWidth="sm:w-[140px] sm:min-w-[140px]">
               <PMDateInput

@@ -103,3 +103,18 @@ export function zodDate(z, label, required = false) {
     message: `${label}: must be a valid date in YYYY-MM-DD format with a 4-digit year`,
   });
 }
+
+/**
+ * Zod schema factory for time string fields (HH:MM from <input type="time">).
+ */
+export function zodTime(z, label, required = false) {
+  const base = required
+    ? z.string().min(1, `${label} is required`)
+    : z.string().optional();
+  const guard = required
+    ? (v) => /^\d{2}:\d{2}(:\d{2})?$/.test(v)
+    : (v) => !v || /^\d{2}:\d{2}(:\d{2})?$/.test(v);
+  return base.refine(guard, {
+    message: `${label}: must be a valid time in HH:MM format`,
+  });
+}
