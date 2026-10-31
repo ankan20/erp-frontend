@@ -201,18 +201,27 @@ export default function DocketVoucherPrintPage() {
           {/* INFO */}
           <div className="grid px-6 pb-3" style={{ gridTemplateColumns: "50% 50%" }}>
             <div className="space-y-0.5">
+              <InfoRow label="Project"          value={data.projectCode} />
               <InfoRow label="Docket No"     value={data.voucherNo} />
               <InfoRow label="Docket Date"   value={fmt.date(data.voucherDate)} />
               <InfoRow label="Budget Ref"     value={data.budgetNo} />
               <InfoRow label="Expenses By"    value={data.expensesBy} />
-              <InfoRow label="Status"         value={data.workflowStatus} />
             </div>
             <div className="space-y-0.5 pl-6">
-              <InfoRow label="Mode of Payment" value={data.modeOfPayment} />
-              <InfoRow label="Fund Source"      value={data.fundSource} />
               <InfoRow label="Payment Ref. ID"  value={data.paymentRefId} />
-              <InfoRow label="Project"          value={data.projectCode} />
               <InfoRow label="Total Amount"     value={`₹ ${fmt.number(data.totalAmount || totalAmt)}`} />
+              <InfoRow label="Mode of Payment" value={data.modeOfPayment} />
+              <InfoRow
+                label="Fund Source"
+                value={
+                  data.accountType === "CASH"
+                    ? (data.bankName || "Cash")
+                    : data.bankCode
+                      ? `${data.bankCode} — ${data.bankName}`
+                      : (data.bankName || "—")
+                }
+              />
+              <InfoRow label="Status" value={data.workflowStatus} />
             </div>
           </div>
 
@@ -229,7 +238,7 @@ export default function DocketVoucherPrintPage() {
                 <thead>
                   <tr className={COLOR.tableHeadBg}>
                     {["Sl.", "CC Code", "CC Name & Short Description", "Amount (₹)"].map((h) => (
-                      <th key={h} className={`${B} px-2 py-1.5 text-center ${SIZE.tableHead} ${WEIGHT.bold} text-gray-900`}>{h}</th>
+                      <th key={h} className={`${B} px-2 py-1.5 ${h === "CC Name & Short Description" ? "text-left" : "text-center"} ${SIZE.tableHead} ${WEIGHT.bold} text-gray-900`}>{h}</th>
                     ))}
                   </tr>
                 </thead>
