@@ -147,10 +147,12 @@ function useWebRTC({ call, isInitiator, onConnected, onEnded }) {
         await waitIce(pc);
         if (cancelled) return;
         let sent = 0;
+        let lastErr = "";
         for (const uid of others) {
-          try { await sendSignal(callId, uid, "offer", { sdp: pc.localDescription }); sent++; } catch {}
+          try { await sendSignal(callId, uid, "offer", { sdp: pc.localDescription }); sent++; }
+          catch (e) { lastErr = e?.message || String(e); }
         }
-        setStage(sent ? "Offer sent — waiting for answer…" : "Could not send offer to server");
+        setStage(sent ? "Offer sent — waiting for answer…" : `Could not send offer: ${lastErr}`);
       }
 
       pollTimer = setInterval(async () => {
