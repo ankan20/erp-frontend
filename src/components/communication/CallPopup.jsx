@@ -9,6 +9,8 @@ import { useComm } from "@/context/CommContext";
 import { answerCall, endCall, sendSignal, pollSignals } from "@/lib/commApi";
 import { apiRequest } from "@/lib/apiClient";
 import { getCookie } from "@/lib/cookies";
+import { getLocalStorage } from "@/lib/localStorage";
+import API_BASE_URL from "@/config/api.config";
 
 const ICE_SERVERS = [
   { urls: "stun:stun.l.google.com:19302" },
@@ -290,6 +292,28 @@ function ActiveCallWindow({ call }) {
   useAttach(localVideo,  localStream);
 
   useEffect(() => () => clearInterval(timerRef.current), []);
+
+  // Closing or reloading the tab mid-call must end it on the server, or the
+  // other side and the directory keep showing "In a call"
+  useEffect(() => {
+    const onHide = () => {
+      const token = getLocalStorage("token");
+      fetch(`${API_BASE_URL}/comm/calls/${call.callId}/end`, {
+        method: "POST",
+        keepalive: true,
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+      }).catch(() => {});
+    };
+    window.addEventListener("pagehide", onHide);
+    return () => window.removeEventListener("pagehide", onHide);
+  }, [call.callId]);
+
+  // Unanswered or never-connected calls must not hang around forever
+  useEffect(() => {
+    if (connected) return;
+    const t = setTimeout(() => finish(true), 45000);
+    return () => clearTimeout(t);
+  }, [connected, finish]);
 
   const fmt = (s) => `${String(Math.floor(s / 60)).padStart(2, "0")}:${String(s % 60).padStart(2, "0")}`;
   const peerName = isInitiator ? (call.peerName || call.initiatorName) : call.initiatorName;

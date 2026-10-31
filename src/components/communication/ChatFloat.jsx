@@ -376,7 +376,7 @@ function PingTypePicker({ target, onBack }) {
 
 // ── Call confirm ─────────────────────────────────────────────────────────────
 function CallConfirm({ target, onBack }) {
-  const { answerIncomingCall } = useComm();
+  const { answerIncomingCall, closePicker } = useComm();
   const [calling, setCalling] = useState(null); // null | "voice" | "video"
   const [error,   setError]   = useState(null);
 
@@ -393,6 +393,7 @@ function CallConfirm({ target, onBack }) {
         initiatorName: target.name,
         participants:  [{ userId: target.userId }],
       });
+      closePicker();
     } catch (e) {
       setError(e?.message || "Failed to start call");
       setCalling(null);
@@ -441,7 +442,7 @@ function CallConfirm({ target, onBack }) {
 
 // ── Group meet creator ────────────────────────────────────────────────────────
 function GroupMeetPanel({ onBack }) {
-  const { answerIncomingCall } = useComm();
+  const { answerIncomingCall, closePicker } = useComm();
   const [title,    setTitle]    = useState("");
   const [selected, setSelected] = useState([]);
   const [users,    setUsers]    = useState([]);
@@ -472,6 +473,7 @@ function GroupMeetPanel({ onBack }) {
         initiatorName: "Group Meet",
         participants:  selected,
       });
+      closePicker();
     } catch {
       setCreating(false);
     }
