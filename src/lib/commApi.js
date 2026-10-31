@@ -43,7 +43,9 @@ export const sendPing          = (receiverId, pingType, message) => apiRequest({
 export const getReceivedPings  = (unreadOnly = false) => apiRequest({ url: `${C}/pings/received`, params: unreadOnly ? { unreadOnly: "true" } : {} });
 export const getUnreadPingCount = () => apiRequest({ url: `${C}/pings/unread-count` });
 export const markPingRead      = (id) => apiRequest({ url: `${C}/pings/${id}/read`, method: "POST" });
-export const markAllPingsRead  = ()   => apiRequest({ url: `${C}/pings/read-all`, method: "POST" });
+// keepRecords: leave pings that point at a record unread until that record is opened
+export const markAllPingsRead  = ({ keepRecords = false } = {}) =>
+  apiRequest({ url: `${C}/pings/read-all${keepRecords ? "?keepRecords=true" : ""}`, method: "POST" });
 
 // Records of `module` in the current project that are waiting on `userId`'s approval
 export const getPendingApprovalsFor = (module, userId) =>

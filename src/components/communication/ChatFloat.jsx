@@ -8,7 +8,7 @@ import {
 } from "lucide-react";
 import {
   AttachButton, AttachmentPreview, MessageAttachment, ShareDialog, SmartReplies, validateChatFile,
-  PendingApprovalPicker, RecordLink,
+  PendingApprovalPicker, RecordLink, RecordStatusTag,
 } from "@/components/communication/shared";
 import { detectModuleFromPath } from "@/lib/moduleRegistry";
 import { useComm } from "@/context/CommContext";
@@ -25,6 +25,7 @@ import {
   startCall,
   getReceivedPings,
   markAllPingsRead,
+  markPingRead,
   sendApprovalPing,
 } from "@/lib/commApi";
 import { sounds, setOpenConversation } from "@/lib/commSounds";
@@ -49,13 +50,22 @@ function ReceivedPings() {
       .then(r => {
         if (cancelled) return;
         setPings(Array.isArray(r) ? r.slice(0, 10) : []);
-        if (Array.isArray(r) && r.some(p => !p.isRead)) {
-          markAllPingsRead().then(() => refresh()).catch(() => {});
+        // Plain pings count as read once seen; record pings only once their record is opened
+        if (Array.isArray(r) && r.some(p => !p.isRead && !p.contextRecordId)) {
+          markAllPingsRead({ keepRecords: true }).then(() => refresh()).catch(() => {});
         }
       })
       .catch(() => { if (!cancelled) setPings([]); });
     return () => { cancelled = true; };
   }, []);
+
+  const openRecord = (p) => {
+    if (!p.isRead) {
+      setPings(list => list.map(x => x.id === p.id ? { ...x, isRead: true } : x));
+      markPingRead(p.id).then(() => refresh()).catch(() => {});
+    }
+    closePicker();
+  };
 
   if (!pings?.length) return null;
 
@@ -71,8 +81,13 @@ function ReceivedPings() {
               <span className="text-gray-500"> · {p.pingLabel}</span>
             </p>
             {p.contextModule && p.contextRecordId && (
-              <RecordLink module={p.contextModule} id={p.contextRecordId} label={p.contextRecordRef}
-                showModule onNavigate={closePicker} className="text-[11px]" />
+              <div className="flex items-center gap-1.5 flex-wrap">
+                <RecordLink module={p.contextModule} id={p.contextRecordId} label={p.contextRecordRef}
+                  showModule onNavigate={() => openRecord(p)} className="text-[11px]"
+                  status={p.recordStatus} opened={p.isRead} />
+                <RecordStatusTag status={p.recordStatus} opened={p.isRead}
+                  workflowStatus={p.recordWorkflowStatus} />
+              </div>
             )}
             {p.message && <p className="text-[11px] text-gray-500 truncate">{p.message}</p>}
           </div>
