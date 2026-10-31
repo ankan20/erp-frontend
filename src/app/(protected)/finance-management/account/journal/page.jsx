@@ -25,7 +25,6 @@ export default function Page() {
 
   const [data,         setData]         = useState([]);
   const [filteredData, setFilteredData] = useState([]);
-  const [totals,       setTotals]       = useState({ debit: 0, credit: 0 });
   const [loading,      setLoading]      = useState(true);
 
   const projectCode = getLocalStorage("projectInfo")?.projectCode || "";
@@ -43,16 +42,11 @@ export default function Page() {
           _id:            r.id,
           voucherNo:      r.voucherNo      || "",
           date:           getfmtDisplaydate(r.entryDate) || "",
-          totalDebit:     formatAmount(r.totalDebit  || 0),
-          totalCredit:    formatAmount(r.totalCredit || 0),
+          crName:         r.crName || "-",
+          amount:         formatAmount(r.totalCredit  || 0),
           workflowStatus: r.workflowStatus || "",
           _raw:           r,
         }));
-        const list = res.data?.list || [];
-        setTotals({
-          debit:  list.reduce((s, r) => s + Number(r.totalDebit  || 0), 0),
-          credit: list.reduce((s, r) => s + Number(r.totalCredit || 0), 0),
-        });
         setData(rows);
         setFilteredData(rows);
       })
@@ -65,7 +59,7 @@ export default function Page() {
     if (search) {
       const q = search.toLowerCase();
       filtered = filtered.filter((item) =>
-        ["voucherNo", "workflowStatus"].some(
+        ["voucherNo", "workflowStatus", "crName"].some(
           (k) => String(item[k]).toLowerCase().includes(q),
         ),
       );
@@ -87,8 +81,8 @@ export default function Page() {
     { header: "Sl. no",     accessor: "sl",             width: "60px"  },
     { header: "Voucher No", accessor: "voucherNo",      width: "130px" },
     { header: "Date",       accessor: "date",           width: "110px" },
-    { header: "Debit",      accessor: "totalDebit",     width: "120px", align: "right" },
-    { header: "Credit",     accessor: "totalCredit",    width: "120px", align: "right" },
+    { header: "Name",       accessor: "crName",         width: "220px" },
+    { header: "Amount",     accessor: "amount",         width: "120px", align: "right" },
     { header: "Status",     accessor: "workflowStatus", width: "120px" },
   ];
 
@@ -129,24 +123,8 @@ export default function Page() {
             router.push(`/finance-management/account/journal/${row._id}`);
           }}
         pendingDeleteIds={pendingDeleteIds}
+        summaryRow={{ amount: { align: "right" } }}
         />
-
-        {/* Summary cards — totals computed from the fetched list */}
-        <div className="flex flex-col gap-1 pt-1 w-fit">
-          {[
-            { label: "Total Debit",  value: totals.debit  },
-            { label: "Total Credit", value: totals.credit },
-          ].map(({ label, value }) => (
-            <div key={label} className="rounded-sm overflow-hidden border border-gray-200 flex">
-              <div className="bg-[#9590d0] text-white text-[12px] font-medium px-3 py-2 flex items-center w-[140px] shrink-0">
-                {label}
-              </div>
-              <div className="bg-white text-[12px] text-right px-3 py-2 min-w-[80px] sm:min-w-[140px] font-medium text-gray-700 tabular-nums">
-                {formatAmount(value)}
-              </div>
-            </div>
-          ))}
-        </div>
 
       </div>
     </HeaderWrapper>
