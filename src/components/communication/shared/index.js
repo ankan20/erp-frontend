@@ -5,4 +5,6 @@ export { default as AttachmentPreview } from "./AttachmentPreview";
 export { default as MessageAttachment } from "./MessageAttachment";
 export { default as ShareDialog }       from "./ShareDialog";
 export { default as SmartReplies }      from "./SmartReplies";
+export { default as RecordLink }        from "./RecordLink";
+export { default as PendingApprovalPicker } from "./PendingApprovalPicker";
 export { MEDIA_ACCEPT, MAX_FILE_MB, validateChatFile, formatBytes, mediaKind } from "./chatMedia";

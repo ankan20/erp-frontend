@@ -45,6 +45,14 @@ export const getUnreadPingCount = () => apiRequest({ url: `${C}/pings/unread-cou
 export const markPingRead      = (id) => apiRequest({ url: `${C}/pings/${id}/read`, method: "POST" });
 export const markAllPingsRead  = ()   => apiRequest({ url: `${C}/pings/read-all`, method: "POST" });
 
+// Records of `module` in the current project that are waiting on `userId`'s approval
+export const getPendingApprovalsFor = (module, userId) =>
+  apiRequest({ url: `${C}/approval-pings/pending`, params: { module, userId } });
+
+// One ping per record: { receiverId, module, recordIds: [..], message }
+export const sendApprovalPing = ({ receiverId, module, recordIds, message }) =>
+  apiRequest({ url: `${C}/approval-pings`, method: "POST", data: { receiverId, module, recordIds, message } });
+
 // ─── Notifications ─────────────────────────────────────────────────────────
 export const getUnreadNotifications = () => apiRequest({ url: `${C}/notifications`, params: { unreadOnly: "true" } });
 export const markNotifRead          = (id) => apiRequest({ url: `${C}/notifications/${id}/read`, method: "POST" });

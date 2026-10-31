@@ -3,15 +3,42 @@
 import { createContext, useContext, useState, useEffect, useRef, useCallback } from "react";
 import { getCookie } from "@/lib/cookies";
 import { sounds, getOpenConversation } from "@/lib/commSounds";
+import { getRecordRoute, moduleLabel } from "@/lib/moduleRegistry";
+import { useRouter } from "next/navigation";
+import { toast } from "sonner";
 import {
   getConversations,
   getUnreadNotifications,
   getUnreadPingCount,
   getIncomingCalls,
   sendHeartbeat,
+  getReceivedPings,
+  markPingRead,
 } from "@/lib/commApi";
 
 const CommContext = createContext(null);
+
+// Pop-up for a new ping on whatever page the user is on; approval pings get an
+// "Open" button that jumps straight to the record.
+async function showLatestPingToast(router) {
+  try {
+    const list = await getReceivedPings(true);
+    const p = Array.isArray(list) ? list[0] : null;
+    if (!p) return;
+    const href   = getRecordRoute(p.contextModule, p.contextRecordId);
+    const record = p.contextRecordRef ? `${moduleLabel(p.contextModule)} ${p.contextRecordRef}` : null;
+    toast(`${p.pingLabel} from ${p.senderName || "Someone"}`, {
+      description: [record, p.message].filter(Boolean).join(" — ") || undefined,
+      duration: 10000,
+      ...(href ? {
+        action: {
+          label: "Open",
+          onClick: () => { markPingRead(p.id).catch(() => {}); router.push(href); },
+        },
+      } : {}),
+    });
+  } catch {}
+}
 
 export function CommProvider({ children }) {
   const [conversations,      setConversations]      = useState([]);
@@ -26,6 +53,8 @@ export function CommProvider({ children }) {
   // null until the first poll, so existing unread items don't make a sound on page load
   const prevUnreadMsgs  = useRef(null);
   const prevUnreadPings = useRef(null);
+
+  const router = useRouter();
 
   const myId = () => {
     try { return Number(getCookie("userId")) || null; } catch { return null; }
@@ -57,7 +86,10 @@ export function CommProvider({ children }) {
 
       if (pingRes.status === "fulfilled") {
         const pings = pingRes.value?.count ?? 0;
-        if (prevUnreadPings.current !== null && pings > prevUnreadPings.current) sounds.pingReceived();
+        if (prevUnreadPings.current !== null && pings > prevUnreadPings.current) {
+          sounds.pingReceived();
+          showLatestPingToast(router);
+        }
         prevUnreadPings.current = pings;
         setUnreadPingCount(pings);
       }
@@ -78,7 +110,7 @@ export function CommProvider({ children }) {
     } catch {
       // silently ignore — user may not be logged in yet
     }
-  }, [activeCall]);
+  }, [activeCall, router]);
 
   useEffect(() => {
     refresh();

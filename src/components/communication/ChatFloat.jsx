@@ -1,13 +1,16 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
+import { usePathname } from "next/navigation";
 import {
   X, ChevronLeft, Send, Search, MessageCircle,
   Phone, Zap, Loader2, PhoneCall, Video, Users, CornerUpLeft, Forward,
 } from "lucide-react";
 import {
   AttachButton, AttachmentPreview, MessageAttachment, ShareDialog, SmartReplies, validateChatFile,
+  PendingApprovalPicker, RecordLink,
 } from "@/components/communication/shared";
+import { detectModuleFromPath } from "@/lib/moduleRegistry";
 import { useComm } from "@/context/CommContext";
 import {
   getDirectory,
@@ -22,6 +25,7 @@ import {
   startCall,
   getReceivedPings,
   markAllPingsRead,
+  sendApprovalPing,
 } from "@/lib/commApi";
 import { sounds, setOpenConversation } from "@/lib/commSounds";
 
@@ -36,7 +40,7 @@ const PING_TYPES = [
 
 // ── Pings I received (opening this list marks them read) ─────────────────────
 function ReceivedPings() {
-  const { refresh } = useComm();
+  const { refresh, closePicker } = useComm();
   const [pings, setPings] = useState(null);
 
   useEffect(() => {
@@ -44,7 +48,7 @@ function ReceivedPings() {
     getReceivedPings()
       .then(r => {
         if (cancelled) return;
-        setPings(Array.isArray(r) ? r.slice(0, 5) : []);
+        setPings(Array.isArray(r) ? r.slice(0, 10) : []);
         if (Array.isArray(r) && r.some(p => !p.isRead)) {
           markAllPingsRead().then(() => refresh()).catch(() => {});
         }
@@ -66,6 +70,10 @@ function ReceivedPings() {
               <span className="font-semibold">{p.senderName || "Someone"}</span>
               <span className="text-gray-500"> · {p.pingLabel}</span>
             </p>
+            {p.contextModule && p.contextRecordId && (
+              <RecordLink module={p.contextModule} id={p.contextRecordId} label={p.contextRecordRef}
+                showModule onNavigate={closePicker} className="text-[11px]" />
+            )}
             {p.message && <p className="text-[11px] text-gray-500 truncate">{p.message}</p>}
           </div>
           <span className="text-[10px] text-gray-400 shrink-0">{p.createdAt?.slice(11, 16)}</span>
@@ -495,17 +503,39 @@ function ReplyQuote({ reply, mine }) {
 
 // ── Ping type picker ─────────────────────────────────────────────────────────
 function PingTypePicker({ target, onBack }) {
-  const [sending, setSending] = useState(false);
-  const [sent,    setSent]    = useState(false);
-  const [msg,     setMsg]     = useState("");
+  const pathname = usePathname();
+  const [sending,  setSending]  = useState(false);
+  const [sent,     setSent]     = useState(null); // null | number of pings sent
+  const [msg,      setMsg]      = useState("");
+  const [error,    setError]    = useState(null);
+  const [approval, setApproval] = useState(false);
+  const [module,   setModule]   = useState(() => detectModuleFromPath(pathname) || "");
+  const [recordIds, setRecordIds] = useState([]);
 
   const handle = async (pingType) => {
+    if (pingType === "approval_request") { setApproval(true); return; }
     setSending(true);
+    setError(null);
     try {
       await sendPing(target.userId, pingType, msg || undefined);
       sounds.pingSent();
-      setSent(true);
-    } catch {
+      setSent(1);
+    } catch (e) {
+      setError(e?.message || "Could not send ping");
+      setSending(false);
+    }
+  };
+
+  const sendApproval = async () => {
+    if (!module || !recordIds.length) return;
+    setSending(true);
+    setError(null);
+    try {
+      const r = await sendApprovalPing({ receiverId: target.userId, module, recordIds, message: msg || undefined });
+      sounds.pingSent();
+      setSent(r?.sent?.length || recordIds.length);
+    } catch (e) {
+      setError(e?.message || "Could not send approval request");
       setSending(false);
     }
   };
@@ -515,8 +545,45 @@ function PingTypePicker({ target, onBack }) {
       <div className="w-12 h-12 rounded-full bg-amber-100 flex items-center justify-center">
         <Zap size={22} className="text-amber-500" />
       </div>
-      <p className="text-sm font-semibold">Ping sent to {target.name}!</p>
+      <p className="text-sm font-semibold">
+        {approval ? `${sent} approval ping${sent > 1 ? "s" : ""} sent to ${target.name}!` : `Ping sent to ${target.name}!`}
+      </p>
       <button onClick={onBack} className="text-xs text-[#003b8e] underline mt-2">Back</button>
+    </div>
+  );
+
+  if (approval) return (
+    <div className="flex flex-col h-full">
+      <div className="flex items-center gap-2 px-3 py-2.5 border-b border-gray-200 bg-[#fffbf0]">
+        <button onClick={() => { setApproval(false); setError(null); }} className="p-1 rounded hover:bg-gray-200 transition">
+          <ChevronLeft size={16} />
+        </button>
+        <Zap size={14} className="text-orange-500" />
+        <span className="text-sm font-semibold truncate">Approval request · {target.name}</span>
+      </div>
+
+      <div className="flex-1 overflow-y-auto p-3 space-y-3">
+        <p className="text-xs text-gray-500">Records waiting on {target.name}&apos;s approval in this project:</p>
+        <PendingApprovalPicker
+          userId={target.userId}
+          module={module}
+          onModuleChange={setModule}
+          selected={recordIds}
+          onSelectedChange={setRecordIds}
+        />
+        <textarea value={msg} onChange={e => setMsg(e.target.value)} rows={2} placeholder="Add a note (optional)…"
+          className="w-full resize-none rounded-lg border border-gray-200 px-3 py-2 text-sm outline-none focus:border-amber-400" />
+        {error && <p className="text-xs text-red-500">{error}</p>}
+      </div>
+
+      <div className="p-3 border-t border-gray-200">
+        <button onClick={sendApproval} disabled={sending || !module || !recordIds.length}
+          className="w-full flex items-center justify-center gap-2 py-2 rounded-xl bg-orange-500 text-white text-sm font-semibold
+            hover:bg-orange-600 transition disabled:opacity-40">
+          {sending ? <Loader2 size={15} className="animate-spin" /> : <Zap size={15} />}
+          {recordIds.length ? `Send ${recordIds.length} approval ping${recordIds.length > 1 ? "s" : ""}` : "Select records"}
+        </button>
+      </div>
     </div>
   );
 
@@ -554,6 +621,7 @@ function PingTypePicker({ target, onBack }) {
             placeholder="Add a note…"
             className="w-full resize-none rounded-lg border border-gray-200 px-3 py-2 text-sm outline-none focus:border-amber-400"
           />
+          {error && <p className="text-xs text-red-500 mt-1">{error}</p>}
         </div>
       </div>
     </div>
