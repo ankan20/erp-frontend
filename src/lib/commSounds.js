@@ -10,23 +10,34 @@ function getCtx() {
     if (!AC) return null;
     ctx = new AC();
   }
-  if (ctx.state === "suspended") ctx.resume().catch(() => {});
   return ctx;
 }
 
 if (typeof window !== "undefined") {
+  const EVENTS = ["pointerdown", "mousedown", "touchstart", "keydown", "click"];
   const unlock = () => {
-    getCtx();
-    window.removeEventListener("pointerdown", unlock);
-    window.removeEventListener("keydown", unlock);
+    const c = getCtx();
+    if (!c) return;
+    c.resume().then(() => {
+      if (c.state === "running") EVENTS.forEach(e => window.removeEventListener(e, unlock, true));
+    }).catch(() => {});
   };
-  window.addEventListener("pointerdown", unlock);
-  window.addEventListener("keydown", unlock);
+  EVENTS.forEach(e => window.addEventListener(e, unlock, true));
 }
 
-function tone(freq, start, dur, { type = "sine", gain = 0.15 } = {}) {
+// Plays now if audio is unlocked; otherwise waits for the first click instead of dropping the sound
+function play(fn) {
   const c = getCtx();
-  if (!c || c.state !== "running") return;
+  if (!c) return;
+  if (c.state === "running") { fn(c); return; }
+  c.resume().then(() => { if (c.state === "running") fn(c); }).catch(() => {});
+}
+
+function tone(freq, start, dur, opts) {
+  play((c) => scheduleTone(c, freq, start, dur, opts));
+}
+
+function scheduleTone(c, freq, start, dur, { type = "sine", gain = 0.15 } = {}) {
   const t0  = c.currentTime + start;
   const osc = c.createOscillator();
   const g   = c.createGain();
@@ -89,3 +100,8 @@ export function stopRingtone() {
 let openConversationId = null;
 export const setOpenConversation = (id) => { openConversationId = id ?? null; };
 export const getOpenConversation = () => openConversationId;
+
+// Lets you test from the browser console: commSounds.messageReceived()
+if (typeof window !== "undefined") {
+  window.commSounds = { ...sounds, startRingtone, stopRingtone, state: () => ctx?.state ?? "not created" };
+}
