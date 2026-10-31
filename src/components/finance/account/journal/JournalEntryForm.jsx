@@ -31,8 +31,8 @@ import { zodDate }         from "@/lib/dateUtils";
 
 const MODES = [
   { value: "new_voucher", label: "New Voucher",  prefix: "JV" },
-  { value: "bulk_docket", label: "Bulk Docket",  prefix: "BD" },
-  { value: "adjustment",  label: "Adjustment",   prefix: "JE" },
+  { value: "bulk_docket", label: "Bulk Docket",  prefix: "JB" },
+  { value: "adjustment",  label: "Adjustment",   prefix: "JA" },
 ];
 
 // ─── Schema ───────────────────────────────────────────────────────────────────
