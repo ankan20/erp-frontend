@@ -1,5 +1,6 @@
 import { APP_FONT, APP_FONT_MONO, HEADING_FONT } from "@/config/fonts.config";
 import { Toaster } from "@/components/ui/sonner";
+import CommRoot from "@/components/communication/CommRoot";
 import "./globals.css";
 
 export const metadata = {
@@ -14,7 +15,7 @@ export default function RootLayout({ children }) {
       className={`${APP_FONT.variable} ${APP_FONT_MONO.variable} ${HEADING_FONT.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col">
-      {children}
+      <CommRoot>{children}</CommRoot>
       <Toaster richColors position="top-center" />
       </body>
     </html>

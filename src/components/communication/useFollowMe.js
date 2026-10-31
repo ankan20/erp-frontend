@@ -1,15 +1,16 @@
 "use client";
 
-// "Follow me" inside a call: one person (follower) asks to follow another
-// (leader); once the leader allows it, every page the leader opens is opened
-// for the follower too — but only if the follower is allowed to see that page.
+// Page sync inside a call. Two ways to start it, both need the other side's OK:
+//   Follow     — "I want to follow YOUR page"   (I become the follower)
+//   Share page — "Please follow MY page"         (they become the follower)
+// While linked, every page the leader opens is opened for the follower too —
+// but only if the follower is allowed to see that page (see canOpenRoute).
 //
-// Messages travel over the call's signal channel:
-//   follow_req  follower → leader   "can I follow you?"
-//   follow_ok   leader   → follower "yes" (followed by a nav)
-//   follow_no   leader   → follower "no"
-//   follow_stop either way          stop following / stop being followed
-//   nav         leader   → follower { path, title }
+// Signals (over the call's signal channel):
+//   follow_req / follow_ok / follow_no   asking to follow someone
+//   lead_req   / lead_ok   / lead_no     asking someone to follow me
+//   follow_stop                          either side ends the link
+//   nav { path, title }                  leader → followers on every page change
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import { sendSignal } from "@/lib/commApi";
@@ -19,12 +20,12 @@ export function useFollowMe({ callId, peers }) {
   const router   = useRouter();
   const pathname = usePathname();
 
-  const [followers,   setFollowers]   = useState([]);    // user ids following me
-  const [following,   setFollowing]   = useState(null);  // user id I follow
-  const [requestFrom, setRequestFrom] = useState([]);    // user ids asking to follow me
-  const [pendingTo,   setPendingTo]   = useState(null);  // user id I asked
-  const [notice,      setNotice]      = useState(null);  // { text, tone: "info" | "warn" }
-  const [leaderPage,  setLeaderPage]  = useState(null);  // title of the page the leader is on
+  const [followers,  setFollowers]  = useState([]);    // user ids following me
+  const [following,  setFollowing]  = useState(null);  // user id I follow
+  const [requests,   setRequests]   = useState([]);    // [{ uid, kind: "follow" | "lead" }] waiting for my answer
+  const [pending,    setPending]    = useState(null);  // { uid, kind } I asked, waiting for theirs
+  const [notice,     setNotice]     = useState(null);  // { text, tone: "info" | "warn" }
+  const [leaderPage, setLeaderPage] = useState(null);  // title of the page the leader is on
 
   const followingRef = useRef(null);
   useEffect(() => { followingRef.current = following; });
@@ -38,25 +39,40 @@ export function useFollowMe({ callId, peers }) {
     return { path, title: findRouteInfo(path)?.title || null };
   };
 
+  const addRequest = (uid, kind) =>
+    setRequests(list => list.some(r => r.uid === uid && r.kind === kind) ? list : [...list, { uid, kind }]);
+  const removeRequest = (uid, kind) =>
+    setRequests(list => list.filter(r => !(r.uid === uid && (!kind || r.kind === kind))));
+  const addFollower = (uid) => setFollowers(list => list.includes(uid) ? list : [...list, uid]);
+
   // Called by the call hook for every signal it doesn't handle itself
   const handleSignal = useCallback((s) => {
     const uid = Number(s.senderId);
     switch (s.signalType) {
-      case "follow_req":
-        setRequestFrom(list => list.includes(uid) ? list : [...list, uid]);
+      case "follow_req":                       // they want to follow me
+        addRequest(uid, "follow");
         return true;
-      case "follow_ok":
-        setPendingTo(null);
+      case "lead_req":                         // they want me to follow them
+        addRequest(uid, "lead");
+        return true;
+      case "follow_ok":                        // I may follow them now
+        setPending(null);
         setFollowing(uid);
         setNotice({ text: `Now following ${nameOf(uid)}'s page`, tone: "info" });
         return true;
+      case "lead_ok":                          // they agreed to follow me
+        setPending(null);
+        addFollower(uid);                      // the nav effect sends my current page
+        setNotice({ text: `${nameOf(uid)} is now following your page`, tone: "info" });
+        return true;
       case "follow_no":
-        setPendingTo(null);
+      case "lead_no":
+        setPending(null);
         setNotice({ text: `${nameOf(uid)} declined`, tone: "warn" });
         return true;
       case "follow_stop":
         setFollowers(list => list.filter(x => x !== uid));
-        setRequestFrom(list => list.filter(x => x !== uid));
+        removeRequest(uid);
         if (followingRef.current === uid) {
           setFollowing(null);
           setLeaderPage(null);
@@ -83,7 +99,7 @@ export function useFollowMe({ callId, peers }) {
     }
   }, [nameOf, router]);
 
-  // Leader: send every page change to the followers
+  // Leader: send every page change (and the current page to new followers)
   const liveFollowers = followers.filter(uid => peers[uid]);
   const followersKey  = liveFollowers.join(",");
   useEffect(() => {
@@ -92,47 +108,67 @@ export function useFollowMe({ callId, peers }) {
     followersKey.split(",").forEach(uid => send(Number(uid), "nav", page));
   }, [pathname, followersKey, send]);
 
-  const askToFollow = (uid) => {
-    if (following) send(following, "follow_stop");
+  const stopFollowingSilently = () => {
+    if (followingRef.current) send(followingRef.current, "follow_stop");
     setFollowing(null);
-    setPendingTo(uid);
+    setLeaderPage(null);
+  };
+
+  // I ask to follow them
+  const askToFollow = (uid) => {
+    stopFollowingSilently();
+    setPending({ uid, kind: "follow" });
     setNotice({ text: `Asked ${nameOf(uid)} to share their page…`, tone: "info" });
     send(uid, "follow_req");
   };
 
+  // I ask them to follow me
+  const sharePageWith = (uid) => {
+    setPending({ uid, kind: "lead" });
+    setNotice({ text: `Asked ${nameOf(uid)} to follow your page…`, tone: "info" });
+    send(uid, "lead_req");
+  };
+
   const stopFollowing = () => {
-    if (following) send(following, "follow_stop");
-    setFollowing(null);
-    setLeaderPage(null);
+    stopFollowingSilently();
     setNotice(null);
   };
 
-  const allow = (uid) => {
-    setRequestFrom(list => list.filter(x => x !== uid));
-    setFollowers(list => list.includes(uid) ? list : [...list, uid]);
-    send(uid, "follow_ok");     // the nav effect sends our current page right after
+  // Stop one follower, or all of them
+  const stopLeading = (uid) => {
+    const who = uid ? [uid] : liveFollowers;
+    who.forEach(x => send(x, "follow_stop"));
+    setFollowers(list => list.filter(x => !who.includes(x)));
   };
 
-  const decline = (uid) => {
-    setRequestFrom(list => list.filter(x => x !== uid));
-    send(uid, "follow_no");
+  const accept = ({ uid, kind }) => {
+    removeRequest(uid, kind);
+    if (kind === "follow") {
+      addFollower(uid);
+      send(uid, "follow_ok");
+    } else {
+      stopFollowingSilently();
+      setFollowing(uid);
+      setNotice({ text: `Now following ${nameOf(uid)}'s page`, tone: "info" });
+      send(uid, "lead_ok");
+    }
   };
 
-  const stopLeading = () => {
-    liveFollowers.forEach(uid => send(uid, "follow_stop"));
-    setFollowers([]);
+  const decline = ({ uid, kind }) => {
+    removeRequest(uid, kind);
+    send(uid, kind === "follow" ? "follow_no" : "lead_no");
   };
 
   return {
     handleSignal,
     following: following && peers[following] ? following : null,
     followers: liveFollowers,
-    requests:  requestFrom.filter(uid => peers[uid]),
-    pendingTo,
+    requests:  requests.filter(r => peers[r.uid]),
+    pending,
     notice,
     leaderPage,
     nameOf,
-    askToFollow, stopFollowing, allow, decline, stopLeading,
+    askToFollow, sharePageWith, stopFollowing, stopLeading, accept, decline,
     dismissNotice: () => setNotice(null),
   };
 }
