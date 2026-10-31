@@ -395,7 +395,7 @@ export default function OGSaleOrderPrintPage() {
 
       <div className="bg-gray-100 py-6 px-3 print:p-0 print:bg-white">
         <div
-          className="bg-white max-w-[960px] mx-auto shadow-md print:shadow-none print:max-w-none"
+          className="bg-white max-w-[1200px] mx-auto shadow-md print:shadow-none print:max-w-none"
           style={{ fontFamily: "var(--font-print), sans-serif" }}
         >
 
@@ -570,7 +570,7 @@ export default function OGSaleOrderPrintPage() {
 
       <style>{`
         @page {
-          size: A4;
+          size: A4 landscape;
           margin: 8mm 8mm 12mm 8mm;
           @bottom-center {
             content: counter(page, decimal-leading-zero) " of " counter(pages, decimal-leading-zero);
