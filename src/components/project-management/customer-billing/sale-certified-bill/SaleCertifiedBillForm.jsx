@@ -49,8 +49,8 @@ const CERT_COLS = [
   { id: "amtGrp",  label: "Amount",                   thClass: "text-center", colSpan: 2, groupBg: "bg-[#1a4d2e]" },
   { id: "gstPct",  label: "GST % ✎",                  thClass: "w-[72px] text-center" },
 ];
-// total leaf cols = 7 fixed + 4 + 2 + 1 = 14
-const CERT_TOTAL_COLS = 14;
+// total leaf cols = 7 fixed + 3 qty + 3 amt = 12 (gstPct + gstAmt removed)
+const CERT_TOTAL_COLS = 12;
 
 // View table group-level columns (certQtyGrp / certAmtGrp each expand to 3 sub-columns)
 const CERT_VIEW_COLS = [
@@ -61,8 +61,6 @@ const CERT_VIEW_COLS = [
   { id: "rate",        label: "Rate",                    thClass: "w-[90px] text-center" },
   { id: "unit",        label: "Unit",                    thClass: "w-[65px] text-center" },
   { id: "certQtyGrp",  label: "Certified Quantity",      thClass: "text-center", colSpan: 3, groupBg: "bg-[#25507a]" },
-  { id: "gstPct",      label: "GST %",                   thClass: "w-[65px] text-center" },
-  { id: "gstAmt",      label: "GST Amount",              thClass: "w-[100px] text-center" },
   { id: "certAmtGrp",  label: "Certified Amount",        thClass: "text-center", colSpan: 3, groupBg: "bg-[#1a4d2e]" },
 ];
 
@@ -1166,9 +1164,9 @@ export default function SaleCertifiedBillForm({ mode = "create", billId, onAfter
                         case "sl":       return <td key={colId} className="border border-[#9ec5e0]" />;
                         case "itemCode": return <td key={colId} className="border border-[#9ec5e0]" />;
                         case "itemName": return <td key={colId} className="border border-[#9ec5e0] px-2 text-right text-[#1c3a5e]">TOTAL</td>;
-                        case "orderQty": return <td key={colId} className="border border-[#9ec5e0] px-2 text-right whitespace-nowrap">{formatQtyDisplay(vtotOrderQty)}</td>;
+                        case "orderQty": return <td key={colId} className="border border-[#9ec5e0] px-2 text-right whitespace-nowrap">{formatAmount(watchedItems.reduce((s,it)=>s+Number(it?.orderQty||0)*Number(it?.rate||0),0))}</td>;
                         case "unit":     return <td key={colId} className="border border-[#9ec5e0]" />;
-                        case "rate":     return <td key={colId} className="border border-[#9ec5e0] px-2 text-right whitespace-nowrap">{formatAmount(watchedItems.reduce((s,it)=>s+Number(it?.orderQty||0)*Number(it?.rate||0),0))}</td>;
+                        case "rate":     return <td key={colId} className="border border-[#9ec5e0]" />;
                         case "certQtyGrp": return (
                           <React.Fragment key={colId}>
                             <td className="border border-[#9ec5e0]" />
@@ -1176,8 +1174,6 @@ export default function SaleCertifiedBillForm({ mode = "create", billId, onAfter
                             <td className="border border-[#9ec5e0]" />
                           </React.Fragment>
                         );
-                        case "gstPct": return <td key={colId} className="border border-[#9ec5e0]" />;
-                        case "gstAmt": return <td key={colId} className="border border-[#9ec5e0] px-2 text-right whitespace-nowrap">{formatAmount(vtotGstAmt)}</td>;
                         case "certAmtGrp": return (
                           <React.Fragment key={colId}>
                             <td className="border border-[#9ec5e0] px-2 text-right whitespace-nowrap">{formatAmount(vtotPrevAmt)}</td>
