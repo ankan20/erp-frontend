@@ -91,31 +91,35 @@ async function downloadDocx(data, uuid, qrCanvasRef) {
 
   const lines    = (data.lines || []).slice().sort((a, b) => a.slNo - b.slNo);
   const totalAmt = lines.reduce((s, l) => s + Number(l.amount || 0), 0);
-  const cW = [0.05, 0.12, 0.33, 0.20, 0.30].map((p) => Math.round(PAGE_W * p));
-  cW[3] += PAGE_W - cW.reduce((a, b) => a + b, 0);
+  const cW = [0.05, 0.12, 0.53, 0.30].map((p) => Math.round(PAGE_W * p));
+  cW[2] += PAGE_W - cW.reduce((a, b) => a + b, 0);
 
   const tCell  = (content, w, bold = false, shading, align = "left") =>
     new TableCell({ children: [new Paragraph({ alignment: align, children: [run(String(content ?? ""), { bold, size: bold ? 20 : 18 })] })], width: { size: w, type: WidthType.DXA }, shading: shading || undefined, margins: { top: 50, bottom: 50, left: 70, right: 70 } });
   const numCell = (val, w, bold = false, shading) => tCell(fmt.number(val), w, bold, shading, "right");
+  const nameDescCell = (name, desc, w) =>
+    new TableCell({ children: [
+      new Paragraph({ children: [run(name || "—", { size: 18 })] }),
+      ...(desc ? [new Paragraph({ children: [run(desc, { size: 16, color: "9CA3AF" })] })] : []),
+    ], width: { size: w, type: WidthType.DXA }, margins: { top: 50, bottom: 50, left: 70, right: 70 } });
 
   const mainTable = new Table({
     columnWidths: cW,
     width: { size: PAGE_W, type: WidthType.DXA },
     borders: tblBorders,
     rows: [
-      new TableRow({ tableHeader: true, children: ["Sl.", "CC Code", "CC Name", "Description", "Amount (₹)"].map((h, i) => tCell(h, cW[i], true, headShading, "center")) }),
+      new TableRow({ tableHeader: true, children: ["Sl.", "CC Code", "CC Name & Description", "Amount (₹)"].map((h, i) => tCell(h, cW[i], true, headShading, "center")) }),
       ...lines.map((l, idx) => new TableRow({ children: [
         tCell(String(l.slNo || idx + 1), cW[0], false, undefined, "center"),
         tCell(l.ccCode || "—",           cW[1], false, undefined, "center"),
-        tCell(l.ccName || "—",           cW[2]),
-        tCell(l.shortDescription || "—", cW[3]),
-        numCell(l.amount, cW[4]),
+        nameDescCell(l.ccName, l.shortDescription, cW[2]),
+        numCell(l.amount, cW[3]),
       ]})),
       new TableRow({ children: [
-        new TableCell({ children: [new Paragraph({ alignment: "right", children: [run("TOTAL", { bold: true })] })], columnSpan: 4, width: { size: cW[0]+cW[1]+cW[2]+cW[3], type: WidthType.DXA }, shading: totShading, margins: { top: 50, bottom: 50, left: 70, right: 70 } }),
-        numCell(totalAmt, cW[4], true, totShading),
+        new TableCell({ children: [new Paragraph({ alignment: "right", children: [run("TOTAL", { bold: true })] })], columnSpan: 3, width: { size: cW[0]+cW[1]+cW[2], type: WidthType.DXA }, shading: totShading, margins: { top: 50, bottom: 50, left: 70, right: 70 } }),
+        numCell(totalAmt, cW[3], true, totShading),
       ]}),
-      new TableRow({ children: [new TableCell({ children: [new Paragraph({ children: [run("Amount in Words: ", { bold: true }), run(amountToWordsIN(totalAmt), { italic: true })] })], columnSpan: 5, width: { size: PAGE_W, type: WidthType.DXA }, borders: { left: tblBorder, right: tblBorder, top: noB, bottom: tblBorder }, margins: { top: 50, bottom: 50, left: 80, right: 80 } })] }),
+      new TableRow({ children: [new TableCell({ children: [new Paragraph({ children: [run("Amount in Words: ", { bold: true }), run(amountToWordsIN(totalAmt), { italic: true })] })], columnSpan: 4, width: { size: PAGE_W, type: WidthType.DXA }, borders: { left: tblBorder, right: tblBorder, top: noB, bottom: tblBorder }, margins: { top: 50, bottom: 50, left: 80, right: 80 } })] }),
     ],
   });
 
@@ -204,15 +208,17 @@ export default function JournalVoucherPrintPage() {
           {/* ── INFO ── */}
           <div className="grid px-6 pb-3" style={{ gridTemplateColumns: "50% 50%" }}>
             <div className="space-y-0.5">
+              <InfoRow label="Project"      value={data.projectCode} />
               <InfoRow label="Voucher No"   value={data.voucherNo} />
               <InfoRow label="Voucher Date" value={fmt.date(data.voucherDate)} />
-              <InfoRow label="Fund Source"  value={data.fundSource === "Bank/UPI" ? "Bank / UPI" : data.fundSource} />
-              <InfoRow label="Status"       value={data.workflowStatus} />
+              
+              
             </div>
             <div className="space-y-0.5 pl-6">
-              <InfoRow label="Project"      value={data.projectCode} />
               <InfoRow label="Total Amount" value={`₹ ${fmt.number(data.totalAmount || totalAmt)}`} />
+              <InfoRow label="Fund Source"  value={data.fundSource === "Bank/UPI" ? "Bank / UPI" : data.fundSource} />
               <InfoRow label="Created By"   value={data.createdBy} />
+              <InfoRow label="Status"       value={data.workflowStatus} />
             </div>
           </div>
 
@@ -223,14 +229,13 @@ export default function JournalVoucherPrintPage() {
                 <colgroup>
                   <col style={{ width: "5%"  }} />
                   <col style={{ width: "12%" }} />
-                  <col style={{ width: "28%" }} />
-                  <col style={{ width: "25%" }} />
+                  <col style={{ width: "53%" }} />
                   <col style={{ width: "30%" }} />
                 </colgroup>
                 <thead>
                   <tr className={COLOR.tableHeadBg}>
-                    {["Sl.", "CC Code", "CC Name", "Description", "Amount (₹)"].map((h) => (
-                      <th key={h} className={`${B} px-2 py-1.5 text-center ${SIZE.tableHead} ${WEIGHT.bold} text-gray-900`}>{h}</th>
+                    {["Sl.", "CC Code", "CC Name & Description", "Amount (₹)"].map((h) => (
+                      <th key={h} className={`${B} px-2 py-1.5 ${h === "CC Name & Description" ? "text-left" : "text-center"} ${SIZE.tableHead} ${WEIGHT.bold} text-gray-900`}>{h}</th>
                     ))}
                   </tr>
                 </thead>
@@ -239,21 +244,23 @@ export default function JournalVoucherPrintPage() {
                     <tr key={idx} className={idx % 2 === 0 ? "bg-white" : "bg-gray-50"}>
                       <td className={`${B} px-2 py-2 ${SIZE.tableCell} text-center text-gray-500`}>{l.slNo || idx + 1}</td>
                       <td className={`${B} px-2 py-2 ${SIZE.tableCell} text-center ${WEIGHT.medium}`}>{l.ccCode || "—"}</td>
-                      <td className={`${B} px-2 py-2 ${SIZE.tableCell}`} style={{ wordBreak: "break-word" }}>{l.ccName || "—"}</td>
-                      <td className={`${B} px-2 py-2 ${SIZE.tableCell} text-gray-500`} style={{ wordBreak: "break-word" }}>{l.shortDescription || "—"}</td>
+                      <td className={`${B} px-2 py-2 ${SIZE.tableCell}`} style={{ wordBreak: "break-word" }}>
+                        <div className={WEIGHT.medium}>{l.ccName || "—"}</div>
+                        {l.shortDescription && <div className="text-gray-400 text-[11px] mt-0.5">{l.shortDescription}</div>}
+                      </td>
                       <td className={`${B} px-2 py-2 ${SIZE.tableCell} text-right tabular-nums`} style={{ whiteSpace: "nowrap" }}>
                         <FmtNum value={l.amount} />
                       </td>
                     </tr>
                   ))}
                   <tr className={`${COLOR.tableHeadBg} ${WEIGHT.bold}`}>
-                    <td colSpan={4} className={`${B} px-3 py-1.5 ${SIZE.tableCell} text-right`}>TOTAL</td>
+                    <td colSpan={3} className={`${B} px-3 py-1.5 ${SIZE.tableCell} text-right`}>TOTAL</td>
                     <td className={`${B} px-2 py-1.5 ${SIZE.tableCell} text-right tabular-nums`} style={{ whiteSpace: "nowrap" }}>
                       <FmtNum value={totalAmt} />
                     </td>
                   </tr>
                   <tr>
-                    <td colSpan={5} style={{ borderLeft: "1px solid #b0b0b0", borderRight: "1px solid #b0b0b0", borderBottom: "1px solid #b0b0b0", borderTop: "none", padding: "5px 10px" }} className={SIZE.labelText}>
+                    <td colSpan={4} style={{ borderLeft: "1px solid #b0b0b0", borderRight: "1px solid #b0b0b0", borderBottom: "1px solid #b0b0b0", borderTop: "none", padding: "5px 10px" }} className={SIZE.labelText}>
                       <span className={WEIGHT.bold}>Amount in Words: </span>
                       {totalAmt > 0 ? amountToWordsIN(totalAmt) : "—"}
                     </td>
