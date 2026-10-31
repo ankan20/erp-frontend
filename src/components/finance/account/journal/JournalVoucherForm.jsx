@@ -728,7 +728,7 @@ export default function JournalVoucherForm({ mode = "create", voucherId, onUuid,
                   ? fundSource
                     ? `Available Dockets — ${FUND_OPTIONS.find((o) => o.value === fundSource)?.label ?? fundSource}`
                     : "Select Fund Source to load dockets"
-                  : "Journal Voucher Lines"}
+                  : "Expenses Details"}
               </span>
               {isEditing && fundSource === "Cash" && (
                 <span className="text-[11px] font-normal text-gray-500">Select items — same CC code only</span>
