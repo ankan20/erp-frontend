@@ -63,7 +63,7 @@ const gstLineSchema = z.object({
 const schema = z.object({
   mode: z.string().min(1, "Mode is required"),
   certifiedBillId: z.coerce.number().min(1, "Certified Bill is required"),
-  ogSaleOrderNo: z.string().min(1, "Sale Order is required"),
+  erpDocNumber: z.string().min(1, "Sale Order is required"),
   saleOrderDate: zodDate(z, "saleOrderDate"),
   invoiceDate: zodDate(z, "invoiceDate", true),
   referenceNo: z.string().optional().default(""),
@@ -84,7 +84,7 @@ const schema = z.object({
 const DEFAULT_VALUES = {
   mode: "",
   certifiedBillId: null,
-  ogSaleOrderNo: "",
+  erpDocNumber: "",
   saleOrderDate: "",
   invoiceDate: "",
   referenceNo: "",
@@ -162,7 +162,7 @@ export default function SaleBillForm({
       .then((res) => {
         const orders = (Array.isArray(res.data) ? res.data : []).map((o) => ({
           ...o,
-          displayLabel: o.orderTitle ? `${o.ogSaleOrderNo} — ${o.orderTitle}` : o.ogSaleOrderNo,
+          displayLabel: o.orderTitle ? `${o.erpDocNumber} — ${o.orderTitle}` : o.erpDocNumber,
         }));
         setSaleOrderOpts(orders);
       })
@@ -184,9 +184,9 @@ export default function SaleBillForm({
   useEffect(() => {
     if (!saleOrderOpts.length || !initialData || mode === "create") return;
     if (getValues("saleOrderDate")) return; // already populated
-    const currentOrderNo = getValues("ogSaleOrderNo");
+    const currentOrderNo = getValues("erpDocNumber");
     if (!currentOrderNo) return;
-    const order = saleOrderOpts.find((o) => o.ogSaleOrderNo === currentOrderNo);
+    const order = saleOrderOpts.find((o) => o.erpDocNumber === currentOrderNo);
     if (order?.ogSaleOrderDate) {
       setValue("saleOrderDate", order.ogSaleOrderDate, { shouldDirty: false });
     }
@@ -194,15 +194,15 @@ export default function SaleBillForm({
 
   // ── Fetch Certified Bills for a Sale Order ─────────────────────────────────
   const fetchCertifiedBills = useCallback(
-    async (ogSaleOrderNo) => {
-      if (!ogSaleOrderNo || !projectCode) {
+    async (erpDocNumber) => {
+      if (!erpDocNumber || !projectCode) {
         setCertifiedBillOpts([]);
         return;
       }
       setCertifiedBillsLoading(true);
       try {
         const res = await apiRequest({
-          url: `${API_ENDPOINTS.FINANCE.SALE_BILL.CERTIFIED_BILLS}?ogSaleOrderNo=${encodeURIComponent(ogSaleOrderNo)}&projectCode=${projectCode}`,
+          url: `${API_ENDPOINTS.FINANCE.SALE_BILL.CERTIFIED_BILLS}?erpDocNumber=${encodeURIComponent(erpDocNumber)}&projectCode=${projectCode}`,
           method: "GET",
         });
         setCertifiedBillOpts(Array.isArray(res.data) ? res.data : []);
@@ -218,7 +218,7 @@ export default function SaleBillForm({
   // ── OG Sale Order Selection ─────────────────────────────────────────────────
   const handleOrderSelect = useCallback(
     (value, option) => {
-      setValue("ogSaleOrderNo", value, { shouldDirty: true });
+      setValue("erpDocNumber", value, { shouldDirty: true });
       setValue("saleOrderDate", option?.ogSaleOrderDate || "", {
         shouldDirty: true,
       });
@@ -293,7 +293,7 @@ export default function SaleBillForm({
         const formatted = {
           mode: d.mode || "",
           certifiedBillId: d.certifiedBillId || null,
-          ogSaleOrderNo: d.saleOrderNo || d.ogSaleOrderNo || "",
+          erpDocNumber: d.saleOrderNo || d.erpDocNumber || "",
           saleOrderDate: d.saleOrderDate || "",
           invoiceDate: d.invoiceDate || "",
           referenceNo: d.referenceNo || "",
@@ -339,8 +339,8 @@ export default function SaleBillForm({
         );
         if (d.saleBillNo) setErpBillNo(d.saleBillNo);
         if (d.saleBillUuid && onUuid) onUuid(d.saleBillUuid);
-        if (formatted.ogSaleOrderNo)
-          fetchCertifiedBills(formatted.ogSaleOrderNo);
+        if (formatted.erpDocNumber)
+          fetchCertifiedBills(formatted.erpDocNumber);
         const editable = ["draft", "reback"].includes(
           (d.workflowStatus || "").toLowerCase(),
         );
@@ -516,9 +516,9 @@ export default function SaleBillForm({
     }
 
     // 3. Sale Order — find in loaded options and trigger the full selection handler
-    const aiOrderNo = fields?.og_sale_order_no;
-    if (aiOrderNo && !getValues("ogSaleOrderNo")) {
-      const matchedOpt = saleOrderOpts.find((o) => o.ogSaleOrderNo === aiOrderNo);
+    const aiOrderNo = fields?.erp_doc_no;
+    if (aiOrderNo && !getValues("erpDocNumber")) {
+      const matchedOpt = saleOrderOpts.find((o) => o.erpDocNumber === aiOrderNo);
       if (matchedOpt) {
         handleOrderSelect(aiOrderNo, matchedOpt);
         filled.push(`Sale Order: ${aiOrderNo}`);
@@ -673,24 +673,24 @@ export default function SaleBillForm({
           {/* ── Section 3: Sale Order ────────────────────────────────────────── */}
           <PMSection title="Sale Order:">
             <PMFormRow
-              label="Sale Order No."
+              label="ERP Doc No"
               required={!disabled}
               labelWidth="sm:w-[150px] sm:min-w-[150px]"
             >
               <div className="flex-1">
                 <SearchableSelect
                   options={saleOrderOpts}
-                  value={watch("ogSaleOrderNo") || ""}
+                  value={watch("erpDocNumber") || ""}
                   disabled={disabled}
                   onChange={(v, opt) => handleOrderSelect(v, opt)}
                   placeholder="Select Drop Down List"
                   labelKey="displayLabel"
-                  valueKey="ogSaleOrderNo"
-                  searchKeys={["ogSaleOrderNo", "orderTitle", "displayLabel"]}
+                  valueKey="erpDocNumber"
+                  searchKeys={["erpDocNumber", "orderTitle", "displayLabel"]}
                 />
-                {/* {errors.ogSaleOrderNo && (
+                {/* {errors.erpDocNumber && (
                   <p className="text-[11px] text-red-500 mt-0.5">
-                    {errors.ogSaleOrderNo.message}
+                    {errors.erpDocNumber.message}
                   </p>
                 )} */}
               </div>
@@ -765,7 +765,7 @@ export default function SaleBillForm({
                     disabled ||
                     certifiedBillsLoading ||
                     itemsLoading ||
-                    !watch("ogSaleOrderNo")
+                    !watch("erpDocNumber")
                   }
                   onChange={(v, opt) => handleCertifiedBillSelect(v, opt)}
                   placeholder={
@@ -773,7 +773,7 @@ export default function SaleBillForm({
                       ? "Loading…"
                       : itemsLoading
                         ? "Loading items…"
-                        : !watch("ogSaleOrderNo")
+                        : !watch("erpDocNumber")
                           ? "Select order first"
                           : "Select Bill Abstract No."
                   }

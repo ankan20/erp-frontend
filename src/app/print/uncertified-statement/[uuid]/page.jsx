@@ -140,7 +140,7 @@ async function downloadDocx(data, qrCanvasRef) {
   // Group lines by ogSaleOrderId
   const lineGroups = (data.lines || []).reduce((acc, l, idx) => {
     const k = l.ogSaleOrderId;
-    if (!acc[k]) acc[k] = { soNo: l.ogSaleOrderNo, title: l.orderTitle, rows: [] };
+    if (!acc[k]) acc[k] = { soNo: l.erpDocNumber, title: l.orderTitle, rows: [] };
     acc[k].rows.push({ ...l, _idx: idx });
     return acc;
   }, {});
@@ -362,7 +362,7 @@ export default function UncertifiedStatementPrintPage() {
                   // group by sale order
                   const grps = lines.reduce((acc, l, idx) => {
                     const k = l.ogSaleOrderId;
-                    if (!acc[k]) acc[k] = { soNo: l.ogSaleOrderNo, title: l.orderTitle, rows: [] };
+                    if (!acc[k]) acc[k] = { soNo: l.erpDocNumber, title: l.orderTitle, rows: [] };
                     acc[k].rows.push({ ...l, _idx: idx });
                     return acc;
                   }, {});

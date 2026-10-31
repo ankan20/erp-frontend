@@ -379,7 +379,7 @@ export const API_ENDPOINTS = {
       REJECT:             "/project-mgmt/billing/reject/",                          // /:id POST
       HISTORY:            "/project-mgmt/billing/history/",                         // /:id GET
       MY_APPROVAL_STATUS: "/project-mgmt/billing/my-approval-status/",              // /:id GET
-      ORDER_LOOKUP:       "/project-mgmt/billing/order-lookup",                     // GET ?ogSaleOrderNo&projectCode&mode
+      ORDER_LOOKUP:       "/project-mgmt/billing/order-lookup",                     // GET ?erpDocNumber&projectCode&mode
     },
     EXTRA_WORK: {
       LIST:               "/project-mgmt/extra-work/",                              // GET ?projectCode&workflowStatus&search
@@ -406,7 +406,7 @@ export const API_ENDPOINTS = {
       REJECT:               "/project-mgmt/billing/reject/",                        // /:id POST
       HISTORY:              "/project-mgmt/billing/history/",                       // /:id GET
       MY_APPROVAL_STATUS:   "/project-mgmt/billing/my-approval-status/",            // /:id GET
-      ORDER_LOOKUP:         "/project-mgmt/billing/order-lookup",                   // GET ?ogSaleOrderNo&projectCode&mode
+      ORDER_LOOKUP:         "/project-mgmt/billing/order-lookup",                   // GET ?erpDocNumber&projectCode&mode
       CERT_BILLS_FOR_CLAIM: "/project-mgmt/billing/cert-bills-for-claim",           // GET ?claimBillId
     },
     UNCERTAIN_ALLOCATION: {
@@ -488,7 +488,7 @@ export const API_ENDPOINTS = {
   },
   FINANCE: {
     SALE_BILL: {
-      CERTIFIED_BILLS:      "/finance/sale-bill/certified-bills",        // GET ?ogSaleOrderNo&projectCode
+      CERTIFIED_BILLS:      "/finance/sale-bill/certified-bills",        // GET ?erpDocNumber&projectCode
       CERTIFIED_BILL_ITEMS: "/finance/sale-bill/certified-bill-items",   // GET ?certifiedBillId&projectCode
       CREATE:               "/finance/sale-bill/create",                  // POST JSON
       LIST:                 "/finance/sale-bill/list",                    // GET ?projectCode&mode&workflowStatus&search
@@ -540,7 +540,7 @@ export const API_ENDPOINTS = {
       DELETE:         "/finance/sale-receipt/delete/",                   // /:id DELETE (blocked if any child not Rejected)
     },
     SALE_RECEIPT_BILLING: {
-      CERTIFIED_BILLS:    "/finance/sale-receipt-billing/certified-bills",     // GET ?ogSaleOrderNo&projectCode
+      CERTIFIED_BILLS:    "/finance/sale-receipt-billing/certified-bills",     // GET ?erpDocNumber&projectCode
       RECEIPT_ITEMS:      "/finance/sale-receipt-billing/receipt-items",       // GET ?certifiedBillId&projectCode
       INVOICE_LOOKUP:     "/finance/sale-receipt-billing/invoice-lookup",      // GET ?invoiceNo&projectCode
       CREATE:             "/finance/sale-receipt-billing/create",              // POST JSON (needs receiptId)

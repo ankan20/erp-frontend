@@ -86,7 +86,7 @@ const itemSchema = z.object({
 
 const schema = z.object({
   claimBillId:        z.coerce.number().min(1, "Claim Bill is required"),
-  ogSaleOrderNo:      z.string().min(1, "Order No is required"),
+  erpDocNumber:      z.string().min(1, "Order No is required"),
   billingDate: zodDate(z, "billingDate", true),
   billingNo:          z.string().min(1, "Bill No is required"),
   note:               z.string().optional(),
@@ -114,7 +114,7 @@ const DEFAULT_ITEM = {
 
 const defaultValues = {
   claimBillId:        null,
-  ogSaleOrderNo:      "",
+  erpDocNumber:      "",
   billingDate:        "",
   billingNo:          "",
   note:               "",
@@ -187,7 +187,7 @@ export default function SaleCertifiedBillForm({ mode = "create", billId, onAfter
       .then((res) => {
         const orders = (Array.isArray(res.data) ? res.data : []).map((o) => ({
           ...o,
-          displayLabel: o.orderNo || o.ogSaleOrderNo,
+          displayLabel: o.orderNo || o.erpDocNumber,
         }));
         setSaleOrderOpts(orders);
       })
@@ -195,12 +195,12 @@ export default function SaleCertifiedBillForm({ mode = "create", billId, onAfter
   }, [projectCode]);
 
   // ── FETCH CLAIM BILLS FOR A GIVEN OG SALE ORDER ───────────────────────────────
-  const fetchClaimBills = useCallback(async (ogSaleOrderNo) => {
-    if (!ogSaleOrderNo || !projectCode) { setClaimBillOpts([]); return; }
+  const fetchClaimBills = useCallback(async (erpDocNumber) => {
+    if (!erpDocNumber || !projectCode) { setClaimBillOpts([]); return; }
     setClaimBillLoading(true);
     try {
       const res = await apiRequest({
-        url:    `${API_ENDPOINTS.PROJECT.SALE_CLAIM_BILL.LIST}?projectCode=${projectCode}&mode=sale_claim_bill&workflowStatus=Approved&ogSaleOrderNo=${encodeURIComponent(ogSaleOrderNo)}`,
+        url:    `${API_ENDPOINTS.PROJECT.SALE_CLAIM_BILL.LIST}?projectCode=${projectCode}&mode=sale_claim_bill&workflowStatus=Approved&erpDocNumber=${encodeURIComponent(erpDocNumber)}`,
         method: "GET",
       });
       setClaimBillOpts(
@@ -229,7 +229,7 @@ export default function SaleCertifiedBillForm({ mode = "create", billId, onAfter
 
   // ── OG SALE ORDER SELECTION — fetches claim bills for that order ─────────────
   const handleOrderSelect = useCallback((value) => {
-    setValue("ogSaleOrderNo", value, { shouldDirty: true });
+    setValue("erpDocNumber", value, { shouldDirty: true });
     setValue("claimBillId",   null,  { shouldDirty: true });
     setValue("items",         [],    { shouldDirty: true });
     setValue("preCertifiedAmount", "", { shouldDirty: true });
@@ -325,7 +325,7 @@ export default function SaleCertifiedBillForm({ mode = "create", billId, onAfter
         });
         const formatted = {
           claimBillId:        d.claimBillId         || null,
-          ogSaleOrderNo:      d.ogSaleOrderNo        || "",
+          erpDocNumber:      d.erpDocNumber        || "",
           billingDate:        d.billingDate           || "",
           billingNo:          d.billingNo             || "",
           note:               d.note                  || "",
@@ -339,7 +339,7 @@ export default function SaleCertifiedBillForm({ mode = "create", billId, onAfter
         if (!formatted.items.length) formatted.items = [{ ...DEFAULT_ITEM }];
         reset(formatted);
         setInitialData(formatted);
-        if (d.ogSaleOrderNo) fetchClaimBills(d.ogSaleOrderNo);
+        if (d.erpDocNumber) fetchClaimBills(d.erpDocNumber);
         if (d.claimBillId) {
           apiRequest({
             url:    `${API_ENDPOINTS.PROJECT.SALE_CERTIFIED_BILL.CERT_BILLS_FOR_CLAIM}?claimBillId=${d.claimBillId}`,
@@ -629,16 +629,16 @@ export default function SaleCertifiedBillForm({ mode = "create", billId, onAfter
               <div className="flex-1">
                 <SearchableSelect
                   options={saleOrderOpts}
-                  value={watch("ogSaleOrderNo") || ""}
+                  value={watch("erpDocNumber") || ""}
                   disabled={disabled}
                   onChange={(value) => handleOrderSelect(value)}
                   placeholder="Select Order"
                   labelKey="displayLabel"
-                  valueKey="ogSaleOrderNo"
-                  searchKeys={["ogSaleOrderNo", "orderNo", "orderTitle", "displayLabel"]}
+                  valueKey="erpDocNumber"
+                  searchKeys={["erpDocNumber", "orderNo", "orderTitle", "displayLabel"]}
                 />
-                {errors.ogSaleOrderNo && (
-                  <p className="text-[11px] text-red-500 mt-0.5">{errors.ogSaleOrderNo.message}</p>
+                {errors.erpDocNumber && (
+                  <p className="text-[11px] text-red-500 mt-0.5">{errors.erpDocNumber.message}</p>
                 )}
               </div>
             </PMFormRow>
@@ -648,10 +648,10 @@ export default function SaleCertifiedBillForm({ mode = "create", billId, onAfter
                 <SearchableSelect
                   options={claimBillOpts}
                   value={watch("claimBillId") || ""}
-                  disabled={disabled || lookupLoading || claimBillLoading || !watch("ogSaleOrderNo")}
+                  disabled={disabled || lookupLoading || claimBillLoading || !watch("erpDocNumber")}
                   loading={claimBillLoading || lookupLoading}
                   onChange={(value) => handleClaimBillSelect(value)}
-                  placeholder={!watch("ogSaleOrderNo") ? "Select order first" : "Select Claim Bill"}
+                  placeholder={!watch("erpDocNumber") ? "Select order first" : "Select Claim Bill"}
                   labelKey="displayLabel"
                   valueKey="id"
                   searchKeys={["billingNo", "note", "displayLabel"]}

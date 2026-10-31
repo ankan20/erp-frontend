@@ -53,7 +53,7 @@ export default function Page() {
           sl:             i + 1,
           billingNo:      r.billingNo || "",
           date:           getfmtDisplaydate(r.billingDate) || "",
-          orderNo:        r.ogSaleOrderNo   || "",
+          orderNo:        r.erpDocNumber   || "",
           note:           r.note            || "",
           thisBillAmount: fmtNum(r.thisBillClaim),
           gstAmount:      fmtNum(r.gstAmount),

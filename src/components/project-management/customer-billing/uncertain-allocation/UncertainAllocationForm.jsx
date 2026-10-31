@@ -89,7 +89,7 @@ export default function UncertainAllocationForm({ mode = "create", uaId, onAfter
       setSaleOrders(
         list.map((o) => ({
           ...o,
-          displayLabel: o.orderNo || o.ogSaleOrderNo,
+          displayLabel: o.orderNo || o.erpDocNumber,
         })),
       );
     } catch {
@@ -119,7 +119,7 @@ export default function UncertainAllocationForm({ mode = "create", uaId, onAfter
         billingId:                       l.billingId,
         billingNo:                       l.billingNo       || "",
         ogSaleOrderId:                   l.ogSaleOrderId,
-        ogSaleOrderNo:                   l.ogSaleOrderNo   || "",
+        erpDocNumber:                   l.erpDocNumber   || "",
         orderTitle:                      l.orderTitle      || "",
         orderNo:                         l.orderNo         || "",
         ogSaleOrderItemId:               l.ogSaleOrderItemId,
@@ -213,7 +213,7 @@ export default function UncertainAllocationForm({ mode = "create", uaId, onAfter
         billingId:                      billIdNum,
         billingNo:                      d.billingNo        || "",
         ogSaleOrderId:                  d.ogSaleOrderId,
-        ogSaleOrderNo:                  d.ogSaleOrderNo    || "",
+        erpDocNumber:                  d.erpDocNumber    || "",
         orderTitle:                     d.orderTitle       || "",
         orderNo:                        d.orderNo          || "",
         ogSaleOrderItemId:              item.billingItemId,
@@ -273,7 +273,7 @@ export default function UncertainAllocationForm({ mode = "create", uaId, onAfter
       acc[key] = {
         billingId: line.billingId,
         billingNo: line.billingNo,
-        soNo:      line.ogSaleOrderNo,
+        soNo:      line.erpDocNumber,
         title:     line.orderTitle,
         rows:      [],
       };
@@ -292,7 +292,7 @@ export default function UncertainAllocationForm({ mode = "create", uaId, onAfter
       billingId:                      l.billingId,
       billingNo:                      l.billingNo,
       ogSaleOrderId:                  l.ogSaleOrderId,
-      ogSaleOrderNo:                  l.ogSaleOrderNo,
+      erpDocNumber:                  l.erpDocNumber,
       orderTitle:                     l.orderTitle,
       ogSaleOrderItemId:              l.ogSaleOrderItemId,
       itemType:                       l.itemType,
@@ -420,7 +420,7 @@ export default function UncertainAllocationForm({ mode = "create", uaId, onAfter
                     placeholder="Search sale order…"
                     labelKey="displayLabel"
                     valueKey="ogSaleOrderId"
-                    searchKeys={["displayLabel", "ogSaleOrderNo", "orderTitle", "orderNo"]}
+                    searchKeys={["displayLabel", "erpDocNumber", "orderTitle", "orderNo"]}
                     loading={lookupLoading}
                     disabled={lookupLoading}
                   />

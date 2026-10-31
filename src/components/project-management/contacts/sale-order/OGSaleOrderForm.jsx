@@ -45,7 +45,7 @@ const rowSchema = z.object({
 });
 
 const schema = z.object({
-  ogSaleOrderNo:   z.string().optional(),
+  erpDocNumber:   z.string().optional(),
   ogSaleOrderDate: zodDate(z, "ogSaleOrderDate", true),
   orderNo:         z.string().optional(),
   orderValidity:   z.string().optional(),
@@ -65,7 +65,7 @@ const DEFAULT_ROW = {
 };
 
 const defaultValues = {
-  ogSaleOrderNo:   "",
+  erpDocNumber:   "",
   ogSaleOrderDate: "",
   orderNo:         "",
   orderValidity:   "",
@@ -167,7 +167,7 @@ export default function OGSaleOrderForm({ mode = "create", saleOrderId, onAfterS
         ];
 
         const formatted = {
-          ogSaleOrderNo:   d.ogSaleOrderNo   || "",
+          erpDocNumber:   d.erpDocNumber   || "",
           ogSaleOrderDate: d.ogSaleOrderDate || "",
           orderNo:         d.orderNo         || "",
           orderValidity:   d.orderValidity   || "",
@@ -278,7 +278,7 @@ export default function OGSaleOrderForm({ mode = "create", saleOrderId, onAfterS
         data:   buildPayload(),
       });
 
-      if (res?.data?.ogSaleOrderNo)   setValue("ogSaleOrderNo", res.data.ogSaleOrderNo);
+      if (res?.data?.erpDocNumber)   setValue("erpDocNumber", res.data.erpDocNumber);
       if (res?.data?.ogSaleOrderUuid) onUuid?.(res.data.ogSaleOrderUuid);
 
       const urls = {
@@ -363,9 +363,9 @@ export default function OGSaleOrderForm({ mode = "create", saleOrderId, onAfterS
           {/* SECTION 1 — Order Details */}
           <PMSection title="Order Details:">
             <div className="hidden">
-              <PMFormRow label="Sale Order Number" labelWidth="sm:w-[130px] sm:min-w-[130px]">
+              <PMFormRow label="ERP Doc No" labelWidth="sm:w-[130px] sm:min-w-[130px]">
                 <PMInput
-                  {...register("ogSaleOrderNo")}
+                  {...register("erpDocNumber")}
                   disabled
                   placeholder="[Auto]"
                   expandable={false}

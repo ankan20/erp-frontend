@@ -102,7 +102,7 @@ async function downloadDocx(data, qrCanvasRef) {
   const leftInfo  = [
     ["Bill No",         data.billingNo],
     ["Bill Date",       fmt.date(data.billingDate)],
-    ["Sale Order No",   data.ogSaleOrderNo],
+    ["ERP Doc No",   data.erpDocNumber],
     ["Claim Bill No",   data.claimBillingNo],
     ["Project Code",    data.projectCode],
   ];
@@ -349,7 +349,7 @@ export default function SaleCertifiedBillPrintPage() {
             <div>
               <InfoRow label="Bill No"        value={data.billingNo} />
               <InfoRow label="Bill Date"      value={fmt.date(data.billingDate)} />
-              <InfoRow label="Sale Order No"  value={data.ogSaleOrderNo} />
+              <InfoRow label="ERP Doc No"  value={data.erpDocNumber} />
               <InfoRow label="Claim Bill No"  value={data.claimBillingNo} />
               <InfoRow label="Project Code"   value={data.projectCode} />
             </div>
