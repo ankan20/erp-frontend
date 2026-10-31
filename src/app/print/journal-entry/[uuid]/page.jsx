@@ -17,6 +17,8 @@ const LBL = `${SIZE.labelText} ${WEIGHT.semibold} text-gray-800`;
 const VAL = `${SIZE.labelText} text-gray-700`;
 const B   = "border border-[#b0b0b0]";
 
+const MODE_LABELS = { new_voucher: "Single Voucher", bulk_docket: "Bulk Docket", adjustment: "Adjustment" };
+
 function InfoRow({ label, value }) {
   return (
     <p className={VAL}>
@@ -84,7 +86,7 @@ async function downloadDocx(data, uuid, qrCanvasRef) {
       new TableCell({ children: [new Paragraph({ text: "" })], width: { size: hSpacerW, type: WidthType.DXA }, borders: nilBorders }),
       new TableCell({
         children: [
-          new Paragraph({ children: [run("JOURNAL ENTRY", { bold: true, size: 36 })] }),
+          new Paragraph({ children: [run("JOURNAL Voucher", { bold: true, size: 36 })] }),
           ...(qrImage ? [new Paragraph({ children: [qrImage] })] : []),
           new Paragraph({ children: [run("www.dishaanhitech.com", { size: 16, color: "4B5563" })] }),
         ],
@@ -94,19 +96,21 @@ async function downloadDocx(data, uuid, qrCanvasRef) {
   });
 
   // Info section
+  const entryModeLabel = MODE_LABELS[data.entryMode] || data.entryMode || "—";
   const iL = 1800; const iV = 2400; const iG = 600; const iR = 1600;
   const iW = PAGE_W - iL - iV - iG - iR;
   const infoCell = (paras, w) =>
     new TableCell({ children: paras, width: { size: w, type: WidthType.DXA }, borders: nilBorders, margins: { top: 40, bottom: 40, left: 60, right: 60 } });
 
   const leftInfo  = [
-    ["Voucher No",  data.voucherNo  || "—"],
-    ["Entry Date",  fmt.date(data.entryDate)],
-    ["Status",      data.workflowStatus || "—"],
+    ["Project",      data.projectCode || "—"],
+    ["Voucher No",   data.voucherNo   || "—"],
+    ["Voucher Date", fmt.date(data.entryDate)],
+    ["Mode",         entryModeLabel],
   ];
   const rightInfo = [
-    ["Lines",   String((data.lines || []).length)],
-    ...(data.remarks ? [["Remarks", data.remarks]] : []),
+    ["No. of Lines", String((data.lines || []).length)],
+    ["Status",       data.workflowStatus || "—"],
   ];
 
   const maxRows  = Math.max(leftInfo.length, rightInfo.length);
@@ -127,8 +131,8 @@ async function downloadDocx(data, uuid, qrCanvasRef) {
     }),
   });
 
-  // Lines table: Sl | Type | Dr/Cr | Particulars | Opening | Debit | Credit | Closing
-  const cW = [0.05, 0.07, 0.07, 0.28, 0.13, 0.13, 0.13, 0.14].map((p) => Math.round(PAGE_W * p));
+  // Lines table: Sl | Type | Dr/Cr | Particulars | Debit (₹) | Credit (₹)
+  const cW = [0.05, 0.08, 0.08, 0.44, 0.175, 0.175].map((p) => Math.round(PAGE_W * p));
   cW[3] += PAGE_W - cW.reduce((a, b) => a + b, 0);
 
   const tCell = (content, w, bold = false, shading, align = "left") =>
@@ -140,7 +144,7 @@ async function downloadDocx(data, uuid, qrCanvasRef) {
     });
   const numCell = (val, w, bold = false, shading) => tCell(fmt.number(val), w, bold, shading, "right");
 
-  const lines      = (data.lines || []).slice().sort((a, b) => a.slNo - b.slNo);
+  const lines       = (data.lines || []).slice().sort((a, b) => a.slNo - b.slNo);
   const totalDebit  = lines.reduce((s, l) => s + Number(l.debitAmount  || 0), 0);
   const totalCredit = lines.reduce((s, l) => s + Number(l.creditAmount || 0), 0);
 
@@ -150,43 +154,36 @@ async function downloadDocx(data, uuid, qrCanvasRef) {
     borders: tblBorders,
     rows: [
       new TableRow({ tableHeader: true, children:
-        ["Sl.", "Type", "Dr./Cr.", "Particulars", "Opening (₹)", "Debit (₹)", "Credit (₹)", "Closing (₹)"].map((h, i) =>
+        ["Sl.", "Type", "Dr./Cr.", "Particulars", "Debit (₹)", "Credit (₹)"].map((h, i) =>
           tCell(h, cW[i], true, headShading, "center"),
         ),
       }),
-      ...lines.map((l, idx) => {
-        return new TableRow({ children: [
-          tCell(String(l.slNo || idx + 1),      cW[0], false, undefined, "center"),
-          tCell(l.accountType || "—",           cW[1], false, undefined, "center"),
-          tCell(l.drCr        || "—",           cW[2], true,  undefined, "center"),
-          tCell(l.accountName || l.accountCode || "—", cW[3], false, undefined),
-          numCell(l.openingBalance, cW[4], false, undefined),
-          numCell(l.debitAmount,    cW[5], l.drCr === "Dr", undefined),
-          numCell(l.creditAmount,   cW[6], l.drCr === "Cr", undefined),
-          numCell(l.closingBalance, cW[7], false, undefined),
-        ]});
-      }),
-      // Total row
+      ...lines.map((l, idx) => new TableRow({ children: [
+        tCell(String(l.slNo || idx + 1),             cW[0], false, undefined, "center"),
+        tCell(l.accountType || "—",                  cW[1], false, undefined, "center"),
+        tCell(l.drCr        || "—",                  cW[2], true,  undefined, "center"),
+        tCell(l.accountName || l.accountCode || "—", cW[3]),
+        numCell(l.debitAmount,  cW[4], l.drCr === "Dr"),
+        numCell(l.creditAmount, cW[5], l.drCr === "Cr"),
+      ]})),
       new TableRow({ children: [
         new TableCell({
           children: [new Paragraph({ alignment: "right", children: [run("TOTAL", { bold: true, size: 20 })] })],
-          columnSpan: 5,
-          width: { size: cW[0] + cW[1] + cW[2] + cW[3] + cW[4], type: WidthType.DXA },
+          columnSpan: 4,
+          width: { size: cW[0] + cW[1] + cW[2] + cW[3], type: WidthType.DXA },
           shading: totShading,
           margins: { top: 50, bottom: 50, left: 70, right: 70 },
         }),
-        numCell(totalDebit,  cW[5], true, totShading),
-        numCell(totalCredit, cW[6], true, totShading),
-        tCell("",            cW[7], false, totShading),
+        numCell(totalDebit,  cW[4], true, totShading),
+        numCell(totalCredit, cW[5], true, totShading),
       ]}),
-      // Amount in words
       new TableRow({ children: [
         new TableCell({
           children: [new Paragraph({ children: [
             run("Amount in Words: ", { bold: true }),
             run(amountToWordsIN(Number(data.totalAmount || totalDebit)), { italic: true }),
           ]})],
-          columnSpan: 8,
+          columnSpan: 6,
           width: { size: PAGE_W, type: WidthType.DXA },
           borders: { left: tblBorder, right: tblBorder, top: noB, bottom: tblBorder },
           margins: { top: 50, bottom: 50, left: 80, right: 80 },
@@ -204,6 +201,10 @@ async function downloadDocx(data, uuid, qrCanvasRef) {
         infoTable,
         new Paragraph({ text: "", spacing: { after: 80 } }),
         mainTable,
+        ...(data.remarks ? [
+          new Paragraph({ text: "", spacing: { after: 60 } }),
+          new Paragraph({ children: [run("Remarks: ", { bold: true }), run(data.remarks)] }),
+        ] : []),
         new Paragraph({ text: "", spacing: { after: 200 } }),
         ...["Created By", "Submitted By", "Approved By"].map((lbl, i) => {
           const [name, date] = [
@@ -269,12 +270,12 @@ export default function JournalEntryPrintPage() {
   const totalDebit  = lines.reduce((s, l) => s + Number(l.debitAmount  || 0), 0);
   const totalCredit = lines.reduce((s, l) => s + Number(l.creditAmount || 0), 0);
   const totalAmount = Number(data.totalAmount || totalDebit);
-  const B_side      = "border-l border-r border-[#b0b0b0]";
+  const entryModeLabel = MODE_LABELS[data.entryMode] || data.entryMode || "—";
 
   return (
     <>
       <PrintTopBar
-        title={`Journal Entry — ${data.voucherNo || ""}`}
+        title={`Journal Voucher — ${data.voucherNo || ""}`}
         onDownloadPDF={printAsPDF}
         onDownloadDocx={() => downloadDocx(data, uuid, qrCanvasRef)}
       />
@@ -298,7 +299,7 @@ export default function JournalEntryPrintPage() {
             </div>
             <div className="flex-1 flex items-center justify-center">
               <h1 className={`${SIZE.pageTitle} ${WEIGHT.bold} tracking-widest text-gray-900 uppercase`}>
-                Journal Entry
+                Journal Voucher
               </h1>
             </div>
             <div className="flex flex-col items-end gap-1 shrink-0">
@@ -316,18 +317,14 @@ export default function JournalEntryPrintPage() {
           {/* ── INFO SECTION ────────────────────────────────────────────── */}
           <div className="grid px-6 pb-3" style={{ gridTemplateColumns: "50% 50%" }}>
             <div className="space-y-0.5">
+              <InfoRow label="Project"     value={data.projectCode} />
               <InfoRow label="Voucher No"  value={data.voucherNo} />
-              <InfoRow label="Entry Date"  value={fmt.date(data.entryDate)} />
-              <InfoRow label="Status"      value={data.workflowStatus} />
+              <InfoRow label="Voucher Date" value={fmt.date(data.entryDate)} />
             </div>
             <div className="space-y-0.5 pl-6">
               <InfoRow label="No. of Lines" value={String(lines.length)} />
-              {data.remarks && (
-                <p className={VAL}>
-                  <span className={LBL}>Remarks</span> :{" "}
-                  <span className="whitespace-pre-wrap">{data.remarks}</span>
-                </p>
-              )}
+              <InfoRow label="Mode"        value={entryModeLabel} />
+              <InfoRow label="Status"        value={data.workflowStatus} />
             </div>
           </div>
 
@@ -336,19 +333,17 @@ export default function JournalEntryPrintPage() {
             <div className="overflow-x-auto">
               <table className="w-full border-collapse" style={{ tableLayout: "fixed" }}>
                 <colgroup>
-                  <col style={{ width: "5%"  }} />
-                  <col style={{ width: "7%"  }} />
-                  <col style={{ width: "7%"  }} />
-                  <col style={{ width: "29%" }} />
-                  <col style={{ width: "13%" }} />
-                  <col style={{ width: "13%" }} />
-                  <col style={{ width: "13%" }} />
-                  <col style={{ width: "13%" }} />
+                  <col style={{ width: "5%"   }} />
+                  <col style={{ width: "8%"   }} />
+                  <col style={{ width: "8%"   }} />
+                  <col style={{ width: "44%"  }} />
+                  <col style={{ width: "17.5%" }} />
+                  <col style={{ width: "17.5%" }} />
                 </colgroup>
                 <thead>
                   <tr className={COLOR.tableHeadBg}>
-                    {["Sl.", "Type", "Dr./Cr.", "Particulars", "Opening (₹)", "Debit (₹)", "Credit (₹)", "Closing (₹)"].map((h) => (
-                      <th key={h} className={`${B} px-2 py-1.5 text-center ${SIZE.tableHead} ${WEIGHT.bold} text-gray-900`}>
+                    {["Sl.", "Type", "Dr./Cr.", "Particulars", "Debit (₹)", "Credit (₹)"].map((h) => (
+                      <th key={h} className={`${B} px-2 py-1.5 ${h === "Particulars" ? "text-left" : "text-center"} ${SIZE.tableHead} ${WEIGHT.bold} text-gray-900`}>
                         {h}
                       </th>
                     ))}
@@ -371,17 +366,11 @@ export default function JournalEntryPrintPage() {
                         <td className={`${B} px-2 py-2 ${SIZE.tableCell} ${WEIGHT.medium}`} style={{ wordBreak: "break-word" }}>
                           {l.accountName || l.accountCode || "—"}
                         </td>
-                        <td className={`${B} px-2 py-2 ${SIZE.tableCell} text-right tabular-nums`} style={{ whiteSpace: "nowrap" }}>
-                          <FmtNum value={l.openingBalance} />
-                        </td>
                         <td className={`${B} px-2 py-2 ${SIZE.tableCell} text-right tabular-nums ${isDr ? WEIGHT.semibold : "text-gray-400"}`} style={{ whiteSpace: "nowrap" }}>
                           {isDr ? <FmtNum value={l.debitAmount} /> : "—"}
                         </td>
                         <td className={`${B} px-2 py-2 ${SIZE.tableCell} text-right tabular-nums ${!isDr ? WEIGHT.semibold : "text-gray-400"}`} style={{ whiteSpace: "nowrap" }}>
                           {!isDr ? <FmtNum value={l.creditAmount} /> : "—"}
-                        </td>
-                        <td className={`${B} px-2 py-2 ${SIZE.tableCell} text-right tabular-nums`} style={{ whiteSpace: "nowrap" }}>
-                          <FmtNum value={l.closingBalance} />
                         </td>
                       </tr>
                     );
@@ -389,29 +378,20 @@ export default function JournalEntryPrintPage() {
 
                   {/* Total row */}
                   <tr className={`${COLOR.tableHeadBg} ${WEIGHT.bold}`}>
-                    <td colSpan={5} className={`${B} px-3 py-1.5 ${SIZE.tableCell} text-right`}>
-                      TOTAL
-                    </td>
+                    <td colSpan={4} className={`${B} px-3 py-1.5 ${SIZE.tableCell} text-right`}>TOTAL</td>
                     <td className={`${B} px-2 py-1.5 ${SIZE.tableCell} text-right tabular-nums`} style={{ whiteSpace: "nowrap" }}>
                       <FmtNum value={totalDebit} />
                     </td>
                     <td className={`${B} px-2 py-1.5 ${SIZE.tableCell} text-right tabular-nums`} style={{ whiteSpace: "nowrap" }}>
                       <FmtNum value={totalCredit} />
                     </td>
-                    <td className={`${B} px-2 py-1.5 ${SIZE.tableCell} text-right text-gray-500`}>—</td>
                   </tr>
 
                   {/* Amount in Words */}
                   <tr>
                     <td
-                      colSpan={8}
-                      style={{
-                        borderLeft:   "1px solid #b0b0b0",
-                        borderRight:  "1px solid #b0b0b0",
-                        borderBottom: "1px solid #b0b0b0",
-                        borderTop:    "none",
-                        padding:      "5px 10px",
-                      }}
+                      colSpan={6}
+                      style={{ borderLeft: "1px solid #b0b0b0", borderRight: "1px solid #b0b0b0", borderBottom: "1px solid #b0b0b0", borderTop: "none", padding: "5px 10px" }}
                       className={SIZE.labelText}
                     >
                       <span className={WEIGHT.bold}>Amount in Words: </span>
@@ -423,11 +403,46 @@ export default function JournalEntryPrintPage() {
             </div>
           </div>
 
+          {/* ── REMARKS ─────────────────────────────────────────────────── */}
+          {data.remarks && (
+            <div className="px-6 pb-3">
+              <p className={VAL}>
+                <span className={LBL}>Narration</span> :{" "}
+                <span className="whitespace-pre-wrap">{data.remarks}</span>
+              </p>
+            </div>
+          )}
+
           {/* ── SIGNATURES ──────────────────────────────────────────────── */}
-          <div className="px-6 pb-6 pt-2 border-t border-gray-200 mt-2">
-            <SigRow label="Created By"   name={data.createdBy}   dateStr={fmt.dateTime(data.createdAt)} />
-            <SigRow label="Submitted By" name={data.submittedBy} dateStr={fmt.dateTime(data.submittedAt)} />
-            <SigRow label="Approved By"  name={data.approvedBy}  dateStr={fmt.dateTime(data.finalApprovedAt)} />
+          <div className="px-6 pt-3 pb-5 border-t border-gray-200 mt-2"
+            style={{ display: "grid", gridTemplateColumns: "auto 1fr 1fr", gridTemplateRows: "auto auto auto", columnGap: "32px", rowGap: 0 }}>
+
+            {/* col 1 spans rows 1-2: audit trail */}
+            <div style={{ gridColumn: 1, gridRow: "1 / 3" }}>
+              <SigRow label="Created By"   name={data.createdBy}   dateStr={fmt.dateTime(data.createdAt)} />
+              <SigRow label="Submitted By" name={data.submittedBy} dateStr={fmt.dateTime(data.submittedAt)} />
+              <SigRow label="Approved By"  name={data.approvedBy}  dateStr={fmt.dateTime(data.finalApprovedAt)} />
+            </div>
+
+            {/* row 1 col 2-3: empty space above line */}
+            <div style={{ gridColumn: 2, gridRow: 1 }} />
+            <div style={{ gridColumn: 3, gridRow: 1 }} />
+
+            {/* row 2 col 2-3: the signature line */}
+            <div style={{ gridColumn: 2, gridRow: 2, display: "flex", flexDirection: "column", justifyContent: "flex-end" }}>
+              <div style={{ borderTop: "1px solid #1f2937" }} />
+            </div>
+            <div style={{ gridColumn: 3, gridRow: 2, display: "flex", flexDirection: "column", justifyContent: "flex-end" }}>
+              <div style={{ borderTop: "1px solid #1f2937" }} />
+            </div>
+
+            {/* row 3 col 2-3: labels below the line */}
+            {["Verified By", "Prepared By"].map((lbl, i) => (
+              <p key={lbl} style={{ gridColumn: i + 2, gridRow: 3 }}
+                className={`mt-0.5 text-center ${SIZE.labelText} ${WEIGHT.bold} text-gray-800 uppercase tracking-wider`}>
+                {lbl}
+              </p>
+            ))}
           </div>
 
         </div>
@@ -440,7 +455,7 @@ export default function JournalEntryPrintPage() {
 
       <style>{`
         @page {
-          size: A4 landscape;
+          size: A4;
           margin: 8mm 8mm 12mm 8mm;
           @bottom-center {
             content: counter(page, decimal-leading-zero) " of " counter(pages, decimal-leading-zero);
