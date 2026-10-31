@@ -528,7 +528,7 @@ export default function BudgetMasterForm({ mode = "create", budgetId, onAfterSub
                 )}
               />
             </PMFormRow>
-            <PMFormRow label="ERP Doc No" labelWidth="sm:w-[150px] sm:min-w-[150px]">
+            <PMFormRow label="Order ERP Doc No" labelWidth="sm:w-[150px] sm:min-w-[150px]">
               <PMInput value={orderInfo.no || ""} disabled readOnly placeholder="[Auto]" />
             </PMFormRow>
             <PMFormRow label="Order Title" labelWidth="sm:w-[150px] sm:min-w-[150px]">
