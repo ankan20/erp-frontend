@@ -10,7 +10,31 @@ export const getConvDetail         = (id)    => apiRequest({ url: `${C}/conversa
 // ─── Messages ──────────────────────────────────────────────────────────────
 export const getMessages    = (convId, beforeId)  => apiRequest({ url: `${C}/conversations/${convId}/messages`, params: beforeId ? { beforeId } : {} });
 export const getNewMessages = (convId, afterId)   => apiRequest({ url: `${C}/conversations/${convId}/messages/new`, params: afterId ? { afterId } : {} });
-export const sendMessage    = (convId, content)   => apiRequest({ url: `${C}/conversations/${convId}/messages`, method: "POST", data: { content, type: "text" } });
+export const sendMessage    = (convId, content, { replyToId } = {}) =>
+  apiRequest({ url: `${C}/conversations/${convId}/messages`, method: "POST", data: { content, type: "text", ...(replyToId ? { replyToId } : {}) } });
+
+// file: a File/Blob. caption and replyToId are optional.
+export const sendMedia = (convId, file, { caption, replyToId } = {}) => {
+  const fd = new FormData();
+  fd.append("file", file);
+  if (caption)   fd.append("caption", caption);
+  if (replyToId) fd.append("replyToId", String(replyToId));
+  return apiRequest({ url: `${C}/conversations/${convId}/media`, method: "POST", data: fd });
+};
+
+export const forwardMessage = (msgId, { userIds = [], conversationIds = [], caption } = {}) =>
+  apiRequest({ url: `${C}/messages/${msgId}/forward`, method: "POST", data: { userIds, conversationIds, caption } });
+
+export const getReplySuggestions = (msgId) => apiRequest({ url: `${C}/messages/${msgId}/suggestions` });
+
+// Send a file and/or text to a person from anywhere in the app (e.g. share a PO PDF).
+// Returns the conversation id so the caller can open that chat if it wants.
+export const shareToUser = async (userId, { file, text } = {}) => {
+  const { conversationId } = await startDirect(userId);
+  if (file)      await sendMedia(conversationId, file, { caption: text });
+  else if (text) await sendMessage(conversationId, text);
+  return conversationId;
+};
 export const setTyping      = (convId)             => apiRequest({ url: `${C}/conversations/${convId}/typing`, method: "POST" });
 export const getTyping      = (convId)             => apiRequest({ url: `${C}/conversations/${convId}/typing` });
 

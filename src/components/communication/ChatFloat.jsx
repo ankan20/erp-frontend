@@ -3,8 +3,11 @@
 import { useState, useEffect, useRef } from "react";
 import {
   X, ChevronLeft, Send, Search, MessageCircle,
-  Phone, Zap, Loader2, PhoneCall, Video, Users,
+  Phone, Zap, Loader2, PhoneCall, Video, Users, CornerUpLeft, Forward,
 } from "lucide-react";
+import {
+  AttachButton, AttachmentPreview, MessageAttachment, ShareDialog, SmartReplies, validateChatFile,
+} from "@/components/communication/shared";
 import { useComm } from "@/context/CommContext";
 import {
   getDirectory,
@@ -12,6 +15,7 @@ import {
   getMessages,
   getNewMessages,
   sendMessage as apiSendMsg,
+  sendMedia,
   setTyping as apiSetTyping,
   getTyping,
   sendPing,
@@ -255,7 +259,28 @@ function ChatWindow({ convId: initialConvId, userId, userName, onBack }) {
     return () => { cancelled = true; };
   }, [userId, initialConvId]);
 
-  useEffect(() => { bottomRef.current?.scrollIntoView({ behavior: "smooth" }); }, [messages]);
+  // Stay pinned to the newest message unless the user scrolled up to read history
+  const listRef      = useRef(null);
+  const stickToBottom = useRef(true);
+  const onListScroll = () => {
+    const el = listRef.current;
+    if (el) stickToBottom.current = el.scrollHeight - el.scrollTop - el.clientHeight < 80;
+  };
+  const scrollToBottom = () => {
+    if (stickToBottom.current) bottomRef.current?.scrollIntoView({ block: "end" });
+  };
+  useEffect(scrollToBottom, [messages]);
+
+  // Suggestion chips / reply bar / file preview shrink the list after it rendered
+  useEffect(() => {
+    const el = listRef.current;
+    if (!el || typeof ResizeObserver === "undefined") return;
+    const ro = new ResizeObserver(() => {
+      if (stickToBottom.current) bottomRef.current?.scrollIntoView({ block: "end" });
+    });
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
 
   useEffect(() => {
     setOpenConversation(convId);
@@ -286,26 +311,60 @@ function ChatWindow({ convId: initialConvId, userId, userName, onBack }) {
     return () => clearInterval(pollRef.current);
   }, [convId, lastId]);
 
-  const handleSend = async () => {
-    if (!input.trim() || !convId) return;
-    const text = input.trim();
-    setInput("");
+  const [pendingFile, setPendingFile] = useState(null);
+  const [replyTo,     setReplyTo]     = useState(null);
+  const [forwardMsg,  setForwardMsg]  = useState(null);
+  const [sending,     setSending]     = useState(false);
+  const [sendError,   setSendError]   = useState(null);
+
+  const appendNew = async () => {
+    const r = await getNewMessages(convId, lastId);
+    const newMsgs = Array.isArray(r) ? r : [];
+    if (newMsgs.length) {
+      setMessages(prev => {
+        const ids = new Set(prev.map(m => m.id));
+        return [...prev, ...newMsgs.filter(m => !ids.has(m.id))];
+      });
+      setLastId(newMsgs[newMsgs.length - 1].id);
+    }
+  };
+
+  // overrideText is used by quick-reply chips; otherwise sends the input box (+ any attached file)
+  const send = async (overrideText) => {
+    const text = (overrideText ?? input).trim();
+    if (!convId || sending || (!text && !pendingFile)) return;
+    setSending(true);
+    setSendError(null);
     try {
-      await apiSendMsg(convId, text);
+      const replyToId = replyTo?.id;
+      if (pendingFile) await sendMedia(convId, pendingFile, { caption: text || undefined, replyToId });
+      else             await apiSendMsg(convId, text, { replyToId });
       sounds.messageSent();
-      const r = await getNewMessages(convId, lastId);
-      const newMsgs = Array.isArray(r) ? r : [];
-      if (newMsgs.length) {
-        setMessages(prev => {
-          const ids = new Set(prev.map(m => m.id));
-          return [...prev, ...newMsgs.filter(m => !ids.has(m.id))];
-        });
-        setLastId(newMsgs[newMsgs.length - 1].id);
-      }
-    } catch {}
+      stickToBottom.current = true;
+      if (overrideText === undefined) setInput("");
+      setPendingFile(null);
+      setReplyTo(null);
+      await appendNew();
+    } catch (e) {
+      setSendError(e?.message || "Could not send");
+    }
+    setSending(false);
+  };
+
+  const pickFile = (file) => { setPendingFile(file); setSendError(null); };
+
+  const onPaste = (e) => {
+    const file = e.clipboardData?.files?.[0];
+    if (!file) return;
+    e.preventDefault();
+    const err = validateChatFile(file);
+    if (err) setSendError(err); else pickFile(file);
   };
 
   const me = myId();
+  const lastMsg = messages[messages.length - 1];
+  const showSuggestions = lastMsg && !lastMsg.isDeleted && !(lastMsg.isMine || lastMsg.senderId === me)
+    && !input && !pendingFile;
 
   return (
     <div className="flex flex-col h-full">
@@ -319,7 +378,7 @@ function ChatWindow({ convId: initialConvId, userId, userName, onBack }) {
         <span className="text-sm font-semibold flex-1 truncate">{userName || "Chat"}</span>
       </div>
 
-      <div className="flex-1 overflow-y-auto px-3 py-2 space-y-2 bg-[#f9fafb]">
+      <div ref={listRef} onScroll={onListScroll} className="flex-1 overflow-y-auto px-3 py-2 space-y-2 bg-[#f9fafb]">
         {loading ? (
           <div className="flex justify-center py-8"><Loader2 size={18} className="animate-spin text-gray-400" /></div>
         ) : messages.length === 0 ? (
@@ -327,15 +386,39 @@ function ChatWindow({ convId: initialConvId, userId, userName, onBack }) {
         ) : (
           messages.map(msg => {
             const mine = msg.isMine || msg.senderId === me;
+            const actions = !msg.isDeleted && (
+              <div className="flex flex-col gap-0.5 opacity-0 group-hover:opacity-100 transition shrink-0">
+                <button title="Reply" onClick={() => setReplyTo(msg)}
+                  className="p-1 rounded-full text-gray-400 hover:text-[#003b8e] hover:bg-gray-200">
+                  <CornerUpLeft size={13} />
+                </button>
+                <button title="Forward" onClick={() => setForwardMsg(msg)}
+                  className="p-1 rounded-full text-gray-400 hover:text-[#003b8e] hover:bg-gray-200">
+                  <Forward size={13} />
+                </button>
+              </div>
+            );
             return (
-              <div key={msg.id} className={`flex ${mine ? "justify-end" : "justify-start"}`}>
-                <div className={`max-w-[75%] rounded-2xl px-3 py-1.5 text-sm shadow-sm
+              <div key={msg.id} className={`group flex items-center gap-1 ${mine ? "justify-end" : "justify-start"}`}>
+                {mine && actions}
+                <div className={`max-w-[78%] rounded-2xl px-2.5 py-1.5 text-sm shadow-sm min-w-0
                   ${mine ? "bg-[#003b8e] text-white rounded-br-sm" : "bg-white text-gray-800 border border-gray-200 rounded-bl-sm"}`}>
-                  {msg.isDeleted ? <em className="text-xs opacity-60">Message deleted</em> : msg.content}
+                  {msg.replyTo && <ReplyQuote reply={msg.replyTo} mine={mine} />}
+                  {msg.isDeleted ? <em className="text-xs opacity-60">Message deleted</em> : (
+                    <>
+                      {msg.fileUrl && msg.type !== "text" && (
+                        <div className={msg.content ? "mb-1" : ""}>
+                          <MessageAttachment type={msg.type} url={msg.fileUrl} name={msg.fileName} size={msg.fileSize} mine={mine} onLoad={scrollToBottom} />
+                        </div>
+                      )}
+                      {msg.content && <p className="whitespace-pre-wrap break-words">{msg.content}</p>}
+                    </>
+                  )}
                   <p className={`text-[10px] mt-0.5 text-right ${mine ? "text-blue-200" : "text-gray-400"}`}>
                     {msg.sentAt?.slice(11, 16)}
                   </p>
                 </div>
+                {!mine && actions}
               </div>
             );
           })
@@ -350,20 +433,62 @@ function ChatWindow({ convId: initialConvId, userId, userName, onBack }) {
         <div ref={bottomRef} />
       </div>
 
-      <div className="px-3 py-2 border-t border-gray-200 flex items-end gap-2">
-        <textarea
-          value={input}
-          onChange={e => { setInput(e.target.value); if (convId) apiSetTyping(convId).catch(() => {}); }}
-          onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); handleSend(); } }}
-          rows={1}
-          placeholder="Type a message…"
-          className="flex-1 resize-none rounded-xl border border-gray-300 px-3 py-2 text-sm outline-none focus:border-[#003b8e] transition max-h-24 overflow-y-auto"
-        />
-        <button onClick={handleSend} disabled={!input.trim()}
-          className="w-9 h-9 rounded-full bg-[#003b8e] text-white flex items-center justify-center hover:bg-[#002e6e] transition disabled:opacity-40 shrink-0">
-          <Send size={15} />
-        </button>
+      <div className="px-3 pt-2 pb-2 border-t border-gray-200 space-y-2">
+        {showSuggestions && (
+          <SmartReplies messageId={lastMsg.id} onPick={(text) => send(text)} disabled={sending} />
+        )}
+        {replyTo && (
+          <div className="flex items-center gap-2 pl-2 border-l-2 border-[#003b8e] bg-blue-50/60 rounded-r-lg py-1 pr-1">
+            <CornerUpLeft size={13} className="text-[#003b8e] shrink-0" />
+            <div className="flex-1 min-w-0 text-[11px]">
+              <p className="font-semibold text-[#003b8e]">Replying to {replyTo.isMine || replyTo.senderId === me ? "yourself" : replyTo.senderName}</p>
+              <p className="truncate text-gray-500">{replyTo.content || replyTo.fileName || replyTo.type}</p>
+            </div>
+            <button onClick={() => setReplyTo(null)} className="p-1 rounded-full hover:bg-gray-200 text-gray-500"><X size={13} /></button>
+          </div>
+        )}
+        {pendingFile && <AttachmentPreview file={pendingFile} onRemove={() => setPendingFile(null)} />}
+        {sendError && <p className="text-xs text-red-500">{sendError}</p>}
+        <div className="flex items-end gap-1.5">
+          <AttachButton onPick={pickFile} onError={setSendError} disabled={sending} />
+          <textarea
+            value={input}
+            onChange={e => { setInput(e.target.value); if (convId) apiSetTyping(convId).catch(() => {}); }}
+            onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); send(); } }}
+            onPaste={onPaste}
+            rows={1}
+            placeholder={pendingFile ? "Add a caption…" : "Type a message…"}
+            className="flex-1 min-w-0 resize-none rounded-xl border border-gray-300 px-3 py-2 text-sm outline-none focus:border-[#003b8e] transition max-h-24 overflow-y-auto"
+          />
+          <button onClick={() => send()} disabled={sending || (!input.trim() && !pendingFile)}
+            className="w-9 h-9 rounded-full bg-[#003b8e] text-white flex items-center justify-center hover:bg-[#002e6e] transition disabled:opacity-40 shrink-0">
+            {sending ? <Loader2 size={15} className="animate-spin" /> : <Send size={15} />}
+          </button>
+        </div>
       </div>
+
+      {forwardMsg && (
+        <ShareDialog
+          messageId={forwardMsg.id}
+          preview={
+            <div className="rounded-xl bg-gray-50 border border-gray-200 p-2 text-xs text-gray-600 truncate">
+              {forwardMsg.fileName ? `📎 ${forwardMsg.fileName}` : forwardMsg.content}
+            </div>
+          }
+          onClose={() => setForwardMsg(null)}
+        />
+      )}
+    </div>
+  );
+}
+
+function ReplyQuote({ reply, mine }) {
+  const text = reply.isDeleted ? "Message deleted" : (reply.content || reply.fileName || reply.type);
+  return (
+    <div className={`mb-1 border-l-2 pl-2 py-0.5 rounded-r text-[11px]
+      ${mine ? "border-blue-200 bg-white/10 text-blue-100" : "border-[#003b8e] bg-gray-50 text-gray-500"}`}>
+      <p className="font-semibold">{reply.senderName}</p>
+      <p className="truncate">{text}</p>
     </div>
   );
 }
