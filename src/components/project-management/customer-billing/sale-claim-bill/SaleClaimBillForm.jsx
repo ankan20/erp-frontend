@@ -179,7 +179,7 @@ export default function SaleClaimBillForm({ mode = "create", billId, onAfterSubm
       .then((res) => {
         const orders = (Array.isArray(res.data) ? res.data : []).map((o) => ({
           ...o,
-          displayLabel: o.orderNo || o.erpNo,
+          displayLabel: o.orderNo || o.erpDocNumber,
         }));
         setSaleOrderOpts(orders);
       })
@@ -878,8 +878,8 @@ export default function SaleClaimBillForm({ mode = "create", billId, onAfterSubm
                   onChange={(value) => handleOrderSelect(value)}
                   placeholder={lookupLoading ? "Loading…" : "Select Order"}
                   labelKey="displayLabel"
-                  valueKey="erpNo"
-                  searchKeys={["erpNo", "orderNo", "orderTitle", "displayLabel"]}
+                  valueKey="erpDocNumber"
+                  searchKeys={["erpDocNumber", "orderNo", "orderTitle", "displayLabel"]}
                 />
               </div>
             </PMFormRow>

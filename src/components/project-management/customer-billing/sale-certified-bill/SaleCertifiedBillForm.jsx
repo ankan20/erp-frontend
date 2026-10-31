@@ -185,7 +185,7 @@ export default function SaleCertifiedBillForm({ mode = "create", billId, onAfter
       .then((res) => {
         const orders = (Array.isArray(res.data) ? res.data : []).map((o) => ({
           ...o,
-          displayLabel: o.orderNo || o.erpNo,
+          displayLabel: o.orderNo || o.erpDocNumber,
         }));
         setSaleOrderOpts(orders);
       })
@@ -633,8 +633,8 @@ export default function SaleCertifiedBillForm({ mode = "create", billId, onAfter
                   onChange={(value) => handleOrderSelect(value)}
                   placeholder="Select Order"
                   labelKey="displayLabel"
-                  valueKey="erpNo"
-                  searchKeys={["erpNo", "orderNo", "orderTitle", "displayLabel"]}
+                  valueKey="erpDocNumber"
+                  searchKeys={["erpDocNumber", "orderNo", "orderTitle", "displayLabel"]}
                 />
                 {errors.ogSaleOrderNo && (
                   <p className="text-[11px] text-red-500 mt-0.5">{errors.ogSaleOrderNo.message}</p>
