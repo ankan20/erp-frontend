@@ -84,20 +84,34 @@ async function getLocalMedia(isVideo) {
   }
 }
 
+const NO_ROUTE_MSG =
+  "Couldn't connect — your networks can't reach each other directly. A TURN relay server is needed (ask admin to set TURN_HOST / TURN_SECRET).";
+
 // ── WebRTC hook ───────────────────────────────────────────────────────────────
 // Non-trickle ICE: one complete offer + one complete answer over REST polling.
+// phase: "ringing" (caller, no answer yet) → "connecting" → "connected" | "failed"
 function useWebRTC({ call, isInitiator, onConnected, onEnded }) {
   const [localStream,  setLocalStream]  = useState(null);
   const [remoteStream, setRemoteStream] = useState(null);
   const [mediaError,   setMediaError]   = useState(null);
   const [stage,        setStage]        = useState(isInitiator ? "Starting…" : "Waiting for caller's offer…");
+  const [phase,        setPhase]        = useState(isInitiator ? "ringing" : "connecting");
+  const [failReason,   setFailReason]   = useState(null);
   const streamRef = useRef(null);
   const pcRef     = useRef(null);
+  const hasTurnRef = useRef(false);
   const isVideo   = call.callType === "video";
+
+  const fail = useCallback((reason) => {
+    setFailReason(reason || (hasTurnRef.current ? "Couldn't connect — check both networks and try again." : NO_ROUTE_MSG));
+    setPhase("failed");
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
     let pollTimer = null;
+    let failTimer = null;
+    let restarted = false;
     const callId  = call.callId;
     const myId    = Number(getCookie("userId") || 0);
     const others  = (call.participants || [])
@@ -117,6 +131,7 @@ function useWebRTC({ call, isInitiator, onConnected, onEnded }) {
         if (Array.isArray(r?.iceServers)) turn = r.iceServers;
       } catch {}
       if (cancelled) { stream?.getTracks().forEach(t => t.stop()); return; }
+      hasTurnRef.current = turn.length > 0;
 
       const pc = new RTCPeerConnection({ iceServers: [...ICE_SERVERS, ...turn] });
       pcRef.current = pc;
@@ -137,14 +152,8 @@ function useWebRTC({ call, isInitiator, onConnected, onEnded }) {
         setRemoteStream(new MediaStream(remote.getTracks()));
       };
 
-      pc.onconnectionstatechange = () => {
-        if (cancelled) return;
-        if (pc.connectionState === "connected") onConnected();
-        if (pc.connectionState === "failed") onEnded(true);
-      };
-
-      if (isInitiator && others.length) {
-        await pc.setLocalDescription(await pc.createOffer());
+      const sendOffer = async (opts) => {
+        await pc.setLocalDescription(await pc.createOffer(opts));
         await waitIce(pc);
         if (cancelled) return;
         let sent = 0;
@@ -154,6 +163,35 @@ function useWebRTC({ call, isInitiator, onConnected, onEnded }) {
           catch (e) { lastErr = e?.message || String(e); }
         }
         setStage(sent ? "Offer sent — waiting for answer…" : `Could not send offer: ${lastErr}`);
+      };
+
+      pc.onconnectionstatechange = () => {
+        if (cancelled) return;
+        if (pc.connectionState === "connected") {
+          clearTimeout(failTimer);
+          failTimer = null;
+          setPhase("connected");
+          onConnected();
+        }
+        // A failed link isn't the end yet: the caller retries once with fresh
+        // network candidates; give up only if nothing connects within 15s.
+        if (pc.connectionState === "failed") {
+          setStage("Connection failed — retrying…");
+          if (isInitiator && !restarted) {
+            restarted = true;
+            sendOffer({ iceRestart: true }).catch(() => {});
+          }
+          if (!failTimer) {
+            failTimer = setTimeout(() => {
+              failTimer = null;
+              if (!cancelled && pc.connectionState !== "connected") fail();
+            }, 15000);
+          }
+        }
+      };
+
+      if (isInitiator && others.length) {
+        await sendOffer();
       }
 
       pollTimer = setInterval(async () => {
@@ -185,6 +223,7 @@ function useWebRTC({ call, isInitiator, onConnected, onEnded }) {
             try {
               await pc.setRemoteDescription(answer.payload.sdp);
               setStage("Answer received — connecting…");
+              setPhase(p => (p === "ringing" ? "connecting" : p));
             } catch (e) {
               console.error("[call] answer handling failed", e);
               setStage(`Answer apply failed: ${e?.message || e}`);
@@ -199,6 +238,7 @@ function useWebRTC({ call, isInitiator, onConnected, onEnded }) {
     return () => {
       cancelled = true;
       clearInterval(pollTimer);
+      clearTimeout(failTimer);
       streamRef.current?.getTracks().forEach(t => t.stop());
       pcRef.current?.close();
     };
@@ -214,7 +254,7 @@ function useWebRTC({ call, isInitiator, onConnected, onEnded }) {
     return enabled;
   };
 
-  return { localStream, remoteStream, mediaError, stage, toggleTrack };
+  return { localStream, remoteStream, mediaError, stage, phase, failReason, fail, toggleTrack };
 }
 
 // Attaches a MediaStream to a <video>/<audio> element whenever either changes
@@ -314,7 +354,7 @@ function ActiveCallWindow({ call }) {
 
   const onEnded = useCallback((notifyServer) => finish(notifyServer), [finish]);
 
-  const { localStream, remoteStream, mediaError, stage, toggleTrack } =
+  const { localStream, remoteStream, mediaError, stage, phase, failReason, fail, toggleTrack } =
     useWebRTC({ call, isInitiator, onConnected, onEnded });
 
   // Remote audio always plays through a dedicated element (survives minimise and voice calls)
@@ -339,15 +379,23 @@ function ActiveCallWindow({ call }) {
     return () => window.removeEventListener("pagehide", onHide);
   }, [call.callId]);
 
-  // Unanswered or never-connected calls must not hang around forever
+  // Separate clocks: 45s to be answered, then 30s for the media link to come up.
+  // On failure the reason stays on screen for a few seconds before the call closes.
   useEffect(() => {
-    if (connected) return;
-    const t = setTimeout(() => finish(true), 45000);
+    let t;
+    if (phase === "ringing")    t = setTimeout(() => fail("No answer."), 45000);
+    if (phase === "connecting") t = setTimeout(() => fail(), 30000);
+    if (phase === "failed")     t = setTimeout(() => finish(true), 8000);
     return () => clearTimeout(t);
-  }, [connected, finish]);
+  }, [phase, fail, finish]);
 
   const fmt = (s) => `${String(Math.floor(s / 60)).padStart(2, "0")}:${String(s % 60).padStart(2, "0")}`;
   const peerName = isInitiator ? (call.peerName || call.initiatorName) : call.initiatorName;
+  const failed   = phase === "failed";
+  const live     = connected && !failed;
+  const statusText = failed ? "Call failed"
+    : live ? fmt(elapsed)
+    : phase === "ringing" ? "Ringing…" : "Connecting…";
 
   return (
     <Draggable initialX={window.innerWidth - (isVideo ? 380 : 310)} initialY={16}>
@@ -358,14 +406,12 @@ function ActiveCallWindow({ call }) {
 
         <div data-drag-handle className="flex items-center gap-3 px-4 py-3 bg-[#162030] cursor-grab active:cursor-grabbing">
           <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0
-            ${connected ? "bg-emerald-500" : "bg-amber-500 animate-pulse"}`}>
+            ${failed ? "bg-red-500" : live ? "bg-emerald-500" : "bg-amber-500 animate-pulse"}`}>
             {isVideo ? <Video size={14} /> : <Phone size={14} />}
           </div>
           <div className="flex-1 min-w-0">
             <p className="text-xs font-semibold truncate">{peerName || "Call"}</p>
-            <p className="text-[10px] text-gray-400">
-              {connected ? fmt(elapsed) : isInitiator ? "Ringing…" : "Connecting…"}
-            </p>
+            <p className={`text-[10px] ${failed ? "text-red-300" : "text-gray-400"}`}>{statusText}</p>
           </div>
           <button onClick={() => setMinimised(m => !m)} className="p-1 rounded hover:bg-[#1e2a3a] transition">
             {minimised ? <Maximize2 size={13} /> : <Minimize2 size={13} />}
@@ -380,6 +426,12 @@ function ActiveCallWindow({ call }) {
                 <span>{mediaError}</span>
               </div>
             )}
+            {failed && failReason && (
+              <div className="flex gap-2 items-start px-4 py-2 bg-red-500/15 text-red-200 text-[11px]">
+                <AlertTriangle size={13} className="shrink-0 mt-0.5" />
+                <span>{failReason} Closing…</span>
+              </div>
+            )}
 
             {isVideo ? (
               <div className="relative bg-black" style={{ height: 220 }}>
@@ -388,12 +440,12 @@ function ActiveCallWindow({ call }) {
                   <video ref={localVideo} autoPlay playsInline muted
                     className="absolute bottom-2 right-2 w-24 h-16 object-cover rounded-lg border border-white/20" />
                 )}
-                {!connected && (
+                {!live && (
                   <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/70 gap-2">
                     <div className="w-12 h-12 rounded-full bg-[#003b8e] flex items-center justify-center text-lg font-bold">
                       {(peerName || "?")[0]?.toUpperCase()}
                     </div>
-                    <p className="text-xs text-gray-300 animate-pulse">{isInitiator ? "Ringing…" : "Connecting…"}</p>
+                    <p className={`text-xs ${failed ? "text-red-300" : "text-gray-300 animate-pulse"}`}>{statusText}</p>
                     <p className="text-[10px] text-gray-500 px-4 text-center">{stage}</p>
                   </div>
                 )}
@@ -403,8 +455,8 @@ function ActiveCallWindow({ call }) {
                 <div className="w-16 h-16 rounded-full bg-[#003b8e] flex items-center justify-center text-xl font-bold">
                   {(peerName || "?")[0]?.toUpperCase()}
                 </div>
-                <p className="text-xs text-gray-400">{connected ? fmt(elapsed) : isInitiator ? "Ringing…" : "Connecting…"}</p>
-                {!connected && <p className="text-[10px] text-gray-500 px-4 text-center">{stage}</p>}
+                <p className={`text-xs ${failed ? "text-red-300" : "text-gray-400"}`}>{statusText}</p>
+                {!live && <p className="text-[10px] text-gray-500 px-4 text-center">{stage}</p>}
               </div>
             )}
 
