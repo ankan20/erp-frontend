@@ -80,6 +80,7 @@ const itemSchema = z.object({
 const schema = z.object({
   ogSaleOrderNo:     z.string().min(1, "Order No is required"),
   billingDate: zodDate(z, "billingDate", true),
+  billingNo:          z.string().min(1, "Bill No is required"),
   erpNo:              z.string().optional(),
   note:               z.string().optional(),
   jobLocation:        z.string().min(1, "Job Location is required"),
@@ -106,6 +107,7 @@ const DEFAULT_ITEM = {
 const defaultValues = {
   ogSaleOrderNo:     "",
   billingDate:        "",
+  billingNo:          "",
   erpNo:              "",
   note:               "",
   jobLocation:        "",
@@ -264,6 +266,7 @@ export default function SaleClaimBillForm({ mode = "create", billId, onAfterSubm
         const formatted = {
           ogSaleOrderNo:     d.ogSaleOrderNo     || "",
           billingDate:        d.billingDate         || "",
+          billingNo:          d.billingNo           || "",
           erpNo:              d.erpNo               || "",
           note:               d.note                || "",
           jobLocation:        d.jobLocation         || "",
@@ -324,6 +327,7 @@ export default function SaleClaimBillForm({ mode = "create", billId, onAfterSubm
     if (mode === "create") fd.append("projectCode", projectCode);
     fd.append("ogSaleOrderNo", v.ogSaleOrderNo || "");
     fd.append("billingDate",   v.billingDate   || "");
+    fd.append("billingNo",     v.billingNo     || "");
     fd.append("note",          v.note          || "");
     fd.append("jobLocation",   v.jobLocation   || "");
     const serializeItems = (list) =>
@@ -582,7 +586,7 @@ export default function SaleClaimBillForm({ mode = "create", billId, onAfterSubm
 
     const doc = new jsPDF({ orientation: "landscape", unit: "mm", format: "a3" });
 
-    const billNo = displayErpNo || getValues("erpNo") || `#${billId}` || "draft";
+    const billNo = getValues("billingNo") || displayErpNo || `#${billId}` || "draft";
     const billDt = watch("billingDate") || "—";
     doc.setFontSize(14);
     doc.setTextColor(28, 58, 94);
@@ -889,6 +893,24 @@ export default function SaleClaimBillForm({ mode = "create", billId, onAfterSubm
                 disabled
                 placeholder="Auto-generated on save"
                 className="flex-1 h-[30px] text-[13px] rounded-sm border border-[#c9d5e0] bg-[#f0f4f8] px-2 text-[#555] outline-none w-full"
+              />
+            </PMFormRow>
+
+            <PMFormRow label="Bill No" required labelWidth="sm:w-[140px] sm:min-w-[140px]">
+              <Controller
+                control={control}
+                name="billingNo"
+                render={({ field, fieldState }) => (
+                  <PMInput
+                    value={field.value || ""}
+                    onChange={field.onChange}
+                    onBlur={field.onBlur}
+                    disabled={disabled}
+                    placeholder="Enter bill number"
+                    hasError={fieldState.error}
+                    expandable={false}
+                  />
+                )}
               />
             </PMFormRow>
 

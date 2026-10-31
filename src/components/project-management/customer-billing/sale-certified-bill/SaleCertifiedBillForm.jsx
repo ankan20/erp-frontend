@@ -141,6 +141,7 @@ export default function SaleCertifiedBillForm({ mode = "create", billId, onAfter
   const [lookupLoading,   setLookupLoading]   = useState(false);
   const [billUuid,        setBillUuid]        = useState("");
   const [erpNo,           setErpNo]           = useState("");
+  const [billNo,          setBillNo]          = useState("");
 
   const [file,         setFile]         = useState(null);
   const [existingUrl,  setExistingUrl]  = useState("");
@@ -350,6 +351,7 @@ export default function SaleCertifiedBillForm({ mode = "create", billId, onAfter
         onUuid?.(d.billingUuid || "");
         setBillUuid(d.billingUuid || "");
         setErpNo(d.erpNo || "");
+        setBillNo(d.billingNo || "");
         setExistingUrl(d.attachment || "");
         setInitialUrl(d.attachment  || "");
         const editable = ["draft", "reback"].includes((d.workflowStatus || "").toLowerCase());
@@ -445,6 +447,7 @@ export default function SaleCertifiedBillForm({ mode = "create", billId, onAfter
         const newId = res.data?.id;
         if (res.data?.billingUuid) setBillUuid(res.data.billingUuid);
         if (res.data?.erpNo)       setErpNo(res.data.erpNo);
+        if (res.data?.billingNo)   setBillNo(res.data.billingNo);
         if (newId) setTimeout(() => router.push(`/project-management/customer-billing/sale-bill-certified/${newId}`), 400);
       }
     } catch (err) {
@@ -493,14 +496,14 @@ export default function SaleCertifiedBillForm({ mode = "create", billId, onAfter
     const doc = new jsPDF({ orientation: "landscape", unit: "mm", format: "a3" });
 
     // Header info
-    const billNo = erpNo || `#${billId}` || "draft";
+    const pdfBillNo = billNo || erpNo || `#${billId}` || "draft";
     const billDt = watch("billingDate") || "—";
     doc.setFontSize(14);
     doc.setTextColor(28, 58, 94);
     doc.text("Certification Statement", 14, 14);
     doc.setFontSize(9);
     doc.setTextColor(80, 80, 80);
-    doc.text(`Bill No: ${billNo}   Date: ${billDt}`, 14, 20);
+    doc.text(`Bill No: ${pdfBillNo}   Date: ${billDt}`, 14, 20);
 
     const head = [
       [
@@ -591,7 +594,7 @@ export default function SaleCertifiedBillForm({ mode = "create", billId, onAfter
       alternateRowStyles: { fillColor: [245, 248, 252] },
     });
 
-    doc.save(`certification-statement-${billNo}.pdf`);
+    doc.save(`certification-statement-${pdfBillNo}.pdf`);
   };
 
   // ── LOADING ───────────────────────────────────────────────────────────────────
@@ -646,6 +649,17 @@ export default function SaleCertifiedBillForm({ mode = "create", billId, onAfter
                 readOnly
                 disabled
                 placeholder="Auto-copied from claim bill"
+                className="flex-1 h-[30px] text-[13px] rounded-sm border border-[#c9d5e0] bg-[#f0f4f8] px-2 text-[#555] outline-none w-full"
+              />
+            </PMFormRow>
+
+            <PMFormRow label="Bill No" labelWidth="sm:w-[140px] sm:min-w-[140px]">
+              <input
+                type="text"
+                value={billNo || ""}
+                readOnly
+                disabled
+                placeholder="Copied from claim bill"
                 className="flex-1 h-[30px] text-[13px] rounded-sm border border-[#c9d5e0] bg-[#f0f4f8] px-2 text-[#555] outline-none w-full"
               />
             </PMFormRow>
