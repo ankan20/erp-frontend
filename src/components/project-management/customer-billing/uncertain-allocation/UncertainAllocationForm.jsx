@@ -69,12 +69,10 @@ export default function UncertainAllocationForm({ mode = "create", uaId, onAfter
   const [saleOrders,       setSaleOrders]       = useState([]);
   const [lookupLoading,    setLookupLoading]    = useState(false);
   const [selectedSoId,     setSelectedSoId]     = useState("");
-  // bill lookup (filtered by selected SO — claim or certified based on billType)
+  // bill lookup (certified bills for selected SO)
   const [claimBills,       setClaimBills]       = useState([]);
   const [billsLoading,     setBillsLoading]     = useState(false);
   const [selectedBillId,   setSelectedBillId]   = useState("");
-  // addedBillIds: set of billingId already in lines (prevent duplicate adds)
-  const [addedBillIds,     setAddedBillIds]     = useState(new Set());
   const [itemsLoading,     setItemsLoading]     = useState(false);
 
   // ── load sale order lookup ─────────────────────────────────────────────────
@@ -90,7 +88,7 @@ export default function UncertainAllocationForm({ mode = "create", uaId, onAfter
       setSaleOrders(
         list.map((o) => ({
           ...o,
-          displayLabel: o.orderNo || o.erpDocNumber,
+          displayLabel: [o.orderNo, o.erpDocNumber].filter(Boolean).join(" | "),
         })),
       );
     } catch {
@@ -145,7 +143,6 @@ export default function UncertainAllocationForm({ mode = "create", uaId, onAfter
         remarks:                         l.remarks || "",
       }));
       setLines(loadedLines);
-      setAddedBillIds(new Set(loadedLines.map((l) => l.billingId).filter(Boolean)));
     } catch {
       toast.error("Failed to load details");
     } finally {
@@ -162,12 +159,13 @@ export default function UncertainAllocationForm({ mode = "create", uaId, onAfter
     }
   }, [mode]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // ── Step 1: SO selected → load its certified bills ───────────────────────
+  // ── Step 1: SO selected → load its certified bills, clear table ─────────
   const handleSoSelect = async (soId) => {
     if (!soId) return;
     setSelectedSoId(String(soId));
     setSelectedBillId("");
     setClaimBills([]);
+    setLines([]);
     setBillsLoading(true);
     try {
       const result = await apiRequest({ url: `${UA.CERTIFIED_BILLS}${soId}`, method: "GET" });
@@ -186,33 +184,28 @@ export default function UncertainAllocationForm({ mode = "create", uaId, onAfter
     }
   };
 
-  // ── Step 2: Bill selected → populate table rows ───────────────────────────
+  // ── Step 2: Bill selected → replace table with this bill's items ─────────
   const handleBillSelect = async (billId) => {
     if (!billId) return;
     const billIdNum = Number(billId);
-    if (addedBillIds.has(billIdNum)) {
-      toast.warning("This bill is already added");
-      setSelectedBillId(String(billIdNum));
-      return;
-    }
     setItemsLoading(true);
     setSelectedBillId(String(billIdNum));
+    setLines([]);
     try {
-      const endpoint = UA.CERTIFIED_BILL_ITEMS;
       const result = await apiRequest({
-        url: `${endpoint}${billIdNum}`,
+        url: `${UA.CERTIFIED_BILL_ITEMS}${billIdNum}`,
         method: "GET",
       });
       const d = result.data;
       if (!d || !d.items?.length) {
-        toast.warning("No items found in this claim bill");
+        toast.warning("No items found in this certified bill");
         return;
       }
       const newRows = d.items.map((item) => ({
         billingId:                      billIdNum,
         billingNo:                      d.billingNo        || "",
         ogSaleOrderId:                  d.ogSaleOrderId,
-        erpDocNumber:                  d.erpDocNumber    || "",
+        erpDocNumber:                   d.erpDocNumber     || "",
         orderTitle:                     d.orderTitle       || "",
         orderNo:                        d.orderNo          || "",
         ogSaleOrderItemId:              item.billingItemId,
@@ -236,10 +229,9 @@ export default function UncertainAllocationForm({ mode = "create", uaId, onAfter
         holdForFullWorkNotCompleted:    "",
         remarks:                        "",
       }));
-      setLines((prev) => [...prev, ...newRows]);
-      setAddedBillIds((prev) => new Set([...prev, billIdNum]));
+      setLines(newRows);
     } catch {
-      toast.error("Failed to load claim bill items");
+      toast.error("Failed to load certified bill items");
     } finally {
       setItemsLoading(false);
     }
