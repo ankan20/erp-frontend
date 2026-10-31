@@ -2,6 +2,7 @@
 
 import { createContext, useContext, useState, useEffect, useRef, useCallback } from "react";
 import { getCookie } from "@/lib/cookies";
+import { sounds, getOpenConversation } from "@/lib/commSounds";
 import {
   getConversations,
   getUnreadNotifications,
@@ -22,6 +23,9 @@ export function CommProvider({ children }) {
   const [pickerMode,         setPickerMode]         = useState(null);
   const [activeChatConvId,   setActiveChatConvId]   = useState(null);
   const pollRef = useRef(null);
+  // null until the first poll, so existing unread items don't make a sound on page load
+  const prevUnreadMsgs  = useRef(null);
+  const prevUnreadPings = useRef(null);
 
   const myId = () => {
     try { return Number(getCookie("userId")) || null; } catch { return null; }
@@ -37,14 +41,26 @@ export function CommProvider({ children }) {
         getIncomingCalls(),
       ]);
 
-      if (convRes.status === "fulfilled")
-        setConversations(convRes.value?.data || convRes.value || []);
+      if (convRes.status === "fulfilled") {
+        const convs  = convRes.value?.data || convRes.value || [];
+        const openId = getOpenConversation();
+        const unread = (Array.isArray(convs) ? convs : [])
+          .filter(c => c.conversationId !== openId)
+          .reduce((sum, c) => sum + (c.unreadCount || 0), 0);
+        if (prevUnreadMsgs.current !== null && unread > prevUnreadMsgs.current) sounds.messageReceived();
+        prevUnreadMsgs.current = unread;
+        setConversations(convs);
+      }
 
       if (notifRes.status === "fulfilled")
         setUnreadNotifCount(notifRes.value?.unreadCount ?? 0);
 
-      if (pingRes.status === "fulfilled")
-        setUnreadPingCount(pingRes.value?.count ?? 0);
+      if (pingRes.status === "fulfilled") {
+        const pings = pingRes.value?.count ?? 0;
+        if (prevUnreadPings.current !== null && pings > prevUnreadPings.current) sounds.pingReceived();
+        prevUnreadPings.current = pings;
+        setUnreadPingCount(pings);
+      }
 
       if (callRes.status === "fulfilled") {
         const calls = Array.isArray(callRes.value) ? callRes.value

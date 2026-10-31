@@ -11,6 +11,7 @@ import { apiRequest } from "@/lib/apiClient";
 import { getCookie } from "@/lib/cookies";
 import { getLocalStorage } from "@/lib/localStorage";
 import API_BASE_URL from "@/config/api.config";
+import { startRingtone, stopRingtone } from "@/lib/commSounds";
 
 const ICE_SERVERS = [
   { urls: "stun:stun.l.google.com:19302" },
@@ -231,6 +232,11 @@ function IncomingCallToast({ call }) {
   const { answerIncomingCall } = useComm();
   const [loading, setLoading] = useState(false);
   const [error,   setError]   = useState(null);
+
+  useEffect(() => {
+    startRingtone();
+    return () => stopRingtone();
+  }, []);
 
   const handleAnswer = async () => {
     setLoading(true);

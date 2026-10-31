@@ -19,6 +19,7 @@ import {
   getReceivedPings,
   markAllPingsRead,
 } from "@/lib/commApi";
+import { sounds, setOpenConversation } from "@/lib/commSounds";
 
 const PING_TYPES = [
   { value: "ping",             label: "Ping",              color: "bg-blue-500" },
@@ -257,6 +258,11 @@ function ChatWindow({ convId: initialConvId, userId, userName, onBack }) {
   useEffect(() => { bottomRef.current?.scrollIntoView({ behavior: "smooth" }); }, [messages]);
 
   useEffect(() => {
+    setOpenConversation(convId);
+    return () => setOpenConversation(null);
+  }, [convId]);
+
+  useEffect(() => {
     if (!convId) return;
     pollRef.current = setInterval(async () => {
       try {
@@ -269,6 +275,8 @@ function ChatWindow({ convId: initialConvId, userId, userName, onBack }) {
             return toAdd.length ? [...prev, ...toAdd] : prev;
           });
           setLastId(newMsgs[newMsgs.length - 1].id);
+          const me = myId();
+          if (newMsgs.some(m => !m.isMine && m.senderId !== me)) sounds.messageReceived();
           refresh();
         }
         const t = await getTyping(convId);
@@ -284,6 +292,7 @@ function ChatWindow({ convId: initialConvId, userId, userName, onBack }) {
     setInput("");
     try {
       await apiSendMsg(convId, text);
+      sounds.messageSent();
       const r = await getNewMessages(convId, lastId);
       const newMsgs = Array.isArray(r) ? r : [];
       if (newMsgs.length) {
@@ -369,6 +378,7 @@ function PingTypePicker({ target, onBack }) {
     setSending(true);
     try {
       await sendPing(target.userId, pingType, msg || undefined);
+      sounds.pingSent();
       setSent(true);
     } catch {
       setSending(false);
