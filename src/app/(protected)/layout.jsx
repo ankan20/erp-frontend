@@ -5,10 +5,9 @@ import ProtectedLayoutAuth from "@/components/common/ProtectedLayoutAuth";
 import AppNavbar from "@/components/layout/AppNavbar";
 import AppSidebar from "@/components/layout/AppSidebar";
 import { NavigationHistoryProvider } from "@/context/NavigationHistoryContext";
-import { CommProvider } from "@/context/CommContext";
 import CommFab from "@/components/communication/CommFab";
 import ChatFloat from "@/components/communication/ChatFloat";
-import CallPopup from "@/components/communication/CallPopup";
+// CommProvider + CallPopup live in the root layout (CommRoot) so calls survive navigation
 import { usePathname } from "next/navigation";
 import { useState } from "react";
 
@@ -20,7 +19,7 @@ export default function ProtectedLayout({ children }) {
   return (
     <NavigationHistoryProvider>
     <ProtectedLayoutAuth>
-      <CommProvider>
+      <>
         <div className="h-screen flex flex-col bg-[#f5f5f5]">
 
           {/* NAVBAR (AUTO HEIGHT) */}
@@ -55,8 +54,7 @@ export default function ProtectedLayout({ children }) {
         {/* ── Communication overlays (global, always on top) ── */}
         <CommFab />
         <ChatFloat />
-        <CallPopup />
-      </CommProvider>
+      </>
     </ProtectedLayoutAuth>
     </NavigationHistoryProvider>
   );

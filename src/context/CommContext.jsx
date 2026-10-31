@@ -119,7 +119,7 @@ export function CommProvider({ children }) {
     const hbRef = setInterval(() => {
       if (myId()) sendHeartbeat().catch(() => {});
     }, 30000);
-    sendHeartbeat().catch(() => {}); // immediate on mount
+    if (myId()) sendHeartbeat().catch(() => {}); // immediate on mount (skip on login pages)
     return () => { clearInterval(pollRef.current); clearInterval(hbRef); };
   }, [refresh]);
 
@@ -133,14 +133,15 @@ export function CommProvider({ children }) {
     setActiveChatConvId(null);
   };
 
-  const answerIncomingCall = (call) => {
+  // Stable references: the call window's timers depend on these
+  const answerIncomingCall = useCallback((call) => {
     setActiveCall(call);
     setIncomingCall(null);
-  };
+  }, []);
 
-  const endActiveCall = () => {
+  const endActiveCall = useCallback(() => {
     setActiveCall(null);
-  };
+  }, []);
 
   const unreadMessageCount = (Array.isArray(conversations) ? conversations : [])
     .reduce((sum, c) => sum + (c.unreadCount || 0), 0);

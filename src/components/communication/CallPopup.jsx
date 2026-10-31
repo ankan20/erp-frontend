@@ -15,6 +15,7 @@ import { getCookie } from "@/lib/cookies";
 import { getLocalStorage } from "@/lib/localStorage";
 import API_BASE_URL from "@/config/api.config";
 import { startRingtone, stopRingtone } from "@/lib/commSounds";
+import { toast } from "sonner";
 
 const ICE_SERVERS = [
   { urls: "stun:stun.l.google.com:19302" },
@@ -228,7 +229,7 @@ function useMeshCall({ call, onEnded, extraSignalRef }) {
       const uid = Number(s.senderId);
       switch (s.signalType) {
         case "ended":
-          onEndedRef.current(false);
+          onEndedRef.current(false, "Call ended by the other side");
           return;
         case "left":
           dropPeer(uid);
@@ -276,7 +277,10 @@ function useMeshCall({ call, onEnded, extraSignalRef }) {
 
     const sync = (detail) => {
       if (!detail || cancelled) return;
-      if (["ended", "missed"].includes(detail.status)) { onEndedRef.current(false); return; }
+      if (["ended", "missed"].includes(detail.status)) {
+        onEndedRef.current(false, detail.status === "missed" ? "Call was not answered" : "Call has ended");
+        return;
+      }
       for (const p of detail.participants || []) {
         const uid = Number(p.userId);
         if (!uid || uid === myId) continue;
@@ -470,12 +474,18 @@ function FollowBars({ follow }) {
   const small = "rounded px-2 py-0.5 text-[10px] font-semibold transition";
   return (
     <>
-      {requests.map(uid => (
-        <div key={`req-${uid}`} className={`${bar} bg-indigo-500/20 text-indigo-100`}>
+      {requests.map(r => (
+        <div key={`req-${r.kind}-${r.uid}`} className={`${bar} bg-indigo-500/20 text-indigo-100`}>
           <Navigation size={12} className="shrink-0" />
-          <span className="flex-1 min-w-0"><b>{nameOf(uid)}</b> wants to follow your page</span>
-          <button onClick={() => follow.decline(uid)} className={`${small} bg-white/10 hover:bg-white/20`}>Decline</button>
-          <button onClick={() => follow.allow(uid)} className={`${small} bg-emerald-500 hover:bg-emerald-600`}>Allow</button>
+          <span className="flex-1 min-w-0">
+            {r.kind === "follow"
+              ? <><b>{nameOf(r.uid)}</b> wants to follow your page</>
+              : <><b>{nameOf(r.uid)}</b> wants you to follow their page</>}
+          </span>
+          <button onClick={() => follow.decline(r)} className={`${small} bg-white/10 hover:bg-white/20`}>Decline</button>
+          <button onClick={() => follow.accept(r)} className={`${small} bg-emerald-500 hover:bg-emerald-600`}>
+            {r.kind === "follow" ? "Allow" : "Follow"}
+          </button>
         </div>
       ))}
       {following && (
@@ -484,7 +494,7 @@ function FollowBars({ follow }) {
           <span className="flex-1 min-w-0 truncate">
             Following <b>{nameOf(following)}</b>{leaderPage ? ` — ${leaderPage}` : ""}
           </span>
-          <button onClick={follow.stopFollowing} className={`${small} bg-white/10 hover:bg-white/20`}>Stop</button>
+          <button onClick={() => follow.stopFollowing()} className={`${small} bg-white/10 hover:bg-white/20`}>Stop</button>
         </div>
       )}
       {followers.length > 0 && (
@@ -493,7 +503,7 @@ function FollowBars({ follow }) {
           <span className="flex-1 min-w-0 truncate">
             <b>{followers.map(nameOf).join(", ")}</b> {followers.length > 1 ? "are" : "is"} following your page
           </span>
-          <button onClick={follow.stopLeading} className={`${small} bg-white/10 hover:bg-white/20`}>Stop</button>
+          <button onClick={() => follow.stopLeading()} className={`${small} bg-white/10 hover:bg-white/20`}>Stop</button>
         </div>
       )}
       {notice && (
@@ -580,14 +590,16 @@ function ActiveCallWindow({ call }) {
   const isVideo     = call.callType === "video";
   const canShare    = typeof navigator !== "undefined" && !!navigator.mediaDevices?.getDisplayMedia;
 
-  const finish = useCallback(async (notifyServer) => {
+  // reason: shown as a short message so it's clear why a call closed
+  const finish = useCallback(async (notifyServer, reason) => {
     clearInterval(timerRef.current);
     timerRef.current = null;
     if (notifyServer) { try { await leaveCall(call.callId); } catch {} }
+    if (reason) toast(reason);
     endActiveCall();
   }, [call.callId, endActiveCall]);
 
-  const onEnded = useCallback((notifyServer) => finish(notifyServer), [finish]);
+  const onEnded = useCallback((notifyServer, reason) => finish(notifyServer, reason), [finish]);
 
   const extraSignalRef = useRef(null);
   const {
@@ -621,9 +633,9 @@ function ActiveCallWindow({ call }) {
     let t;
     if (phase === "ringing")    t = setTimeout(() => fail("No answer."), 45000);
     if (phase === "connecting") t = setTimeout(() => fail(), 30000);
-    if (phase === "failed")     t = setTimeout(() => finish(true), 8000);
+    if (phase === "failed")     t = setTimeout(() => finish(true, `Call dropped — ${failText}`), 8000);
     return () => clearTimeout(t);
-  }, [phase, fail, finish]);
+  }, [phase, fail, finish, failText]);
 
   // Closing or reloading the tab mid-call must take us out of it on the server
   useEffect(() => {
@@ -664,19 +676,31 @@ function ActiveCallWindow({ call }) {
     <Tile key="me" name="You" stream={myVideo} showVideo={!!myVideo} micOff={!micOn}
       presenting={sharing} mirror={!sharing} {...props} />
   );
-  // Follow button on each connected person: opens the pages they open
+  // Page-sync buttons on each connected person:
+  //   Follow     → I open the pages they open
+  //   Share page → they open the pages I open
   const followBtn = (p) => {
     if (p.state !== "connected") return null;
-    const on      = follow.following === p.id;
-    const waiting = follow.pendingTo === p.id;
+    const iFollow   = follow.following === p.id;
+    const theyFollow = follow.followers.includes(p.id);
+    const asking    = follow.pending?.uid === p.id ? follow.pending.kind : null;
+    const pill = "flex items-center gap-1 rounded px-1.5 py-0.5 text-[10px] font-medium transition disabled:opacity-60";
+    const off  = "bg-black/50 text-gray-200 hover:bg-black/70";
     return (
-      <button type="button" disabled={waiting}
-        onClick={(e) => { e.stopPropagation(); if (on) follow.stopFollowing(); else follow.askToFollow(p.id); }}
-        title={on ? "Stop following" : `Follow ${p.name || "this person"}'s page`}
-        className={`flex items-center gap-1 rounded px-1.5 py-0.5 text-[10px] font-medium transition disabled:opacity-60
-          ${on ? "bg-emerald-500 text-white" : "bg-black/50 text-gray-200 hover:bg-black/70"}`}>
-        <Navigation size={10} />{on ? "Following" : waiting ? "Asking…" : "Follow"}
-      </button>
+      <div className="flex flex-col items-end gap-1">
+        <button type="button" disabled={asking === "follow" || theyFollow}
+          onClick={(e) => { e.stopPropagation(); if (iFollow) follow.stopFollowing(); else follow.askToFollow(p.id); }}
+          title={iFollow ? "Stop following" : `Open the pages ${p.name || "they"} open`}
+          className={`${pill} ${iFollow ? "bg-emerald-500 text-white" : off}`}>
+          <Navigation size={10} />{iFollow ? "Following" : asking === "follow" ? "Asking…" : "Follow"}
+        </button>
+        <button type="button" disabled={asking === "lead" || iFollow}
+          onClick={(e) => { e.stopPropagation(); if (theyFollow) follow.stopLeading(p.id); else follow.sharePageWith(p.id); }}
+          title={theyFollow ? "Stop sharing your page" : `Ask ${p.name || "them"} to follow your page`}
+          className={`${pill} ${theyFollow ? "bg-sky-500 text-white" : off}`}>
+          <Eye size={10} />{theyFollow ? "Sharing" : asking === "lead" ? "Asking…" : "Share page"}
+        </button>
+      </div>
     );
   };
   const peerTile = (p, props) => (
