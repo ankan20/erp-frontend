@@ -224,8 +224,7 @@ export default function BudgetMasterForm({ mode = "create", budgetId, onAfterSub
           list.map((o) => ({
             ...o,
             id: o.id ?? o.saleOrderId ?? o.ogSaleOrderId,
-            displayLabel: [o.ogSaleOrderNo || o.saleOrderNo || o.orderNo, o.orderTitle || o.saleOrderTitle]
-              .filter(Boolean).join(" — "),
+            displayLabel: o.orderNo || o.ogSaleOrderNo || o.saleOrderNo,
           })),
         );
       })
