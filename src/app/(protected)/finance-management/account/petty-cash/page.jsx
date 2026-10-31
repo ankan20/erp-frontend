@@ -490,8 +490,8 @@ export default function PettyCashPage() {
               <NavigationButton onClick={() => router.push("/finance-management/account/petty-cash/budget")}>
                 Budget
               </NavigationButton>
-              <NavigationButton onClick={() => router.push("/finance-management/account/petty-cash/docket-voucher")}>
-                Voucher Docket
+              <NavigationButton onClick={() => router.push("/finance-management/account/petty-cash/expenses-docket")}>
+                Expenses Docket
               </NavigationButton>
             </div>
           )}

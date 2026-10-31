@@ -706,11 +706,11 @@ export const routeMetaConfig = [
   },
   {
     basePath: "/finance-management/account/journal/vouchering/new",
-    breadcrumbs: ["Finance Management", "Accounts", "Journal", "Journal Voucher", "New"],
+    breadcrumbs: ["Finance Management", "Accounts", "Journal", "Bulk Docket", "New"],
   },
   {
     basePath: "/finance-management/account/journal/vouchering/[id]",
-    breadcrumbs: ["Finance Management", "Accounts", "Journal", "Journal Voucher", "Details"],
+    breadcrumbs: ["Finance Management", "Accounts", "Journal", "Bulk Docket", "Details"],
   },
   // Journal Accounting
   {
@@ -758,16 +758,16 @@ export const routeMetaConfig = [
   },
   // Petty Cash — Voucher Docket
   {
-    basePath: "/finance-management/account/petty-cash/docket-voucher",
-    breadcrumbs: ["Finance Management", "Accounts", "Petty Cash", "Voucher Docket", "List"],
+    basePath: "/finance-management/account/petty-cash/expenses-docket",
+    breadcrumbs: ["Finance Management", "Accounts", "Petty Cash", "Expenses Docket", "List"],
   },
   {
-    basePath: "/finance-management/account/petty-cash/docket-voucher/new",
-    breadcrumbs: ["Finance Management", "Accounts", "Petty Cash", "Voucher Docket", "New"],
+    basePath: "/finance-management/account/petty-cash/expenses-docket/new",
+    breadcrumbs: ["Finance Management", "Accounts", "Petty Cash", "Expenses Docket", "New"],
   },
   {
-    basePath: "/finance-management/account/petty-cash/docket-voucher/[id]",
-    breadcrumbs: ["Finance Management", "Accounts", "Petty Cash", "Voucher Docket", "Details"],
+    basePath: "/finance-management/account/petty-cash/expenses-docket/[id]",
+    breadcrumbs: ["Finance Management", "Accounts", "Petty Cash", "Expenses Docket", "Details"],
   },
   // HR Management — Offer Letter & Onboarding
   {

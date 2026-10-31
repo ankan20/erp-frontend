@@ -192,7 +192,7 @@ export default function Page() {
           showDateRange
           actions={
             access.canAdd
-              ? [{ label: "+ Journal Voucher", onClick: () => router.push("/finance-management/account/journal/vouchering/new") }]
+              ? [{ label: "+ Bulk Docket", onClick: () => router.push("/finance-management/account/journal/vouchering/new") }]
               : []
           }
         />

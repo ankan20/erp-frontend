@@ -55,6 +55,7 @@ export default function DataTable({
   onRowClick,
   storageKey,          // optional override; defaults to current pathname
   pendingDeleteIds,    // Set<number> — rows with pending delete requests get an orange dot
+  summaryRow,          // { [accessor]: true } — columns to sum in a footer row; omit or {} = no footer
 }) {
   const pathname = usePathname();
   const tableKey = `table-state:${storageKey ?? pathname}`;
@@ -432,6 +433,45 @@ export default function DataTable({
             </tr>
           </thead>
 
+          {/* ─── SUMMARY / TOTAL ROW ─── */}
+          {summaryRow && Object.keys(summaryRow).length > 0 && (
+            <tfoot className="sticky bottom-0 z-10">
+              <tr className="bg-[#144664] text-white text-[12px] font-semibold">
+                {columns.map((col, colIndex) => {
+                  const width = col.width || (colIndex === 0 ? "65px" : undefined);
+                  const shouldSum = summaryRow[col.accessor];
+                  const isFirstSumCol = columns.findIndex((c) => summaryRow[c.accessor]) === colIndex;
+
+                  let content = null;
+                  const summaryAlign = summaryRow[col.accessor]?.align;
+                  if (shouldSum) {
+                    const toNum = (v) => parseFloat(String(v ?? "").replace(/,/g, "").replace(/^[^\d\-\.]+/, "")) || 0;
+                    const total = sortedData.reduce((s, row) => s + toNum(row[col.accessor]), 0);
+                    content = total.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+                  } else if (isFirstSumCol) {
+                    content = "Total";
+                  }
+
+                  const sumAlignClass = summaryAlign
+                    ? getAlignClass(summaryAlign)
+                    : shouldSum
+                      ? "text-left"
+                      : isFirstSumCol ? "text-right" : "";
+
+                  return (
+                    <td
+                      key={colIndex}
+                      style={width ? { width, minWidth: width, maxWidth: width } : {}}
+                      className={`border border-[#2e5a72] px-2 py-1 whitespace-nowrap ${sumAlignClass}`}
+                    >
+                      {content}
+                    </td>
+                  );
+                })}
+              </tr>
+            </tfoot>
+          )}
+
           <tbody>
             {sortedData.length === 0 ? (
               <tr>
@@ -500,8 +540,9 @@ export default function DataTable({
                             </span>
                           ) : null;
 
+                          const justifyClass = col.align === "right" ? "justify-end" : col.align === "center" ? "justify-center" : "justify-start";
                           const inner = (
-                            <div className={`flex items-center gap-0.5 ${isExpanded ? "whitespace-normal break-words" : "truncate whitespace-nowrap overflow-hidden"}`}>
+                            <div className={`flex items-center gap-0.5 ${justifyClass} ${isExpanded ? "whitespace-normal break-words" : "truncate whitespace-nowrap overflow-hidden"}`}>
                               {slDot}
                               {content}
                             </div>

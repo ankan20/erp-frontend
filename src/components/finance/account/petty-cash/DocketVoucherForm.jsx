@@ -78,7 +78,7 @@ export default function DocketVoucherForm({
   canApprove = false,
   onUuid,
   onAfterSubmit,
-  basePath = "/finance-management/account/petty-cash/docket-voucher",
+  basePath = "/finance-management/account/petty-cash/expenses-docket",
 }) {
   const isViewMode = mode === "view" || mode === "approver";
 
@@ -379,7 +379,7 @@ export default function DocketVoucherForm({
 
           {/* ── LEFT PANEL ─────────────────────────────────── */}
           <div className={`w-full lg:w-[380px] lg:shrink-0 space-y-2 ${!sidebarOpen ? "lg:hidden" : ""}`}>
-            <PMSection title="Voucher Docket Info">
+            <PMSection title="Docket Info">
               <PMFormRow label="Voucher No" labelWidth={LABEL_W}>
                 <PMInput value={voucherNo || "Auto"} disabled />
               </PMFormRow>
@@ -488,7 +488,7 @@ export default function DocketVoucherForm({
           <div className="flex-1 min-w-0 mt-4 lg:mt-0">
             <div className="border border-[#b5b5b5]">
               <div className="bg-[#d6e6f2] px-3 py-1.5 border-b border-[#b5b5b5] font-bold text-[16px]">
-                Voucher Docket Details
+                Expenses Details
               </div>
               <div className="overflow-x-auto">
                 <table ref={tableRef} className="w-full border-collapse text-sm min-w-[560px]">
