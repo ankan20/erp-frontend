@@ -1,8 +1,9 @@
 "use client";
 
-import { forwardRef } from "react";
+import { forwardRef, useState } from "react";
 import { cn } from "@/lib/utils";
 import { PM } from "./pmTheme";
+import FocusCorners from "./FocusCorners";
 
 /**
  * PMSelect — flat <select> for PM module forms.
@@ -26,48 +27,56 @@ const PMSelect = forwardRef(function PMSelect(
     options,
     className = "",
     children,
+    onFocus,
+    onBlur,
     ...props
   },
   ref,
 ) {
-  const isErr = !!hasError;
+  const [isFocused, setIsFocused] = useState(false);
+  const isErr       = !!hasError;
+  const showCorners = isFocused && !isErr && !disabled;
 
   return (
-    <select
-      ref={ref}
-      disabled={disabled}
-      className={cn(
-        "w-full px-2 rounded-sm outline-none border transition-colors",
-        PM.inputHeight, PM.inputText,
-        "disabled:opacity-100 disabled:cursor-default",
-        isErr
-          ? "border-red-400 bg-red-50 text-red-900"
-          : disabled
-          ? cn("border-transparent text-gray-500", PM.disabledBg)
-          : cn("border-transparent bg-transparent", PM.focusBorder),
-        className,
-      )}
-      {...props}
-    >
-      {placeholder && (
-        <option value="" disabled>
-          {placeholder}
-        </option>
-      )}
-      {options
-        ? options.map((opt) =>
-            typeof opt === "string" ? (
-              <option key={opt} value={opt}>
-                {opt}
-              </option>
-            ) : (
-              <option key={opt.value} value={opt.value}>
-                {opt.label}
-              </option>
-            ),
-          )
-        : children}
-    </select>
+    <div className={cn("relative", className)}>
+      <select
+        ref={ref}
+        disabled={disabled}
+        onFocus={(e) => { setIsFocused(true);  onFocus?.(e); }}
+        onBlur={(e)  => { setIsFocused(false); onBlur?.(e);  }}
+        className={cn(
+          "w-full px-2 outline-none transition-colors",
+          PM.inputHeight, PM.inputText,
+          "disabled:opacity-100 disabled:cursor-default",
+          isErr
+            ? "border border-red-400 bg-red-50 text-red-900"
+            : disabled
+            ? cn("text-gray-500", PM.disabledBg)
+            : cn(PM.inputBorder, PM.inputBg),
+        )}
+        {...props}
+      >
+        {placeholder && (
+          <option value="" disabled>
+            {placeholder}
+          </option>
+        )}
+        {options
+          ? options.map((opt) =>
+              typeof opt === "string" ? (
+                <option key={opt} value={opt}>
+                  {opt}
+                </option>
+              ) : (
+                <option key={opt.value} value={opt.value}>
+                  {opt.label}
+                </option>
+              ),
+            )
+          : children}
+      </select>
+      {showCorners && <FocusCorners />}
+    </div>
   );
 });
 

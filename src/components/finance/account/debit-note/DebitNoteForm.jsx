@@ -266,8 +266,7 @@ export default function DebitNoteForm({ mode = "create", noteId, onAfterSubmit, 
           {/* Debit Note Details */}
           <PMSection title="Debit Note Details:">
             <PMFormRow label="DN No." labelWidth="sm:w-[150px] sm:min-w-[150px]">
-              <input value={dnNo || "[Auto]"} disabled readOnly
-                className="w-full h-[30px] text-[13px] rounded-sm border border-[#7fa37f] bg-[#edf8ed] text-gray-500 px-2 outline-none" />
+              <PMInput value={dnNo || "[Auto]"} disabled readOnly />
             </PMFormRow>
             <PMFormRow label="Entry Date" required={!disabled} labelWidth="sm:w-[150px] sm:min-w-[150px]">
               <PMDateInput {...register("entryDate")} disabled={disabled} hasError={errors.entryDate} className="max-w-[200px]" />

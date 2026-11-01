@@ -17,6 +17,7 @@ import SearchableSelect from "@/components/common/SearchableSelect";
 import AmountInput     from "@/components/common/AmountInput";
 import PMSection       from "@/components/project-management/common/PMSection";
 import PMFormRow       from "@/components/project-management/common/PMFormRow";
+import PMInput         from "@/components/project-management/common/PMInput";
 import PMDateInput     from "@/components/project-management/common/PMDateInput";
 import PMTextarea      from "@/components/project-management/common/PMTextarea";
 
@@ -468,8 +469,7 @@ export default function PaymentForm({
           {/* Payment Header */}
           <PMSection title="Payment Details:">
             <PMFormRow label="Payment Vouch. No" labelWidth="sm:w-[160px] sm:min-w-[160px]">
-              <input value={erpPaymentNo || "[Auto]"} disabled readOnly
-                className="w-full h-[30px] text-[13px] rounded-sm border border-[#7fa37f] bg-[#edf8ed] text-gray-500 px-2 outline-none" />
+              <PMInput value={erpPaymentNo || "[Auto]"} disabled readOnly />
             </PMFormRow>
 
             <PMFormRow label="Payment Date" required={!disabled} labelWidth="sm:w-[160px] sm:min-w-[160px]">
@@ -502,9 +502,7 @@ export default function PaymentForm({
               </PMFormRow>
 
               <PMFormRow label="Order Number" labelWidth="sm:w-[160px] sm:min-w-[160px]">
-                <input value={orderNo} disabled readOnly
-                  className="w-full h-[30px] text-[13px] rounded-sm border border-[#7fa37f] bg-[#edf8ed] text-gray-500 px-2 outline-none"
-                  placeholder="[Auto from BVS]" />
+                <PMInput value={orderNo} disabled readOnly placeholder="[Auto from BVS]" />
               </PMFormRow>
 
               <PMFormRow label="BVS Number" required={!disabled} labelWidth="sm:w-[160px] sm:min-w-[160px]">
@@ -527,21 +525,15 @@ export default function PaymentForm({
               </PMFormRow>
 
               <PMFormRow label="BVS Date" labelWidth="sm:w-[160px] sm:min-w-[160px]">
-                <input value={refDate} disabled readOnly
-                  className="w-full h-[30px] text-[13px] rounded-sm border border-[#7fa37f] bg-[#edf8ed] text-gray-500 px-2 outline-none max-w-[200px]"
-                  placeholder="[From Data Base]" />
+                <PMInput value={refDate} disabled readOnly placeholder="[From Data Base]" className="max-w-[200px]" />
               </PMFormRow>
 
               <PMFormRow label="Vendor Bill No" labelWidth="sm:w-[160px] sm:min-w-[160px]">
-                <input value={vendorBillNo} disabled readOnly
-                  className="w-full h-[30px] text-[13px] rounded-sm border border-[#7fa37f] bg-[#edf8ed] text-gray-500 px-2 outline-none"
-                  placeholder="[From Data Base]" />
+                <PMInput value={vendorBillNo} disabled readOnly placeholder="[From Data Base]" />
               </PMFormRow>
 
               <PMFormRow label="Vendor Bill Date" labelWidth="sm:w-[160px] sm:min-w-[160px]">
-                <input value={vendorBillDate} disabled readOnly
-                  className="w-full h-[30px] text-[13px] rounded-sm border border-[#7fa37f] bg-[#edf8ed] text-gray-500 px-2 outline-none max-w-[200px]"
-                  placeholder="[From Data Base]" />
+                <PMInput value={vendorBillDate} disabled readOnly placeholder="[From Data Base]" className="max-w-[200px]" />
               </PMFormRow>
             </PMSection>
           ) : (
@@ -566,15 +558,11 @@ export default function PaymentForm({
               </PMFormRow>
 
               <PMFormRow label="JV Date" labelWidth="sm:w-[160px] sm:min-w-[160px]">
-                <input value={refDate} disabled readOnly
-                  className="w-full h-[30px] text-[13px] rounded-sm border border-[#7fa37f] bg-[#edf8ed] text-gray-500 px-2 outline-none max-w-[200px]"
-                  placeholder="[From Data Base]" />
+                <PMInput value={refDate} disabled readOnly placeholder="[From Data Base]" className="max-w-[200px]" />
               </PMFormRow>
 
               <PMFormRow label="Payment To" labelWidth="sm:w-[160px] sm:min-w-[160px]">
-                <input value={vendorName} disabled readOnly
-                  className="w-full h-[30px] text-[13px] rounded-sm border border-[#7fa37f] bg-[#edf8ed] text-gray-500 px-2 outline-none"
-                  placeholder="[Auto from JV]" />
+                <PMInput value={vendorName} disabled readOnly placeholder="[Auto from JV]" />
               </PMFormRow>
             </PMSection>
           )}
@@ -635,14 +623,7 @@ export default function PaymentForm({
             )}
 
             <PMFormRow label="UTR / Voucher No." labelWidth="sm:w-[160px] sm:min-w-[160px]">
-              <input
-                {...register("utrVoucherNo")}
-                disabled={disabled}
-                placeholder="Enter UTR / Voucher No."
-                className={`w-full h-[30px] text-[13px] rounded-sm border px-2 outline-none transition ${
-                  disabled ? "border-[#7fa37f] bg-[#edf8ed] text-gray-500" : "border-gray-300 bg-white focus:border-[#3b6ea5]"
-                }`}
-              />
+              <PMInput {...register("utrVoucherNo")} disabled={disabled} placeholder="Enter UTR / Voucher No." hasError={errors.utrVoucherNo} />
             </PMFormRow>
           </PMSection>
 

@@ -14,6 +14,7 @@ import EditButton        from "@/components/common/EditButton";
 import SearchableSelect  from "@/components/common/SearchableSelect";
 import PMSection         from "@/components/project-management/common/PMSection";
 import PMFormRow         from "@/components/project-management/common/PMFormRow";
+import PMInput           from "@/components/project-management/common/PMInput";
 import PMDateInput       from "@/components/project-management/common/PMDateInput";
 import PMTextarea        from "@/components/project-management/common/PMTextarea";
 import AmountInput       from "@/components/common/AmountInput";
@@ -171,10 +172,10 @@ export default function SaleReceiptParentForm({ mode = "create", receiptId, onSa
         {mode !== "create" && (
           <>
             <PMFormRow label="Receipt No" labelWidth="sm:w-[150px] sm:min-w-[150px]">
-              <input value={receiptNo || "[Auto]"} disabled readOnly className={inputCls()} />
+              <PMInput value={receiptNo || "[Auto]"} disabled readOnly />
             </PMFormRow>
             <PMFormRow label="Entry Date" labelWidth="sm:w-[150px] sm:min-w-[150px]">
-              <input value={entryDate ? getfmtDisplaydate(entryDate) : "[Auto - Today]"} disabled readOnly className={inputCls()} />
+              <PMInput value={entryDate ? getfmtDisplaydate(entryDate) : "[Auto - Today]"} disabled readOnly />
             </PMFormRow>
           </>
         )}
@@ -228,8 +229,7 @@ export default function SaleReceiptParentForm({ mode = "create", receiptId, onSa
         )}
 
         <PMFormRow label="UTR / Voucher No" labelWidth="sm:w-[150px] sm:min-w-[150px]">
-          <input {...register("utrVoucherNo")} disabled={disabled} placeholder="UTR / Voucher reference"
-            className={inputCls(errors.utrVoucherNo)} />
+          <PMInput {...register("utrVoucherNo")} disabled={disabled} placeholder="UTR / Voucher reference" hasError={errors.utrVoucherNo} />
         </PMFormRow>
 
         <PMFormRow label="Total Amount" required={!disabled} labelWidth="sm:w-[150px] sm:min-w-[150px]">

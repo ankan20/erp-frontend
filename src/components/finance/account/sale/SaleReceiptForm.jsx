@@ -419,16 +419,13 @@ export default function SaleReceiptForm({ mode = "create", receiptId, onAfterSub
 
           <PMSection title="Receipt Details:">
             <PMFormRow label="ERP Doc. No" labelWidth="sm:w-[150px] sm:min-w-[150px]">
-              <input value={erpReceiptNo || "[Auto]"} disabled readOnly
-                className="w-full h-[30px] text-[13px] rounded-sm border border-[#7fa37f] bg-[#edf8ed] text-gray-500 px-2 outline-none" />
+              <PMInput value={erpReceiptNo || "[Auto]"} disabled readOnly />
             </PMFormRow>
             <PMFormRow label="Entry Date" labelWidth="sm:w-[150px] sm:min-w-[150px]">
-              <input value={entryDate || "[Auto - Today]"} disabled readOnly
-                className="w-full h-[30px] text-[13px] rounded-sm border border-[#7fa37f] bg-[#edf8ed] text-gray-500 px-2 outline-none" />
+              <PMInput value={entryDate || "[Auto - Today]"} disabled readOnly />
             </PMFormRow>
             <PMFormRow label="Invoice No" labelWidth="sm:w-[150px] sm:min-w-[150px]">
-              <input {...register("invoiceNo")} disabled={disabled} placeholder="Invoice reference"
-                className={inputCls(errors.invoiceNo)} />
+              <PMInput {...register("invoiceNo")} disabled={disabled} placeholder="Invoice reference" hasError={errors.invoiceNo} />
             </PMFormRow>
             <PMFormRow label="Invoice Date" labelWidth="sm:w-[150px] sm:min-w-[150px]">
               <PMDateInput {...register("invoiceDate")} disabled={disabled} className="max-w-[200px]" />
@@ -460,8 +457,7 @@ export default function SaleReceiptForm({ mode = "create", receiptId, onAfterSub
               )} />
             </PMFormRow>
             <PMFormRow label="Sale Order Date" labelWidth="sm:w-[150px] sm:min-w-[150px]">
-              <input value={watch("saleOrderDate") || ""} disabled readOnly
-                className="w-full h-[30px] text-[13px] rounded-sm border border-[#7fa37f] bg-[#edf8ed] text-gray-500 px-2 outline-none" />
+              <PMInput value={watch("saleOrderDate") || ""} disabled readOnly />
             </PMFormRow>
             <PMFormRow label="Certified Bill" required={!disabled} labelWidth="sm:w-[150px] sm:min-w-[150px]">
               <Controller name="certifiedBillId" control={control} render={({ field }) => (
@@ -483,12 +479,10 @@ export default function SaleReceiptForm({ mode = "create", receiptId, onAfterSub
               {errors.certifiedBillId && <p className="text-red-500 text-[11px] mt-0.5">{errors.certifiedBillId.message}</p>}
             </PMFormRow>
             <PMFormRow label="Bill Abstract No" labelWidth="sm:w-[150px] sm:min-w-[150px]">
-              <input value={watch("billAbstractNo") || ""} disabled readOnly
-                className="w-full h-[30px] text-[13px] rounded-sm border border-[#7fa37f] bg-[#edf8ed] text-gray-500 px-2 outline-none" />
+              <PMInput value={watch("billAbstractNo") || ""} disabled readOnly />
             </PMFormRow>
             <PMFormRow label="Bill Abstract Date" labelWidth="sm:w-[150px] sm:min-w-[150px]">
-              <input value={watch("billAbstractDate") || ""} disabled readOnly
-                className="w-full h-[30px] text-[13px] rounded-sm border border-[#7fa37f] bg-[#edf8ed] text-gray-500 px-2 outline-none" />
+              <PMInput value={watch("billAbstractDate") || ""} disabled readOnly />
             </PMFormRow>
           </PMSection>
 
@@ -558,8 +552,7 @@ export default function SaleReceiptForm({ mode = "create", receiptId, onAfterSub
             )}
 
             <PMFormRow label="UTR / Voucher No" labelWidth="sm:w-[150px] sm:min-w-[150px]">
-              <input {...register("utrVoucherNo")} disabled={disabled} placeholder="UTR or voucher reference"
-                className={inputCls()} />
+              <PMInput {...register("utrVoucherNo")} disabled={disabled} placeholder="UTR or voucher reference" hasError={errors.utrVoucherNo} />
             </PMFormRow>
             <PMFormRow label="Payment Remarks" labelWidth="sm:w-[150px] sm:min-w-[150px]">
               <Controller name="paymentRemarks" control={control} render={({ field }) => (

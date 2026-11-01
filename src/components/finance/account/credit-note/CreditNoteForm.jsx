@@ -257,8 +257,7 @@ export default function CreditNoteForm({ mode = "create", noteId, onAfterSubmit,
           {/* Credit Note Details */}
           <PMSection title="Credit Note Details:">
             <PMFormRow label="CN No." labelWidth="sm:w-[150px] sm:min-w-[150px]">
-              <input value={cnNo || "[Auto]"} disabled readOnly
-                className="w-full h-[30px] text-[13px] rounded-sm border border-[#7fa37f] bg-[#edf8ed] text-gray-500 px-2 outline-none" />
+              <PMInput value={cnNo || "[Auto]"} disabled readOnly />
             </PMFormRow>
             <PMFormRow label="Entry Date" required={!disabled} labelWidth="sm:w-[150px] sm:min-w-[150px]">
               <PMDateInput {...register("entryDate")} disabled={disabled} hasError={errors.entryDate} className="max-w-[200px]" />

@@ -370,8 +370,7 @@ export default function PurchaseBillForm({
           {/* Header */}
           <PMSection title="Bill Details:">
             <PMFormRow label="ERP Doc. No" labelWidth="sm:w-[150px] sm:min-w-[150px]">
-              <input value={erpBillNo || "[Auto]"} disabled readOnly
-                className="w-full h-[30px] text-[13px] rounded-sm border border-[#7fa37f] bg-[#edf8ed] text-gray-500 px-2 outline-none" />
+              <PMInput value={erpBillNo || "[Auto]"} disabled readOnly />
             </PMFormRow>
 
             <PMFormRow label="Processing Date" required={!disabled} labelWidth="sm:w-[150px] sm:min-w-[150px]">
@@ -446,12 +445,7 @@ export default function PurchaseBillForm({
             </PMFormRow>
 
             <PMFormRow label="BVS Date" labelWidth="sm:w-[150px] sm:min-w-[150px]">
-              <input
-                value={brrOpts.find((b) => String(b.id) === String(watch("brrId")))?.brrDate || ""}
-                disabled readOnly
-                className="w-full h-[30px] text-[13px] rounded-sm border border-[#7fa37f] bg-[#edf8ed] text-gray-500 px-2 outline-none max-w-[200px]"
-                placeholder="[From Data Base]"
-              />
+              <PMInput value={brrOpts.find((b) => String(b.id) === String(watch("brrId")))?.brrDate || ""} disabled readOnly placeholder="[From Data Base]" className="max-w-[200px]" />
             </PMFormRow>
 
             <PMFormRow label="Vendor Bill No" labelWidth="sm:w-[150px] sm:min-w-[150px]">

@@ -24,11 +24,11 @@ export default function PMFormRow({
   className = "",
 }) {
   return (
-    <div className={cn("flex flex-col sm:flex-row sm:items-center", className)}>
+    <div className={cn("group flex flex-col sm:flex-row sm:items-stretch border-b border-[#c2cdd4] last:border-b-0 sm:border-b-0", className)}>
       {/* Label + colon */}
       <div
         className={cn(
-          "flex items-center shrink-0",
+          "flex items-center shrink-0 sm:border-b sm:border-[#c2cdd4] sm:group-last:border-b-0",
           labelWidth,
         )}
       >

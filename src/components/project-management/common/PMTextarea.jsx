@@ -4,6 +4,7 @@ import { useState, useRef, useEffect } from "react";
 import { Maximize2, X, Check } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { PM } from "./pmTheme";
+import FocusCorners from "./FocusCorners";
 import {
   Dialog,
   DialogContent,
@@ -47,9 +48,10 @@ export default function PMTextarea({
   className    = "",
   modalWidth   = "sm:max-w-[640px]",
 }) {
-  const [open,     setOpen]     = useState(false);
-  const [draft,    setDraft]    = useState("");
-  const [overflow, setOverflow] = useState(false);
+  const [open,      setOpen]     = useState(false);
+  const [draft,     setDraft]    = useState("");
+  const [overflow,  setOverflow] = useState(false);
+  const [isFocused, setIsFocused] = useState(false);
   const inlineRef = useRef(null);
   const modalRef  = useRef(null);
   const isErr     = !!hasError;
@@ -70,25 +72,26 @@ export default function PMTextarea({
   const handleCancel = () => { setDraft(value); setOpen(false); };
 
   const baseCls = cn(
-    "w-full resize-none rounded-sm px-2 py-1.5 pr-7 outline-none transition-colors border",
+    "w-full resize-none px-2 py-1.5 pr-7 outline-none transition-colors",
     PM.inputText, PM.inputPlaceholder,
     "disabled:opacity-100 disabled:cursor-default",
     isErr
-      ? "border-red-400 bg-red-50 text-red-900 placeholder:text-red-300"
+      ? "border border-red-400 bg-red-50 text-red-900 placeholder:text-red-300"
       : disabled
-      ? cn("border-transparent text-gray-500 cursor-default", PM.disabledBg)
-      : cn("border-transparent bg-transparent focus:bg-white", PM.focusBorder),
+      ? cn("text-gray-500 cursor-default", PM.disabledBg)
+      : cn(PM.inputBorder, PM.inputBg, PM.focusBg),
   );
 
   return (
     <>
       {/* ── INLINE WRAPPER ── */}
-      <div className={cn("relative group", className)}>
+      <div className={cn("relative group flex flex-col", className)}>
         <textarea
           ref={inlineRef}
           value={value}
           onChange={(e) => { if (!disabled) onChange?.(e.target.value); }}
-          onBlur={onBlur}
+          onFocus={() => setIsFocused(true)}
+          onBlur={(e) => { setIsFocused(false); onBlur?.(e); }}
           disabled={disabled}
           placeholder={placeholder}
           rows={rows}
@@ -104,6 +107,7 @@ export default function PMTextarea({
             setOverflow(e.target.scrollHeight > maxH + 2);
           }}
         />
+        {isFocused && !isErr && !disabled && <FocusCorners />}
         {/* zoom icon */}
         <button
           type="button"

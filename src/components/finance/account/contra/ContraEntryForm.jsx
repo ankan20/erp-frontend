@@ -17,6 +17,7 @@ import SearchableSelect from "@/components/common/SearchableSelect";
 import AmountInput      from "@/components/common/AmountInput";
 import PMSection        from "@/components/project-management/common/PMSection";
 import PMFormRow        from "@/components/project-management/common/PMFormRow";
+import PMInput          from "@/components/project-management/common/PMInput";
 import PMTextarea       from "@/components/project-management/common/PMTextarea";
 import { ACC }          from "@/components/finance/account/common/accountTheme";
 
@@ -243,18 +244,10 @@ export default function ContraEntryForm({ mode = "create", contraId, onAfterSubm
 
           <PMSection title="Entry Details:">
             <PMFormRow label="ERP Doc. No" labelWidth="sm:w-[130px] sm:min-w-[130px]">
-              <input
-                value={erpVoucherNo || "[Auto]"}
-                disabled readOnly
-                className="w-full h-[30px] text-[13px] rounded-sm border border-[#7fa37f] bg-[#edf8ed] text-gray-500 px-2 outline-none"
-              />
+              <PMInput value={erpVoucherNo || "[Auto]"} disabled readOnly />
             </PMFormRow>
             <PMFormRow label="Entry Date" labelWidth="sm:w-[130px] sm:min-w-[130px]">
-              <input
-                value={entryDate || "[Auto - Today]"}
-                disabled readOnly
-                className="w-full h-[30px] text-[13px] rounded-sm border border-[#7fa37f] bg-[#edf8ed] text-gray-500 px-2 outline-none"
-              />
+              <PMInput value={entryDate || "[Auto - Today]"} disabled readOnly />
             </PMFormRow>
           </PMSection>
 

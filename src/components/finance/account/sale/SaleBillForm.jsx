@@ -623,12 +623,7 @@ export default function SaleBillForm({
               label="Invoice Number"
               labelWidth="sm:w-[150px] sm:min-w-[150px]"
             >
-              <input
-                value={erpBillNo || "[Auto]"}
-                disabled
-                readOnly
-                className="w-full h-[30px] text-[13px] rounded-sm border border-[#7fa37f] bg-[#edf8ed] text-gray-500 px-2 outline-none"
-              />
+              <PMInput value={erpBillNo || "[Auto]"} disabled readOnly />
             </PMFormRow>
 
             <PMFormRow
@@ -705,12 +700,7 @@ export default function SaleBillForm({
               label="Sale Order Date"
               labelWidth="sm:w-[150px] sm:min-w-[150px]"
             >
-              <input
-                value={watch("saleOrderDate") || "[Auto]"}
-                disabled
-                readOnly
-                className="w-full h-[30px] text-[13px] rounded-sm border border-[#7fa37f] bg-[#edf8ed] text-gray-500 px-2 outline-none"
-              />
+              <PMInput value={watch("saleOrderDate") || "[Auto]"} disabled readOnly />
             </PMFormRow>
 
             <PMFormRow
@@ -798,12 +788,7 @@ export default function SaleBillForm({
               label="Bill Abstract Date"
               labelWidth="sm:w-[150px] sm:min-w-[150px]"
             >
-              <input
-                value={watch("billAbstractDate") || "[Auto]"}
-                disabled
-                readOnly
-                className="w-full h-[30px] text-[13px] rounded-sm border border-[#7fa37f] bg-[#edf8ed] text-gray-500 px-2 outline-none"
-              />
+              <PMInput value={watch("billAbstractDate") || "[Auto]"} disabled readOnly />
             </PMFormRow>
           </PMSection>
 

@@ -10,6 +10,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { PM } from "./pmTheme";
+import FocusCorners from "./FocusCorners";
 
 /**
  * PMInput — flat input for PM module forms.
@@ -40,6 +41,8 @@ const PMInput = forwardRef(function PMInput(
     fieldLabel = "",
     className  = "",
     type       = "text",
+    onFocus,
+    onBlur,
     ...props
   },
   ref,
@@ -47,6 +50,7 @@ const PMInput = forwardRef(function PMInput(
   const [overflows,   setOverflows]   = useState(false);
   const [open,        setOpen]        = useState(false);
   const [modalValue,  setModalValue]  = useState("");
+  const [isFocused,   setIsFocused]   = useState(false);
   const innerRef = useRef(null);
 
   // Merge parent ref (react-hook-form) + our inner ref for overflow detection
@@ -82,8 +86,9 @@ const PMInput = forwardRef(function PMInput(
     setOpen(true);
   };
 
-  const isErr    = !!hasError;
-  const showIcon = disabled && expandable && overflows && type === "text";
+  const isErr       = !!hasError;
+  const showIcon    = disabled && expandable && overflows && type === "text";
+  const showCorners = isFocused && !isErr && !disabled;
 
   return (
     <div className={cn("relative", className)}>
@@ -91,19 +96,22 @@ const PMInput = forwardRef(function PMInput(
         ref={setRefs}
         type={type}
         disabled={disabled}
+        onFocus={(e) => { setIsFocused(true);  onFocus?.(e); }}
+        onBlur={(e)  => { setIsFocused(false); onBlur?.(e);  }}
         className={cn(
-          "w-full pl-2 rounded-sm outline-none border transition-colors",
+          "w-full pl-2 outline-none transition-colors",
           PM.inputHeight, PM.inputText, PM.inputPlaceholder,
           "disabled:opacity-100 disabled:cursor-default",
           showIcon ? "pr-7" : "pr-2",
           isErr
-            ? "border-red-400 bg-red-50 text-red-900 placeholder:text-red-300"
+            ? "border border-red-400 bg-red-50 text-red-900 placeholder:text-red-300"
             : disabled
-            ? cn("border-transparent text-gray-500", PM.disabledBg)
-            : cn("border-transparent bg-transparent focus:bg-white", PM.focusBorder),
+            ? cn("text-gray-500", PM.disabledBg)
+            : cn(PM.inputBorder, PM.inputBg, PM.focusBg),
         )}
         {...props}
       />
+      {showCorners && <FocusCorners />}
 
       {/* Overflow expand icon — disabled mode only */}
       {showIcon && (

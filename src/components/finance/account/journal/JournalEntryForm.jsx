@@ -17,6 +17,7 @@ import SearchableSelect    from "@/components/common/SearchableSelect";
 import AmountInput         from "@/components/common/AmountInput";
 import PMSection           from "@/components/project-management/common/PMSection";
 import PMFormRow           from "@/components/project-management/common/PMFormRow";
+import PMInput             from "@/components/project-management/common/PMInput";
 import PMTextarea          from "@/components/project-management/common/PMTextarea";
 import PMDateInput         from "@/components/project-management/common/PMDateInput";
 
@@ -304,10 +305,7 @@ export default function JournalEntryForm({ mode = "create", journalId, onAfterSu
           {/* ERP Doc No + Mode on same row for larger screens */}
           <div className="flex flex-col sm:flex-row sm:items-center sm:gap-8 gap-y-2">
             <PMFormRow label="ERP Doc. No" labelWidth="sm:w-[150px] sm:min-w-[150px]">
-              <input
-                value={erpVoucherNo || "[Auto]"} disabled readOnly
-                className="w-full h-[30px] text-[13px] rounded-sm border border-[#7fa37f] bg-[#edf8ed] text-gray-500 px-2 outline-none max-w-[200px]"
-              />
+              <PMInput value={erpVoucherNo || "[Auto]"} disabled readOnly className="max-w-[200px]" />
             </PMFormRow>
 
             {/* Mode — radio on create, label on view/edit */}

@@ -17,6 +17,7 @@ import SearchableSelect from "@/components/common/SearchableSelect";
 import ExpandableTextCell from "@/components/project-management/common/ExpandableTextCell";
 import PMSection       from "@/components/project-management/common/PMSection";
 import PMFormRow       from "@/components/project-management/common/PMFormRow";
+import PMInput         from "@/components/project-management/common/PMInput";
 import PMDateInput     from "@/components/project-management/common/PMDateInput";
 import PMTextarea      from "@/components/project-management/common/PMTextarea";
 
@@ -264,8 +265,7 @@ export default function PurchaseVoucherForm({
 
           <PMSection title="Voucher Details:">
             <PMFormRow label="ERP Doc. No" labelWidth="sm:w-[150px] sm:min-w-[150px]">
-              <input value={erpVoucherNo || "[Auto]"} disabled readOnly
-                className="w-full h-[30px] text-[13px] rounded-sm border border-[#7fa37f] bg-[#edf8ed] text-gray-500 px-2 outline-none" />
+              <PMInput value={erpVoucherNo || "[Auto]"} disabled readOnly />
             </PMFormRow>
 
             <PMFormRow label="Processing Date" required={!disabled} labelWidth="sm:w-[150px] sm:min-w-[150px]">
@@ -290,10 +290,7 @@ export default function PurchaseVoucherForm({
             </PMFormRow>
 
             <PMFormRow label="Voucher Number" labelWidth="sm:w-[150px] sm:min-w-[150px]">
-              <input {...register("voucherNo")} disabled={disabled} placeholder="Filter List from Vendor Order"
-                className={`w-full h-[30px] text-[13px] rounded-sm border px-2 outline-none transition ${
-                  disabled ? "border-[#7fa37f] bg-[#edf8ed] text-gray-500" : "border-gray-300 bg-white focus:border-[#3b6ea5]"
-                }`} />
+              <PMInput {...register("voucherNo")} disabled={disabled} placeholder="Filter List from Vendor Order" hasError={errors.voucherNo} />
             </PMFormRow>
 
             <PMFormRow label="Voucher Date" labelWidth="sm:w-[150px] sm:min-w-[150px]">

@@ -12,14 +12,14 @@
 
 export const PM = {
   // ── Section header ("BBS Details:", "Pouring Details:", …) ──────────────
-  sectionTitle:       "text-[15px] font-semibold text-[#1c3a5e]",
+  sectionTitle:       "text-[13px] font-bold text-[#1c3a5e] uppercase tracking-wide",
 
   // ── Form row label ("Received Date", "BBS Title", …) ────────────────────
-  label:              "text-[13px] text-[#444444]",
+  label:              "text-[13px] text-[#1c3a5e]",
 
   // ── Section container ────────────────────────────────────────────────────
-  sectionBg:          "bg-[#e8e8e8]",
-  sectionBorder:      "border border-[#b0c5d5]",
+  sectionBg:          "bg-[#d8e6f0]",
+  sectionBorder:      "border border-[#9ab8cc]",
 
   // ── Input / select / textarea ────────────────────────────────────────────
   inputHeight:        "h-[30px]",
@@ -28,8 +28,11 @@ export const PM = {
 
   // ── Input state colours ──────────────────────────────────────────────────
   disabledBg:         "bg-[#edf8ed]",
-  focusBorder:        "focus:border-[#93b5cc]",
+  inputBorder:        "border-t border-l border-r border-[#c2cdd4]",
+  inputBg:            "bg-white",
+  focusBg:            "focus:bg-[#fffce0]",
+  focusCorner:        "border-[#c0392b]",
 
   // ── Quick-fill buttons (Today / Now) ─────────────────────────────────────
-  quickFillBtn:       "h-[30px] px-2.5 text-[11px] font-medium rounded-sm border border-[#93b5cc] bg-[#dce9f3] text-[#1c3a5e] hover:bg-[#c6daea] transition-colors whitespace-nowrap shrink-0",
+  quickFillBtn:       "h-[30px] px-2.5 text-[11px] font-medium border border-[#93b5cc] bg-[#dce9f3] text-[#1c3a5e] hover:bg-[#c6daea] transition-colors whitespace-nowrap shrink-0",
 };

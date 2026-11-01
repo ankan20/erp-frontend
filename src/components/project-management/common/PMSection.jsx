@@ -21,7 +21,7 @@ export default function PMSection({
   return (
     <div
       className={cn(
-        PM.sectionBorder, "rounded-sm overflow-hidden", PM.sectionBg,
+        PM.sectionBorder, "overflow-hidden", PM.sectionBg,
         className,
       )}
     >
