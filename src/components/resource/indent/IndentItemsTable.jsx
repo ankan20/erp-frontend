@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 
 import { Input } from "@/components/ui/input";
-import { Trash2 } from "lucide-react";
+import { Route, Trash2 } from "lucide-react";
 import { getInputClass } from "@/lib/formStyles";
 import SearchableSelect from "@/components/common/SearchableSelect";
 import ExpandableTextField from "@/components/common/ExpandableTextField";
@@ -12,6 +12,7 @@ import { API_ENDPOINTS } from "@/config/api.config";
 import { formatQtyDisplay } from "@/helper/numberFormatter";
 import QtyInput from "@/components/common/QtyInput";
 import { useColumnResize } from "@/hooks/useColumnResize";
+import ItemTraceModal from "@/components/resource/indent/item-trace/ItemTraceModal";
 
 export default function IndentItemsTable({
   fields,
@@ -42,6 +43,11 @@ export default function IndentItemsTable({
 
   const [useLocations, setUseLocations] = useState([]);
   const { tableRef } = useColumnResize();
+
+  // Track Item: only for saved rows, and only while not editing
+  // (unsaved rows have no indent_item_id yet).
+  const [traceRow, setTraceRow] = useState(null);
+  const showTrack = !isEditing && fields.some((_, i) => watch(`items.${i}.indentItemId`));
 
   useEffect(() => {
     if (!projectCode) return;
@@ -102,6 +108,9 @@ export default function IndentItemsTable({
                 <th className="border border-[#b5b5b5] px-2 py-1 text-sm min-w-[130px] text-left">Use To</th>
                 {isEditing && (
                   <th className="border border-[#b5b5b5] px-2 py-1 text-sm min-w-[50px] text-center">Action</th>
+                )}
+                {showTrack && (
+                  <th className="sticky right-0 z-10 bg-[#d9d9d9] border border-[#b5b5b5] px-2 py-1 text-sm min-w-[110px] text-center">Track</th>
                 )}
               </tr>
             </thead>
@@ -211,6 +220,32 @@ export default function IndentItemsTable({
                       />
                     </td>
 
+                    {/* TRACK ITEM */}
+                    {showTrack && (
+                      <td className="sticky right-0 z-[1] bg-white border border-[#b5b5b5] px-2 py-[2px] text-center">
+                        {watch(`items.${index}.indentItemId`) ? (
+                          <button
+                            type="button"
+                            onClick={() =>
+                              setTraceRow({
+                                indentItemId: watch(`items.${index}.indentItemId`),
+                                itemName: watch(`items.${index}.itemName`),
+                                itemCode: watch(`items.${index}.itemCode`),
+                                unit: watch(`items.${index}.unit`),
+                              })
+                            }
+                            className="inline-flex items-center gap-1 whitespace-nowrap rounded-sm border border-[#6d9dc5] bg-[#e8f2ff] px-2 py-[2px] text-xs font-medium text-[#144664] hover:brightness-95 cursor-pointer"
+                            title="Track this item through orders, receipts, issues, billing and payments"
+                          >
+                            <Route className="w-3.5 h-3.5" />
+                            Track Item
+                          </button>
+                        ) : (
+                          <span className="text-xs text-gray-400">—</span>
+                        )}
+                      </td>
+                    )}
+
                     {/* DELETE */}
                     {isEditing && (
                       <td className="border border-[#b5b5b5] px-2 py-[2px] text-center">
@@ -240,11 +275,19 @@ export default function IndentItemsTable({
                 </td> */}
                 <td className="border border-[#b5b5b5]" />
                 {isEditing && <td className="border border-[#b5b5b5]" />}
+                {showTrack && <td className="sticky right-0 bg-[#d9d9d9] border border-[#b5b5b5]" />}
               </tr>
             </tbody>
           </table>
         </div>
       </div>
+
+      <ItemTraceModal
+        open={!!traceRow}
+        onClose={() => setTraceRow(null)}
+        indentItemId={traceRow?.indentItemId}
+        fallbackItem={traceRow}
+      />
 
       {/* ADD ROW */}
       {isEditing && (

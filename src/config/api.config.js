@@ -110,6 +110,7 @@ export const API_ENDPOINTS = {
         HISTORY: "/resource/indent/history", //indentId GET
         GET_BY_UUID: "/resource/indent/uuid", // /:uuid GET — no auth required
         MY_APPROVAL_STATUS: "/resource/indent/my-approval-status", // /:id GET
+        ITEM_TRACE: "/traceability/indent-item/", // /:indentItemId GET — read-only item lifecycle
       },
       ORDER: {
         GET_ALL_ORDER: "/resource/order/list",

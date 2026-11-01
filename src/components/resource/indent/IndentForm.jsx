@@ -218,6 +218,9 @@ export default function IndentForm({
             unit: item.unit || "",
 
             isAsset: item.isAsset ?? false,
+
+            // saved indent_items.id — used only for Track Item, never sent on save
+            indentItemId: item.id ?? null,
           })) || [defaultItemRow],
         };
 
@@ -263,6 +266,25 @@ export default function IndentForm({
     fetchIndent();
   }, [indentId, mode]);
 
+
+  // Saving a draft re-creates the indent items on the server (new ids), so
+  // refresh the ids Track Item uses. Never blocks or fails the save itself.
+  const refreshItemIds = async () => {
+    const rows = getValues("items") || [];
+    try {
+      const res = await apiRequest({
+        url: `${API_ENDPOINTS.RESOURCE.PROCUREMENT.INDENT.GET_INDENT_BY_ID}${indentId}`,
+        method: "GET",
+      });
+      const saved = res?.data?.items || [];
+      const aligned = saved.length === rows.length;
+      rows.forEach((_, i) =>
+        setValue(`items.${i}.indentItemId`, aligned ? (saved[i]?.id ?? null) : null),
+      );
+    } catch {
+      rows.forEach((_, i) => setValue(`items.${i}.indentItemId`, null));
+    }
+  };
 
   const handleCategoryChange = async (categoryCode) => {
     setValue("categoryCode", categoryCode);
@@ -367,6 +389,8 @@ export default function IndentForm({
         setAttachedFile(null);
         setFileResetKey((k) => k + 1);
       }
+
+      if (mode === "edit") await refreshItemIds();
 
       setInitialData(getValues());
 
