@@ -16,12 +16,13 @@ import { useRouter, usePathname } from "next/navigation";
 import { sendSignal } from "@/lib/commApi";
 import { canOpenRoute, findRouteInfo } from "@/lib/routeAccess";
 
-export function useFollowMe({ callId, peers }) {
+// initial: { following, followers } saved before a page reload (see callResume)
+export function useFollowMe({ callId, peers, initial = null }) {
   const router   = useRouter();
   const pathname = usePathname();
 
-  const [followers,  setFollowers]  = useState([]);    // user ids following me
-  const [following,  setFollowing]  = useState(null);  // user id I follow
+  const [followers,  setFollowers]  = useState(() => initial?.followers || []);  // user ids following me
+  const [following,  setFollowing]  = useState(() => initial?.following ?? null); // user id I follow
   const [requests,   setRequests]   = useState([]);    // [{ uid, kind: "follow" | "lead" }] waiting for my answer
   const [pending,    setPending]    = useState(null);  // { uid, kind } I asked, waiting for theirs
   const [notice,     setNotice]     = useState(null);  // { text, tone: "info" | "warn" }
@@ -170,5 +171,6 @@ export function useFollowMe({ callId, peers }) {
     nameOf,
     askToFollow, sharePageWith, stopFollowing, stopLeading, accept, decline,
     dismissNotice: () => setNotice(null),
+    snapshot: () => ({ following, followers }),   // saved across a page reload
   };
 }

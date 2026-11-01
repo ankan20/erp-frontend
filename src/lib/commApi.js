@@ -67,6 +67,8 @@ export const endCall         = (id) => apiRequest({ url: `${C}/calls/${id}/end`,
 // Leave/decline without ending it for the others (call ends when nobody is left)
 export const leaveCall       = (id) => apiRequest({ url: `${C}/calls/${id}/leave`, method: "POST" });
 export const getCallDetail   = (id) => apiRequest({ url: `${C}/calls/${id}` });
+// Back after a page reload (the tab marked itself "away" on the way out)
+export const rejoinCall      = (id) => apiRequest({ url: `${C}/calls/${id}/rejoin`, method: "POST" });
 export const sendSignal      = (callId, receiverId, signalType, payload) => apiRequest({ url: `${C}/calls/${callId}/signal`, method: "POST", data: { receiverId, signalType, payload } });
 export const pollSignals     = (callId) => apiRequest({ url: `${C}/calls/${callId}/signals` });
 export const getTurnCredentials = () => apiRequest({ url: `${C}/turn-credentials` });

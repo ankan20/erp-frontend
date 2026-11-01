@@ -14,7 +14,9 @@ import {
   sendHeartbeat,
   getReceivedPings,
   markPingRead,
+  rejoinCall,
 } from "@/lib/commApi";
+import { takeCallResume } from "@/lib/callResume";
 
 const CommContext = createContext(null);
 
@@ -122,6 +124,15 @@ export function CommProvider({ children }) {
     if (myId()) sendHeartbeat().catch(() => {}); // immediate on mount (skip on login pages)
     return () => { clearInterval(pollRef.current); clearInterval(hbRef); };
   }, [refresh]);
+
+  // A call that was running before this page (re)loaded: rejoin it
+  useEffect(() => {
+    const saved = takeCallResume();
+    if (!saved || !myId()) return;
+    rejoinCall(saved.call.callId)
+      .then(() => setActiveCall({ ...saved.call, resumed: true, followState: saved.followState || null }))
+      .catch(() => {});
+  }, []);
 
   const openPicker = (mode, convId = null) => {
     setPickerMode(mode);

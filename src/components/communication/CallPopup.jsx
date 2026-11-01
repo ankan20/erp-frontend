@@ -16,6 +16,7 @@ import { getLocalStorage } from "@/lib/localStorage";
 import API_BASE_URL from "@/config/api.config";
 import { startRingtone, stopRingtone } from "@/lib/commSounds";
 import { toast } from "sonner";
+import { saveCallResume, clearCallResume } from "@/lib/callResume";
 
 const ICE_SERVERS = [
   { urls: "stun:stun.l.google.com:19302" },
@@ -231,6 +232,13 @@ function useMeshCall({ call, onEnded, extraSignalRef }) {
         case "ended":
           onEndedRef.current(false, "Call ended by the other side");
           return;
+        case "rejoin": {
+          // They reloaded their page: their old connection is dead, build a new one
+          const e = pcs.get(uid);
+          if (e) { clearTimeout(e.failTimer); e.pc.close(); pcs.delete(uid); }
+          setPeer(uid, { state: "connecting", stream: null, sharing: false });
+          return;
+        }
         case "left":
           dropPeer(uid);
           return;
@@ -294,6 +302,8 @@ function useMeshCall({ call, onEnded, extraSignalRef }) {
             setPeers(prev => prev[uid] && prev[uid].state !== "ringing" ? prev
               : { ...prev, [uid]: { ...(prev[uid] || {}), state: "connecting", name: names[uid] } });
           }
+        } else if (p.state === "away") {
+          // Reloading their page — keep their tile; they'll send "rejoin"
         } else if (p.state === "ringing") {
           setPeers(prev => prev[uid] ? prev : { ...prev, [uid]: { state: "ringing", name: names[uid] } });
         } else {
@@ -336,6 +346,19 @@ function useMeshCall({ call, onEnded, extraSignalRef }) {
       iceServers = [...ICE_SERVERS, ...turn];
       setHasTurn(turn.length > 0);
       setStage(turn.length ? "Waiting for others…" : "Waiting for others… (no TURN)");
+
+      if (call.resumed) {
+        // Back after a page reload: tell everyone to drop our old connection first
+        try {
+          const d = await getCallDetail(callId);
+          for (const p of d?.participants || []) {
+            const uid = Number(p.userId);
+            if (uid && uid !== myId && p.state === "in_call") await signal(uid, "rejoin");
+          }
+        } catch {}
+        if (cancelled) return;
+        setStage("Reconnecting…");
+      }
 
       await pollDetail();
       if (cancelled) return;
@@ -595,6 +618,7 @@ function ActiveCallWindow({ call }) {
     clearInterval(timerRef.current);
     timerRef.current = null;
     if (notifyServer) { try { await leaveCall(call.callId); } catch {} }
+    clearCallResume();
     if (reason) toast(reason);
     endActiveCall();
   }, [call.callId, endActiveCall]);
@@ -607,7 +631,7 @@ function ActiveCallWindow({ call }) {
     micOn, camOn, toggleMic, toggleCam, startShare, stopShare,
   } = useMeshCall({ call, onEnded, extraSignalRef });
 
-  const follow = useFollowMe({ callId: call.callId, peers });
+  const follow = useFollowMe({ callId: call.callId, peers, initial: call.followState });
   useEffect(() => { extraSignalRef.current = follow.handleSignal; });
 
   const peerList  = Object.entries(peers).map(([id, p]) => ({ id: Number(id), ...p }));
@@ -619,7 +643,10 @@ function ActiveCallWindow({ call }) {
     : anyLive ? "connected"
     : joined.length ? "connecting"
     : isInitiator ? "ringing" : "connecting";
-  const failText  = failReason || (hasTurn ? NET_MSG : NO_ROUTE_MSG);
+  // A call that was already connected and then failed is a lost connection, not a setup problem
+  const failText  = failReason || (elapsed > 0
+    ? "Lost connection — the other side closed their page or lost network."
+    : hasTurn ? NET_MSG : NO_ROUTE_MSG);
 
   // Call timer runs from the first connection
   useEffect(() => {
@@ -637,11 +664,17 @@ function ActiveCallWindow({ call }) {
     return () => clearTimeout(t);
   }, [phase, fail, finish, failText]);
 
-  // Closing or reloading the tab mid-call must take us out of it on the server
+  // Closing or reloading the tab: mark ourselves "away" (not gone) and save the
+  // call, so a reload rejoins it. If we don't come back within ~20s the server
+  // treats it as a normal leave.
+  const followSnapshot = useRef(null);
+  useEffect(() => { followSnapshot.current = follow.snapshot(); });
   useEffect(() => {
     const onHide = () => {
+      const { resumed: _r, followState: _f, ...plain } = call;
+      saveCallResume(plain, followSnapshot.current);
       const token = getLocalStorage("token");
-      fetch(`${API_BASE_URL}/comm/calls/${call.callId}/leave`, {
+      fetch(`${API_BASE_URL}/comm/calls/${call.callId}/leave?soft=1`, {
         method: "POST",
         keepalive: true,
         headers: token ? { Authorization: `Bearer ${token}` } : {},
@@ -649,7 +682,7 @@ function ActiveCallWindow({ call }) {
     };
     window.addEventListener("pagehide", onHide);
     return () => window.removeEventListener("pagehide", onHide);
-  }, [call.callId]);
+  }, [call]);
 
   const fmt = (s) => `${String(Math.floor(s / 60)).padStart(2, "0")}:${String(s % 60).padStart(2, "0")}`;
   const myId      = myUserId();
