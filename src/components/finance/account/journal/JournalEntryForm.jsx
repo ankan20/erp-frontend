@@ -101,7 +101,6 @@ export default function JournalEntryForm({ mode = "create", journalId, onAfterSu
   const [refBillId,          setRefBillId]          = useState(null);
   const [refBillDocNo,       setRefBillDocNo]       = useState("");
   const [refModalOpen,       setRefModalOpen]       = useState(false);
-  const [refModalTab,        setRefModalTab]        = useState("sale_bill");
   const [refBillList,        setRefBillList]        = useState([]);
   const [refBillLoading,     setRefBillLoading]     = useState(false);
   const [refBillSearch,      setRefBillSearch]      = useState("");
@@ -142,27 +141,16 @@ export default function JournalEntryForm({ mode = "create", journalId, onAfterSu
       .catch(() => {});
   }, [projectCode, entryMode]);
 
-  // Load bills for the ref modal based on selected tab
+  // Load unified ref bills when modal opens
   useEffect(() => {
     if (!refModalOpen || !projectCode) return;
     setRefBillList([]);
     setRefBillLoading(true);
-    let url = "";
-    if (refModalTab === "sale_bill") {
-      url = `${API_ENDPOINTS.FINANCE.SALE_BILL.LIST}?projectCode=${projectCode}&workflowStatus=Approved`;
-    } else if (refModalTab === "purchase_bill") {
-      url = `${API_ENDPOINTS.FINANCE.PURCHASE_BILL.LIST}?projectCode=${projectCode}&workflowStatus=Approved`;
-    } else {
-      url = `${API_ENDPOINTS.FINANCE.SALE_RECEIPT_BILLING.LIST_BY_PROJECT}?projectCode=${projectCode}&workflowStatus=Approved`;
-    }
-    apiRequest({ url, method: "GET" })
-      .then((res) => {
-        const list = Array.isArray(res.data) ? res.data : (res.data?.list || []);
-        setRefBillList(list);
-      })
+    apiRequest({ url: `${API_ENDPOINTS.FINANCE.JOURNAL_ENTRY.REF_BILLS}?projectCode=${projectCode}`, method: "GET" })
+      .then((res) => setRefBillList(Array.isArray(res.data) ? res.data : []))
       .catch(() => setRefBillList([]))
       .finally(() => setRefBillLoading(false));
-  }, [refModalOpen, refModalTab, projectCode]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [refModalOpen, projectCode]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Load existing entry
   useEffect(() => {
@@ -452,39 +440,13 @@ export default function JournalEntryForm({ mode = "create", journalId, onAfterSu
                       <div className={`${readonlyAmt} text-gray-300`}>—</div>
                     </td>
                     <td className="px-1 text-center">
-                      <div className="flex items-center justify-center gap-0.5">
-                        {/* Bill reference link — adjustment mode, first Dr row only */}
-                        {entryMode === "adjustment" && idx === 0 && (
-                          refBillId ? (
-                            <div className="flex items-center gap-0.5">
-                              <span className="flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded bg-[#e8f0fa] border border-[#b8d0e8] text-[#25507a] font-medium whitespace-nowrap max-w-[100px] truncate"
-                                title={`${REF_BILL_LABELS[refBillType]} — ${refBillDocNo}`}>
-                                <Link2 size={9} /> {refBillDocNo}
-                              </span>
-                              {!disabled && (
-                                <button type="button" onClick={() => { setRefBillType(""); setRefBillId(null); setRefBillDocNo(""); }}
-                                  className="p-0.5 text-gray-300 hover:text-red-500 transition" title="Remove reference">
-                                  <X size={10} />
-                                </button>
-                              )}
-                            </div>
-                          ) : !disabled ? (
-                            <button type="button"
-                              onClick={() => { setRefModalOpen(true); setRefModalTab("sale_bill"); setRefBillSearch(""); }}
-                              className="p-1 rounded text-gray-400 hover:text-[#25507a] hover:bg-[#e8f0fa] transition"
-                              title="Link bill reference">
-                              <Link2 size={13} />
-                            </button>
-                          ) : null
-                        )}
-                        {!rowDisabled && !isBulkDocket && drFields.length > 1 && (
-                          <button type="button" onClick={() => removeDr(idx)}
-                            className="p-1 rounded text-gray-400 hover:text-red-500 hover:bg-red-50 transition"
-                          >
-                            <Trash2 size={13} />
-                          </button>
-                        )}
-                      </div>
+                      {!rowDisabled && !isBulkDocket && drFields.length > 1 && (
+                        <button type="button" onClick={() => removeDr(idx)}
+                          className="p-1 rounded text-gray-400 hover:text-red-500 hover:bg-red-50 transition"
+                        >
+                          <Trash2 size={13} />
+                        </button>
+                      )}
                     </td>
                   </tr>
                 );
@@ -519,7 +481,31 @@ export default function JournalEntryForm({ mode = "create", journalId, onAfterSu
                     {formatAmount(totalCredit)}
                   </div>
                 </td>
-                <td />
+                <td className="px-1 text-center">
+                  {entryMode === "adjustment" && (
+                    refBillId ? (
+                      <div className="flex items-center justify-center gap-0.5">
+                        <span className="flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded bg-[#e8f0fa] border border-[#b8d0e8] text-[#25507a] font-medium whitespace-nowrap max-w-[110px] truncate"
+                          title={`${REF_BILL_LABELS[refBillType]} — ${refBillDocNo}`}>
+                          <Link2 size={9} /> {refBillDocNo}
+                        </span>
+                        {!disabled && (
+                          <button type="button" onClick={() => { setRefBillType(""); setRefBillId(null); setRefBillDocNo(""); }}
+                            className="p-0.5 text-gray-400 hover:text-red-500 transition" title="Remove reference">
+                            <X size={10} />
+                          </button>
+                        )}
+                      </div>
+                    ) : !disabled ? (
+                      <button type="button"
+                        onClick={() => { setRefModalOpen(true); setRefBillSearch(""); }}
+                        className="p-1 rounded text-gray-400 hover:text-[#25507a] hover:bg-[#e8f0fa] transition"
+                        title="Link bill reference">
+                        <Link2 size={13} />
+                      </button>
+                    ) : null
+                  )}
+                </td>
               </tr>
 
               {/* ── GRAND TOTAL ───────────────────────────────────────── */}
@@ -600,25 +586,9 @@ export default function JournalEntryForm({ mode = "create", journalId, onAfterSu
               </button>
             </div>
 
-            {/* Tabs */}
-            <div className="flex border-b border-gray-200 px-4 pt-2 gap-1">
-              {REF_BILL_TABS.map((t) => (
-                <button key={t.value} type="button"
-                  onClick={() => { setRefModalTab(t.value); setRefBillSearch(""); }}
-                  className={`px-3 py-1.5 text-[11.5px] font-medium rounded-t border-b-2 transition ${
-                    refModalTab === t.value
-                      ? "border-[#25507a] text-[#25507a] bg-[#f0f5fb]"
-                      : "border-transparent text-gray-500 hover:text-gray-700"
-                  }`}
-                >
-                  {t.label}
-                </button>
-              ))}
-            </div>
-
             {/* Search */}
             <div className="px-4 py-2 border-b border-gray-100">
-              <input type="text" placeholder="Search by bill/doc number…"
+              <input type="text" placeholder="Search by doc / bill number…"
                 value={refBillSearch} onChange={(e) => setRefBillSearch(e.target.value)}
                 className="w-full h-[30px] text-[12.5px] border border-gray-300 rounded px-2 outline-none focus:ring-1 focus:ring-blue-300"
               />
@@ -627,78 +597,66 @@ export default function JournalEntryForm({ mode = "create", journalId, onAfterSu
             {/* Currently linked badge */}
             {refBillId && (
               <div className="px-4 py-1.5 border-b border-gray-100 flex items-center gap-2">
-                <span className="text-[11px] text-gray-500">Currently linked:</span>
+                <span className="text-[11px] text-gray-500">Linked:</span>
                 <span className="text-[11px] px-2 py-0.5 rounded bg-[#e8f0fa] border border-[#b8d0e8] text-[#25507a] font-medium">
                   {REF_BILL_LABELS[refBillType]} — {refBillDocNo || `#${refBillId}`}
                 </span>
               </div>
             )}
 
-            {/* Bill list */}
+            {/* Unified bill list */}
             <div className="overflow-y-auto flex-1">
               {refBillLoading ? (
                 <p className="text-[12px] text-gray-400 px-4 py-4">Loading…</p>
-              ) : refBillList.filter((b) => {
+              ) : (() => {
+                const filtered = refBillList.filter((b) => {
                   if (!refBillSearch) return true;
                   const q = refBillSearch.toLowerCase();
-                  const docNo = b.saleBillNo || b.purchaseBillNo || b.erpDocNumber || "";
-                  return docNo.toLowerCase().includes(q);
-                }).length === 0 ? (
-                <p className="text-[12px] text-gray-400 px-4 py-4">No approved bills found.</p>
-              ) : (
-                <table className="w-full text-[12px]">
-                  <thead className="bg-[#dce8f5] sticky top-0">
-                    <tr>
-                      <th className="w-8 px-2 py-1.5" />
-                      <th className="px-3 py-1.5 text-left text-[10px] font-semibold text-[#2d5a8a] uppercase">Bill No</th>
-                      {refModalTab === "purchase_bill" && (
-                        <th className="px-3 py-1.5 text-left text-[10px] font-semibold text-[#2d5a8a] uppercase">Vendor</th>
-                      )}
-                      {refModalTab === "sale_bill" && (
+                  return (b.docNo || "").toLowerCase().includes(q) || (b.party || "").toLowerCase().includes(q);
+                });
+                return filtered.length === 0 ? (
+                  <p className="text-[12px] text-gray-400 px-4 py-4">No approved bills found.</p>
+                ) : (
+                  <table className="w-full text-[12px]">
+                    <thead className="bg-[#dce8f5] sticky top-0">
+                      <tr>
+                        <th className="w-8 px-2 py-1.5" />
+                        <th className="px-3 py-1.5 text-left text-[10px] font-semibold text-[#2d5a8a] uppercase">Bill Type</th>
+                        <th className="px-3 py-1.5 text-left text-[10px] font-semibold text-[#2d5a8a] uppercase">Doc No</th>
                         <th className="px-3 py-1.5 text-left text-[10px] font-semibold text-[#2d5a8a] uppercase">Date</th>
-                      )}
-                      <th className="px-3 py-1.5 text-right text-[10px] font-semibold text-[#2d5a8a] uppercase">Amount</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-gray-100">
-                    {refBillList
-                      .filter((b) => {
-                        if (!refBillSearch) return true;
-                        const q = refBillSearch.toLowerCase();
-                        const docNo = b.saleBillNo || b.purchaseBillNo || b.erpDocNumber || "";
-                        return docNo.toLowerCase().includes(q);
-                      })
-                      .map((b) => {
-                        const docNo  = b.saleBillNo || b.purchaseBillNo || b.erpDocNumber || `#${b.id}`;
-                        const amt    = b.totalInvoiceAmount ?? b.totalAmount ?? 0;
-                        const isSelected = refBillId === b.id && refBillType === refModalTab;
+                        <th className="px-3 py-1.5 text-left text-[10px] font-semibold text-[#2d5a8a] uppercase">Party</th>
+                        <th className="px-3 py-1.5 text-right text-[10px] font-semibold text-[#2d5a8a] uppercase">Amount</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-100">
+                      {filtered.map((b) => {
+                        const isSelected = refBillId === b.id && refBillType === b.billType;
                         return (
-                          <tr key={b.id}
-                            onClick={() => {
-                              setRefBillType(refModalTab);
-                              setRefBillId(b.id);
-                              setRefBillDocNo(docNo);
-                              setRefModalOpen(false);
-                            }}
+                          <tr key={`${b.billType}-${b.id}`}
+                            onClick={() => { setRefBillType(b.billType); setRefBillId(b.id); setRefBillDocNo(b.docNo); setRefModalOpen(false); }}
                             className={`cursor-pointer transition-colors ${isSelected ? "bg-blue-50" : "hover:bg-gray-50"}`}
                           >
                             <td className="px-2 py-1.5 text-center">
                               <input type="radio" readOnly checked={isSelected} className="accent-[#25507a]" />
                             </td>
-                            <td className="px-3 py-1.5 font-medium text-[#25507a]">{docNo}</td>
-                            {refModalTab === "purchase_bill" && (
-                              <td className="px-3 py-1.5 text-gray-600">{b.vendorName || "—"}</td>
-                            )}
-                            {refModalTab === "sale_bill" && (
-                              <td className="px-3 py-1.5 text-gray-500">{b.invoiceDate || "—"}</td>
-                            )}
-                            <td className="px-3 py-1.5 text-right tabular-nums">{formatAmount(amt)}</td>
+                            <td className="px-3 py-1.5">
+                              <span className={`text-[10px] px-1.5 py-0.5 rounded font-medium ${
+                                b.billType === "sale_bill"       ? "bg-blue-50 text-blue-700 border border-blue-100" :
+                                b.billType === "purchase_bill"   ? "bg-orange-50 text-orange-700 border border-orange-100" :
+                                                                   "bg-purple-50 text-purple-700 border border-purple-100"
+                              }`}>{b.billLabel}</span>
+                            </td>
+                            <td className="px-3 py-1.5 font-medium text-[#25507a]">{b.docNo || "—"}</td>
+                            <td className="px-3 py-1.5 text-gray-500">{b.date || "—"}</td>
+                            <td className="px-3 py-1.5 text-gray-600">{b.party || "—"}</td>
+                            <td className="px-3 py-1.5 text-right tabular-nums">{formatAmount(b.amount)}</td>
                           </tr>
                         );
                       })}
-                  </tbody>
-                </table>
-              )}
+                    </tbody>
+                  </table>
+                );
+              })()}
             </div>
 
             {/* Footer */}

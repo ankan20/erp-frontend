@@ -640,6 +640,7 @@ export const API_ENDPOINTS = {
       DR_LINES_BY_CC:     "/finance/journal-entry/lines/by-cc/",         // /:cc_id GET ?projectCode&fromDate&toDate&workflowStatus
       DR_LINES_BY_VENDOR: "/finance/journal-entry/lines/by-vendor/",     // /:vendor_id GET ?projectCode&fromDate&toDate&workflowStatus
       APPROVED_DOCKETS:   "/finance/journal-entry/approved-dockets",     // GET ?projectCode
+      REF_BILLS:          "/finance/journal-entry/ref-bills",             // GET ?projectCode — unified approved bills for adjustment reference
     },
     JOURNAL_VOUCHERING: {
       BASE:              "/finance/journal-entry/journal-voucher",

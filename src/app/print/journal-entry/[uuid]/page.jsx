@@ -102,11 +102,17 @@ async function downloadDocx(data, uuid, qrCanvasRef) {
   const infoCell = (paras, w) =>
     new TableCell({ children: paras, width: { size: w, type: WidthType.DXA }, borders: nilBorders, margins: { top: 40, bottom: 40, left: 60, right: 60 } });
 
+  const REF_BILL_LABEL_MAP = { sale_bill: "Sale Bill", purchase_bill: "Purchase Bill", receipt_billing: "Receipt Billing" };
+  const refBillDisplay = data.refBillDocNo
+    ? `${REF_BILL_LABEL_MAP[data.refBillType] || data.refBillType} — ${data.refBillDocNo}`
+    : null;
+
   const leftInfo  = [
     ["Project",      data.projectCode || "—"],
     ["Voucher No",   data.voucherNo   || "—"],
     ["Voucher Date", fmt.date(data.entryDate)],
     ["Mode",         entryModeLabel],
+    ...(refBillDisplay ? [["Bill Reference", refBillDisplay]] : []),
   ];
   const rightInfo = [
     ["No. of Lines", String((data.lines || []).length)],
@@ -317,14 +323,15 @@ export default function JournalEntryPrintPage() {
           {/* ── INFO SECTION ────────────────────────────────────────────── */}
           <div className="grid px-6 pb-3" style={{ gridTemplateColumns: "50% 50%" }}>
             <div className="space-y-0.5">
-              <InfoRow label="Project"     value={data.projectCode} />
-              <InfoRow label="Voucher No"  value={data.voucherNo} />
+              <InfoRow label="Project"      value={data.projectCode} />
+              <InfoRow label="Voucher No"   value={data.voucherNo} />
               <InfoRow label="Voucher Date" value={fmt.date(data.entryDate)} />
+              <InfoRow label="Mode"         value={entryModeLabel} />
+              {refBillDisplay && <InfoRow label="Bill Reference" value={refBillDisplay} />}
             </div>
             <div className="space-y-0.5 pl-6">
               <InfoRow label="No. of Lines" value={String(lines.length)} />
-              <InfoRow label="Mode"        value={entryModeLabel} />
-              <InfoRow label="Status"        value={data.workflowStatus} />
+              <InfoRow label="Status"       value={data.workflowStatus} />
             </div>
           </div>
 
