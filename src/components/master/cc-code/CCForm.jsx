@@ -35,6 +35,12 @@ export default function CCForm({
   const [subGroupPath, setSubGroupPath] = useState(data?.subGroupPath || []);
   const [loading, setLoading] = useState(true);
   const [isEditing, setIsEditing] = useState(mode === "create");
+  // user-selected at the top; null until chosen
+  const [headUnder, setHeadUnder] = useState(data?.headUnder ?? null);
+  // null = P&L (not applicable), false = Ledger Head, true = Non-Ledger
+  const [isNonLedger, setIsNonLedger] = useState(
+    data?.isNonLedger !== undefined ? data.isNonLedger : null
+  );
 
   const {
     register,
@@ -57,13 +63,26 @@ export default function CCForm({
 
   const selectedGroupId = watch("groupId");
 
+  // Groups filtered to match the selected headUnder
+  const filteredGroups = headUnder
+    ? groups.filter((g) => g.headUnder === headUnder)
+    : groups;
+
   // CC code is saved with the deepest selected sub group
   const applySubGroupPath = (ids) => {
     setSubGroupPath(ids);
     setValue("subGroupId", ids.length ? String(ids[ids.length - 1]) : "");
   };
 
-  // Group changed by user -> clear sub groups
+  // Head Under changed -> reset group and sub groups
+  const onHeadUnderChange = (val) => {
+    setHeadUnder(val);
+    setValue("groupId", "");
+    applySubGroupPath([]);
+    setIsNonLedger(val === "Balance Sheet" ? false : null);
+  };
+
+  // Group changed -> clear sub groups only
   const groupField = register("groupId");
   const onGroupChange = (e) => {
     groupField.onChange(e);
@@ -75,16 +94,18 @@ export default function CCForm({
   // FETCH GROUP + CATEGORY
   useEffect(() => {
     const loadMaster = async () => {
-      // const [g, c] = await Promise.all([
-      //   apiRequest({ url: API_ENDPOINTS.MASTER.GET_ALL_GROUP }),
-      //   apiRequest({ url: API_ENDPOINTS.MASTER.GET_ALL_CATEGORY }),
-      // ]);
       const g = await apiRequest({ url: API_ENDPOINTS.MASTER.GET_ALL_GROUP });
+      const loadedGroups = g.data || [];
       const ccOptions = CATEGORY_OPTIONS.ccCategory;
-      setGroups(g.data || []);
+      setGroups(loadedGroups);
       setCategories(ccOptions || []);
-      if (data && (mode === "edit" || mode==="view")) {
+      if (data && (mode === "edit" || mode === "view")) {
         reset(data);
+        // legacy records may not have headUnder stored yet — derive from group
+        if (!data.headUnder && data.groupId) {
+          const grp = loadedGroups.find((g) => String(g.groupId) === String(data.groupId));
+          if (grp?.headUnder) setHeadUnder(grp.headUnder);
+        }
       }
       setLoading(false);
     };
@@ -137,6 +158,7 @@ export default function CCForm({
         groupId: Number(values.groupId),
         categoryId: values.categoryId,
         subGroupId: values.subGroupId ? Number(values.subGroupId) : null,
+        isNonLedger: isNonLedger,
       };
 
       if (mode === "create") {
@@ -172,6 +194,8 @@ export default function CCForm({
           subGroupId: d.ccSubGroupId ? String(d.ccSubGroupId) : "",
         });
         setSubGroupPath((d.ccSubGroupLevels || []).map((l) => l.subGroupId));
+        setHeadUnder(d.headUnder ?? null);
+        setIsNonLedger(d.isNonLedger !== undefined ? d.isNonLedger : null);
 
         setIsEditing(false);
       }
@@ -182,7 +206,6 @@ export default function CCForm({
   const handleCancel = () => {
     if (!data) return;
 
-    // restore original values
     reset({
       ccCode: data.ccCode,
       ccName: data.ccName,
@@ -191,8 +214,9 @@ export default function CCForm({
       subGroupId: data.subGroupId || "",
     });
     setSubGroupPath(data.subGroupPath || []);
+    setHeadUnder(data.headUnder ?? null);
+    setIsNonLedger(data.isNonLedger !== undefined ? data.isNonLedger : null);
 
-    // exit edit mode
     setIsEditing(false);
   };
 
@@ -208,6 +232,61 @@ export default function CCForm({
 
   return (
     <div className="p-4 space-y-3">
+
+      {/* HEAD UNDER — user selects first */}
+      <div className="flex gap-2">
+        <div className="w-[220px] bg-[#d6e6f2] px-3 py-1 border rounded-md shrink-0">
+          Head Under
+        </div>
+        <div className="flex items-center gap-4 h-[30px] px-1">
+          {["Profit & Loss", "Balance Sheet"].map((opt) => (
+            <label key={opt} className={`flex items-center gap-1.5 select-none ${fieldDisabled ? "cursor-default" : "cursor-pointer"}`}>
+              <input
+                type="radio"
+                name="headUnder"
+                value={opt}
+                checked={headUnder === opt}
+                disabled={fieldDisabled}
+                onChange={() => !fieldDisabled && onHeadUnderChange(opt)}
+                className="accent-[#1c3a5e] w-3.5 h-3.5"
+              />
+              <span className={`text-sm ${headUnder === opt ? "font-semibold text-[#1c3a5e]" : "text-gray-600"}`}>
+                {opt}
+              </span>
+            </label>
+          ))}
+        </div>
+      </div>
+
+      {/* LEDGER TYPE — only for Balance Sheet */}
+      {headUnder === "Balance Sheet" && (
+        <div className="flex gap-2">
+          <div className="w-[220px] bg-[#d6e6f2] px-3 py-1 border rounded-md shrink-0">
+            Ledger Type
+          </div>
+          <div className="flex items-center gap-4 h-[30px] px-1">
+            {[
+              { label: "Ledger Head", value: false },
+              { label: "Non-Ledger", value: true },
+            ].map(({ label, value }) => (
+              <label key={label} className={`flex items-center gap-1.5 select-none ${fieldDisabled ? "cursor-default" : "cursor-pointer"}`}>
+                <input
+                  type="radio"
+                  name="ledgerType"
+                  checked={isNonLedger === value}
+                  disabled={fieldDisabled}
+                  onChange={() => !fieldDisabled && setIsNonLedger(value)}
+                  className="accent-[#1c3a5e] w-3.5 h-3.5"
+                />
+                <span className={`text-sm ${isNonLedger === value ? "font-semibold text-[#1c3a5e]" : "text-gray-600"}`}>
+                  {label}
+                </span>
+              </label>
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* CC CODE */}
       <div className="flex gap-2">
         <div className="w-[220px] bg-[#d6e6f2] px-3 py-1 border rounded-md">
@@ -221,62 +300,54 @@ export default function CCForm({
       </div>
 
       {/* CC NAME */}
-      <div className="flex flex-col">
-        <div className="flex gap-2">
-          <div className="w-[220px] bg-[#d6e6f2] px-3 py-1 border rounded-md">
-            CC Name
-          </div>
-          <Input
-            {...register("ccName")}
-            disabled={fieldDisabled}
-            className={`flex-1 ${getInputClass(errors.ccName, fieldDisabled)}`}
-          />
+      <div className="flex gap-2">
+        <div className="w-[220px] bg-[#d6e6f2] px-3 py-1 border rounded-md">
+          CC Name
         </div>
+        <Input
+          {...register("ccName")}
+          disabled={fieldDisabled}
+          className={`flex-1 ${getInputClass(errors.ccName, fieldDisabled)}`}
+        />
       </div>
 
       {/* CATEGORY */}
-      <div className="flex flex-col">
-        <div className="flex gap-2">
-          <div className="w-[220px] bg-[#d6e6f2] px-3 py-1 border rounded-md">
-            Category
-          </div>
-
-          <select
-            {...register("categoryId")}
-            disabled={fieldDisabled}
-            className={`flex-1 ${getInputClass(errors.categoryId, fieldDisabled)} disabled:cursor-not-allowed rounded-md`}
-          >
-            <option value="">Select</option>
-            {categories.map((c) => (
-              <option key={c.value} value={c.value}>
-                {c.label}
-              </option>
-            ))}
-          </select>
+      <div className="flex gap-2">
+        <div className="w-[220px] bg-[#d6e6f2] px-3 py-1 border rounded-md">
+          Category
         </div>
+        <select
+          {...register("categoryId")}
+          disabled={fieldDisabled}
+          className={`flex-1 ${getInputClass(errors.categoryId, fieldDisabled)} disabled:cursor-not-allowed rounded-md`}
+        >
+          <option value="">Select</option>
+          {categories.map((c) => (
+            <option key={c.value} value={c.value}>
+              {c.label}
+            </option>
+          ))}
+        </select>
       </div>
 
-      {/* GROUP */}
-      <div className="flex flex-col">
-        <div className="flex gap-2">
-          <div className="w-[220px] bg-[#d6e6f2] px-3 py-1 border rounded-md">
-            Group
-          </div>
-
-          <select
-            {...groupField}
-            onChange={onGroupChange}
-            disabled={fieldDisabled}
-            className={`flex-1 ${getInputClass(errors.groupId, fieldDisabled)}  disabled:cursor-not-allowed rounded-md`}
-          >
-            <option value="">Select</option>
-            {groups.map((g) => (
-              <option key={g.groupId} value={g.groupId}>
-                {g.groupName}
-              </option>
-            ))}
-          </select>
+      {/* GROUP — filtered by selected headUnder */}
+      <div className="flex gap-2">
+        <div className="w-[220px] bg-[#d6e6f2] px-3 py-1 border rounded-md">
+          Group
         </div>
+        <select
+          {...groupField}
+          onChange={onGroupChange}
+          disabled={fieldDisabled || !headUnder}
+          className={`flex-1 ${getInputClass(errors.groupId, fieldDisabled)} disabled:cursor-not-allowed rounded-md`}
+        >
+          <option value="">{headUnder ? "Select" : "Select Head Under first"}</option>
+          {filteredGroups.map((g) => (
+            <option key={g.groupId} value={g.groupId}>
+              {g.groupName}
+            </option>
+          ))}
+        </select>
       </div>
 
       {/* SUB GROUP -> SUB GROUP 1 -> SUB GROUP 2 (each list depends on the one above) */}

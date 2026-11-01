@@ -42,6 +42,8 @@ export default function Page() {
             categoryId: String(d.ccCategoryId),
             subGroupId: d.ccSubGroupId ? String(d.ccSubGroupId) : "",
             subGroupPath: (d.ccSubGroupLevels || []).map((l) => l.subGroupId),
+            headUnder: d.headUnder ?? null,
+            isNonLedger: d.isNonLedger !== undefined ? d.isNonLedger : null,
           };
           setData(respdata);
         } catch {
