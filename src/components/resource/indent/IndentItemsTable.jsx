@@ -47,6 +47,10 @@ export default function IndentItemsTable({
   // Track Item: only for saved rows, and only while not editing
   // (unsaved rows have no indent_item_id yet).
   const [traceRow, setTraceRow] = useState(null);
+  // Pinned to the right edge while the table scrolls sideways. With
+  // border-collapse a sticky cell's grid border does not move with it, so the
+  // column draws its own left edge (inset shadow) plus a soft separator.
+  const trackPin = "sticky right-0 shadow-[inset_1px_0_0_#b5b5b5,-4px_0_6px_-4px_rgba(0,0,0,0.18)]";
   const showTrack = !isEditing && fields.some((_, i) => watch(`items.${i}.indentItemId`));
 
   useEffect(() => {
@@ -110,7 +114,7 @@ export default function IndentItemsTable({
                   <th className="border border-[#b5b5b5] px-2 py-1 text-sm min-w-[50px] text-center">Action</th>
                 )}
                 {showTrack && (
-                  <th className="sticky right-0 z-10 bg-[#d9d9d9] border border-[#b5b5b5] px-2 py-1 text-sm min-w-[110px] text-center">Track</th>
+                  <th className={`${trackPin} z-10 bg-[#d9d9d9] border border-[#b5b5b5] px-2 py-1 text-sm w-[112px] min-w-[112px] text-center`}>Track</th>
                 )}
               </tr>
             </thead>
@@ -131,7 +135,7 @@ export default function IndentItemsTable({
                     </td>
 
                     {/* ITEM CODE */}
-                    <td className="border border-[#b5b5b5] px-2 py-[2px]">
+                    <td className="border border-[#b5b5b5] px-2 py-[2px] overflow-hidden">
                       <div className="flex items-center gap-1">
                         <Input
                           {...register(`items.${index}.itemCode`)}
@@ -161,7 +165,7 @@ export default function IndentItemsTable({
                     </td>
 
                     {/* NOTE */}
-                    <td className="border border-[#b5b5b5] p-0 align-top">
+                    <td className="border border-[#b5b5b5] p-0 align-top overflow-hidden">
                       <div className="min-w-[80px] overflow-hidden">
                         <ExpandableTextField
                           value={noteValue || ""}
@@ -222,7 +226,7 @@ export default function IndentItemsTable({
 
                     {/* TRACK ITEM */}
                     {showTrack && (
-                      <td className="sticky right-0 z-[1] bg-white border border-[#b5b5b5] px-2 py-[2px] text-center">
+                      <td className={`${trackPin} z-[1] bg-white border border-[#b5b5b5] px-1.5 py-[2px] text-center whitespace-nowrap`}>
                         {watch(`items.${index}.indentItemId`) ? (
                           <button
                             type="button"
@@ -275,7 +279,7 @@ export default function IndentItemsTable({
                 </td> */}
                 <td className="border border-[#b5b5b5]" />
                 {isEditing && <td className="border border-[#b5b5b5]" />}
-                {showTrack && <td className="sticky right-0 bg-[#d9d9d9] border border-[#b5b5b5]" />}
+                {showTrack && <td className={`${trackPin} z-[1] bg-[#d9d9d9] border border-[#b5b5b5]`} />}
               </tr>
             </tbody>
           </table>

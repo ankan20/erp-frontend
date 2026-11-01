@@ -15,6 +15,12 @@ const MIN_COL_PX = 40;
  *  - Already-fixed tables      (colgroup created lazily on first drag)
  *  - Sticky columns            (never overrides position:sticky)
  *  - Dynamically added columns (MutationObserver re-attaches handles automatically)
+ *  - Columns swapped after a resize (e.g. an edit-only "Action" column replaced by
+ *    another column): widths are positional, so the table returns to its natural
+ *    layout instead of giving the new column the old one's width
+ *  - Tables with a CSS min-width (e.g. min-w-[1000px]): once the user resizes, the
+ *    dragged widths are authoritative, so shrinking a column no longer spreads the
+ *    freed space across every other column
  */
 export function useColumnResize() {
   const cleanupRef = useRef(null);
@@ -68,6 +74,16 @@ export function useColumnResize() {
     let colgroup        = null;
     let createdColgroup = false;
 
+    // ── Sizing state (set on first drag, undone by resetSizing) ───────────────
+    let sizedLeaves  = null;   // leaf <th> elements the widths were taken from
+    let addedCols    = [];     // <col> elements this hook appended
+    let colPrevWidth = new Map(); // pre-existing <col> → its original style.width
+    const tablePrev  = {
+      width:       table.style.width,
+      tableLayout: table.style.tableLayout,
+      minWidth:    table.style.minWidth,
+    };
+
     function getColList() {
       return colgroup ? Array.from(colgroup.querySelectorAll("col")) : [];
     }
@@ -88,6 +104,7 @@ export function useColumnResize() {
         const col = document.createElement("col");
         colgroup.appendChild(col);
         cols.push(col);
+        addedCols.push(col);
       }
     }
 
@@ -98,11 +115,39 @@ export function useColumnResize() {
       const cols   = getColList();
       leaves.forEach(({ th }, i) => {
         if (!cols[i].style.width) {
+          if (!addedCols.includes(cols[i])) colPrevWidth.set(cols[i], cols[i].style.width);
           cols[i].style.width = th.getBoundingClientRect().width + "px";
         }
       });
       table.style.width       = table.getBoundingClientRect().width + "px";
       table.style.tableLayout = "fixed";
+      // From now on the column widths decide the table width. A CSS min-width
+      // would otherwise win when a column shrinks, and fixed layout would hand
+      // the difference to every other column.
+      table.style.minWidth    = "0px";
+      sizedLeaves = leaves.map(({ th }) => th);
+    }
+
+    /** Undo everything initColWidths / ensureColgroup did: back to natural layout. */
+    function resetSizing() {
+      addedCols.forEach((col) => col.parentNode && col.parentNode.removeChild(col));
+      colPrevWidth.forEach((w, col) => { col.style.width = w; });
+      if (createdColgroup && colgroup && table.contains(colgroup)) table.removeChild(colgroup);
+      addedCols       = [];
+      colPrevWidth    = new Map();
+      colgroup        = null;
+      createdColgroup = false;
+      sizedLeaves     = null;
+      table.style.width       = tablePrev.width;
+      table.style.tableLayout = tablePrev.tableLayout;
+      table.style.minWidth    = tablePrev.minWidth;
+    }
+
+    /** True when the header columns are no longer the ones the widths belong to. */
+    function leavesChanged() {
+      if (!sizedLeaves) return false;
+      const now = getLeafHeaders().map(({ th }) => th);
+      return now.length !== sizedLeaves.length || now.some((th, i) => th !== sizedLeaves[i]);
     }
 
     // ── Drag state ────────────────────────────────────────────────────────────
@@ -204,6 +249,10 @@ export function useColumnResize() {
       handleCleanups.forEach(fn => fn());
       handleCleanups.length = 0;
 
+      // Widths are stored per column position; if columns were added, removed or
+      // swapped since the user resized, start again from the natural layout.
+      if (leavesChanged()) resetSizing();
+
       const leaves = getLeafHeaders();
       leaves.forEach(({ th, colIdx }, i) => {
         if (i === leaves.length - 1) return; // last column gets no handle
@@ -226,9 +275,7 @@ export function useColumnResize() {
       document.removeEventListener("mouseup",   onMouseUp);
       document.body.style.userSelect = "";
       if (indicator?.parentNode) indicator.parentNode.removeChild(indicator);
-      if (createdColgroup && colgroup && table.contains(colgroup)) table.removeChild(colgroup);
-      table.style.tableLayout = "";
-      table.style.width       = "";
+      resetSizing();
     };
   }, []);
 

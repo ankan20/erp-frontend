@@ -49,6 +49,39 @@ function StatusBadge({ value }) {
   );
 }
 
+// Optional per-column action (opt-in via `column.action`). Columns without it
+// render exactly as before.
+//   action: {
+//     onClick:  (row, event) => void,           // required
+//     label:    string | (row) => ReactNode,     // default "Open"
+//     title:    string | (row) => string,        // optional tooltip / aria-label
+//     hidden:   (row) => boolean,                // show "-" instead of a button
+//     disabled: (row) => boolean,
+//   }
+// The click never reaches the cell / row handlers, so it cannot expand the cell,
+// trigger onRowClick (document-number navigation) or sort/filter anything.
+function ActionCell({ action, row }) {
+  if (action.hidden?.(row)) return <span className="text-gray-400">-</span>;
+  const label = typeof action.label === "function" ? action.label(row) : action.label ?? "Open";
+  const title = typeof action.title === "function" ? action.title(row) : action.title;
+  const disabled = !!action.disabled?.(row);
+  return (
+    <button
+      type="button"
+      title={title}
+      aria-label={title || (typeof label === "string" ? label : undefined)}
+      disabled={disabled}
+      onClick={(e) => {
+        e.stopPropagation();
+        if (!disabled) action.onClick?.(row, e);
+      }}
+      className="inline-flex items-center gap-1 whitespace-nowrap rounded-sm border border-[#6d9dc5] bg-[#e8f2ff] px-2 py-[1px] text-[11px] font-medium text-[#144664] hover:brightness-95 cursor-pointer disabled:cursor-not-allowed disabled:opacity-50"
+    >
+      {label}
+    </button>
+  );
+}
+
 export default function DataTable({
   columns = [],
   data = [],
@@ -357,8 +390,9 @@ export default function DataTable({
                 const width = col.width || (index === 0 ? "65px" : undefined);
 
                 // index 0 (sl no) — no sort, no filter
-                const isSortable = index !== 0 && col.sortable !== false;
-                const isFilterable = index !== 0 && col.filterable !== false;
+                // action columns (opt-in) default to no sort / filter
+                const isSortable = index !== 0 && col.sortable !== false && (!col.action || col.sortable === true);
+                const isFilterable = index !== 0 && col.filterable !== false && (!col.action || col.filterable === true);
                 const filterOn = isFilterActive(col.accessor);
 
                 return (
@@ -507,6 +541,8 @@ export default function DataTable({
                         key={colIndex}
                         style={width ? { width, minWidth: width, maxWidth: width } : {}}
                         onClick={() => {
+                          // opt-in action cells handle their own clicks
+                          if (col.action) return;
                           setExpandedCell((prev) =>
                             prev?.row === rowIndex && prev?.col === colIndex
                               ? null
@@ -518,15 +554,17 @@ export default function DataTable({
                           }
                         }}
                         className={`
-                          border border-[#e6e4e4] px-2 py-1 cursor-pointer
+                          border border-[#e6e4e4] px-2 py-1 ${col.action ? "" : "cursor-pointer"}
                           ${getAlignClass(col.align)}
-                          ${colIndex === 1 ? "text-blue-600" : ""}
+                          ${colIndex === 1 && !col.action ? "text-blue-600" : ""}
                         `}
                       >
                         {(() => {
                           const isStatus = col.accessor?.toLowerCase().endsWith("status");
                           const rawText  = row[col.accessor] == null || row[col.accessor] === "" ? "-" : String(row[col.accessor]);
-                          const content  = col.render
+                          const content  = col.action
+                            ? <ActionCell action={col.action} row={row} />
+                            : col.render
                             ? col.render(row)
                             : isStatus
                               ? <StatusBadge value={row[col.accessor]} />
@@ -547,7 +585,7 @@ export default function DataTable({
                               {content}
                             </div>
                           );
-                          if (!col.render && !isStatus && !isExpanded) {
+                          if (!col.action && !col.render && !isStatus && !isExpanded) {
                             return (
                               <Tooltip>
                                 <TooltipTrigger asChild>{inner}</TooltipTrigger>
@@ -586,4 +624,6 @@ export default function DataTable({
 //   { header: "HSN", accessor: "hsnSac", align: "right" },             // sort + filter
 //   { header: "GST%", accessor: "gstPercentage", align: "right", width: "100px" }, // sort + filter
 //   { header: "Action", accessor: "action", sortable: false, filterable: false },  // opt-out both
+//   { header: "Open", accessor: "open", width: "90px",                  // opt-in action button
+//     action: { label: "Open", onClick: (row) => router.push(row.href), hidden: (row) => !row.href } },
 // ];

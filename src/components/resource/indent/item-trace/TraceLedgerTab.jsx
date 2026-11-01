@@ -17,7 +17,19 @@ const COLUMNS = [
   { header: "Rate", accessor: "rate", width: "100px", align: "right" },
   { header: "Amount (₹)", accessor: "amount", width: "175px", align: "right" },
   { header: "Status", accessor: "status", width: "120px" },
-  { header: "Action", accessor: "action", width: "110px" },
+  {
+    header: "Action",
+    accessor: "action",
+    width: "110px",
+    align: "center",
+    // opens the linked document in a new tab so the trace stays open
+    action: {
+      label: "Open ↗",
+      title: (row) => `Open ${row.docNo} in a new tab`,
+      hidden: (row) => !row._route,
+      onClick: (row) => window.open(row._route, "_blank", "noopener,noreferrer"),
+    },
+  },
 ];
 
 export default function TraceLedgerTab({ ledger, allocationBasis }) {
@@ -44,7 +56,7 @@ export default function TraceLedgerTab({ ledger, allocationBasis }) {
                 ? `≈ ${fmtAmt(r.amount)} (est.)`
                 : fmtAmt(r.amount),
           status: formatWorkflowStatus(r.status),
-          action: route ? "Open ↗" : "—",
+          action: route ? "Open" : "",
           _route: route,
         };
       }),
@@ -55,7 +67,7 @@ export default function TraceLedgerTab({ ledger, allocationBasis }) {
     <div className="space-y-2">
       <div className="flex flex-wrap items-center gap-2 text-[12px] text-gray-600">
         <span>
-          Every document line linked to this indent item, oldest first. Click a document number to open it in a new tab.
+          Every document line linked to this indent item, oldest first. Click a document number or Open to view it in a new tab.
         </span>
         <span className="flex items-center gap-1">
           Amounts marked ≈ are <AllocatedTag basis={allocationBasis} />
