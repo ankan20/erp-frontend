@@ -10,3 +10,4 @@ export { default as RecordStatusTag }   from "./RecordStatusTag";
 export { RECORD_STATUS, recordStatusStyle } from "./recordStatus";
 export { default as PendingApprovalPicker } from "./PendingApprovalPicker";
 export { MEDIA_ACCEPT, MAX_FILE_MB, validateChatFile, formatBytes, mediaKind } from "./chatMedia";
+export { default as PeoplePicker }      from "./PeoplePicker";
