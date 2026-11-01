@@ -42,6 +42,7 @@ export default function Page() {
           ccCategoryName: c.ccCategoryName,
           ccCode: c.ccCode,
           ccGroupName: c.ccGroupName,
+          ccSubGroupName: c.ccSubGroupName || "",
           ccName: c.ccName,
         }));
 
@@ -80,6 +81,7 @@ export default function Page() {
     { header: "CC Name", accessor: "ccName" },
     { header: "Category", accessor: "ccCategoryName" },
     { header: "Group", accessor: "ccGroupName" },
+    { header: "Sub Group", accessor: "ccSubGroupName" },
   ];
 
   if (loading) {
