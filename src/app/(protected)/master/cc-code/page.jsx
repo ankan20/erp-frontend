@@ -42,7 +42,9 @@ export default function Page() {
           ccCategoryName: c.ccCategoryName,
           ccCode: c.ccCode,
           ccGroupName: c.ccGroupName,
-          ccSubGroupName: c.ccSubGroupName || "",
+          ccSubGroup0: c.ccSubGroupLevels?.[0]?.subGroupName || "",
+          ccSubGroup1: c.ccSubGroupLevels?.[1]?.subGroupName || "",
+          ccSubGroup2: c.ccSubGroupLevels?.[2]?.subGroupName || "",
           ccName: c.ccName,
         }));
 
@@ -81,7 +83,9 @@ export default function Page() {
     { header: "CC Name", accessor: "ccName" },
     { header: "Category", accessor: "ccCategoryName" },
     { header: "Group", accessor: "ccGroupName" },
-    { header: "Sub Group", accessor: "ccSubGroupName" },
+    { header: "Sub Group", accessor: "ccSubGroup0" },
+    { header: "Sub Group 1", accessor: "ccSubGroup1" },
+    { header: "Sub Group 2", accessor: "ccSubGroup2" },
   ];
 
   if (loading) {

@@ -43,11 +43,13 @@ export const API_ENDPOINTS = {
     UPDATE_CATEGORY_BY_ID: "/master/category/update",
     GET_ALL_CATEGORY: "/master/category/list",
     // sub group (many per group, optional category link)
-    GET_ALL_SUB_GROUP: "/master/sub-group/list", // ?groupId=&categoryId=&status=
+    GET_ALL_SUB_GROUP: "/master/sub-group/list", // ?groupId=&parentId=(id|root)&level=&status=
     GET_SUB_GROUP_BY_ID: "/master/sub-group", // /{id}
     CREATE_SUB_GROUP: "/master/sub-group/create",
     UPDATE_SUB_GROUP_BY_ID: "/master/sub-group/update", // /{id}
     DELETE_SUB_GROUP_BY_ID: "/master/sub-group/delete", // /{id}
+    CHECK_SUB_GROUP_CODE: "/master/sub-group/check-code", // ?code=&excludeId=  (live check)
+    SUGGEST_SUB_GROUP_CODE: "/master/sub-group/suggest-code", // ?name=&parentId=  (auto code preview)
     GET_ALL_CC_CODE: "/master/cc-code/list",
     GET_CC_CODE_BY_ID: "/master/cc-code",
     CREATE_CC_CODE: "/master/cc-code/create",

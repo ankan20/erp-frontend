@@ -13,6 +13,7 @@ import { toast } from "sonner";
 import { Loader2 } from "lucide-react";
 import { CATEGORY_OPTIONS } from "@/config/categoryOptions.config";
 import { getInputClass } from "@/lib/formStyles";
+import SubGroupCascade from "@/components/master/cc-code/SubGroupCascade";
 
 const schema = z.object({
   ccCode: z.string().min(1, "Required"),
@@ -30,8 +31,8 @@ export default function CCForm({
 }) {
   const [groups, setGroups] = useState([]);
   const [categories, setCategories] = useState([]);
-  const [subGroups, setSubGroups] = useState([]);
-  const [subGroupLoading, setSubGroupLoading] = useState(false);
+  // selected sub group ids from top level down, e.g. [4, 9, 15]
+  const [subGroupPath, setSubGroupPath] = useState(data?.subGroupPath || []);
   const [loading, setLoading] = useState(true);
   const [isEditing, setIsEditing] = useState(mode === "create");
 
@@ -56,43 +57,17 @@ export default function CCForm({
 
   const selectedGroupId = watch("groupId");
 
-  // Load the sub groups of one group (Active only)
-  const loadSubGroups = async (groupId) => {
-    if (!groupId) {
-      setSubGroups([]);
-      return;
-    }
-    try {
-      setSubGroupLoading(true);
-      const res = await apiRequest({
-        url: API_ENDPOINTS.MASTER.GET_ALL_SUB_GROUP,
-        params: { groupId, status: "Active" },
-      });
-      setSubGroups(res?.data || []);
-    } catch {
-      setSubGroups([]);
-      toast.error("Failed to load sub groups");
-    } finally {
-      setSubGroupLoading(false);
-    }
+  // CC code is saved with the deepest selected sub group
+  const applySubGroupPath = (ids) => {
+    setSubGroupPath(ids);
+    setValue("subGroupId", ids.length ? String(ids[ids.length - 1]) : "");
   };
 
-  // When group changes: refresh sub group list
-  useEffect(() => {
-    loadSubGroups(selectedGroupId);
-  }, [selectedGroupId]);
-
-  // Options arrive after the saved value is set (edit page) -> re-apply it
-  useEffect(() => {
-    const current = getValues("subGroupId");
-    if (current) setValue("subGroupId", current);
-  }, [subGroups]);
-
-  // Group changed by user -> clear the old sub group
+  // Group changed by user -> clear sub groups
   const groupField = register("groupId");
   const onGroupChange = (e) => {
     groupField.onChange(e);
-    setValue("subGroupId", "");
+    applySubGroupPath([]);
   };
   const isViewMode = disabled;
   const fieldDisabled = isViewMode || !isEditing || isSubmitting;
@@ -196,6 +171,7 @@ export default function CCForm({
           categoryId: String(d.ccCategoryId),
           subGroupId: d.ccSubGroupId ? String(d.ccSubGroupId) : "",
         });
+        setSubGroupPath((d.ccSubGroupLevels || []).map((l) => l.subGroupId));
 
         setIsEditing(false);
       }
@@ -214,6 +190,7 @@ export default function CCForm({
       categoryId: String(data.ccCategoryId || data.categoryId),
       subGroupId: data.subGroupId || "",
     });
+    setSubGroupPath(data.subGroupPath || []);
 
     // exit edit mode
     setIsEditing(false);
@@ -302,35 +279,15 @@ export default function CCForm({
         </div>
       </div>
 
-      {/* SUB GROUP (list depends on selected Group) */}
-      <div className="flex flex-col">
-        <div className="flex gap-2">
-          <div className="w-[220px] bg-[#d6e6f2] px-3 py-1 border rounded-md">
-            Sub Group
-          </div>
-
-          <select
-            {...register("subGroupId")}
-            disabled={fieldDisabled || !selectedGroupId || subGroupLoading}
-            className={`flex-1 ${getInputClass(errors.subGroupId, fieldDisabled)}  disabled:cursor-not-allowed rounded-md`}
-          >
-            <option value="">
-              {!selectedGroupId
-                ? "Select Group first"
-                : subGroupLoading
-                ? "Loading..."
-                : subGroups.length === 0
-                ? "No sub group for this group"
-                : "Select"}
-            </option>
-            {subGroups.map((sg) => (
-              <option key={sg.subGroupId} value={String(sg.subGroupId)}>
-                {sg.subGroupName}
-              </option>
-            ))}
-          </select>
-        </div>
-      </div>
+      {/* SUB GROUP -> SUB GROUP 1 -> SUB GROUP 2 (each list depends on the one above) */}
+      <SubGroupCascade
+        groupId={selectedGroupId}
+        path={subGroupPath}
+        onChange={applySubGroupPath}
+        disabled={fieldDisabled}
+        labelClassName="w-[220px] bg-[#d6e6f2] px-3 py-1 border rounded-md"
+        selectClassName={`flex-1 ${getInputClass(errors.subGroupId, fieldDisabled)}  disabled:cursor-not-allowed rounded-md`}
+      />
 
       {/* BUTTONS */}
       <div className="flex justify-end gap-3 mt-10">

@@ -41,6 +41,7 @@ export default function Page() {
             groupId: String(d.ccGroupId),
             categoryId: String(d.ccCategoryId),
             subGroupId: d.ccSubGroupId ? String(d.ccSubGroupId) : "",
+            subGroupPath: (d.ccSubGroupLevels || []).map((l) => l.subGroupId),
           };
           setData(respdata);
         } catch {
