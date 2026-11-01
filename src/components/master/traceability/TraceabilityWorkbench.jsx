@@ -32,6 +32,8 @@ import ExceptionsPanel, { countExceptions } from "./ExceptionsPanel";
 import TimelinePanel from "./TimelinePanel";
 import DocIcon from "./DocIcon";
 import { LINK_KIND, MODE_HELP, STAGE_STYLE, relatedKeys } from "./wbUtils";
+import SmartGuide from "@/components/common/smart-guide/SmartGuide";
+import { HINTS, TOUR, getNextStep } from "./guideContent";
 
 const TYPES_WITH_IDS = /^[A-Z_]+$/;
 
@@ -73,7 +75,7 @@ function Intro() {
           supplier billing, accounts and payment.
         </p>
       </div>
-      <div className="mt-6 grid gap-3 sm:grid-cols-3">
+      <div className="mt-6 grid gap-3 sm:grid-cols-3" data-guide="intro-steps">
         {steps.map(([t, d], i) => (
           <div key={t} className="rounded-lg border border-[#b5c7d8] bg-[#f3f7ff] p-3">
             <div className="flex items-center gap-2 text-[13px] font-semibold text-[#144664]">
@@ -84,7 +86,7 @@ function Intro() {
           </div>
         ))}
       </div>
-      <div className="mt-5 rounded-lg border border-gray-200 bg-white p-3 text-[12px] text-gray-600">
+      <div className="mt-5 rounded-lg border border-gray-200 bg-white p-3 text-[12px] text-gray-600" data-guide="intro-links">
         <div className="mb-1.5 font-semibold text-gray-700">How links are shown</div>
         <div className="grid gap-1.5 sm:grid-cols-2">
           {Object.values(LINK_KIND).map((k) => (
@@ -119,6 +121,7 @@ export default function TraceabilityWorkbench() {
   const [tab, setTab] = useState("flow");
   const [trail, setTrail] = useState([]);
   const [trackRow, setTrackRow] = useState(null);
+  const [searchState, setSearchState] = useState({});
 
   // ── context (projects + searchable document types) ─────────────
   useEffect(() => {
@@ -218,6 +221,33 @@ export default function TraceabilityWorkbench() {
   const startNode = flow?.nodes?.find((n) => n.isStart);
   const noAccess = ctx && !ctx.isGlobal && !ctx.projects.length;
 
+  // what the Smart Guide reads to decide the next step
+  const guideContext = {
+    ready: !!ctx,
+    ctxError,
+    noAccess,
+    isGlobal: !!ctx?.isGlobal,
+    loading,
+    error,
+    hasFlow: !!flow,
+    mode: qMode,
+    tab,
+    projectCode,
+    search: searchState,
+    start: startNode ? { docNo: startNode.docNo, typeLabel: startNode.typeLabel } : null,
+    selected: selected
+      ? { docNo: selected.docNo, typeLabel: selected.typeLabel, isStart: !!selected.isStart, restricted: !!selected.restricted }
+      : null,
+    counts,
+    nodeCount: flow?.nodes?.length || 0,
+    trailLength: trail.length,
+  };
+  const guideActions = {
+    setTab,
+    switchMode: (m) => qType && qId && navigate(qType, qId, m),
+    focusSearch: () => document.querySelector('[data-guide="search-input"]')?.focus(),
+  };
+
   return (
     <TooltipProvider>
       <div className="flex min-h-0 flex-1 flex-col gap-2 p-3">
@@ -227,12 +257,14 @@ export default function TraceabilityWorkbench() {
             docTypes={ctx?.docTypes || []}
             projectCode={projectCode}
             onPick={(r) => navigate(r.docType, r.docId, qMode)}
+            onStateChange={setSearchState}
           />
           <select
             value={projectCode}
             onChange={(e) => setProjectCode(e.target.value)}
             className="h-[36px] min-w-[180px] rounded-sm border border-[#6f7f8f] bg-white px-2 text-[13px] outline-none"
             aria-label="Project"
+            data-guide="project"
           >
             <option value="">{ctx?.isGlobal ? "All projects" : "All my projects"}</option>
             {(ctx?.projects || []).map((p) => (
@@ -246,7 +278,7 @@ export default function TraceabilityWorkbench() {
 
         {/* ── drill-down trail ───────────────────────────────────── */}
         {trail.length > 1 && (
-          <div className="flex flex-wrap items-center gap-1 text-[12px]">
+          <div className="flex flex-wrap items-center gap-1 text-[12px]" data-guide="trail">
             <span className="text-gray-500">Trail:</span>
             {trail.map((t, i) => (
               <span key={`${t.type}:${t.id}`} className="inline-flex items-center gap-1">
@@ -285,7 +317,7 @@ export default function TraceabilityWorkbench() {
           <>
             {/* ── trace summary ──────────────────────────────────── */}
             <div className="flex flex-wrap items-center gap-x-4 gap-y-2 rounded-lg border border-[#b5c7d8] bg-[#e8f2ff] px-3 py-2">
-              <div className="flex min-w-0 items-center gap-2">
+              <div className="flex min-w-0 items-center gap-2" data-guide="summary">
                 {startNode && (
                   <span className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-white ${STAGE_STYLE[startNode.stage].dot}`}>
                     <DocIcon node={startNode} className="h-4 w-4" />
@@ -300,7 +332,7 @@ export default function TraceabilityWorkbench() {
                 </div>
               </div>
 
-              <div className="inline-flex overflow-hidden rounded-md border border-[#6d9dc5] text-[12px]">
+              <div className="inline-flex overflow-hidden rounded-md border border-[#6d9dc5] text-[12px]" data-guide="mode">
                 {["LINEAGE", "FULL"].map((m) => (
                   <button
                     key={m}
@@ -314,7 +346,7 @@ export default function TraceabilityWorkbench() {
                 ))}
               </div>
 
-              <div className="flex flex-wrap items-center gap-1">
+              <div className="flex flex-wrap items-center gap-1" data-guide="stages">
                 {flow.stages.map((s) =>
                   stageCounts[s.key] ? (
                     <span key={s.key} className={`rounded border px-1.5 py-[1px] text-[10.5px] font-semibold ${STAGE_STYLE[s.key].chip}`}>
@@ -325,9 +357,14 @@ export default function TraceabilityWorkbench() {
               </div>
 
               <div className="ml-auto flex items-center gap-2">
+                <span className="inline-flex items-center gap-2" data-guide="badges">
+                  {counts.error === 0 && counts.warning === 0 && (
+                    <span className="rounded-full bg-emerald-600 px-2 text-[11px] font-semibold text-white">No issues</span>
+                  )}
                 {counts.error > 0 && <span className="rounded-full bg-red-500 px-2 text-[11px] font-semibold text-white">{counts.error} mismatch</span>}
                 {counts.warning > 0 && <span className="rounded-full bg-amber-500 px-2 text-[11px] font-semibold text-white">{counts.warning} pending</span>}
-                <button type="button" onClick={copyLink} className="inline-flex items-center gap-1 rounded border border-[#6d9dc5] bg-white px-2 py-0.5 text-[11.5px] text-[#144664] hover:bg-[#f0f6ff]" title="Copy a link to this trace">
+                </span>
+                <button type="button" data-guide="copy-link" onClick={copyLink} className="inline-flex items-center gap-1 rounded border border-[#6d9dc5] bg-white px-2 py-0.5 text-[11.5px] text-[#144664] hover:bg-[#f0f6ff]" title="Copy a link to this trace">
                   <Link2 className="h-3.5 w-3.5" /> Link
                 </button>
               </div>
@@ -340,11 +377,11 @@ export default function TraceabilityWorkbench() {
                 <Tabs value={tab} onValueChange={setTab}>
                   <div className="flex flex-wrap items-center gap-2">
                     <TabsList className="h-9">
-                      <TabsTrigger value="flow" className="px-3"><ListTree /> Document Flow</TabsTrigger>
-                      <TabsTrigger value="map" className="px-3"><LayoutGrid /> Lifecycle Map</TabsTrigger>
-                      <TabsTrigger value="qty" className="px-3"><Scale /> Quantities</TabsTrigger>
-                      <TabsTrigger value="fin" className="px-3"><Coins /> Financials</TabsTrigger>
-                      <TabsTrigger value="exc" className="px-3">
+                      <TabsTrigger value="flow" data-guide="tab-flow" className="px-3"><ListTree /> Document Flow</TabsTrigger>
+                      <TabsTrigger value="map" data-guide="tab-map" className="px-3"><LayoutGrid /> Lifecycle Map</TabsTrigger>
+                      <TabsTrigger value="qty" data-guide="tab-qty" className="px-3"><Scale /> Quantities</TabsTrigger>
+                      <TabsTrigger value="fin" data-guide="tab-fin" className="px-3"><Coins /> Financials</TabsTrigger>
+                      <TabsTrigger value="exc" data-guide="tab-exc" className="px-3">
                         <TriangleAlert /> Exceptions
                         {counts.error + counts.warning > 0 && (
                           <span className={`rounded-full px-1.5 text-[10px] font-semibold text-white ${counts.error ? "bg-red-500" : "bg-amber-500"}`}>
@@ -352,38 +389,38 @@ export default function TraceabilityWorkbench() {
                           </span>
                         )}
                       </TabsTrigger>
-                      <TabsTrigger value="time" className="px-3"><Rows3 /> Timeline</TabsTrigger>
+                      <TabsTrigger value="time" data-guide="tab-time" className="px-3"><Rows3 /> Timeline</TabsTrigger>
                     </TabsList>
                     {(tab === "flow" || tab === "map") && (
-                      <label className="ml-auto inline-flex cursor-pointer items-center gap-1.5 text-[12px] text-gray-700">
+                      <label className="ml-auto inline-flex cursor-pointer items-center gap-1.5 text-[12px] text-gray-700" data-guide="highlight">
                         <input type="checkbox" checked={focusBranch} onChange={(e) => setFocusBranch(e.target.checked)} />
                         Highlight branch of selected document
                       </label>
                     )}
                   </div>
 
-                  <TabsContent value="flow" className="mt-2">
+                  <TabsContent value="flow" className="mt-2" data-guide="flow-tree">
                     <FlowTree nodes={flow.nodes} edges={flow.edges} selectedKey={selectedKey} related={related} onSelect={setSelectedKey} />
                   </TabsContent>
-                  <TabsContent value="map" className="mt-2">
+                  <TabsContent value="map" className="mt-2" data-guide="lifecycle-map">
                     <LifecycleMap stages={flow.stages} nodes={flow.nodes} selectedKey={selectedKey} related={related} onSelect={setSelectedKey} />
                   </TabsContent>
-                  <TabsContent value="qty" className="mt-2">
+                  <TabsContent value="qty" className="mt-2" data-guide="qty-panel">
                     <ReconciliationPanel recon={flow.reconciliation} onDoc={selectDoc} />
                   </TabsContent>
-                  <TabsContent value="fin" className="mt-2">
+                  <TabsContent value="fin" className="mt-2" data-guide="fin-panel">
                     <FinancialsPanel fin={flow.financials} onDoc={selectDoc} />
                   </TabsContent>
-                  <TabsContent value="exc" className="mt-2">
+                  <TabsContent value="exc" className="mt-2" data-guide="exc-panel">
                     <ExceptionsPanel exceptions={flow.exceptions} onDoc={selectDoc} />
                   </TabsContent>
-                  <TabsContent value="time" className="mt-2">
+                  <TabsContent value="time" className="mt-2" data-guide="time-panel">
                     <TimelinePanel nodes={flow.nodes} stages={flow.stages} onDoc={selectDoc} />
                   </TabsContent>
                 </Tabs>
               </div>
 
-              <aside className="min-h-[420px] overflow-hidden rounded-lg border border-[#b5c7d8] bg-white xl:sticky xl:top-2 xl:max-h-[calc(100vh-200px)]">
+              <aside data-guide="inspector" className="min-h-[420px] overflow-hidden rounded-lg border border-[#b5c7d8] bg-white xl:sticky xl:top-2 xl:max-h-[calc(100vh-200px)]">
                 {loading ? (
                   <div className="flex h-full items-center justify-center"><Loader2 className="h-5 w-5 animate-spin text-gray-400" /></div>
                 ) : (
@@ -402,6 +439,15 @@ export default function TraceabilityWorkbench() {
           </>
         )}
       </div>
+
+      <SmartGuide
+        id="traceability-workbench"
+        hints={HINTS}
+        tour={TOUR}
+        nextStep={getNextStep}
+        context={guideContext}
+        actions={guideActions}
+      />
 
       <ItemTraceModal
         open={!!trackRow}

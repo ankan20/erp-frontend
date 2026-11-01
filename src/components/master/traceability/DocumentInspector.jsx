@@ -18,8 +18,8 @@ import {
   statusClass,
 } from "./wbUtils";
 
-const Section = ({ title, children, right }) => (
-  <div className="border-t border-[#e3e8ee] px-3 py-2">
+const Section = ({ title, children, right, guide }) => (
+  <div className="border-t border-[#e3e8ee] px-3 py-2" data-guide={guide}>
     <div className="mb-1.5 flex items-center justify-between">
       <span className="text-[11px] font-semibold uppercase tracking-wide text-gray-500">{title}</span>
       {right}
@@ -103,6 +103,7 @@ export default function DocumentInspector({ node, edges, nodesByKey, onSelect, o
           <div className="mt-2 flex flex-wrap gap-1.5">
             {href && (
               <Link
+                data-guide="open-doc"
                 href={href}
                 prefetch={false}
                 target="_blank"
@@ -115,6 +116,7 @@ export default function DocumentInspector({ node, edges, nodesByKey, onSelect, o
             {!isStart && (
               <button
                 type="button"
+                data-guide="trace-from"
                 onClick={() => onTraceFrom(node.docType, node.docId)}
                 className="inline-flex items-center gap-1 rounded-sm border border-[#6d9dc5] bg-[#9fc5e8] px-2 py-1 text-[11.5px] font-medium hover:brightness-95"
               >
@@ -152,14 +154,14 @@ export default function DocumentInspector({ node, edges, nodesByKey, onSelect, o
           </Section>
         )}
 
-        <Section title={`Comes from (${ups.length})`}>
+        <Section title={`Comes from (${ups.length})`} guide="comes-from">
           {ups.length ? (
             ups.map((e) => <Relation key={e.from} edge={e} node={nodesByKey[e.from]} dir="up" onSelect={onSelect} />)
           ) : (
             <div className="text-[11.5px] text-gray-400">Origin of this flow.</div>
           )}
         </Section>
-        <Section title={`Leads to (${downs.length})`}>
+        <Section title={`Leads to (${downs.length})`} guide="leads-to">
           {downs.length ? (
             downs.map((e) => <Relation key={e.to} edge={e} node={nodesByKey[e.to]} dir="down" onSelect={onSelect} />)
           ) : (
@@ -168,7 +170,7 @@ export default function DocumentInspector({ node, edges, nodesByKey, onSelect, o
         </Section>
 
         {!node.restricted && (
-          <Section title="Lines" right={loading && <Loader2 className="h-3.5 w-3.5 animate-spin text-gray-400" />}>
+          <Section title="Lines" guide="lines" right={loading && <Loader2 className="h-3.5 w-3.5 animate-spin text-gray-400" />}>
             {error ? (
               <div className="text-[12px] text-red-600">{error}</div>
             ) : loading && !detail ? (
@@ -243,10 +245,10 @@ function LinesTable({ detail, onTrackItem, onTraceFrom }) {
               <td className="px-1.5 py-1">
                 {isIndent ? (
                   <div className="flex flex-col items-start gap-0.5">
-                    <button type="button" onClick={() => onTrackItem(l)} className="inline-flex items-center gap-0.5 whitespace-nowrap text-[10.5px] font-medium text-[#144664] hover:underline">
+                    <button type="button" data-guide="track-item" onClick={() => onTrackItem(l)} className="inline-flex items-center gap-0.5 whitespace-nowrap text-[10.5px] font-medium text-[#144664] hover:underline">
                       <Route className="h-3 w-3" /> Track item
                     </button>
-                    <button type="button" onClick={() => onTraceFrom("INDENT_ITEM", l.lineId)} className="inline-flex items-center gap-0.5 whitespace-nowrap text-[10.5px] font-medium text-[#144664] hover:underline">
+                    <button type="button" data-guide="trace-item" onClick={() => onTraceFrom("INDENT_ITEM", l.lineId)} className="inline-flex items-center gap-0.5 whitespace-nowrap text-[10.5px] font-medium text-[#144664] hover:underline">
                       <Crosshair className="h-3 w-3" /> Trace item flow
                     </button>
                   </div>

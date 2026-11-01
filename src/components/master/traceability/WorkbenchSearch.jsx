@@ -125,7 +125,7 @@ function GroupHeader({ icon: Icon, children }) {
   );
 }
 
-export default function WorkbenchSearch({ docTypes = [], projectCode, onPick }) {
+export default function WorkbenchSearch({ docTypes = [], projectCode, onPick, onStateChange }) {
   const [text, setText] = useState("");
   const [type, setType] = useState("");
   const [open, setOpen] = useState(false);
@@ -281,6 +281,21 @@ export default function WorkbenchSearch({ docTypes = [], projectCode, onPick }) 
     }
   };
 
+  // tell the page (Smart Guide) what the user is doing in the search box
+  useEffect(() => {
+    onStateChange?.({
+      text,
+      term,
+      type,
+      typeLabel,
+      open,
+      picker: showTypePicker,
+      loading,
+      results: results.length,
+      recent: recentShown.length,
+    });
+  }, [onStateChange, text, term, type, typeLabel, open, showTypePicker, loading, results.length, recentShown.length]);
+
   let idx = -1;
   const nextIdx = () => ++idx;
   const scope = `${type ? typeLabel : "documents"}${projectCode ? ` in ${projectCode}` : ""}`;
@@ -297,6 +312,7 @@ export default function WorkbenchSearch({ docTypes = [], projectCode, onPick }) 
         }}
         className="h-[36px] shrink-0 rounded-l-sm border border-r-0 border-[#6f7f8f] bg-[#d6e6f2] px-2 text-[13px] font-medium outline-none"
         aria-label="Document type"
+        data-guide="search-type"
       >
         {typeOptions.map((o) => (
           <option key={o.value || "all"} value={o.value}>
@@ -317,6 +333,7 @@ export default function WorkbenchSearch({ docTypes = [], projectCode, onPick }) 
           placeholder="Number (e.g. 350012, 44017, 720005, DC440003) or item code / name  ·  type @ to pick a type"
           className="h-[36px] w-full rounded-r-sm border border-[#6f7f8f] bg-white pl-8 pr-8 text-[13px] outline-none focus:border-[#2f6f9f]"
           aria-label="Search documents"
+          data-guide="search-input"
           aria-expanded={open}
           role="combobox"
           aria-controls="wb-search-list"
