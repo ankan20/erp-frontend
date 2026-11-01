@@ -4,6 +4,7 @@ import { getPageActions } from "@/components/common/PageActionButtons";
 import HeaderWrapper from "@/components/layout/HeaderWrapper";
 import PageHeader from "@/components/layout/PageHeader";
 import GroupCategorySection from "@/components/master/group-category/GroupCategorySection";
+import SubGroupSection from "@/components/master/group-category/SubGroupSection";
 import { API_ENDPOINTS } from "@/config/api.config";
 import { useRouter } from "next/navigation";
 
@@ -40,6 +41,11 @@ export default function Page() {
             idKey="categoryId"
             headOptions={["Items", "Ledger", "Unit", "Tax"]}
           />
+
+          {/* SUB GROUP (many per Group, optional Category) */}
+          <div className="md:col-span-2">
+            <SubGroupSection />
+          </div>
         </div>
       </HeaderWrapper>
     </>

@@ -42,6 +42,12 @@ export const API_ENDPOINTS = {
     CREATE_CATEGORY: "/master/category/create",
     UPDATE_CATEGORY_BY_ID: "/master/category/update",
     GET_ALL_CATEGORY: "/master/category/list",
+    // sub group (many per group, optional category link)
+    GET_ALL_SUB_GROUP: "/master/sub-group/list", // ?groupId=&categoryId=&status=
+    GET_SUB_GROUP_BY_ID: "/master/sub-group", // /{id}
+    CREATE_SUB_GROUP: "/master/sub-group/create",
+    UPDATE_SUB_GROUP_BY_ID: "/master/sub-group/update", // /{id}
+    DELETE_SUB_GROUP_BY_ID: "/master/sub-group/delete", // /{id}
     GET_ALL_CC_CODE: "/master/cc-code/list",
     GET_CC_CODE_BY_ID: "/master/cc-code",
     CREATE_CC_CODE: "/master/cc-code/create",
