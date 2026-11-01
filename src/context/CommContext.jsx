@@ -1,6 +1,7 @@
 "use client";
 
 import { createContext, useContext, useState, useEffect, useRef, useCallback } from "react";
+import { isInsidePane } from "@/components/split-view/splitStore";
 import { getCookie } from "@/lib/cookies";
 import { sounds, getOpenConversation } from "@/lib/commSounds";
 import { getRecordRoute, moduleLabel } from "@/lib/moduleRegistry";
@@ -115,6 +116,8 @@ export function CommProvider({ children }) {
   }, [activeCall, router]);
 
   useEffect(() => {
+    // split-view windows: the main page already polls, sends heartbeats and rings for calls
+    if (isInsidePane()) return;
     refresh();
     pollRef.current = setInterval(refresh, 5000);
     // Heartbeat every 30s so server knows we're online
@@ -127,6 +130,7 @@ export function CommProvider({ children }) {
 
   // A call that was running before this page (re)loaded: rejoin it
   useEffect(() => {
+    if (isInsidePane()) return;
     const saved = takeCallResume();
     if (!saved || !myId()) return;
     rejoinCall(saved.call.callId)

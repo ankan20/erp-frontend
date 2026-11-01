@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import { getBreadcrumbs } from "@/lib/breadcrumbs";
 import { routeMetaConfig } from "@/config/route-meta.config";
 import { TooltipProvider } from "@/components/ui/tooltip";
+import SplitViewButton from "@/components/split-view/SplitViewButton";
 
 export default function PageHeader({ actions = [] }) {
   const pathname = usePathname();
@@ -15,7 +16,7 @@ export default function PageHeader({ actions = [] }) {
   );
 
   return (
-    <div className="shrink-0 w-full flex flex-col sm:flex-row sm:items-center justify-between px-2 pr-3 py-1 border-b border-[#c4d1df] bg-gradient-to-b from-[#f4f4f4] to-[#e3e3e3] gap-1 ">
+    <div className="shrink-0 w-full flex flex-col sm:flex-row sm:flex-wrap sm:items-center justify-between px-2 pr-3 py-1 border-b border-[#c4d1df] bg-gradient-to-b from-[#f4f4f4] to-[#e3e3e3] gap-1 ">
       {/* LEFT → BREADCRUMB */}
       <div className="text-[13px] font-semibold leading-none sm:whitespace-nowrap min-w-0 break-words">
         <span>Modules : </span>
@@ -54,6 +55,8 @@ export default function PageHeader({ actions = [] }) {
               </div>
             );
           })}
+          {/* split view: open another page next to this one */}
+          <SplitViewButton />
         </div>
       </div>
       </TooltipProvider>
