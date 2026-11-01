@@ -1,12 +1,23 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { Fragment, useEffect, useMemo, useRef, useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Input } from "@/components/ui/input";
 import { apiRequest } from "@/lib/apiClient";
 import { toast } from "sonner";
-import { Pencil, Trash2, Plus } from "lucide-react";
+import { Pencil, Trash2, Plus, ChevronRight, ChevronDown } from "lucide-react";
 import SaveButton from "@/components/common/SaveButton";
+import SearchableSelect from "@/components/common/SearchableSelect";
 import { useColumnResize } from "@/hooks/useColumnResize";
 import { API_ENDPOINTS } from "@/config/api.config";
 
@@ -40,6 +51,13 @@ export default function SubGroupSection() {
   const [form, setForm] = useState(EMPTY_FORM);
   const [parentOptions, setParentOptions] = useState([]);
   const [saving, setSaving] = useState(false);
+
+  // collapsible tree: ids of open rows
+  const [expanded, setExpanded] = useState(() => new Set());
+
+  // delete confirmation
+  const [deleteTarget, setDeleteTarget] = useState(null);
+  const [deleteLoading, setDeleteLoading] = useState(false);
 
   // live code check: idle | checking | ok | taken | invalid
   const [codeState, setCodeState] = useState({ status: "idle", message: "" });
@@ -168,20 +186,102 @@ export default function SubGroupSection() {
     fetchList(groupId);
   };
 
-  const handleDelete = async (item) => {
-    if (!window.confirm(`Delete "${item.path}"?`)) return;
-    const toastId = toast.loading("Deleting...");
+  const handleDeleteConfirm = async () => {
+    if (!deleteTarget) return;
     try {
+      setDeleteLoading(true);
       await apiRequest({
-        url: `${API_ENDPOINTS.MASTER.DELETE_SUB_GROUP_BY_ID}/${item.subGroupId}`,
+        url: `${API_ENDPOINTS.MASTER.DELETE_SUB_GROUP_BY_ID}/${deleteTarget.subGroupId}`,
         method: "DELETE",
       });
-      toast.success("Deleted", { id: toastId });
+      toast.success("Sub Group deleted");
+      setDeleteTarget(null);
       fetchList();
     } catch (e) {
-      toast.error(e.message || "Failed to delete", { id: toastId });
+      toast.error(e.message || "Failed to delete");
+    } finally {
+      setDeleteLoading(false);
     }
   };
+
+  // ---- tree (parent > child > grand child) ----
+  const childrenByParent = useMemo(() => {
+    const map = new Map();
+    const ids = new Set(data.map((d) => d.subGroupId));
+    data.forEach((d) => {
+      // if the parent is not in the list, show the row at top level
+      const key = d.parentId && ids.has(d.parentId) ? d.parentId : "root";
+      if (!map.has(key)) map.set(key, []);
+      map.get(key).push(d);
+    });
+    return map;
+  }, [data]);
+
+  const parentIds = useMemo(
+    () => data.filter((d) => childrenByParent.has(d.subGroupId)).map((d) => d.subGroupId),
+    [data, childrenByParent]
+  );
+
+  const toggle = (id) =>
+    setExpanded((prev) => {
+      const next = new Set(prev);
+      next.has(id) ? next.delete(id) : next.add(id);
+      return next;
+    });
+
+  const expandAll = () => setExpanded(new Set(parentIds));
+  const collapseAll = () => setExpanded(new Set());
+
+  const renderRows = (parentKey) =>
+    (childrenByParent.get(parentKey) || []).map((item) => {
+      const kids = childrenByParent.get(item.subGroupId) || [];
+      const isOpen = expanded.has(item.subGroupId);
+      return (
+        <Fragment key={item.subGroupId}>
+          <tr className={item.level > 0 ? "bg-gray-50" : ""}>
+            <td className="border p-2" title={item.path}>
+              <div className="flex items-center gap-1" style={{ paddingLeft: item.level * 22 }}>
+                {kids.length > 0 ? (
+                  <button
+                    type="button"
+                    onClick={() => toggle(item.subGroupId)}
+                    className="cursor-pointer text-gray-600 hover:text-black"
+                    aria-label={isOpen ? "Collapse" : "Expand"}
+                    aria-expanded={isOpen}
+                  >
+                    {isOpen ? <ChevronDown size={15} /> : <ChevronRight size={15} />}
+                  </button>
+                ) : (
+                  <span className="inline-block w-[15px]" />
+                )}
+                <span className={item.level === 0 ? "font-medium" : ""}>{item.subGroupName}</span>
+                {kids.length > 0 && <span className="text-xs text-gray-500">({kids.length})</span>}
+              </div>
+            </td>
+            <td className="border p-2">{item.levelLabel}</td>
+            <td className="border p-2">{item.subGroupCode}</td>
+            <td className="border p-2">{item.groupName}</td>
+            <td className="border p-2">{item.headUnder}</td>
+            <td className="border p-2">{item.status}</td>
+            <td className="border">
+              <div className="flex items-center justify-center gap-3 h-full">
+                {item.canHaveChildren && (
+                  <Plus
+                    size={15}
+                    className="cursor-pointer text-blue-600"
+                    aria-label={`Add ${LEVEL_LABELS[item.level + 1]} under ${item.subGroupName}`}
+                    onClick={() => openForm(null, { groupId: String(item.groupId), parentId: String(item.subGroupId) })}
+                  />
+                )}
+                <Pencil size={14} className="cursor-pointer" onClick={() => openForm(item)} />
+                <Trash2 size={14} className="cursor-pointer text-red-600" onClick={() => setDeleteTarget(item)} />
+              </div>
+            </td>
+          </tr>
+          {isOpen && renderRows(item.subGroupId)}
+        </Fragment>
+      );
+    });
 
   const parent = parentOptions.find((p) => String(p.subGroupId) === form.parentId);
   const newLevel = parent ? parent.level + 1 : 0;
@@ -214,6 +314,9 @@ export default function SubGroupSection() {
       });
       const saved = r?.data?.[0];
       toast.success(saved ? `Saved with code ${saved.subGroupCode}` : "Saved", { id: toastId });
+      if (saved?.pathIds?.length > 1) {
+        setExpanded((prev) => new Set([...prev, ...saved.pathIds.slice(0, -1)]));
+      }
       setOpen(false);
       fetchList();
     } catch (e) {
@@ -233,6 +336,9 @@ export default function SubGroupSection() {
     }));
   };
 
+  // for SearchableSelect (gives the value, not an event)
+  const setSelect = (key) => (value) => set(key)({ target: { value: value ? String(value) : "" } });
+
   const codeColor = {
     ok: "text-green-700",
     taken: "text-red-600",
@@ -248,20 +354,26 @@ export default function SubGroupSection() {
           + Add Sub Group
         </button>
 
-        <div className="flex items-center gap-2 text-sm">
+        <div className="flex items-center gap-3 text-sm">
+          <button type="button" onClick={expandAll} className="px-2 py-0.5 border rounded cursor-pointer">
+            Expand all
+          </button>
+          <button type="button" onClick={collapseAll} className="px-2 py-0.5 border rounded cursor-pointer">
+            Collapse all
+          </button>
           <span>Group</span>
-          <select
-            value={filterGroupId}
-            onChange={(e) => handleFilter(e.target.value)}
-            className="border p-1 min-w-[200px]"
-          >
-            <option value="">All</option>
-            {groups.map((g) => (
-              <option key={g.groupId} value={g.groupId}>
-                {g.groupName}
-              </option>
-            ))}
-          </select>
+          <div className="w-[220px]">
+            <SearchableSelect
+              options={groups}
+              value={filterGroupId}
+              onChange={(v) => handleFilter(v ? String(v) : "")}
+              placeholder="All"
+              clearLabel="All"
+              labelKey="groupName"
+              valueKey="groupId"
+              searchKeys={["groupName", "headUnder"]}
+            />
+          </div>
         </div>
       </div>
 
@@ -289,35 +401,7 @@ export default function SubGroupSection() {
                 <td colSpan={7} className="text-center p-4">No sub groups</td>
               </tr>
             ) : (
-              data.map((item) => (
-                <tr key={item.subGroupId}>
-                  <td className="border p-2" title={item.path}>
-                    <span style={{ paddingLeft: item.level * 20 }}>
-                      {item.level > 0 && <span className="text-gray-400">└ </span>}
-                      {item.subGroupName}
-                    </span>
-                  </td>
-                  <td className="border p-2">{item.levelLabel}</td>
-                  <td className="border p-2">{item.subGroupCode}</td>
-                  <td className="border p-2">{item.groupName}</td>
-                  <td className="border p-2">{item.headUnder}</td>
-                  <td className="border p-2">{item.status}</td>
-                  <td className="border">
-                    <div className="flex items-center justify-center gap-3 h-full">
-                      {item.canHaveChildren && (
-                        <Plus
-                          size={15}
-                          className="cursor-pointer text-blue-600"
-                          aria-label={`Add ${LEVEL_LABELS[item.level + 1]} under ${item.subGroupName}`}
-                          onClick={() => openForm(null, { groupId: String(item.groupId), parentId: String(item.subGroupId) })}
-                        />
-                      )}
-                      <Pencil size={14} className="cursor-pointer" onClick={() => openForm(item)} />
-                      <Trash2 size={14} className="cursor-pointer text-red-600" onClick={() => handleDelete(item)} />
-                    </div>
-                  </td>
-                </tr>
-              ))
+              renderRows("root")
             )}
           </tbody>
         </table>
@@ -335,37 +419,34 @@ export default function SubGroupSection() {
           <div className="space-y-3">
             <div className="flex gap-2 items-center">
               <Label>Group</Label>
-              <select
+              <SearchableSelect
+                options={groups}
                 value={form.groupId}
-                onChange={set("groupId")}
+                onChange={setSelect("groupId")}
                 disabled={saving}
-                className={`border w-full p-2 ${!form.groupId && "border-red-500"}`}
-              >
-                <option value="">Select</option>
-                {groups.map((g) => (
-                  <option key={g.groupId} value={g.groupId}>
-                    {g.groupName}
-                    {g.headUnder ? ` (${g.headUnder})` : ""}
-                  </option>
-                ))}
-              </select>
+                placeholder="Select Group"
+                labelKey={["groupName", "headUnder"]}
+                labelSeparator=" - "
+                valueKey="groupId"
+                searchKeys={["groupName", "headUnder"]}
+                className={!form.groupId ? "[&>button]:border-red-500" : ""}
+              />
             </div>
 
             <div className="flex gap-2 items-center">
               <Label>Under</Label>
-              <select
+              <SearchableSelect
+                options={parentOptions}
                 value={form.parentId}
-                onChange={set("parentId")}
+                onChange={setSelect("parentId")}
                 disabled={saving || !form.groupId}
-                className="border w-full p-2"
-              >
-                <option value="">— None (top Sub Group) —</option>
-                {parentOptions.map((p) => (
-                  <option key={p.subGroupId} value={p.subGroupId}>
-                    {p.path} ({p.levelLabel})
-                  </option>
-                ))}
-              </select>
+                placeholder="— None (top Sub Group) —"
+                clearLabel="— None (top Sub Group) —"
+                labelKey={["path", "subGroupCode"]}
+                labelSeparator=" : "
+                valueKey="subGroupId"
+                searchKeys={["path", "subGroupCode"]}
+              />
             </div>
 
             <div className="flex gap-2 items-center">
@@ -427,6 +508,36 @@ export default function SubGroupSection() {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Delete confirmation */}
+      <AlertDialog open={!!deleteTarget} onOpenChange={(v) => { if (!v && !deleteLoading) setDeleteTarget(null); }}>
+        <AlertDialogContent className="max-w-sm">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="text-[14px]">Delete {deleteTarget?.levelLabel || "Sub Group"}</AlertDialogTitle>
+            <AlertDialogDescription className="text-[12px]">
+              Are you sure you want to delete{" "}
+              <span className="font-semibold text-black">&quot;{deleteTarget?.path}&quot;</span>?
+              This cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel
+              disabled={deleteLoading}
+              className="text-[12px] h-8"
+              onClick={() => setDeleteTarget(null)}
+            >
+              Cancel
+            </AlertDialogCancel>
+            <AlertDialogAction
+              disabled={deleteLoading}
+              onClick={(e) => { e.preventDefault(); handleDeleteConfirm(); }}
+              className="bg-red-600 hover:bg-red-700 text-[12px] h-8"
+            >
+              {deleteLoading ? "Deleting..." : "Delete"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

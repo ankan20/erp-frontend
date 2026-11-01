@@ -3,6 +3,29 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { ChevronDown, Loader2 } from "lucide-react";
 
+// position:fixed is measured from the nearest ancestor with transform/translate/filter
+// (e.g. a dialog centred with translate). Find it so the dropdown is placed right.
+const getFixedContainer = (el) => {
+  let node = el?.parentElement;
+  while (node && node !== document.body) {
+    const st = window.getComputedStyle(node);
+    if (
+      (st.transform && st.transform !== "none") ||
+      (st.translate && st.translate !== "none") ||
+      (st.scale && st.scale !== "none") ||
+      (st.rotate && st.rotate !== "none") ||
+      (st.perspective && st.perspective !== "none") ||
+      (st.filter && st.filter !== "none") ||
+      (st.backdropFilter && st.backdropFilter !== "none") ||
+      /paint|layout|strict|content/.test(st.contain || "")
+    ) {
+      return node;
+    }
+    node = node.parentElement;
+  }
+  return null;
+};
+
 export default function SearchableSelect({
   options = [],
   value,
@@ -97,9 +120,16 @@ export default function SearchableSelect({
             window.innerWidth - dropdownWidth - 8
           );
 
+          // offset when inside a transformed parent (dialog)
+          const container = getFixedContainer(e.currentTarget);
+          const cRect = container ? container.getBoundingClientRect() : null;
+          const offsetX = cRect ? cRect.left : 0;
+          const offsetY = cRect ? cRect.top : 0;
+          const bottomEdge = cRect ? cRect.bottom : window.innerHeight;
+
           const baseStyle = {
             position: "fixed",
-            left: Math.max(0, clampedLeft),
+            left: Math.max(0, clampedLeft) - offsetX,
             width: dropdownWidth,
             zIndex: 999999,
           };
@@ -108,14 +138,14 @@ export default function SearchableSelect({
             // Pin bottom of dropdown to top of button; cap height to available space
             setDropdownStyle({
               ...baseStyle,
-              bottom: window.innerHeight - rect.top + 4,
+              bottom: bottomEdge - rect.top + 4,
               maxHeight: Math.min(spaceAbove, 280),
             });
           } else {
             // Open below; cap height to available space so it never clips off-screen
             setDropdownStyle({
               ...baseStyle,
-              top: rect.bottom + 4,
+              top: rect.bottom + 4 - offsetY,
               maxHeight: Math.min(spaceBelow, 280),
             });
           }

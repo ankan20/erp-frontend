@@ -286,7 +286,6 @@ export default function CCForm({
         onChange={applySubGroupPath}
         disabled={fieldDisabled}
         labelClassName="w-[220px] bg-[#d6e6f2] px-3 py-1 border rounded-md"
-        selectClassName={`flex-1 ${getInputClass(errors.subGroupId, fieldDisabled)}  disabled:cursor-not-allowed rounded-md`}
       />
 
       {/* BUTTONS */}

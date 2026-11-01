@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { apiRequest } from "@/lib/apiClient";
 import { API_ENDPOINTS } from "@/config/api.config";
 import { toast } from "sonner";
+import SearchableSelect from "@/components/common/SearchableSelect";
 
 const LEVEL_LABELS = ["Sub Group", "Sub Group 1", "Sub Group 2"];
 
@@ -87,19 +88,22 @@ export default function SubGroupCascade({
           <div className="flex flex-col" key={level}>
             <div className="flex gap-2">
               <div className={labelClassName}>{LEVEL_LABELS[level] || `Sub Group ${level}`}</div>
-              <select
-                value={path[level] ? String(path[level]) : ""}
-                onChange={(e) => handleSelect(level, e.target.value)}
-                disabled={disabled || !groupId || list.length === 0}
-                className={selectClassName}
-              >
-                <option value="">{placeholder}</option>
-                {list.map((sg) => (
-                  <option key={sg.subGroupId} value={String(sg.subGroupId)}>
-                    {sg.subGroupName} ({sg.subGroupCode})
-                  </option>
-                ))}
-              </select>
+              <div className="flex-1">
+                <SearchableSelect
+                  options={list}
+                  value={path[level] ? String(path[level]) : ""}
+                  onChange={(v) => handleSelect(level, v)}
+                  disabled={disabled || !groupId || list.length === 0}
+                  loading={loading && list.length === 0 && !!groupId}
+                  placeholder={placeholder}
+                  clearLabel="— None —"
+                  labelKey={["subGroupName", "subGroupCode"]}
+                  labelSeparator=" : "
+                  valueKey="subGroupId"
+                  searchKeys={["subGroupName", "subGroupCode"]}
+                  className={selectClassName}
+                />
+              </div>
             </div>
           </div>
         );
