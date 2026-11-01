@@ -162,7 +162,7 @@ export default function SaleBillForm({
       .then((res) => {
         const orders = (Array.isArray(res.data) ? res.data : []).map((o) => ({
           ...o,
-          displayLabel: o.orderTitle ? `${o.erpDocNumber} — ${o.orderTitle}` : o.erpDocNumber,
+          displayLabel: o.orderNo ? `${o.orderNo} | ${o.erpDocNumber}` : o.erpDocNumber,
         }));
         setSaleOrderOpts(orders);
       })
@@ -205,7 +205,12 @@ export default function SaleBillForm({
           url: `${API_ENDPOINTS.FINANCE.SALE_BILL.CERTIFIED_BILLS}?erpDocNumber=${encodeURIComponent(erpDocNumber)}&projectCode=${projectCode}`,
           method: "GET",
         });
-        setCertifiedBillOpts(Array.isArray(res.data) ? res.data : []);
+        setCertifiedBillOpts(
+          (Array.isArray(res.data) ? res.data : []).map((b) => ({
+            ...b,
+            displayLabel: b.erpNo ? `${b.billingNo} | ${b.erpNo}` : b.billingNo,
+          }))
+        );
       } catch {
         setCertifiedBillOpts([]);
       } finally {
@@ -673,7 +678,7 @@ export default function SaleBillForm({
           {/* ── Section 3: Sale Order ────────────────────────────────────────── */}
           <PMSection title="Sale Order:">
             <PMFormRow
-              label="ERP Doc No"
+              label="Sale Order No"
               required={!disabled}
               labelWidth="sm:w-[150px] sm:min-w-[150px]"
             >
@@ -686,7 +691,7 @@ export default function SaleBillForm({
                   placeholder="Select Drop Down List"
                   labelKey="displayLabel"
                   valueKey="erpDocNumber"
-                  searchKeys={["erpDocNumber", "orderTitle", "displayLabel"]}
+                  searchKeys={["orderNo", "erpDocNumber", "displayLabel"]}
                 />
                 {/* {errors.erpDocNumber && (
                   <p className="text-[11px] text-red-500 mt-0.5">
@@ -777,9 +782,9 @@ export default function SaleBillForm({
                           ? "Select order first"
                           : "Select Bill Abstract No."
                   }
-                  labelKey="billingNo"
+                  labelKey="displayLabel"
                   valueKey="id"
-                  searchKeys={["billingNo"]}
+                  searchKeys={["billingNo", "erpNo", "displayLabel"]}
                 />
                 {/* {errors.certifiedBillId && (
                   <p className="text-[11px] text-red-500 mt-0.5">
