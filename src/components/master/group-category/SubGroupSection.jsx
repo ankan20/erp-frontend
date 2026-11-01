@@ -47,7 +47,7 @@ function Field({ label, children, alignTop = false }) {
 
 // Sub Group tree: Group -> Sub Group -> Sub Group 1 -> Sub Group 2.
 // Category is chosen on the CC code, not here.
-export default function SubGroupSection() {
+export default function SubGroupSection({ refreshTrigger }) {
   const [data, setData] = useState([]);
   const [groups, setGroups] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -74,6 +74,9 @@ export default function SubGroupSection() {
 
   const { tableRef } = useColumnResize();
 
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
+
   const fetchList = async (groupId = filterGroupId) => {
     try {
       setLoading(true);
@@ -96,6 +99,14 @@ export default function SubGroupSection() {
     fetchList("");
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // re-fetch when parent signals a new entry was saved
+  useEffect(() => {
+    if (refreshTrigger > 0) fetchList(filterGroupId);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [refreshTrigger]);
+
+  useEffect(() => { setPage(1); }, [data]);
 
   // "Under" options = sub groups of the chosen group that can still have children
   useEffect(() => {
@@ -190,6 +201,7 @@ export default function SubGroupSection() {
 
   const handleFilter = (groupId) => {
     setFilterGroupId(groupId);
+    setPage(1);
     fetchList(groupId);
   };
 
@@ -239,14 +251,18 @@ export default function SubGroupSection() {
   const expandAll = () => setExpanded(new Set(parentIds));
   const collapseAll = () => setExpanded(new Set());
 
-  const renderRows = (parentKey) =>
-    (childrenByParent.get(parentKey) || []).map((item) => {
+  const rootItems = childrenByParent.get("root") || [];
+  const totalPages = Math.max(1, Math.ceil(rootItems.length / pageSize));
+  const pagedRoots = rootItems.slice((page - 1) * pageSize, page * pageSize);
+
+  const renderRows = (items) =>
+    items.map((item) => {
       const kids = childrenByParent.get(item.subGroupId) || [];
       const isOpen = expanded.has(item.subGroupId);
       return (
         <Fragment key={item.subGroupId}>
-          <tr className={item.level > 0 ? "bg-gray-50" : ""}>
-            <td className="border p-2" title={item.path}>
+          <tr className={`hover:bg-blue-50/30 transition-colors ${item.level > 0 ? "bg-gray-50/60" : ""}`}>
+            <td className="px-3 py-2" title={item.path}>
               <div className="flex items-center gap-1" style={{ paddingLeft: item.level > 0 ? (item.level - 1) * 22 + 8 : 0 }}>
                 {/* staircase line for child / grand child */}
                 {item.level > 0 && (
@@ -272,27 +288,31 @@ export default function SubGroupSection() {
                 {kids.length > 0 && <span className="text-xs text-gray-500">({kids.length})</span>}
               </div>
             </td>
-            <td className="border p-2">{item.levelLabel}</td>
-            <td className="border p-2">{item.subGroupCode}</td>
-            <td className="border p-2">{item.groupName}</td>
-            <td className="border p-2">{item.headUnder}</td>
-            <td className="border p-2">{item.status}</td>
-            <td className="border">
-              <div className="flex items-center justify-center gap-3 h-full">
+            <td className="px-3 py-2 text-gray-500 text-xs">{item.levelLabel}</td>
+            <td className="px-3 py-2 font-mono text-xs text-gray-500">{item.subGroupCode}</td>
+            <td className="px-3 py-2 text-gray-700">{item.groupName}</td>
+            <td className="px-3 py-2 text-gray-500">{item.headUnder}</td>
+            <td className="px-3 py-2">
+              <span className={`text-xs px-2 py-0.5 rounded-full ${item.status === "Active" ? "bg-green-100 text-green-700" : "bg-gray-100 text-gray-500"}`}>
+                {item.status}
+              </span>
+            </td>
+            <td className="px-3 py-2">
+              <div className="flex items-center justify-center gap-3">
                 {item.canHaveChildren && (
                   <Plus
-                    size={15}
-                    className="cursor-pointer text-blue-600"
-                    aria-label={`Add ${LEVEL_LABELS[item.level + 1]} under ${item.subGroupName}`}
+                    size={14}
+                    className="cursor-pointer text-blue-500 hover:text-blue-700 transition-colors"
+                    title={`Add ${LEVEL_LABELS[item.level + 1]} under ${item.subGroupName}`}
                     onClick={() => openForm(null, { groupId: String(item.groupId), parentId: String(item.subGroupId) })}
                   />
                 )}
-                <Pencil size={14} className="cursor-pointer" onClick={() => openForm(item)} />
-                <Trash2 size={14} className="cursor-pointer text-red-600" onClick={() => setDeleteTarget(item)} />
+                <Pencil size={13} className="cursor-pointer text-gray-400 hover:text-blue-600 transition-colors" onClick={() => openForm(item)} />
+                <Trash2 size={13} className="cursor-pointer text-gray-400 hover:text-red-600 transition-colors" onClick={() => setDeleteTarget(item)} />
               </div>
             </td>
           </tr>
-          {isOpen && renderRows(item.subGroupId)}
+          {isOpen && renderRows(childrenByParent.get(item.subGroupId) || [])}
         </Fragment>
       );
     });
@@ -363,26 +383,24 @@ export default function SubGroupSection() {
   return (
     <div className="w-full">
       {/* HEADER */}
-      <div className="flex flex-wrap justify-between items-center gap-3 mb-3">
-        <button onClick={() => openForm(null)} className="bg-[#8ed1fc] px-5 py-1 rounded-md cursor-pointer">
-          + Add Sub Group
-        </button>
-
-        <div className="flex items-center gap-3 text-sm">
-          <button type="button" onClick={expandAll} className="px-2 py-0.5 border rounded cursor-pointer">
+      <div className="flex flex-wrap items-center justify-end gap-3 mb-3">
+        <div className="flex items-center gap-2 text-sm">
+          <button type="button" onClick={expandAll} className="px-3 py-1 border border-gray-300 rounded text-gray-600 hover:bg-gray-50 transition-colors cursor-pointer">
             Expand all
           </button>
-          <button type="button" onClick={collapseAll} className="px-2 py-0.5 border rounded cursor-pointer">
+          <button type="button" onClick={collapseAll} className="px-3 py-1 border border-gray-300 rounded text-gray-600 hover:bg-gray-50 transition-colors cursor-pointer">
             Collapse all
           </button>
-          <span>Group</span>
-          <div className="w-[220px]">
+        </div>
+        <div className="flex items-center gap-2 text-sm">
+          <span className="text-gray-500 text-xs">Filter by Group</span>
+          <div className="w-[200px]">
             <SearchableSelect
               options={groups}
               value={filterGroupId}
               onChange={(v) => handleFilter(v ? String(v) : "")}
-              placeholder="All"
-              clearLabel="All"
+              placeholder="All groups"
+              clearLabel="All groups"
               labelKey="groupName"
               valueKey="groupId"
               searchKeys={["groupName", "headUnder"]}
@@ -392,34 +410,63 @@ export default function SubGroupSection() {
       </div>
 
       {/* TABLE */}
-      <div className="border max-h-100 overflow-y-auto">
+      <div className="border rounded overflow-hidden max-h-[460px] overflow-y-auto">
         <table ref={tableRef} className="w-full text-sm">
-          <thead className="bg-green-200 sticky top-0">
+          <thead className="bg-[#e8f4fd] text-[#1c3a5e] sticky top-0 z-10">
             <tr>
-              <th className="border p-2 text-left">Sub Group</th>
-              <th className="border p-2 text-left">Level</th>
-              <th className="border p-2 text-left">Code</th>
-              <th className="border p-2 text-left">Group</th>
-              <th className="border p-2 text-left">Head Under</th>
-              <th className="border p-2 text-left">Status</th>
-              <th className="border p-2 w-24">Action</th>
+              <th className="border-b border-[#c5dbed] px-3 py-2 text-left font-semibold">Sub Group</th>
+              <th className="border-b border-[#c5dbed] px-3 py-2 text-left font-semibold">Level</th>
+              <th className="border-b border-[#c5dbed] px-3 py-2 text-left font-semibold">Code</th>
+              <th className="border-b border-[#c5dbed] px-3 py-2 text-left font-semibold">Group</th>
+              <th className="border-b border-[#c5dbed] px-3 py-2 text-left font-semibold">Head Under</th>
+              <th className="border-b border-[#c5dbed] px-3 py-2 text-left font-semibold">Status</th>
+              <th className="border-b border-[#c5dbed] px-3 py-2 w-20 text-center font-semibold">Action</th>
             </tr>
           </thead>
-          <tbody>
+          <tbody className="divide-y divide-gray-100">
             {loading ? (
               <tr>
-                <td colSpan={7} className="text-center p-4">Loading...</td>
+                <td colSpan={7} className="text-center py-8 text-gray-400 text-xs">Loading…</td>
               </tr>
             ) : data.length === 0 ? (
               <tr>
-                <td colSpan={7} className="text-center p-4">No sub groups</td>
+                <td colSpan={7} className="text-center py-8 text-gray-400 text-xs">No sub groups yet</td>
               </tr>
             ) : (
-              renderRows("root")
+              renderRows(pagedRoots)
             )}
           </tbody>
         </table>
       </div>
+
+      {/* PAGINATION */}
+      {!loading && rootItems.length > 0 && (
+        <div className="flex flex-wrap items-center justify-between gap-2 mt-2 text-xs text-gray-500">
+          <div className="flex items-center gap-1.5">
+            <span>Rows per page:</span>
+            <select
+              value={pageSize}
+              onChange={(e) => { setPageSize(Number(e.target.value)); setPage(1); }}
+              className="border border-gray-300 rounded px-1.5 py-0.5 text-xs"
+            >
+              {[5, 10, 20, 50].map((n) => <option key={n} value={n}>{n}</option>)}
+            </select>
+          </div>
+          <div className="flex items-center gap-2">
+            <span>{Math.min((page - 1) * pageSize + 1, rootItems.length)}–{Math.min(page * pageSize, rootItems.length)} of {rootItems.length} top-level</span>
+            <button
+              onClick={() => setPage((p) => Math.max(1, p - 1))}
+              disabled={page === 1}
+              className="px-2 py-0.5 border border-gray-300 rounded hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
+            >‹</button>
+            <button
+              onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+              disabled={page === totalPages}
+              className="px-2 py-0.5 border border-gray-300 rounded hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
+            >›</button>
+          </div>
+        </div>
+      )}
 
       {/* MODAL */}
       <Dialog open={open} onOpenChange={(v) => !saving && setOpen(v)}>
