@@ -278,6 +278,11 @@ export default function JournalEntryPrintPage() {
   const totalAmount = Number(data.totalAmount || totalDebit);
   const entryModeLabel = MODE_LABELS[data.entryMode] || data.entryMode || "—";
 
+  const REF_BILL_LABEL_MAP = { sale_bill: "Sale Bill", purchase_bill: "Purchase Bill", receipt_billing: "Receipt Billing" };
+  const refBillDisplay = data.refBillDocNo
+    ? `${REF_BILL_LABEL_MAP[data.refBillType] || data.refBillType} — ${data.refBillDocNo}`
+    : null;
+
   return (
     <>
       <PrintTopBar
