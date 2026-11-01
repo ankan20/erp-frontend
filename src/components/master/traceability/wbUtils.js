@@ -1,6 +1,5 @@
 import {
   ClipboardList,
-  FileSearch,
   ShoppingCart,
   Wrench,
   PackageCheck,
@@ -24,7 +23,7 @@ export {
   isRejected,
 } from "@/components/resource/indent/item-trace/traceUtils";
 
-// Existing detail pages. Types without one (Enquiry, legacy billing) get no link.
+// Existing detail pages. Types without one (legacy billing) get no link.
 export function docRoute(docType, docId, extra = {}) {
   if (!docId) return null;
   switch (docType) {
@@ -59,7 +58,6 @@ export function docRoute(docType, docId, extra = {}) {
 
 export const DOC_ICON = {
   INDENT: ClipboardList,
-  ENQUIRY: FileSearch,
   ORDER: ShoppingCart,
   PW_ORDER: Wrench,
   GRN: PackageCheck,
@@ -77,7 +75,6 @@ export const DOC_ICON = {
 // One colour per lifecycle stage (lanes, chips, icons).
 export const STAGE_STYLE = {
   REQUISITION: { dot: "bg-[#144664]", chip: "bg-[#e8f2ff] text-[#144664] border-[#b5c7d8]" },
-  SOURCING: { dot: "bg-slate-500", chip: "bg-slate-50 text-slate-700 border-slate-200" },
   ORDERING: { dot: "bg-[#2f6f9f]", chip: "bg-sky-50 text-sky-800 border-sky-200" },
   RECEIPT: { dot: "bg-emerald-600", chip: "bg-emerald-50 text-emerald-800 border-emerald-200" },
   INVENTORY: { dot: "bg-orange-500", chip: "bg-orange-50 text-orange-800 border-orange-200" },

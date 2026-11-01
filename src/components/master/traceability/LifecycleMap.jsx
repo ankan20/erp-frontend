@@ -46,7 +46,10 @@ export default function LifecycleMap({ stages, nodes, selectedKey, related, onSe
 
   return (
     <div className="overflow-x-auto pb-1">
-      <div className="grid min-w-[1100px] grid-cols-8 gap-2">
+      <div
+        className="grid min-w-[1100px] gap-2"
+        style={{ gridTemplateColumns: `repeat(${stages.length || 1}, minmax(0, 1fr))` }}
+      >
         {stages.map((s, i) => {
           const list = byStage[s.key] || [];
           const style = STAGE_STYLE[s.key];

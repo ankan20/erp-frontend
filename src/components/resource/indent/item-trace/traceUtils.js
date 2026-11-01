@@ -2,7 +2,7 @@ import { formatAmount, formatQtyDisplay } from "@/helper/numberFormatter";
 import { getfmtDisplaydate } from "@/helper/getfmtDisplayDate";
 
 // Existing detail pages for each document type. Types without a detail
-// page (e.g. Enquiry) are intentionally absent → no "View" action.
+// page are intentionally absent → no "View" action.
 const DOC_ROUTES = {
   INDENT: (id) => `/resource-management/procurement/indent/${id}`,
   ORDER: (id) => `/resource-management/procurement/order/material-order/${id}`,

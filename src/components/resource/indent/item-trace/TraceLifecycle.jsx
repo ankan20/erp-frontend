@@ -5,7 +5,6 @@ import {
   ChevronDown,
   ChevronRight,
   ClipboardList,
-  FileSearch,
   ShoppingCart,
   PackageCheck,
   PackageMinus,
@@ -451,7 +450,7 @@ function OrderBranch({ order, unit, basis, defaultOpen }) {
 // ── main ──────────────────────────────────────────────────────────────────────
 
 export default function TraceLifecycle({ data }) {
-  const { source, enquiries, orders, allocationBasis, legacyBilling } = data;
+  const { source, orders, allocationBasis, legacyBilling } = data;
   const unit = source.unit;
   const firstLiveIdx = orders.findIndex((o) => !isRejected(o.workflowStatus));
 
@@ -468,27 +467,6 @@ export default function TraceLifecycle({ data }) {
           {source.location && <span className="text-[12px] text-gray-600">Use at {source.location}</span>}
           {source.note && <span className="truncate text-[12px] italic text-gray-500">{source.note}</span>}
         </div>
-      </Step>
-
-      <Step icon={FileSearch} tone="bg-slate-500" title="Enquiry" count={enquiries.length}>
-        {enquiries.length ? (
-          <div className="flex flex-wrap gap-2">
-            {enquiries.map((e) => (
-              <div key={e.enquiryItemId} className="flex flex-wrap items-center gap-2 rounded-md border border-[#d7dce3] bg-white px-2.5 py-1.5 text-[12px]">
-                <span className="font-semibold">{e.enquiryNo}</span>
-                <span className="text-gray-500">{fmtDate(e.enquiryDate)}</span>
-                <StatusBadge status={e.workflowStatus} />
-                <span>Qty {fmtQty(e.enquiryQty)} {unit}</span>
-                {e.enquiryTo && <span className="text-gray-500">to {e.enquiryTo}</span>}
-              </div>
-            ))}
-          </div>
-        ) : (
-          <EmptyNote>No enquiry raised for this indent item.</EmptyNote>
-        )}
-        <p className="mt-1 text-[11px] text-gray-500">
-          Enquiries are a side branch: orders reference the indent item directly, not the enquiry.
-        </p>
       </Step>
 
       <Step icon={ShoppingCart} tone="bg-[#2f6f9f]" title="Material Orders" count={orders.length} isLast>

@@ -18,7 +18,6 @@ const ALIASES = {
   "": ["all"],
   INDENT_ITEM: ["item", "items"],
   INDENT: ["indent", "ind"],
-  ENQUIRY: ["enquiry", "enq"],
   ORDER: ["order", "ord", "po", "mo"],
   PW_ORDER: ["service", "so", "wo"],
   GRN: ["grn"],
@@ -210,11 +209,14 @@ export default function WorkbenchSearch({ docTypes = [], projectCode, onPick }) 
   const recentShown = useMemo(() => {
     if (showTypePicker) return [];
     const t = term.toLowerCase();
+    // only types the Workbench still traces (older saved entries may hold removed types)
+    const known = new Set(typeOptions.map((o) => o.value).filter(Boolean));
     return recent
+      .filter((r) => known.has(r.docType))
       .filter((r) => !type || r.docType === type)
       .filter((r) => !t || [r.docNo, r.itemName, r.itemCode].some((v) => String(v || "").toLowerCase().includes(t)))
       .slice(0, term ? 3 : 5);
-  }, [recent, type, term, showTypePicker]);
+  }, [recent, type, term, showTypePicker, typeOptions]);
 
   const grouped = useMemo(() => {
     const g = new Map();
