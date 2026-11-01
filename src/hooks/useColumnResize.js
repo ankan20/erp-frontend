@@ -21,6 +21,10 @@ const MIN_COL_PX = 40;
  *  - Tables with a CSS min-width (e.g. min-w-[1000px]): once the user resizes, the
  *    dragged widths are authoritative, so shrinking a column no longer spreads the
  *    freed space across every other column
+ *
+ * Optional per-column attributes on a <th> (no effect when absent):
+ *  - data-col-resize-last="true"  give the LAST column a handle too (normally it has none)
+ *  - data-col-min="108"           minimum width in px for that column (default 40)
  */
 export function useColumnResize() {
   const cleanupRef = useRef(null);
@@ -156,13 +160,14 @@ export function useColumnResize() {
     let startColWidth   = 0;
     let startTableWidth = 0;
     let activeCol       = null;
+    let activeMin       = MIN_COL_PX;
     let indicator       = null;
 
     function onMouseMove(e) {
       if (!dragging || !activeCol) return;
       if (e.buttons === 0) { onMouseUp(); return; }
       const delta       = e.clientX - startX;
-      const newWidth    = Math.max(MIN_COL_PX, startColWidth + delta);
+      const newWidth    = Math.max(activeMin, startColWidth + delta);
       const actualDelta = newWidth - startColWidth;
       activeCol.style.width = newWidth + "px";
       table.style.width     = (startTableWidth + actualDelta) + "px";
@@ -215,6 +220,7 @@ export function useColumnResize() {
         startColWidth   = th.getBoundingClientRect().width;
         startTableWidth = table.getBoundingClientRect().width;
         activeCol       = col;
+        activeMin       = Math.max(MIN_COL_PX, Number(th.dataset.colMin) || 0);
 
         if (!col.style.width) col.style.width = startColWidth + "px";
 
@@ -255,7 +261,8 @@ export function useColumnResize() {
 
       const leaves = getLeafHeaders();
       leaves.forEach(({ th, colIdx }, i) => {
-        if (i === leaves.length - 1) return; // last column gets no handle
+        // last column gets no handle, unless the table opts in for it
+        if (i === leaves.length - 1 && th.dataset.colResizeLast !== "true") return;
         handleCleanups.push(attachHandle(th, colIdx));
       });
     }
