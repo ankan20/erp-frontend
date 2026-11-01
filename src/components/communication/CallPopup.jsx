@@ -4,12 +4,13 @@ import { useState, useRef, useEffect, useCallback } from "react";
 import {
   Phone, PhoneOff, PhoneCall, Mic, MicOff, Video, VideoOff,
   Minimize2, Maximize2, AlertTriangle, MonitorUp, MonitorX, Expand, Shrink, Users,
-  Navigation, Eye, X,
+  Navigation, Eye, X, UserPlus,
 } from "lucide-react";
+import { PeoplePicker } from "@/components/communication/shared";
 import { useComm } from "@/context/CommContext";
 import { useFollowMe } from "./useFollowMe";
 import {
-  answerCall, leaveCall, sendSignal, pollSignals, getTurnCredentials, getCallDetail,
+  answerCall, leaveCall, inviteToCall, sendSignal, pollSignals, getTurnCredentials, getCallDetail,
 } from "@/lib/commApi";
 import { getCookie } from "@/lib/cookies";
 import { getLocalStorage } from "@/lib/localStorage";
@@ -608,6 +609,7 @@ function ActiveCallWindow({ call }) {
   const [minimised, setMinimised] = useState(false);
   const [expanded,  setExpanded]  = useState(false);
   const [elapsed,   setElapsed]   = useState(0);
+  const [adding,    setAdding]    = useState(false);
   const timerRef    = useRef(null);
   const isInitiator = call.isInitiator !== false;
   const isVideo     = call.callType === "video";
@@ -857,11 +859,33 @@ function ActiveCallWindow({ call }) {
                   {sharing ? <MonitorX size={16} /> : <MonitorUp size={16} />}
                 </button>
               )}
+              <button onClick={() => setAdding(a => !a)} title="Add people"
+                className={`${btn} ${adding ? "bg-indigo-600" : "bg-[#2d3d52] hover:bg-[#3a4f67]"}`}>
+                <UserPlus size={16} />
+              </button>
               <button onClick={() => finish(true)} title="Leave call"
                 className="w-12 h-12 rounded-full bg-red-500 hover:bg-red-600 flex items-center justify-center transition">
                 <PhoneOff size={18} />
               </button>
             </div>
+            {adding && (
+              <div className="h-[340px] text-gray-800 border-t border-[#2d3d52]">
+                <PeoplePicker
+                  title="Add people to call"
+                  icon={<UserPlus size={14} className="text-indigo-600" />}
+                  ctaIcon={<PhoneCall size={15} />}
+                  ctaLabel={n => `Ring ${n || ""}`}
+                  excludeIds={[myId, ...peerList.map(p => p.id)]}
+                  onBack={() => setAdding(false)}
+                  onSubmit={async (people) => {
+                    const r = await inviteToCall(call.callId, people.map(u => u.userId));
+                    if (r?.error) throw new Error(r.error);
+                    setAdding(false);
+                    toast(`Ringing ${people.map(u => u.userName).join(", ")}`);
+                  }}
+                />
+              </div>
+            )}
           </>
         )}
       </div>

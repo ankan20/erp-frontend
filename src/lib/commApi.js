@@ -5,6 +5,10 @@ const C = "/comm";
 // ─── Conversations ─────────────────────────────────────────────────────────
 export const getConversations      = ()      => apiRequest({ url: `${C}/conversations` });
 export const startDirect           = (userId) => apiRequest({ url: `${C}/conversations/direct`, method: "POST", data: { userId } });
+export const createGroup           = (name, memberIds) => apiRequest({ url: `${C}/conversations/group`, method: "POST", data: { name, memberIds } });
+export const inviteToConv          = (id, userIds, name) => apiRequest({ url: `${C}/conversations/${id}/invite`, method: "POST", data: { userIds, name } });
+export const getInvites            = ()      => apiRequest({ url: `${C}/invites` });
+export const respondInvite         = (id, accept) => apiRequest({ url: `${C}/invites/${id}/${accept ? "accept" : "decline"}`, method: "POST" });
 export const getConvDetail         = (id)    => apiRequest({ url: `${C}/conversations/${id}` });
 
 // ─── Messages ──────────────────────────────────────────────────────────────
@@ -62,6 +66,7 @@ export const markAllNotifsRead      = () => apiRequest({ url: `${C}/notification
 
 // ─── Calls ─────────────────────────────────────────────────────────────────
 export const startCall       = (participantIds, callType = "voice") => apiRequest({ url: `${C}/calls`, method: "POST", data: { participantIds, callType } });
+export const inviteToCall    = (id, userIds) => apiRequest({ url: `${C}/calls/${id}/invite`, method: "POST", data: { userIds } });
 export const answerCall      = (id) => apiRequest({ url: `${C}/calls/${id}/answer`, method: "POST" });
 export const endCall         = (id) => apiRequest({ url: `${C}/calls/${id}/end`, method: "POST" });
 // Leave/decline without ending it for the others (call ends when nobody is left)

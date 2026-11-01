@@ -4,11 +4,11 @@ import { useState, useEffect, useRef } from "react";
 import { usePathname } from "next/navigation";
 import {
   X, ChevronLeft, Send, Search, MessageCircle,
-  Phone, Zap, Loader2, PhoneCall, Video, Users, CornerUpLeft, Forward,
+  Phone, Zap, Loader2, PhoneCall, Video, Users, CornerUpLeft, Forward, UserPlus, Check,
 } from "lucide-react";
 import {
   AttachButton, AttachmentPreview, MessageAttachment, ShareDialog, SmartReplies, validateChatFile,
-  PendingApprovalPicker, RecordLink, RecordStatusTag,
+  PendingApprovalPicker, RecordLink, RecordStatusTag, PeoplePicker,
 } from "@/components/communication/shared";
 import { detectModuleFromPath } from "@/lib/moduleRegistry";
 import { useComm } from "@/context/CommContext";
@@ -27,7 +27,47 @@ import {
   markAllPingsRead,
   markPingRead,
   sendApprovalPing,
+  createGroup,
+  inviteToConv,
+  getInvites,
+  respondInvite,
+  getConvDetail,
 } from "@/lib/commApi";
+
+// ── Pending chat/group invites (accept → open chat with full history) ────────
+function PendingInvites({ onOpen }) {
+  const { refresh } = useComm();
+  const [invites, setInvites] = useState([]);
+  const load = () => getInvites().then(r => setInvites(Array.isArray(r) ? r : r?.data || [])).catch(() => {});
+  useEffect(() => { load(); const t = setInterval(load, 8000); return () => clearInterval(t); }, []);
+  const respond = async (inv, accept) => {
+    setInvites(p => p.filter(x => x.conversationId !== inv.conversationId));
+    try { await respondInvite(inv.conversationId, accept); } catch {}
+    refresh();
+    if (accept) onOpen({ convId: inv.conversationId, name: inv.name });
+  };
+  if (!invites.length) return null;
+  return (
+    <div className="px-3 pt-2 pb-1 border-b border-gray-100 bg-amber-50">
+      <p className="text-[10px] font-semibold text-amber-600 uppercase tracking-wide mb-1">Invites</p>
+      {invites.map(inv => (
+        <div key={inv.conversationId} className="flex items-center gap-2 py-1">
+          <Users size={14} className="text-amber-600 shrink-0" />
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-medium truncate">{inv.name}</p>
+            <p className="text-[10px] text-gray-500 truncate">
+              {inv.invitedBy ? `from ${inv.invitedBy} · ` : ""}{inv.memberCount} members
+            </p>
+          </div>
+          <button title="Accept" onClick={() => respond(inv, true)}
+            className="p-1 rounded-full bg-emerald-500 text-white hover:bg-emerald-600"><Check size={13} /></button>
+          <button title="Decline" onClick={() => respond(inv, false)}
+            className="p-1 rounded-full bg-gray-200 text-gray-600 hover:bg-gray-300"><X size={13} /></button>
+        </div>
+      ))}
+    </div>
+  );
+}
 import { sounds, setOpenConversation } from "@/lib/commSounds";
 
 const PING_TYPES = [
@@ -99,7 +139,7 @@ function ReceivedPings() {
 }
 
 // ── Shared user directory list ───────────────────────────────────────────────
-function UserDirectory({ mode, onSelect }) {
+function UserDirectory({ mode, onSelect, onNewGroup }) {
   const { conversations } = useComm();
   const recent = [...(Array.isArray(conversations) ? conversations : [])]
     .sort((a, b) => (b.unreadCount || 0) - (a.unreadCount || 0))
@@ -143,6 +183,15 @@ function UserDirectory({ mode, onSelect }) {
       </div>
 
       {mode === "ping" && <ReceivedPings />}
+
+      {mode === "chat" && <PendingInvites onOpen={onSelect} />}
+      {mode === "chat" && onNewGroup && (
+        <button onClick={onNewGroup}
+          className="flex items-center gap-2 px-4 py-2 border-b border-gray-100 hover:bg-indigo-50 text-left">
+          <span className="w-7 h-7 rounded-full bg-indigo-600 flex items-center justify-center shrink-0"><Users size={13} className="text-white" /></span>
+          <span className="text-sm font-semibold text-indigo-700">New group chat</span>
+        </button>
+      )}
 
       {/* Recent conversations (chat mode only) — unread first */}
       {mode === "chat" && recent.length > 0 && (
@@ -247,6 +296,10 @@ function UserDirectory({ mode, onSelect }) {
 function ChatWindow({ convId: initialConvId, userId, userName, onBack }) {
   const { myId, refresh } = useComm();
   const [convId,   setConvId]   = useState(initialConvId || null);
+  const [detail,   setDetail]   = useState(null);   // { type, name, members }
+  const [adding,   setAdding]   = useState(false);
+  const [notice,   setNotice]   = useState(null);
+  const loadDetail = (cid) => getConvDetail(cid).then(d => d?.conversationId && setDetail(d)).catch(() => {});
   const [messages, setMessages] = useState([]);
   const [input,    setInput]    = useState("");
   const [loading,  setLoading]  = useState(true);
@@ -267,6 +320,7 @@ function ChatWindow({ convId: initialConvId, userId, userName, onBack }) {
         }
         if (!cid) { setLoading(false); return; }
         setConvId(cid);
+        loadDetail(cid);
         const r = await getMessages(cid);
         const msgs = r?.messages || [];
         if (!cancelled) {
@@ -388,9 +442,36 @@ function ChatWindow({ convId: initialConvId, userId, userName, onBack }) {
   const lastMsg = messages[messages.length - 1];
   const showSuggestions = lastMsg && !lastMsg.isDeleted && !(lastMsg.isMine || lastMsg.senderId === me)
     && !input && !pendingFile;
+  const isGroup = detail?.type === "group";
+  const title   = isGroup ? detail.name : userName;
+
+  const invite = async (people, name) => {
+    const r = await inviteToConv(convId, people.map(u => u.userId), name || undefined);
+    if (r?.error) throw new Error(r.error);
+    setAdding(false);
+    setNotice(`Invite sent to ${people.map(u => u.userName).join(", ")}`);
+    setTimeout(() => setNotice(null), 4000);
+    loadDetail(convId);
+    refresh();
+  };
 
   return (
-    <div className="flex flex-col h-full">
+    <div className="relative flex flex-col h-full">
+      {adding && (
+        <div className="absolute inset-0 z-20">
+          <PeoplePicker
+            title={isGroup ? "Invite to group" : "Add people to chat"}
+            icon={<UserPlus size={14} className="text-indigo-600" />}
+            ctaIcon={<UserPlus size={15} />}
+            ctaLabel={n => `Send invite${n > 1 ? "s" : ""} (${n})`}
+            askName={!isGroup}
+            namePlaceholder="Group name (optional)…"
+            excludeIds={(detail?.members || []).map(m => m.userId)}
+            onBack={() => setAdding(false)}
+            onSubmit={invite}
+          />
+        </div>
+      )}
       <div className="flex items-center gap-2 px-3 py-2.5 border-b border-gray-200 bg-[#f5f8ff]">
         <button onClick={onBack} className="p-1 rounded hover:bg-gray-200 transition">
           <ChevronLeft size={16} />
@@ -398,8 +479,18 @@ function ChatWindow({ convId: initialConvId, userId, userName, onBack }) {
         <div className="w-7 h-7 rounded-full bg-[#003b8e] flex items-center justify-center text-[11px] font-bold text-white shrink-0">
           {userName?.[0]?.toUpperCase() || "?"}
         </div>
-        <span className="text-sm font-semibold flex-1 truncate">{userName || "Chat"}</span>
+        <div className="flex-1 min-w-0">
+          <p className="text-sm font-semibold truncate">{title || "Chat"}</p>
+          {isGroup && <p className="text-[10px] text-gray-400 truncate">
+            {(detail.members || []).map(m => m.userName).join(", ")}
+          </p>}
+        </div>
+        {convId && (detail?.type === "direct" || isGroup) && (
+          <button title="Add people" onClick={() => setAdding(true)}
+            className="p-1.5 rounded-full text-[#003b8e] hover:bg-gray-200"><UserPlus size={15} /></button>
+        )}
       </div>
+      {notice && <p className="text-[11px] text-center bg-emerald-50 text-emerald-700 py-1">{notice}</p>}
 
       <div ref={listRef} onScroll={onListScroll} className="flex-1 overflow-y-auto px-3 py-2 space-y-2 bg-[#f9fafb]">
         {loading ? (
@@ -426,6 +517,9 @@ function ChatWindow({ convId: initialConvId, userId, userName, onBack }) {
                 {mine && actions}
                 <div className={`max-w-[78%] rounded-2xl px-2.5 py-1.5 text-sm shadow-sm min-w-0
                   ${mine ? "bg-[#003b8e] text-white rounded-br-sm" : "bg-white text-gray-800 border border-gray-200 rounded-bl-sm"}`}>
+                  {isGroup && !mine && msg.senderName && (
+                    <p className="text-[10px] font-semibold text-indigo-600 mb-0.5">{msg.senderName}</p>
+                  )}
                   {msg.replyTo && <ReplyQuote reply={msg.replyTo} mine={mine} />}
                   {msg.isDeleted ? <em className="text-xs opacity-60">Message deleted</em> : (
                     <>
@@ -712,118 +806,43 @@ function CallConfirm({ target, onBack }) {
 // ── Group meet creator ────────────────────────────────────────────────────────
 function GroupMeetPanel({ onBack }) {
   const { answerIncomingCall, closePicker } = useComm();
-  const [title,    setTitle]    = useState("");
-  const [selected, setSelected] = useState([]);
-  const [users,    setUsers]    = useState([]);
-  const [loading,  setLoading]  = useState(false);
-  const [creating, setCreating] = useState(false);
-  const [search,   setSearch]   = useState("");
-
-  useEffect(() => {
-    setLoading(true);
-    getDirectory().then(r => setUsers(r?.data || (Array.isArray(r) ? r : [])))
-      .catch(() => {}).finally(() => setLoading(false));
-  }, []);
-
-  const toggle = (u) => setSelected(prev =>
-    prev.find(x => x.userId === u.userId) ? prev.filter(x => x.userId !== u.userId) : [...prev, u]
-  );
-
-  const create = async () => {
-    if (!selected.length) return;
-    setCreating(true);
-    try {
-      const r = await startCall(selected.map(u => u.userId), "video");
-      if (r?.error) throw new Error(r.error);
-      answerIncomingCall({
-        callId:        r?.callId,
-        callType:      "video",
-        roomCode:      r?.roomCode,
-        initiatorName: "Group Meet",
-        participants:  selected,
-      });
-      closePicker();
-    } catch {
-      setCreating(false);
-    }
-  };
-
-  const filtered = users.filter(u =>
-    !search || u.userName?.toLowerCase().includes(search.toLowerCase())
-  );
-
   return (
-    <div className="flex flex-col h-full">
-      <div className="flex items-center gap-2 px-3 py-2.5 border-b border-gray-200 bg-indigo-50">
-        <button onClick={onBack} className="p-1 rounded hover:bg-gray-200 transition">
-          <ChevronLeft size={16} />
-        </button>
-        <Users size={14} className="text-indigo-600" />
-        <span className="text-sm font-semibold flex-1">New Group Meet</span>
-        {selected.length > 0 && (
-          <span className="text-xs bg-indigo-600 text-white rounded-full px-2 py-0.5">
-            {selected.length} selected
-          </span>
-        )}
-      </div>
+    <PeoplePicker
+      title="New Group Meet"
+      icon={<Users size={14} className="text-indigo-600" />}
+      ctaIcon={<Video size={15} />}
+      ctaLabel={n => `Start Meet with ${n || "..."} people`}
+      onBack={onBack}
+      onSubmit={async (people) => {
+        const r = await startCall(people.map(u => u.userId), "video");
+        if (r?.error) throw new Error(r.error);
+        answerIncomingCall({
+          callId: r?.callId, callType: "video", roomCode: r?.roomCode,
+          initiatorName: "Group Meet", participants: people,
+        });
+        closePicker();
+      }}
+    />
+  );
+}
 
-      <div className="px-3 py-2 border-b border-gray-100">
-        <input
-          value={title}
-          onChange={e => setTitle(e.target.value)}
-          placeholder="Meeting title (optional)…"
-          className="w-full text-sm border border-gray-200 rounded-lg px-3 py-1.5 outline-none focus:border-indigo-400 mb-2"
-        />
-        <div className="flex items-center gap-2 bg-gray-100 rounded-full px-3 py-1.5">
-          <Search size={13} className="text-gray-400" />
-          <input value={search} onChange={e => setSearch(e.target.value)}
-            placeholder="Search participants…"
-            className="flex-1 bg-transparent text-sm outline-none" />
-        </div>
-      </div>
-
-      <div className="flex-1 overflow-y-auto">
-        {loading ? (
-          <div className="flex justify-center py-8"><Loader2 size={18} className="animate-spin text-gray-400" /></div>
-        ) : filtered.map(u => {
-          const checked = !!selected.find(x => x.userId === u.userId);
-          return (
-            <button key={u.userId} onClick={() => toggle(u)}
-              className={`w-full flex items-center gap-3 px-4 py-2.5 transition text-left
-                ${checked ? "bg-indigo-50" : "hover:bg-gray-50"}`}>
-              <div className={`w-4 h-4 rounded border-2 flex items-center justify-center shrink-0
-                ${checked ? "bg-indigo-600 border-indigo-600" : "border-gray-300"}`}>
-                {checked && <span className="text-white text-[10px] font-bold">✓</span>}
-              </div>
-              <div className="w-8 h-8 rounded-full bg-[#d6e6f2] flex items-center justify-center
-                text-[12px] font-bold text-[#003b8e] shrink-0">
-                {u.userName?.[0]?.toUpperCase()}
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium truncate">{u.userName}</p>
-                <p className="text-[11px] text-gray-400">{u.empCode || ""}</p>
-              </div>
-              <span className={`w-2 h-2 rounded-full shrink-0 ${
-                u.status === "online" ? "bg-emerald-500" : u.status === "in_call" ? "bg-amber-400" : "bg-gray-300"
-              }`} />
-            </button>
-          );
-        })}
-      </div>
-
-      <div className="px-3 py-3 border-t border-gray-200">
-        <button
-          onClick={create}
-          disabled={creating || !selected.length}
-          className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl
-            bg-indigo-600 text-white text-sm font-semibold hover:bg-indigo-700
-            transition disabled:opacity-40"
-        >
-          {creating ? <Loader2 size={15} className="animate-spin" /> : <Video size={15} />}
-          Start Meet with {selected.length || "..."} people
-        </button>
-      </div>
-    </div>
+function NewGroupPanel({ onBack, onCreated }) {
+  const { refresh } = useComm();
+  return (
+    <PeoplePicker
+      title="New group chat"
+      icon={<Users size={14} className="text-indigo-600" />}
+      ctaIcon={<UserPlus size={15} />}
+      ctaLabel={n => `Create & invite ${n || ""}`}
+      askName requireName
+      onBack={onBack}
+      onSubmit={async (people, name) => {
+        const r = await createGroup(name, people.map(u => u.userId));
+        if (!r?.conversationId) throw new Error(r?.error || "Could not create group");
+        refresh();
+        onCreated({ convId: r.conversationId, name });
+      }}
+    />
   );
 }
 
@@ -921,7 +940,7 @@ export default function ChatFloat() {
                 </div>
               </button>
             )}
-            <UserDirectory mode={pickerMode} onSelect={onSelectUser} />
+            <UserDirectory mode={pickerMode} onSelect={onSelectUser} onNewGroup={() => setScreen("newgroup")} />
           </>
         )}
         {screen === "chat" && selected && (
@@ -942,6 +961,12 @@ export default function ChatFloat() {
           <CallConfirm
             target={selected}
             onBack={() => { setScreen("list"); setSelected(null); }}
+          />
+        )}
+        {screen === "newgroup" && (
+          <NewGroupPanel
+            onBack={() => setScreen("list")}
+            onCreated={(info) => { setSelected(info); setScreen("chat"); }}
           />
         )}
         {screen === "group" && (
