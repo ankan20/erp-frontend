@@ -40,6 +40,7 @@ export default function Page() {
             ccName: d.ccName,
             groupId: String(d.ccGroupId),
             categoryId: String(d.ccCategoryId),
+            subGroupId: d.ccSubGroupId ? String(d.ccSubGroupId) : "",
           };
           setData(respdata);
         } catch {

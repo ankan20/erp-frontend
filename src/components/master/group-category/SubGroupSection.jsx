@@ -14,7 +14,6 @@ const EMPTY_FORM = {
   subGroupName: "",
   subGroupCode: "",
   groupId: "",
-  categoryId: "",
   status: "Active",
 };
 
@@ -22,11 +21,10 @@ function Label({ children }) {
   return <div className="px-3 py-1 bg-[#d6e6f2] border w-[150px] shrink-0">{children}</div>;
 }
 
-// Sub Group: many per Group, optionally tied to one Category.
+// Sub Group: many per Group. Category is chosen on the CC code, not here.
 export default function SubGroupSection() {
   const [data, setData] = useState([]);
   const [groups, setGroups] = useState([]);
-  const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(true);
   const [filterGroupId, setFilterGroupId] = useState("");
 
@@ -54,14 +52,10 @@ export default function SubGroupSection() {
 
   const fetchDropdowns = async () => {
     try {
-      const [g, c] = await Promise.all([
-        apiRequest({ url: API_ENDPOINTS.MASTER.GET_ALL_GROUP, method: "GET" }),
-        apiRequest({ url: API_ENDPOINTS.MASTER.GET_ALL_CATEGORY, method: "GET" }),
-      ]);
+      const g = await apiRequest({ url: API_ENDPOINTS.MASTER.GET_ALL_GROUP, method: "GET" });
       setGroups(g?.data || []);
-      setCategories(c?.data || []);
     } catch {
-      toast.error("Failed to load groups / categories");
+      toast.error("Failed to load groups");
     }
   };
 
@@ -87,7 +81,6 @@ export default function SubGroupSection() {
       subGroupName: item.subGroupName || "",
       subGroupCode: item.subGroupCode || "",
       groupId: item.groupId ? String(item.groupId) : "",
-      categoryId: item.categoryId || "",
       status: item.status || "Active",
     });
     setOpen(true);
@@ -122,7 +115,6 @@ export default function SubGroupSection() {
       subGroupName: form.subGroupName.trim(),
       subGroupCode: form.subGroupCode.trim().toUpperCase(),
       groupId: Number(form.groupId),
-      categoryId: form.categoryId || null,
       ...(editingItem && { status: form.status }),
     };
 
@@ -186,7 +178,6 @@ export default function SubGroupSection() {
               <th className="border p-2 text-left">Code</th>
               <th className="border p-2 text-left">Group</th>
               <th className="border p-2 text-left">Head Under</th>
-              <th className="border p-2 text-left">Category</th>
               <th className="border p-2 text-left">Status</th>
               <th className="border p-2 w-20">Action</th>
             </tr>
@@ -194,11 +185,11 @@ export default function SubGroupSection() {
           <tbody>
             {loading ? (
               <tr>
-                <td colSpan={7} className="text-center p-4">Loading...</td>
+                <td colSpan={6} className="text-center p-4">Loading...</td>
               </tr>
             ) : data.length === 0 ? (
               <tr>
-                <td colSpan={7} className="text-center p-4">No sub groups</td>
+                <td colSpan={6} className="text-center p-4">No sub groups</td>
               </tr>
             ) : (
               data.map((item) => (
@@ -207,7 +198,6 @@ export default function SubGroupSection() {
                   <td className="border p-2">{item.subGroupCode}</td>
                   <td className="border p-2">{item.groupName}</td>
                   <td className="border p-2">{item.headUnder}</td>
-                  <td className="border p-2">{item.categoryName || "Any"}</td>
                   <td className="border p-2">{item.status}</td>
                   <td className="border">
                     <div className="flex items-center justify-center gap-3 h-full">
@@ -268,22 +258,6 @@ export default function SubGroupSection() {
               />
             </div>
 
-            <div className="flex gap-2 items-center">
-              <Label>Category</Label>
-              <select
-                value={form.categoryId}
-                onChange={setField("categoryId")}
-                disabled={saving}
-                className="border w-full p-2"
-              >
-                <option value="">Any (no restriction)</option>
-                {categories.map((c) => (
-                  <option key={c.categoryCode} value={c.categoryCode}>
-                    {c.categoryName}
-                  </option>
-                ))}
-              </select>
-            </div>
 
             {editingItem && (
               <div className="flex gap-2 items-center">

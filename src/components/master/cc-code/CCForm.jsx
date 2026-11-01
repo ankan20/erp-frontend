@@ -19,6 +19,7 @@ const schema = z.object({
   ccName: z.string().min(1, "Required"),
   groupId: z.string().min(1, "Required"),
   categoryId: z.string().min(1, "Required"),
+  subGroupId: z.string().optional(),
 });
 
 export default function CCForm({
@@ -29,6 +30,8 @@ export default function CCForm({
 }) {
   const [groups, setGroups] = useState([]);
   const [categories, setCategories] = useState([]);
+  const [subGroups, setSubGroups] = useState([]);
+  const [subGroupLoading, setSubGroupLoading] = useState(false);
   const [loading, setLoading] = useState(true);
   const [isEditing, setIsEditing] = useState(mode === "create");
 
@@ -38,6 +41,7 @@ export default function CCForm({
     reset,
     setValue,
     getValues,
+    watch,
     formState: { errors, isSubmitting },
   } = useForm({
     resolver: zodResolver(schema),
@@ -46,8 +50,50 @@ export default function CCForm({
       ccName: "",
       groupId: "",
       categoryId: "",
+      subGroupId: "",
     },
   });
+
+  const selectedGroupId = watch("groupId");
+
+  // Load the sub groups of one group (Active only)
+  const loadSubGroups = async (groupId) => {
+    if (!groupId) {
+      setSubGroups([]);
+      return;
+    }
+    try {
+      setSubGroupLoading(true);
+      const res = await apiRequest({
+        url: API_ENDPOINTS.MASTER.GET_ALL_SUB_GROUP,
+        params: { groupId, status: "Active" },
+      });
+      setSubGroups(res?.data || []);
+    } catch {
+      setSubGroups([]);
+      toast.error("Failed to load sub groups");
+    } finally {
+      setSubGroupLoading(false);
+    }
+  };
+
+  // When group changes: refresh sub group list
+  useEffect(() => {
+    loadSubGroups(selectedGroupId);
+  }, [selectedGroupId]);
+
+  // Options arrive after the saved value is set (edit page) -> re-apply it
+  useEffect(() => {
+    const current = getValues("subGroupId");
+    if (current) setValue("subGroupId", current);
+  }, [subGroups]);
+
+  // Group changed by user -> clear the old sub group
+  const groupField = register("groupId");
+  const onGroupChange = (e) => {
+    groupField.onChange(e);
+    setValue("subGroupId", "");
+  };
   const isViewMode = disabled;
   const fieldDisabled = isViewMode || !isEditing || isSubmitting;
 
@@ -115,6 +161,7 @@ export default function CCForm({
         ccName: values.ccName,
         groupId: Number(values.groupId),
         categoryId: values.categoryId,
+        subGroupId: values.subGroupId ? Number(values.subGroupId) : null,
       };
 
       if (mode === "create") {
@@ -147,6 +194,7 @@ export default function CCForm({
           ccName: d.ccName,
           groupId: String(d.ccGroupId),
           categoryId: String(d.ccCategoryId),
+          subGroupId: d.ccSubGroupId ? String(d.ccSubGroupId) : "",
         });
 
         setIsEditing(false);
@@ -164,6 +212,7 @@ export default function CCForm({
       ccName: data.ccName,
       groupId: String(data.ccGroupId || data.groupId),
       categoryId: String(data.ccCategoryId || data.categoryId),
+      subGroupId: data.subGroupId || "",
     });
 
     // exit edit mode
@@ -238,7 +287,8 @@ export default function CCForm({
           </div>
 
           <select
-            {...register("groupId")}
+            {...groupField}
+            onChange={onGroupChange}
             disabled={fieldDisabled}
             className={`flex-1 ${getInputClass(errors.groupId, fieldDisabled)}  disabled:cursor-not-allowed rounded-md`}
           >
@@ -246,6 +296,36 @@ export default function CCForm({
             {groups.map((g) => (
               <option key={g.groupId} value={g.groupId}>
                 {g.groupName}
+              </option>
+            ))}
+          </select>
+        </div>
+      </div>
+
+      {/* SUB GROUP (list depends on selected Group) */}
+      <div className="flex flex-col">
+        <div className="flex gap-2">
+          <div className="w-[220px] bg-[#d6e6f2] px-3 py-1 border rounded-md">
+            Sub Group
+          </div>
+
+          <select
+            {...register("subGroupId")}
+            disabled={fieldDisabled || !selectedGroupId || subGroupLoading}
+            className={`flex-1 ${getInputClass(errors.subGroupId, fieldDisabled)}  disabled:cursor-not-allowed rounded-md`}
+          >
+            <option value="">
+              {!selectedGroupId
+                ? "Select Group first"
+                : subGroupLoading
+                ? "Loading..."
+                : subGroups.length === 0
+                ? "No sub group for this group"
+                : "Select"}
+            </option>
+            {subGroups.map((sg) => (
+              <option key={sg.subGroupId} value={String(sg.subGroupId)}>
+                {sg.subGroupName}
               </option>
             ))}
           </select>
