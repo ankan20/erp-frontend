@@ -545,6 +545,7 @@ export const API_ENDPOINTS = {
       INVOICE_LOOKUP:     "/finance/sale-receipt-billing/invoice-lookup",      // GET ?invoiceNo&projectCode
       CREATE:             "/finance/sale-receipt-billing/create",              // POST JSON (needs receiptId)
       LIST:               "/finance/sale-receipt-billing/list",                // GET ?receiptId&projectCode&workflowStatus
+      LIST_BY_PROJECT:    "/finance/sale-receipt-billing/list-by-project",     // GET ?projectCode&workflowStatus&search
       GET_BY_ID:          "/finance/sale-receipt-billing/",                    // /:id GET
       EDIT:               "/finance/sale-receipt-billing/edit/",               // /:id PUT JSON (Draft/Reback only)
       SUBMIT:             "/finance/sale-receipt-billing/submit/",             // /:id POST
