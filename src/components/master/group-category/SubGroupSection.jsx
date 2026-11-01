@@ -34,8 +34,15 @@ const EMPTY_FORM = {
 // Typed code: trim, spaces -> "_", CAPITALS
 const normalizeCode = (v) => (v || "").replace(/\s+/g, "_").toUpperCase();
 
-function Label({ children }) {
-  return <div className="px-3 py-1 bg-[#d6e6f2] border w-[150px] shrink-0">{children}</div>;
+// One form row: label left on wide screens, label on top on small screens.
+// min-w-0 lets long values shrink instead of overflowing the popup.
+function Field({ label, children, alignTop = false }) {
+  return (
+    <div className={`flex flex-col sm:flex-row gap-1 sm:gap-2 ${alignTop ? "sm:items-start" : "sm:items-center"}`}>
+      <div className="px-3 py-1 bg-[#d6e6f2] border w-full sm:w-[150px] shrink-0">{label}</div>
+      <div className="flex-1 min-w-0">{children}</div>
+    </div>
+  );
 }
 
 // Sub Group tree: Group -> Sub Group -> Sub Group 1 -> Sub Group 2.
@@ -240,7 +247,13 @@ export default function SubGroupSection() {
         <Fragment key={item.subGroupId}>
           <tr className={item.level > 0 ? "bg-gray-50" : ""}>
             <td className="border p-2" title={item.path}>
-              <div className="flex items-center gap-1" style={{ paddingLeft: item.level * 22 }}>
+              <div className="flex items-center gap-1" style={{ paddingLeft: item.level > 0 ? (item.level - 1) * 22 + 8 : 0 }}>
+                {/* staircase line for child / grand child */}
+                {item.level > 0 && (
+                  <span className="text-gray-400 select-none font-mono leading-none" aria-hidden="true">
+                    └─
+                  </span>
+                )}
                 {kids.length > 0 ? (
                   <button
                     type="button"
@@ -251,9 +264,10 @@ export default function SubGroupSection() {
                   >
                     {isOpen ? <ChevronDown size={15} /> : <ChevronRight size={15} />}
                   </button>
-                ) : (
+                ) : item.level === 0 ? (
+                  // keeps top rows lined up with rows that have a chevron
                   <span className="inline-block w-[15px]" />
-                )}
+                ) : null}
                 <span className={item.level === 0 ? "font-medium" : ""}>{item.subGroupName}</span>
                 {kids.length > 0 && <span className="text-xs text-gray-500">({kids.length})</span>}
               </div>
@@ -409,7 +423,7 @@ export default function SubGroupSection() {
 
       {/* MODAL */}
       <Dialog open={open} onOpenChange={(v) => !saving && setOpen(v)}>
-        <DialogContent>
+        <DialogContent className="sm:max-w-xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>
               {editingItem ? "Edit" : "Add"} {LEVEL_LABELS[newLevel] || "Sub Group"}
@@ -417,8 +431,7 @@ export default function SubGroupSection() {
           </DialogHeader>
 
           <div className="space-y-3">
-            <div className="flex gap-2 items-center">
-              <Label>Group</Label>
+            <Field label="Group">
               <SearchableSelect
                 options={groups}
                 value={form.groupId}
@@ -431,10 +444,9 @@ export default function SubGroupSection() {
                 searchKeys={["groupName", "headUnder"]}
                 className={!form.groupId ? "[&>button]:border-red-500" : ""}
               />
-            </div>
+            </Field>
 
-            <div className="flex gap-2 items-center">
-              <Label>Under</Label>
+            <Field label="Under">
               <SearchableSelect
                 options={parentOptions}
                 value={form.parentId}
@@ -447,20 +459,18 @@ export default function SubGroupSection() {
                 valueKey="subGroupId"
                 searchKeys={["path", "subGroupCode"]}
               />
-            </div>
+            </Field>
 
-            <div className="flex gap-2 items-center">
-              <Label>{LEVEL_LABELS[newLevel] || "Sub Group"}</Label>
+            <Field label={LEVEL_LABELS[newLevel] || "Sub Group"}>
               <Input
                 value={form.subGroupName}
                 onChange={set("subGroupName")}
                 disabled={saving}
-                className={`${!form.subGroupName && "border-red-500"}`}
+                className={`w-full ${!form.subGroupName ? "border-red-500" : ""}`}
               />
-            </div>
+            </Field>
 
-            <div className="flex gap-2 items-start">
-              <Label>Code</Label>
+            <Field label="Code" alignTop>
               <div className="w-full">
                 <Input
                   value={form.subGroupCode}
@@ -468,9 +478,9 @@ export default function SubGroupSection() {
                   placeholder="Leave empty for auto code"
                   maxLength={50}
                   disabled={saving}
-                  className={codeState.status === "taken" || codeState.status === "invalid" ? "border-red-500" : ""}
+                  className={`w-full ${codeState.status === "taken" || codeState.status === "invalid" ? "border-red-500" : ""}`}
                 />
-                <div className="text-xs mt-1 min-h-4">
+                <div className="text-xs mt-1 min-h-4 break-words">
                   {codeState.message ? (
                     <span className={codeColor}>
                       {codeState.status === "ok" ? "✓ " : codeState.status === "taken" || codeState.status === "invalid" ? "✗ " : ""}
@@ -485,19 +495,18 @@ export default function SubGroupSection() {
                   )}
                 </div>
               </div>
-            </div>
+            </Field>
 
             {editingItem && (
-              <div className="flex gap-2 items-center">
-                <Label>Status</Label>
+              <Field label="Status">
                 <select value={form.status} onChange={set("status")} disabled={saving} className="border w-full p-2">
                   <option value="Active">Active</option>
                   <option value="Inactive">Inactive</option>
                 </select>
-              </div>
+              </Field>
             )}
 
-            <div className="flex justify-end gap-3 mt-4">
+            <div className="flex flex-wrap justify-end gap-3 mt-4">
               <button onClick={() => setOpen(false)} disabled={saving} className="px-4 py-1 border rounded cursor-pointer">
                 Cancel
               </button>
