@@ -43,6 +43,10 @@ export const routeMetaConfig = [
   },
   //master
   {
+    basePath: "/master/traceability-workbench",
+    breadcrumbs: ["Master", "Traceability Workbench"],
+  },
+  {
     basePath: "/master/ledger-code",
     breadcrumbs: ["Master", "Ledger Code List"],
   },

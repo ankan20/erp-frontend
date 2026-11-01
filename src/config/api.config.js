@@ -36,6 +36,13 @@ export const API_ENDPOINTS = {
     },
   },
   MASTER: {
+    // Traceability Workbench (read-only document flow)
+    TRACEABILITY: {
+      CONTEXT: "/traceability/workbench/context",   // GET — accessible projects + document types
+      SEARCH: "/traceability/workbench/search",     // GET ?q&type&projectCode
+      FLOW: "/traceability/workbench/flow",         // GET ?type&id&mode=LINEAGE|FULL
+      DOCUMENT: "/traceability/workbench/document", // GET /:docType/:docId
+    },
     CREATE_GROUP: "/master/group/create",
     UPDATE_GROUP_BY_ID: "/master/group/update", //id
     GET_ALL_GROUP: "/master/group/list",

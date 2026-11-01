@@ -100,6 +100,12 @@ export const sidebarConfig = [
         permissionKey: "bank_cash",
       },
       {
+        title: "Traceability Workbench",
+        path: "/master/traceability-workbench",
+        activePaths: ["/master/traceability-workbench"],
+        permissionKey: "traceability_workbench",
+      },
+      {
         title: "Contact Dairy",
         key: "master_contact_dairy",
         children: [

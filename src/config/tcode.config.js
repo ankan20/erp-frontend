@@ -7,5 +7,6 @@ export const tcodeConfig = {
   hr01: "/hr-management/employee-management",
   tk01: "/task-management/new-task",
   pc01: "/settings/project-code",
+  tr01: "/master/traceability-workbench",
 };
 //Need to update as required letter this is dummy
