@@ -48,6 +48,7 @@ export default function SearchableSelect({
   const [dropdownStyle, setDropdownStyle] = useState({});
 
   const wrapperRef = useRef(null);
+  const searchInputRef = useRef(null);
 
   // CLOSE OUTSIDE
   useEffect(() => {
@@ -63,6 +64,13 @@ export default function SearchableSelect({
       document.removeEventListener("mousedown", handleClickOutside);
     };
   }, []);
+  useEffect(() => {
+  if (open) {
+    requestAnimationFrame(() => {
+      searchInputRef.current?.focus();
+    });
+  }
+}, [open]);
 
   // SELECTED OPTION
   const selectedOption = useMemo(() => {
@@ -209,6 +217,7 @@ export default function SearchableSelect({
           {/* SEARCH */}
           <div className="p-2 border-b border-gray-200 shrink-0">
             <input
+              ref={searchInputRef}
               type="text"
               value={search}
               onChange={(e) => setSearch(e.target.value)}

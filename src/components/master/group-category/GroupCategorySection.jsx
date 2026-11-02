@@ -34,9 +34,6 @@ export default function GroupCategorySection({
   const [saving, setSaving] = useState(false);
   const { tableRef } = useColumnResize();
 
-  const [page, setPage] = useState(1);
-  const [pageSize, setPageSize] = useState(10);
-
   // 🔥 FETCH LIST
   const fetchList = async () => {
     try {
@@ -51,7 +48,6 @@ export default function GroupCategorySection({
   };
 
   useEffect(() => { fetchList(); }, []);
-  useEffect(() => { setPage(1); }, [data]);
 
   // re-fetch when parent signals a new entry was saved
   useEffect(() => {
@@ -120,16 +116,13 @@ export default function GroupCategorySection({
 
   const isFormValid = form.name.trim() !== "" && form.headUnder !== "";
 
-  const totalPages = Math.max(1, Math.ceil(data.length / pageSize));
-  const pagedData = data.slice((page - 1) * pageSize, page * pageSize);
-
   return (
     <div className="w-full">
 
       {/* TABLE */}
-      <div className="border rounded overflow-hidden">
+      <div className="border rounded overflow-hidden max-h-[320px] overflow-y-auto">
         <table ref={tableRef} className="w-full text-sm">
-          <thead className="bg-[#e8f4fd] text-[#1c3a5e]">
+          <thead className="bg-[#e8f4fd] text-[#1c3a5e] sticky top-0 z-10">
             <tr>
               <th className="border-b border-[#c5dbed] px-3 py-2 text-left font-semibold">{title} Name</th>
               <th className="border-b border-[#c5dbed] px-3 py-2 text-left font-semibold">Head Under</th>
@@ -147,7 +140,7 @@ export default function GroupCategorySection({
                 <td colSpan={3} className="text-center py-6 text-gray-400 text-xs">No {title.toLowerCase()}s yet</td>
               </tr>
             ) : (
-              pagedData.map((item) => (
+              data.map((item) => (
                 <tr key={item[idKey]} className="hover:bg-gray-50 transition-colors">
                   <td className="px-3 py-2 font-medium text-gray-800">{item[nameKey]}</td>
                   <td className="px-3 py-2 text-gray-500">{item.headUnder}</td>
@@ -166,35 +159,6 @@ export default function GroupCategorySection({
           </tbody>
         </table>
       </div>
-
-      {/* PAGINATION */}
-      {!loading && data.length > 0 && (
-        <div className="flex flex-wrap items-center justify-between gap-2 mt-2 text-xs text-gray-500">
-          <div className="flex items-center gap-1.5">
-            <span>Rows per page:</span>
-            <select
-              value={pageSize}
-              onChange={(e) => { setPageSize(Number(e.target.value)); setPage(1); }}
-              className="border border-gray-300 rounded px-1.5 py-0.5 text-xs"
-            >
-              {[5, 10, 20, 50].map((n) => <option key={n} value={n}>{n}</option>)}
-            </select>
-          </div>
-          <div className="flex items-center gap-2">
-            <span>{Math.min((page - 1) * pageSize + 1, data.length)}–{Math.min(page * pageSize, data.length)} of {data.length}</span>
-            <button
-              onClick={() => setPage((p) => Math.max(1, p - 1))}
-              disabled={page === 1}
-              className="px-2 py-0.5 border border-gray-300 rounded hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
-            >‹</button>
-            <button
-              onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-              disabled={page === totalPages}
-              className="px-2 py-0.5 border border-gray-300 rounded hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
-            >›</button>
-          </div>
-        </div>
-      )}
 
       {/* MODAL */}
       <Dialog open={open} onOpenChange={(v) => !saving && setOpen(v)}>

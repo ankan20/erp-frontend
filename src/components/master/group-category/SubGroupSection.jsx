@@ -74,9 +74,6 @@ export default function SubGroupSection({ refreshTrigger }) {
 
   const { tableRef } = useColumnResize();
 
-  const [page, setPage] = useState(1);
-  const [pageSize, setPageSize] = useState(10);
-
   const fetchList = async (groupId = filterGroupId) => {
     try {
       setLoading(true);
@@ -105,8 +102,6 @@ export default function SubGroupSection({ refreshTrigger }) {
     if (refreshTrigger > 0) fetchList(filterGroupId);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [refreshTrigger]);
-
-  useEffect(() => { setPage(1); }, [data]);
 
   // "Under" options = sub groups of the chosen group that can still have children
   useEffect(() => {
@@ -201,7 +196,6 @@ export default function SubGroupSection({ refreshTrigger }) {
 
   const handleFilter = (groupId) => {
     setFilterGroupId(groupId);
-    setPage(1);
     fetchList(groupId);
   };
 
@@ -252,8 +246,6 @@ export default function SubGroupSection({ refreshTrigger }) {
   const collapseAll = () => setExpanded(new Set());
 
   const rootItems = childrenByParent.get("root") || [];
-  const totalPages = Math.max(1, Math.ceil(rootItems.length / pageSize));
-  const pagedRoots = rootItems.slice((page - 1) * pageSize, page * pageSize);
 
   const renderRows = (items) =>
     items.map((item) => {
@@ -431,40 +423,11 @@ export default function SubGroupSection({ refreshTrigger }) {
                 <td colSpan={7} className="text-center py-8 text-gray-400 text-xs">No sub groups yet</td>
               </tr>
             ) : (
-              renderRows(pagedRoots)
+              renderRows(rootItems)
             )}
           </tbody>
         </table>
       </div>
-
-      {/* PAGINATION */}
-      {!loading && rootItems.length > 0 && (
-        <div className="flex flex-wrap items-center justify-between gap-2 mt-2 text-xs text-gray-500">
-          <div className="flex items-center gap-1.5">
-            <span>Rows per page:</span>
-            <select
-              value={pageSize}
-              onChange={(e) => { setPageSize(Number(e.target.value)); setPage(1); }}
-              className="border border-gray-300 rounded px-1.5 py-0.5 text-xs"
-            >
-              {[5, 10, 20, 50].map((n) => <option key={n} value={n}>{n}</option>)}
-            </select>
-          </div>
-          <div className="flex items-center gap-2">
-            <span>{Math.min((page - 1) * pageSize + 1, rootItems.length)}–{Math.min(page * pageSize, rootItems.length)} of {rootItems.length} top-level</span>
-            <button
-              onClick={() => setPage((p) => Math.max(1, p - 1))}
-              disabled={page === 1}
-              className="px-2 py-0.5 border border-gray-300 rounded hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
-            >‹</button>
-            <button
-              onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-              disabled={page === totalPages}
-              className="px-2 py-0.5 border border-gray-300 rounded hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
-            >›</button>
-          </div>
-        </div>
-      )}
 
       {/* MODAL */}
       <Dialog open={open} onOpenChange={(v) => !saving && setOpen(v)}>
