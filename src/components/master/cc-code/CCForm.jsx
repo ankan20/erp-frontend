@@ -266,8 +266,8 @@ export default function CCForm({
           </div>
           <div className="flex items-center gap-4 h-[30px] px-1">
             {[
-              { label: "Ledger Head", value: false },
-              { label: "Non-Ledger", value: true },
+              { label: "Ledger Group", value: false },
+              { label: "Auto Ledger", value: true },
             ].map(({ label, value }) => (
               <label key={label} className={`flex items-center gap-1.5 select-none ${fieldDisabled ? "cursor-default" : "cursor-pointer"}`}>
                 <input
