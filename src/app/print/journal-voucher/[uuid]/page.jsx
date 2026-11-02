@@ -270,11 +270,35 @@ export default function JournalVoucherPrintPage() {
             </div>
           </div>
 
-          {/* ── SIGNATURES ── */}
-          <div className="px-6 pb-6 pt-2 border-t border-gray-200 mt-2">
-            <SigRow label="Created By"   name={data.createdBy}   dateStr={fmt.dateTime(data.createdAt)} />
-            <SigRow label="Submitted By" name={data.submittedBy} dateStr={fmt.dateTime(data.submittedAt)} />
-            <SigRow label="Approved By"  name={data.approvedBy}  dateStr={fmt.dateTime(data.finalApprovedAt)} />
+{/* ── AUDIT TRAIL + PHYSICAL SIGNATURES ── */}
+          <div className="px-6 pt-3 pb-5" style={{ display: "grid", gridTemplateColumns: "auto 1fr 1fr", gridTemplateRows: "auto auto auto", columnGap: "32px", rowGap: 0 }}>
+
+            {/* col 1 spans rows 1-2: audit trail */}
+            <div style={{ gridColumn: 1, gridRow: "1 / 3" }}>
+              <SigRow label="Created By"   name={data.createdBy}   dateStr={fmt.dateTime(data.createdAt)} />
+              <SigRow label="Submitted By" name={data.submittedBy} dateStr={fmt.dateTime(data.submittedAt)} />
+              <SigRow label="Approved By"  name={data.approvedBy}  dateStr={fmt.dateTime(data.finalApprovedAt)} />
+            </div>
+
+            {/* row 1 col 2-3: empty space above line */}
+            <div style={{ gridColumn: 2, gridRow: 1 }} />
+            <div style={{ gridColumn: 3, gridRow: 1 }} />
+
+            {/* row 2 col 2-3: the line, aligned with bottom of last audit row */}
+            <div style={{ gridColumn: 2, gridRow: 2, display: "flex", flexDirection: "column", justifyContent: "flex-end" }}>
+              <div style={{ borderTop: "1px solid #1f2937" }} />
+            </div>
+            <div style={{ gridColumn: 3, gridRow: 2, display: "flex", flexDirection: "column", justifyContent: "flex-end" }}>
+              <div style={{ borderTop: "1px solid #1f2937" }} />
+            </div>
+
+            {/* row 3 col 2-3: labels below the line */}
+            {["Verified By", "Prepared By"].map((lbl, i) => (
+              <p key={lbl} style={{ gridColumn: i + 2, gridRow: 3 }}
+                className={`mt-0.5 text-center ${SIZE.labelText} ${WEIGHT.bold} text-gray-800 uppercase tracking-wider`}
+              >{lbl}</p>
+            ))}
+
           </div>
         </div>
       </div>
