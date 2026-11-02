@@ -262,9 +262,10 @@ export default function SubGroupSection({ refreshTrigger }) {
       return (
         <Fragment key={item.subGroupId}>
           <tr className={`hover:bg-blue-50/30 transition-colors ${item.level > 0 ? "bg-gray-50/60" : ""}`}>
+            <td className="px-3 py-2 font-mono text-xs text-gray-500">{item.subGroupCode}</td>
+            <td className="px-3 py-2 text-gray-700">{item.groupName}</td>
             <td className="px-3 py-2" title={item.path}>
               <div className="flex items-center gap-1" style={{ paddingLeft: item.level > 0 ? (item.level - 1) * 22 + 8 : 0 }}>
-                {/* staircase line for child / grand child */}
                 {item.level > 0 && (
                   <span className="text-gray-400 select-none font-mono leading-none" aria-hidden="true">
                     └─
@@ -281,7 +282,6 @@ export default function SubGroupSection({ refreshTrigger }) {
                     {isOpen ? <ChevronDown size={15} /> : <ChevronRight size={15} />}
                   </button>
                 ) : item.level === 0 ? (
-                  // keeps top rows lined up with rows that have a chevron
                   <span className="inline-block w-[15px]" />
                 ) : null}
                 <span className={item.level === 0 ? "font-medium" : ""}>{item.subGroupName}</span>
@@ -289,8 +289,6 @@ export default function SubGroupSection({ refreshTrigger }) {
               </div>
             </td>
             <td className="px-3 py-2 text-gray-500 text-xs">{item.levelLabel}</td>
-            <td className="px-3 py-2 font-mono text-xs text-gray-500">{item.subGroupCode}</td>
-            <td className="px-3 py-2 text-gray-700">{item.groupName}</td>
             <td className="px-3 py-2 text-gray-500">{item.headUnder}</td>
             <td className="px-3 py-2">
               <span className={`text-xs px-2 py-0.5 rounded-full ${item.status === "Active" ? "bg-green-100 text-green-700" : "bg-gray-100 text-gray-500"}`}>
@@ -414,10 +412,10 @@ export default function SubGroupSection({ refreshTrigger }) {
         <table ref={tableRef} className="w-full text-sm">
           <thead className="bg-[#e8f4fd] text-[#1c3a5e] sticky top-0 z-10">
             <tr>
-              <th className="border-b border-[#c5dbed] px-3 py-2 text-left font-semibold">Sub Group</th>
-              <th className="border-b border-[#c5dbed] px-3 py-2 text-left font-semibold">Level</th>
               <th className="border-b border-[#c5dbed] px-3 py-2 text-left font-semibold">Code</th>
               <th className="border-b border-[#c5dbed] px-3 py-2 text-left font-semibold">Group</th>
+              <th className="border-b border-[#c5dbed] px-3 py-2 text-left font-semibold">Sub Group</th>
+              <th className="border-b border-[#c5dbed] px-3 py-2 text-left font-semibold">Level</th>
               <th className="border-b border-[#c5dbed] px-3 py-2 text-left font-semibold">Head Under</th>
               <th className="border-b border-[#c5dbed] px-3 py-2 text-left font-semibold">Status</th>
               <th className="border-b border-[#c5dbed] px-3 py-2 w-20 text-center font-semibold">Action</th>
