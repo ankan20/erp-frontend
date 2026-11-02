@@ -291,7 +291,7 @@ function Tour({ steps, hints, context, onClose }) {
   const pad = 6;
 
   return createPortal(
-    <div className="fixed inset-0 z-[1001]" role="dialog" aria-modal="true" aria-label="Page tour">
+    <div className="fixed inset-0 z-[1001]" role="dialog" aria-modal="true" aria-label="Page tour" data-sync-ignore>
       {/* blocks clicks on the page while touring */}
       <div className="absolute inset-0" onClick={() => onClose(false)} />
       {/* spotlight */}

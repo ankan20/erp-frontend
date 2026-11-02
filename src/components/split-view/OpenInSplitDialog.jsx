@@ -83,7 +83,7 @@ export default function OpenInSplitDialog() {
 
   return (
     <Dialog open={open} onOpenChange={(v) => !v && splitActions.closePicker()}>
-      <DialogContent className="sm:max-w-2xl max-h-[85vh] flex flex-col gap-3">
+      <DialogContent className="sm:max-w-2xl max-h-[85vh] flex flex-col gap-3" data-sync-ignore>
         <DialogHeader>
           <DialogTitle>Open in split window</DialogTitle>
         </DialogHeader>

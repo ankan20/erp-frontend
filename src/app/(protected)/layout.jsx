@@ -12,6 +12,7 @@ import { usePathname } from "next/navigation";
 import { Suspense, useState } from "react";
 import SplitWorkspace from "@/components/split-view/SplitWorkspace";
 import PaneBridge from "@/components/split-view/PaneBridge";
+import DataSyncBoundary from "@/components/split-view/DataSyncBoundary";
 import { useIsInsidePane } from "@/components/split-view/splitStore";
 
 export default function ProtectedLayout({ children }) {
@@ -51,7 +52,10 @@ export default function ProtectedLayout({ children }) {
             )}
 
             {/* MAIN CONTENT (+ split view windows when opened; off inside a window) */}
-            <SplitWorkspace disabled={inPane}>{children}</SplitWorkspace>
+            <SplitWorkspace disabled={inPane}>
+              {/* live update when data changes in another window / tab */}
+              <DataSyncBoundary>{children}</DataSyncBoundary>
+            </SplitWorkspace>
 
           </div>
         </div>

@@ -2,6 +2,7 @@ import API_BASE_URL from "@/config/api.config";
 import { getCookie } from "./cookies";
 import { clearAuthCookies } from "@/lib/cookies";
 import { getLocalStorage } from "./localStorage";
+import { notifyDataChanged } from "./dataSync";
 
 const getAuth = () => {
   if (typeof window === "undefined") return {};
@@ -72,6 +73,9 @@ export const apiRequest = async ({
     let msg = result?.message || result?.msg;
     throw new Error(msg || "API Error");
   }
+
+  // tell other open windows that data changed (create / update / delete)
+  notifyDataChanged(method, url);
 
   return result;
 };

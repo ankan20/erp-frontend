@@ -324,6 +324,7 @@ export default function SplitWorkspace({ children, disabled = false }) {
         {/* main page — always the first child, never moved */}
         <div
           ref={mainRef}
+          data-sync-root
           className={active ? "min-h-0 min-w-0 overflow-auto bg-[#f5f5f5]" : "flex-1 overflow-auto"}
           style={mainStyle}
         >
@@ -408,7 +409,7 @@ export default function SplitWorkspace({ children, disabled = false }) {
       )}
 
       <AlertDialog open={!!swapPane} onOpenChange={(v) => !v && setSwapPane(null)}>
-        <AlertDialogContent className="max-w-sm">
+        <AlertDialogContent className="max-w-sm" data-sync-ignore>
           <AlertDialogHeader>
             <AlertDialogTitle className="text-[14px]">Swap with main page</AlertDialogTitle>
             <AlertDialogDescription className="text-[12px]">
