@@ -22,7 +22,7 @@ const schema = z.object({
   ledgerName: z.string().min(1, "Required"),
   registeredAddress: z.string().min(1, "Required"),
   corporateAddress: z.string().min(1, "Required"),
-  pan: z.string().min(1, "Required"),
+  pan: z.string().refine((v) => !v || /^[A-Z]{5}[0-9]{4}[A-Z]{1}$/.test(v), "Invalid PAN (e.g. ABCDE1234F)").optional(),
   gstin: z.string().min(1, "Required"),
   stateCode: z.string().min(1, "Required"),
   stateName: z.string().min(1, "Required"),
@@ -113,7 +113,7 @@ export default function LedgerForm({
   //  SUBMIT
   const onSubmit = async () => {
     if (mode === "create") {
-      if (!files.trade || !files.pan || !files.gstn || !files.bank) {
+      if (!files.trade || !files.gstn || !files.bank) {
         toast.error("All files required");
         return;
       }

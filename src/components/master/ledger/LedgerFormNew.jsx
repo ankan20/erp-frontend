@@ -172,6 +172,9 @@ export default function LedgerFormNew({
   const [isEditing, setIsEditing] = useState(mode === "create");
   const [pageLoading, setPageLoading] = useState(mode !== "create");
 
+  // ── Debtor / Creditor toggle ───────────────────────────────────────────────
+  const [isDebtor, setIsDebtor] = useState(false);
+
   // ── Supplier selection state ───────────────────────────────────────────────
   const [supplierList, setSupplierList]       = useState([]);
   const [supplierListLoading, setSupplierListLoading] = useState(true);
@@ -260,6 +263,7 @@ export default function LedgerFormNew({
     startTransition(() => {
       setLedgerCode(initialData.ledgerCode || "");
       setNameQuery(initialData.ledgerName || "");
+      setIsDebtor(!!initialData.isDebtor);
       setSupplierTypes(Array.isArray(initialData.supplierTypes) ? initialData.supplierTypes : []);
       setNatureOfService(Array.isArray(initialData.natureOfService) ? initialData.natureOfService : initialData.natureOfService ? [initialData.natureOfService] : []);
       setLinkedSupplierId(initialData.supplierId ? String(initialData.supplierId) : null);
@@ -368,6 +372,7 @@ export default function LedgerFormNew({
     if (!initialData) return;
     reset({ ...initialData });
     setNameQuery(initialData.ledgerName || "");
+    setIsDebtor(!!initialData.isDebtor);
     setSupplierTypes(Array.isArray(initialData.supplierTypes) ? initialData.supplierTypes : []);
     setNatureOfService(Array.isArray(initialData.natureOfService) ? initialData.natureOfService : initialData.natureOfService ? [initialData.natureOfService] : []);
     setFileUrls({ trade: initialData.tradeLicenceFile, pan: initialData.panFile, gstn: initialData.gstnFile, bank: initialData.bankDetailsFile });
@@ -381,7 +386,7 @@ export default function LedgerFormNew({
 
   // ── Submit ─────────────────────────────────────────────────────────────────
   const onSubmit = async (data) => {
-    if (mode === "create" && (!files.trade || !files.pan || !files.gstn || !files.bank)) {
+    if (mode === "create" && !isDebtor && (!files.trade || !files.gstn || !files.bank)) {
       toast.error("All files are required");
       return;
     }
@@ -397,11 +402,14 @@ export default function LedgerFormNew({
       allowed.forEach((k) => formData.append(k, data[k] ?? ""));
       formData.append("primaryContactNumber", normalizePhone(data.primaryContactNumber));
       formData.append("whatsappNumber", normalizePhone(data.whatsappNumber));
+      formData.append("isDebtor", String(isDebtor));
 
-      // Supplier-linked fields
-      if (linkedSupplierId) formData.append("supplierId", linkedSupplierId);
-      supplierTypes.forEach((t) => formData.append("supplierTypes[]", t));
-      natureOfService.forEach((n) => formData.append("natureOfService[]", n));
+      // Supplier-linked fields (creditor only)
+      if (!isDebtor) {
+        if (linkedSupplierId) formData.append("supplierId", linkedSupplierId);
+        supplierTypes.forEach((t) => formData.append("supplierTypes[]", t));
+        natureOfService.forEach((n) => formData.append("natureOfService[]", n));
+      }
 
       if (files.trade) formData.append("tradeLicenceFile", files.trade);
       if (files.pan)   formData.append("panFile",          files.pan);
@@ -475,28 +483,51 @@ export default function LedgerFormNew({
 
       <div className="px-6 pt-2 pb-4 w-full">
 
-        {/* ── Supplier selection ──────────────────────────────────────── */}
-        <Section title="Link Supplier">
-          <Row label="Supplier">
-            <div className="flex-1">
-              <SearchableSelect
-                options={supplierList}
-                value={selectedSupplierId}
-                onChange={(val, item) => {
-                  if (!isEditing) return;
-                  setSelectedSupplierId(val);
-                  setPendingSupplierSelect(item);
-                }}
-                placeholder={supplierListLoading ? "Loading..." : "Search by ID or Name"}
-                searchPlaceholder="Search supplier..."
-                searchKeys={["supplierCode", "supplierName", "label"]}
-                disabled={fieldDisabled || supplierListLoading}
-                labelKey="label"
-                valueKey="value"
+        {/* ── Ledger Type Radio ────────────────────────────────────────── */}
+        <div className="flex items-center gap-6 mb-4 p-3 bg-[#f0f6fc] border border-[#b8c7da] rounded-sm">
+          <span className="text-[13px] font-semibold text-gray-700 mr-2">Ledger Type :</span>
+          {[
+            { value: false, label: "Sundry Creditor" },
+            { value: true,  label: "Sundry Debtor"   },
+          ].map((opt) => (
+            <label key={String(opt.value)} className={`flex items-center gap-2 select-none ${fieldDisabled || mode !== "create" ? "cursor-default" : "cursor-pointer"}`}>
+              <input
+                type="radio"
+                name="ledgerType"
+                checked={isDebtor === opt.value}
+                disabled={fieldDisabled || mode !== "create"}
+                onChange={() => { if (mode === "create") setIsDebtor(opt.value); }}
+                className="accent-[#1c3a5e] w-3.5 h-3.5"
               />
-            </div>
-          </Row>
-        </Section>
+              <span className="text-[13px] font-medium text-gray-800">{opt.label}</span>
+            </label>
+          ))}
+        </div>
+
+        {/* ── Supplier selection (creditor only) ──────────────────────── */}
+        {!isDebtor && (
+          <Section title="Link Supplier">
+            <Row label="Supplier">
+              <div className="flex-1">
+                <SearchableSelect
+                  options={supplierList}
+                  value={selectedSupplierId}
+                  onChange={(val, item) => {
+                    if (!isEditing) return;
+                    setSelectedSupplierId(val);
+                    setPendingSupplierSelect(item);
+                  }}
+                  placeholder={supplierListLoading ? "Loading..." : "Search by ID or Name"}
+                  searchPlaceholder="Search supplier..."
+                  searchKeys={["supplierCode", "supplierName", "label"]}
+                  disabled={fieldDisabled || supplierListLoading}
+                  labelKey="label"
+                  valueKey="value"
+                />
+              </div>
+            </Row>
+          </Section>
+        )}
 
         {/* ── Ledger Code ─────────────────────────────────────────────── */}
         <div className="flex items-center gap-2 mb-4">
@@ -504,55 +535,57 @@ export default function LedgerFormNew({
           <Input value={ledgerCode} disabled placeholder="[Auto]" className={`${getInputClass(false, true)} w-40 font-mono`} />
         </div>
 
-        {/* ── Supplier Types (badges) ──────────────────────────────────── */}
-        <div className="flex flex-wrap items-center gap-2 mb-3 px-1">
-          {ALL_TYPES.map((t) => {
-            const checked = supplierTypes.includes(t.value);
-            return (
-              <label key={t.value} className={`flex items-center gap-1.5 select-none ${fieldDisabled ? "cursor-default" : "cursor-pointer"}`}>
-                <input
-                  type="checkbox"
-                  checked={checked}
-                  disabled={fieldDisabled}
-                  onChange={() => toggleType(t.value)}
-                  className="w-3.5 h-3.5 accent-blue-600"
-                />
-                <span className={`text-[11px] px-2 py-0.5 rounded border font-medium transition-opacity ${TYPE_BADGE_COLOR[t.value] || "bg-gray-100 text-gray-600 border-gray-200"} ${!checked ? "opacity-40" : ""}`}>
-                  {TYPE_LABEL[t.value] || t.label}
-                </span>
-              </label>
-            );
-          })}
-        </div>
-
-        {/* ── Nature of Service (one select per type) ──────────────────── */}
-        {supplierTypes.length > 0 && (
-          <div className="flex flex-col gap-2 mb-4">
-            {supplierTypes.map((t) => (
-              <div key={t} className="flex flex-col md:flex-row md:items-center gap-1 md:gap-3">
-                <div className={`${labelCls} shrink-0`}>
-                  <span className={`text-[11px] px-2 py-0.5 rounded border font-medium ${TYPE_BADGE_COLOR[t] || "bg-gray-100 text-gray-600 border-gray-200"}`}>
-                    {TYPE_LABEL[t] || t}
-                  </span>
-                </div>
-                <div className="flex-1">
-                  <NatureOfServiceSelect
-                    selectedTypes={[t]}
-                    value={natureOfService}
-                    onChange={setNatureOfService}
-                    disabled={fieldDisabled}
-                  />
-                </div>
+        {/* ── Supplier Types + Nature of Service (creditor only) ──────── */}
+        {!isDebtor && (
+          <>
+            <div className="flex flex-wrap items-center gap-2 mb-3 px-1">
+              {ALL_TYPES.map((t) => {
+                const checked = supplierTypes.includes(t.value);
+                return (
+                  <label key={t.value} className={`flex items-center gap-1.5 select-none ${fieldDisabled ? "cursor-default" : "cursor-pointer"}`}>
+                    <input
+                      type="checkbox"
+                      checked={checked}
+                      disabled={fieldDisabled}
+                      onChange={() => toggleType(t.value)}
+                      className="w-3.5 h-3.5 accent-blue-600"
+                    />
+                    <span className={`text-[11px] px-2 py-0.5 rounded border font-medium transition-opacity ${TYPE_BADGE_COLOR[t.value] || "bg-gray-100 text-gray-600 border-gray-200"} ${!checked ? "opacity-40" : ""}`}>
+                      {TYPE_LABEL[t.value] || t.label}
+                    </span>
+                  </label>
+                );
+              })}
+            </div>
+            {supplierTypes.length > 0 && (
+              <div className="flex flex-col gap-2 mb-4">
+                {supplierTypes.map((t) => (
+                  <div key={t} className="flex flex-col md:flex-row md:items-center gap-1 md:gap-3">
+                    <div className={`${labelCls} shrink-0`}>
+                      <span className={`text-[11px] px-2 py-0.5 rounded border font-medium ${TYPE_BADGE_COLOR[t] || "bg-gray-100 text-gray-600 border-gray-200"}`}>
+                        {TYPE_LABEL[t] || t}
+                      </span>
+                    </div>
+                    <div className="flex-1">
+                      <NatureOfServiceSelect
+                        selectedTypes={[t]}
+                        value={natureOfService}
+                        onChange={setNatureOfService}
+                        disabled={fieldDisabled}
+                      />
+                    </div>
+                  </div>
+                ))}
               </div>
-            ))}
-          </div>
+            )}
+          </>
         )}
 
-        {/* ── Supplier Details ─────────────────────────────────────────── */}
-        <Section title="Supplier Details">
-          {/* Ledger Name with suggestion */}
+        {/* ── Details section (label changes by type) ─────────────────── */}
+        <Section title={isDebtor ? "Details" : "Supplier Details"}>
+          {/* Name / Ledger Name with suggestion */}
           <div className="relative" ref={suggestionWrapperRef}>
-            <Row label="Ledger Name">
+            <Row label={isDebtor ? "Name" : "Ledger Name"}>
               <div className="relative flex-1">
                 <Input
                   {...register("ledgerName")}
@@ -573,7 +606,7 @@ export default function LedgerFormNew({
               </div>
             </Row>
 
-            {showSuggestions && suggestions.length > 0 && !fieldDisabled && (
+            {!isDebtor && showSuggestions && suggestions.length > 0 && !fieldDisabled && (
               <div className="absolute left-0 md:left-[calc(220px+8px)] right-0 z-[9999] bg-white border border-blue-200 rounded-sm shadow-2xl mt-0.5">
                 <div className="flex items-center justify-between px-3 py-1.5 bg-blue-50 border-b border-blue-100">
                   <span className="text-[10px] font-semibold text-blue-700 uppercase tracking-wide flex items-center gap-1">
