@@ -493,13 +493,13 @@ export default function OGSaleOrderForm({ mode = "create", saleOrderId, onAfterS
               Items
             </div>
             <div ref={scrollRef} className="overflow-x-auto overflow-y-auto lg:max-h-[calc(100vh-300px)]">
-              <table ref={tableRef} className="w-full border-collapse text-sm" style={{ minWidth: 1325 }}>
+              <table ref={tableRef} className="w-full border-collapse text-sm" style={{ minWidth: 1325, tableLayout: "fixed" }}>
                 <thead className="sticky top-0 z-20">
                   <tr className="bg-[#3b6ea5] text-white">
                     <th className="border border-[#2a5080] w-[44px] text-center text-[13px] py-1.5">SL No</th>
                     <th className="border border-[#2a5080] w-[100px] text-center text-[13px] py-1.5">Type</th>
                     <th className="border border-[#2a5080] w-[100px] text-left px-2 text-[13px] py-1.5">Item Code</th>
-                    <th className="border border-[#2a5080] text-left px-2 text-[13px] py-1.5">Item Name &amp; Description</th>
+                    <th className="border border-[#2a5080] w-[280px] text-left px-2 text-[13px] py-1.5">Item Name &amp; Description</th>
                     <th className="border border-[#2a5080] w-[110px] text-center text-[13px] py-1.5">Unit</th>
                     <th className="border border-[#2a5080] w-[110px] text-right px-2 text-[13px] py-1.5">
                       Order Qty{!disabled && <span className="text-red-300 ml-0.5">*</span>}
@@ -554,7 +554,7 @@ export default function OGSaleOrderForm({ mode = "create", saleOrderId, onAfterS
                         </td>
 
                         {/* ITEM NAME + DESCRIPTION */}
-                        <td className="border border-[#ccc] p-0">
+                        <td className="border border-[#ccc] p-0 max-w-[280px]">
                           <Controller
                             name={`rows.${index}.itemName`}
                             control={control}
