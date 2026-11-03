@@ -255,7 +255,7 @@ export default function CCForm({
 
   return (
     <div className="p-4 max-w-2xl">
-      <div className="space-y-3">
+      <div className="space-y-0.5">
 
         {/* LEDGER TYPE */}
         {showLedgerType && (
@@ -326,7 +326,7 @@ export default function CCForm({
           <div className="text-[13px] font-semibold text-[#1c3a5e] uppercase tracking-wide pb-1 border-b border-[#1c3a5e] mb-3">
             Balance Sheet Group
           </div>
-          <div className="space-y-3">
+          <div className="space-y-0.5">
             {/* GROUP */}
             <div className="flex gap-2">
               <div className={label}>Group</div>
@@ -381,8 +381,8 @@ export default function CCForm({
           </div>
 
           {plLinked && (
-            <div className="space-y-3">
-              <div className="text-[13px] font-semibold text-[#1c3a5e] uppercase tracking-wide pb-1 border-b border-[#1c3a5e]">
+            <div className="space-y-0.5">
+              <div className="text-[13px] font-semibold text-[#1c3a5e] uppercase tracking-wide pb-1 border-b border-[#1c3a5e] mb-3">
                 Profit &amp; Loss Group
               </div>
 

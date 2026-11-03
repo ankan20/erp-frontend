@@ -6,12 +6,28 @@ import SearchSection from "@/components/common/SearchSection";
 import DataTable from "@/components/common/DataTable";
 import { apiRequest } from "@/lib/apiClient";
 import { API_ENDPOINTS } from "@/config/api.config";
-import { Loader2 } from "lucide-react";
+import { Loader2, ChevronRight, ChevronLeft } from "lucide-react";
 import { toast } from "sonner";
 import { getPageActions } from "@/components/common/PageActionButtons";
 import PageHeader from "@/components/layout/PageHeader";
 import HeaderWrapper from "@/components/layout/HeaderWrapper";
 import { isMasterEditable } from "@/helper/getMasterAccess";
+
+function ExpandableHeader({ label, expanded, onToggle }) {
+  return (
+    <span className="flex items-center gap-1 whitespace-nowrap">
+      {label}
+      <button
+        type="button"
+        onClick={(e) => { e.stopPropagation(); onToggle(); }}
+        className="shrink-0 opacity-70 hover:opacity-100 text-white"
+        title={expanded ? "Collapse" : "Expand sub groups"}
+      >
+        {expanded ? <ChevronLeft size={13} /> : <ChevronRight size={13} />}
+      </button>
+    </span>
+  );
+}
 
 export default function Page() {
   const router = useRouter();
@@ -21,13 +37,14 @@ export default function Page() {
   const [loading, setLoading] = useState(true);
   const canEdit = isMasterEditable();
 
-  const actions = getPageActions({
-    router,
-  });
+  // Column-level expand toggles (expand all rows at once)
+  const [bsExpanded, setBsExpanded] = useState(false);
+  const [plExpanded, setPlExpanded] = useState(false);
 
-  //  INITIAL LOAD
+  const actions = getPageActions({ router });
+
   useEffect(() => {
-    const fetchProjects = async () => {
+    const fetchData = async () => {
       try {
         const res = await apiRequest({
           url: API_ENDPOINTS.MASTER.GET_ALL_CC_CODE,
@@ -36,20 +53,28 @@ export default function Page() {
 
         const respdata = res.data || [];
 
-        const formatted = respdata.map((c, index) => ({
-          ccId: c.ccId,
-          sl: index + 1,
-          ccCategoryName: c.ccCategoryName,
-          ccCode: c.ccCode,
-          ccGroupName: c.ccGroupName,
-          ccSubGroup0: c.ccSubGroupLevels?.[0]?.subGroupName || "",
-          ccSubGroup1: c.ccSubGroupLevels?.[1]?.subGroupName || "",
-          ccSubGroup2: c.ccSubGroupLevels?.[2]?.subGroupName || "",
-          plLink: c.plLinked
-            ? [c.plGroupName, c.plSubGroupPath].filter(Boolean).join(" › ")
-            : "—",
-          ccName: c.ccName,
-        }));
+        const formatted = respdata.map((c, index) => {
+          const bsLevels = c.ccSubGroupLevels || [];
+          const plLevels = c.plSubGroupLevels || [];
+          return {
+            ccId:           c.ccId,
+            sl:             index + 1,
+            ccCode:         c.ccCode,
+            ccName:         c.ccName,
+            ccCategoryName: c.ccCategoryName,
+            headUnder:      c.headUnder,
+            // BS — flat fields for each level
+            bsGroup:  c.ccGroupName  || "—",
+            bsLevel0: bsLevels[0]?.subGroupName || "—",
+            bsLevel1: bsLevels[1]?.subGroupName || "—",
+            bsLevel2: bsLevels[2]?.subGroupName || "—",
+            // PL — flat fields
+            plGroup:  c.plLinked ? (c.plGroupName || "—") : "—",
+            plLevel0: c.plLinked ? (plLevels[0]?.subGroupName || "—") : "—",
+            plLevel1: c.plLinked ? (plLevels[1]?.subGroupName || "—") : "—",
+            plLevel2: c.plLinked ? (plLevels[2]?.subGroupName || "—") : "—",
+          };
+        });
 
         setData(formatted);
         setFilteredData(formatted);
@@ -60,36 +85,49 @@ export default function Page() {
       }
     };
 
-    fetchProjects();
+    fetchData();
   }, []);
 
-  // SEARCH HANDLER
   const handleSearch = ({ search }) => {
     if (!search) {
       setFilteredData(data);
       return;
     }
-
+    const q = search.toLowerCase();
     const filtered = data.filter((item) =>
-      Object.values(item).some((val) =>
-        String(val).toLowerCase().includes(search.toLowerCase()),
-      ),
+      [item.ccCode, item.ccName, item.ccCategoryName, item.headUnder,
+       item.bsGroup, item.bsPath, item.plGroup, item.plPath]
+        .some((v) => String(v || "").toLowerCase().includes(q))
     );
-
     setFilteredData(filtered);
   };
 
-  //  TABLE COLUMNS
+  const bsCols = bsExpanded
+    ? [
+        { header: <ExpandableHeader label="BS Group" expanded={bsExpanded} onToggle={() => setBsExpanded(false)} />, accessor: "bsGroup" },
+        { header: "Sub Group",   accessor: "bsLevel0" },
+        { header: "Sub Group 1", accessor: "bsLevel1" },
+        { header: "Sub Group 2", accessor: "bsLevel2" },
+      ]
+    : [{ header: <ExpandableHeader label="Balance Sheet" expanded={bsExpanded} onToggle={() => setBsExpanded(true)} />, accessor: "bsGroup" }];
+
+  const plCols = plExpanded
+    ? [
+        { header: <ExpandableHeader label="P&L Group" expanded={plExpanded} onToggle={() => setPlExpanded(false)} />, accessor: "plGroup" },
+        { header: "Sub Group",   accessor: "plLevel0" },
+        { header: "Sub Group 1", accessor: "plLevel1" },
+        { header: "Sub Group 2", accessor: "plLevel2" },
+      ]
+    : [{ header: <ExpandableHeader label="Profit & Loss" expanded={plExpanded} onToggle={() => setPlExpanded(true)} />, accessor: "plGroup" }];
+
   const columns = [
-    { header: "Sl. no", accessor: "sl" },
-    { header: "CC Code", accessor: "ccCode" },
-    { header: "CC Name", accessor: "ccName" },
+    { header: "Sl. no",   accessor: "sl" },
+    { header: "CC Code",  accessor: "ccCode" },
+    { header: "CC Name",  accessor: "ccName" },
     { header: "Category", accessor: "ccCategoryName" },
-    { header: "Group", accessor: "ccGroupName" },
-    { header: "Sub Group", accessor: "ccSubGroup0" },
-    { header: "Sub Group 1", accessor: "ccSubGroup1" },
-    { header: "Sub Group 2", accessor: "ccSubGroup2" },
-    { header: "Profit & Loss", accessor: "plLink" },
+    { header: "Head",     accessor: "headUnder" },
+    ...bsCols,
+    ...plCols,
   ];
 
   if (loading) {
@@ -104,26 +142,18 @@ export default function Page() {
     <>
       <HeaderWrapper header={<PageHeader actions={actions} />}>
         <div className="p-3">
-          {/*  SEARCH SECTION */}
           <SearchSection
             onSearch={handleSearch}
             actions={
-              canEdit ?
-              [
-              {
-                label: "+ New CC Code",
-                onClick: () => router.push("/master/cc-code/new"),
-              },
-            ]:[]}
+              canEdit
+                ? [{ label: "+ New CC Code", onClick: () => router.push("/master/cc-code/new") }]
+                : []
+            }
           />
-
-          {/*  TABLE */}
           <DataTable
             columns={columns}
             data={filteredData}
-            onRowClick={(row) => {
-              router.push(`/master/cc-code/${row.ccId}`);
-            }}
+            onRowClick={(row) => router.push(`/master/cc-code/${row.ccId}`)}
           />
         </div>
       </HeaderWrapper>
