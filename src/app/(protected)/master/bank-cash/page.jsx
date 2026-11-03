@@ -353,21 +353,30 @@ export default function Page() {
   const fetchList = async () => {
     try {
       const res = await apiRequest({ url: BC.LIST, method: "GET" });
-      const list = (res.data || []).map((item, index) => ({
-        id:                   item.id,
-        sl:                   index + 1,
-        type:                 item.type,
-        bankCode:             item.bankCode,
-        bankHolderName:       item.bankHolderName,
-        bankAcNumber:         item.bankAcNumber         || "—",
-        bankName:             item.bankName             || "—",
-        branchName:           item.branchName           || "—",
-        ifscCode:             item.ifscCode             || "—",
-        branchManagerName:    item.branchManagerName    || "—",
-        branchManagerContact: item.branchManagerContact || "—",
-        status:               item.status,
-        _raw:                 item,
-      }));
+      const list = (res.data || []).map((item, index) => {
+        // Build BS sub-group display: "Sub Group > Sub Group 1 > ..." from levels array
+        const bsLevels = item.bsSubGroupLevels || [];
+        const bsSubGroupDisplay = bsLevels.length
+          ? bsLevels.map((l) => l.subGroupName).join(" > ")
+          : "—";
+        return {
+          id:                   item.id,
+          sl:                   index + 1,
+          type:                 item.type,
+          bankCode:             item.bankCode,
+          bankHolderName:       item.bankHolderName,
+          bankAcNumber:         item.bankAcNumber         || "—",
+          bankName:             item.bankName             || "—",
+          branchName:           item.branchName           || "—",
+          ifscCode:             item.ifscCode             || "—",
+          branchManagerName:    item.branchManagerName    || "—",
+          branchManagerContact: item.branchManagerContact || "—",
+          bsGroup:              item.groupName            || "—",
+          bsSubGroup:           bsSubGroupDisplay,
+          status:               item.status,
+          _raw:                 item,
+        };
+      });
       setRawAccounts(list);
       setFilteredData(list);
     } catch (err) {
@@ -397,6 +406,8 @@ export default function Page() {
     { header: "Bank Name",        accessor: "bankName" },
     { header: "Branch Name",      accessor: "branchName" },
     { header: "IFSC Code",        accessor: "ifscCode" },
+    { header: "BS Group",         accessor: "bsGroup" },
+    { header: "BS Sub Group",     accessor: "bsSubGroup" },
     { header: "Branch Manager",   accessor: "branchManagerName" },
     { header: "Manager Contact",  accessor: "branchManagerContact" },
     { header: "Status",           accessor: "status" },
