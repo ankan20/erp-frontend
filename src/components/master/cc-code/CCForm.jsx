@@ -258,6 +258,24 @@ export default function CCForm({
     <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_380px] items-start">
     <div className="space-y-3 min-w-0">
 
+      {/* HEAD UNDER — fixed: every CC code is Balance Sheet (P&L link is on the right) */}
+      <div className="flex gap-2">
+        <div className={label}>Head Under</div>
+        <div className="flex items-center gap-4 h-[30px] px-1">
+          <label className="flex items-center gap-1.5 select-none cursor-default" title="Every CC code is in the Balance Sheet. Use the Profit & Loss link on the right if it also falls under Profit & Loss.">
+            <input
+              type="radio"
+              name="headUnder"
+              checked
+              onChange={() => {}}
+              aria-label="Head Under: Balance Sheet (fixed)"
+              className="accent-[#1c3a5e] w-3.5 h-3.5"
+            />
+            <span className="text-sm font-semibold text-[#1c3a5e]">Balance Sheet</span>
+          </label>
+        </div>
+      </div>
+
       {/* LEDGER TYPE — every CC code is Balance Sheet */}
       {showLedgerType && (
         <div className="flex gap-2">
