@@ -254,197 +254,176 @@ export default function CCForm({
   const label = "w-[220px] bg-[#d6e6f2] px-3 py-1 border rounded-md shrink-0";
 
   return (
-    <div className="p-4">
-    <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_380px] items-start">
-    <div className="space-y-3 min-w-0">
+    <div className="p-4 max-w-2xl">
+      <div className="space-y-3">
 
-      {/* HEAD UNDER — fixed: every CC code is Balance Sheet (P&L link is on the right) */}
-      <div className="flex gap-2">
-        <div className={label}>Head Under</div>
-        <div className="flex items-center gap-4 h-[30px] px-1">
-          <label className="flex items-center gap-1.5 select-none cursor-default" title="Every CC code is in the Balance Sheet. Use the Profit & Loss link on the right if it also falls under Profit & Loss.">
-            <input
-              type="radio"
-              name="headUnder"
-              checked
-              onChange={() => {}}
-              aria-label="Head Under: Balance Sheet (fixed)"
-              className="accent-[#1c3a5e] w-3.5 h-3.5"
-            />
-            <span className="text-sm font-semibold text-[#1c3a5e]">Balance Sheet</span>
-          </label>
-        </div>
-      </div>
-
-      {/* LEDGER TYPE — every CC code is Balance Sheet */}
-      {showLedgerType && (
-        <div className="flex gap-2">
-          <div className={label}>Ledger Type</div>
-          <div className="flex items-center gap-4 h-[30px] px-1 flex-wrap">
-            {[
-              { label: "Ledger Group", value: false },
-              { label: "Auto Ledger", value: true },
-            ].map(({ label: text, value }) => (
-              <label key={text} className={`flex items-center gap-1.5 select-none ${fieldDisabled ? "cursor-default" : "cursor-pointer"}`}>
-                <input
-                  type="radio"
-                  name="ledgerType"
-                  checked={isNonLedger === value}
-                  disabled={fieldDisabled}
-                  onChange={() => !fieldDisabled && setIsNonLedger(value)}
-                  className="accent-[#1c3a5e] w-3.5 h-3.5"
-                />
-                <span className={`text-sm ${isNonLedger === value ? "font-semibold text-[#1c3a5e]" : "text-gray-600"}`}>
-                  {text}
-                </span>
-              </label>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* CC CODE */}
-      <div className="flex gap-2">
-        <div className="w-[220px] bg-[#d6e6f2] px-3 py-1 border rounded-md">
-          CC Code
-        </div>
-        <Input
-          {...register("ccCode")}
-          disabled={fieldDisabled}
-          className={`${getInputClass(errors.ccCode, fieldDisabled)} w-[200px]`}
-        />
-      </div>
-
-      {/* CC NAME */}
-      <div className="flex gap-2">
-        <div className="w-[220px] bg-[#d6e6f2] px-3 py-1 border rounded-md">
-          CC Name
-        </div>
-        <Input
-          {...register("ccName")}
-          disabled={fieldDisabled}
-          className={`flex-1 ${getInputClass(errors.ccName, fieldDisabled)}`}
-        />
-      </div>
-
-      {/* CATEGORY */}
-      <div className="flex gap-2">
-        <div className="w-[220px] bg-[#d6e6f2] px-3 py-1 border rounded-md">
-          Category
-        </div>
-        <select
-          {...register("categoryId")}
-          disabled={fieldDisabled}
-          className={`flex-1 ${getInputClass(errors.categoryId, fieldDisabled)} disabled:cursor-not-allowed rounded-md`}
-        >
-          <option value="">Select</option>
-          {categories.map((c) => (
-            <option key={c.value} value={c.value}>
-              {c.label}
-            </option>
-          ))}
-        </select>
-      </div>
-
-      {/* GROUP — Balance Sheet groups */}
-      <div className="flex gap-2">
-        <div className="w-[220px] bg-[#d6e6f2] px-3 py-1 border rounded-md">
-          Group
-        </div>
-        <select
-          {...groupField}
-          onChange={onGroupChange}
-          disabled={fieldDisabled}
-          className={`flex-1 ${getInputClass(errors.groupId, fieldDisabled)} disabled:cursor-not-allowed rounded-md`}
-        >
-          <option value="">Select Balance Sheet group</option>
-          {balanceSheetGroups.map((g) => (
-            <option key={g.groupId} value={g.groupId}>
-              {g.groupName}
-              {g.headUnder === PL ? " (Profit & Loss – older record)" : ""}
-            </option>
-          ))}
-        </select>
-      </div>
-
-      {/* SUB GROUP -> SUB GROUP 1 -> SUB GROUP 2 (each list depends on the one above) */}
-      <SubGroupCascade
-        groupId={selectedGroupId}
-        path={subGroupPath}
-        onChange={applySubGroupPath}
-        disabled={fieldDisabled}
-        labelClassName="w-[220px] bg-[#d6e6f2] px-3 py-1 border rounded-md"
-      />
-    </div>
-
-    {/* RIGHT SIDE — PROFIT & LOSS LINK */}
-    <aside className="rounded-lg border border-[#b5c7d8] bg-white p-3 space-y-3" aria-label="Profit and Loss link">
-      <div>
-        <div className="text-[14px] font-semibold text-[#144664]">Profit &amp; Loss link</div>
-        <p className="text-[12px] text-gray-600 mt-0.5">
-          This CC code is in the Balance Sheet. Does it also fall under Profit &amp; Loss?
-        </p>
-      </div>
-
-      <div className="flex items-center justify-between gap-3 rounded-md bg-[#f3f7ff] px-3 py-2">
-        <span className="text-sm font-medium text-[#144664]">Also in Profit &amp; Loss</span>
-        <button
-          type="button"
-          role="switch"
-          aria-checked={plLinked}
-          aria-label="Also in Profit and Loss"
-          disabled={fieldDisabled}
-          onClick={() => onPlToggle(!plLinked)}
-          className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${
-            plLinked ? "bg-[#1c7c3a]" : "bg-gray-300"
-          }`}
-        >
-          <span className={`inline-block h-5 w-5 rounded-full bg-white shadow transition-transform ${plLinked ? "translate-x-5" : "translate-x-0.5"}`} />
-          <span className="sr-only">{plLinked ? "Yes" : "No"}</span>
-        </button>
-      </div>
-      <div className="text-[12px] text-gray-600 -mt-1 px-1">{plLinked ? "Yes – choose where it shows in Profit & Loss." : "No – Balance Sheet only."}</div>
-
-      {plLinked && (
-        <div className="space-y-3">
-          <div className="flex flex-col gap-1">
-            <div className="bg-[#d6e6f2] px-3 py-1 border rounded-md text-sm">Profit &amp; Loss Group</div>
-            <select
-              value={plGroupId}
-              onChange={(e) => onPlGroupChange(e.target.value)}
-              disabled={fieldDisabled}
-              className={`w-full ${getInputClass(plLinked && !plGroupId ? { message: "Required" } : null, fieldDisabled)} disabled:cursor-not-allowed rounded-md`}
-            >
-              <option value="">{profitLossGroups.length ? "Select Profit & Loss group" : "No Profit & Loss group found"}</option>
-              {profitLossGroups.map((g) => (
-                <option key={g.groupId} value={g.groupId}>
-                  {g.groupName}
-                </option>
+        {/* LEDGER TYPE */}
+        {showLedgerType && (
+          <div className="flex gap-2">
+            <div className={label}>Ledger Type</div>
+            <div className="flex items-center gap-4 h-[30px] px-1 flex-wrap">
+              {[
+                { label: "Ledger Group", value: false },
+                { label: "Auto Ledger", value: true },
+              ].map(({ label: text, value }) => (
+                <label key={text} className={`flex items-center gap-1.5 select-none ${fieldDisabled ? "cursor-default" : "cursor-pointer"}`}>
+                  <input
+                    type="radio"
+                    name="ledgerType"
+                    checked={isNonLedger === value}
+                    disabled={fieldDisabled}
+                    onChange={() => !fieldDisabled && setIsNonLedger(value)}
+                    className="accent-[#1c3a5e] w-3.5 h-3.5"
+                  />
+                  <span className={`text-sm ${isNonLedger === value ? "font-semibold text-[#1c3a5e]" : "text-gray-600"}`}>
+                    {text}
+                  </span>
+                </label>
               ))}
-            </select>
+            </div>
           </div>
+        )}
 
-          {/* P&L SUB GROUP -> SUB GROUP 1 -> SUB GROUP 2 */}
-          <div className="space-y-3 [&>div>div]:flex-col [&>div>div]:gap-1">
+        {/* CC CODE */}
+        <div className="flex gap-2">
+          <div className={label}>CC Code</div>
+          <Input
+            {...register("ccCode")}
+            disabled={fieldDisabled}
+            className={`${getInputClass(errors.ccCode, fieldDisabled)} w-[200px]`}
+          />
+        </div>
+
+        {/* CC NAME */}
+        <div className="flex gap-2">
+          <div className={label}>CC Name</div>
+          <Input
+            {...register("ccName")}
+            disabled={fieldDisabled}
+            className={`flex-1 ${getInputClass(errors.ccName, fieldDisabled)}`}
+          />
+        </div>
+
+        {/* CATEGORY */}
+        <div className="flex gap-2">
+          <div className={label}>Category</div>
+          <select
+            {...register("categoryId")}
+            disabled={fieldDisabled}
+            className={`flex-1 ${getInputClass(errors.categoryId, fieldDisabled)} disabled:cursor-not-allowed rounded-md`}
+          >
+            <option value="">Select</option>
+            {categories.map((c) => (
+              <option key={c.value} value={c.value}>
+                {c.label}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        {/* ── BALANCE SHEET GROUP SECTION ── */}
+        <div className="pt-2">
+          <div className="text-[13px] font-semibold text-[#1c3a5e] uppercase tracking-wide pb-1 border-b border-[#1c3a5e] mb-3">
+            Balance Sheet Group
+          </div>
+          <div className="space-y-3">
+            {/* GROUP */}
+            <div className="flex gap-2">
+              <div className={label}>Group</div>
+              <select
+                {...groupField}
+                onChange={onGroupChange}
+                disabled={fieldDisabled}
+                className={`flex-1 ${getInputClass(errors.groupId, fieldDisabled)} disabled:cursor-not-allowed rounded-md`}
+              >
+                <option value="">Select group</option>
+                {balanceSheetGroups.map((g) => (
+                  <option key={g.groupId} value={g.groupId}>
+                    {g.groupName}
+                    {g.headUnder === PL ? " (Profit & Loss – older record)" : ""}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {/* SUB GROUP CASCADE */}
             <SubGroupCascade
-              groupId={plGroupId}
-              path={plSubGroupPath}
-              onChange={setPlSubGroupPath}
+              groupId={selectedGroupId}
+              path={subGroupPath}
+              onChange={applySubGroupPath}
               disabled={fieldDisabled}
-              labelClassName="bg-[#d6e6f2] px-3 py-1 border rounded-md text-sm"
+              labelClassName={label}
             />
           </div>
+        </div>
 
-          {plGroupName && (
-            <div className="rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 text-[12px] text-emerald-900">
-              Shows in Profit &amp; Loss under <b>{plGroupName}</b>
-              {plSubGroupPath.length > 0 ? " and the selected sub group." : "."}
+        {/* ── PROFIT & LOSS GROUP SECTION ── */}
+        <div className="pt-2">
+          {/* Toggle row */}
+          <div className="flex items-center justify-between gap-3 rounded-md bg-[#f3f7ff] border border-[#b5c7d8] px-3 py-2 mb-3">
+            <span className="text-[13px] font-semibold text-[#1c3a5e] uppercase tracking-wide">
+              Also in Profit &amp; Loss
+            </span>
+            <button
+              type="button"
+              role="switch"
+              aria-checked={plLinked}
+              aria-label="Also in Profit and Loss"
+              disabled={fieldDisabled}
+              onClick={() => onPlToggle(!plLinked)}
+              className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${
+                plLinked ? "bg-[#1c7c3a]" : "bg-gray-300"
+              }`}
+            >
+              <span className={`inline-block h-5 w-5 rounded-full bg-white shadow transition-transform ${plLinked ? "translate-x-5" : "translate-x-0.5"}`} />
+              <span className="sr-only">{plLinked ? "Yes" : "No"}</span>
+            </button>
+          </div>
+
+          {plLinked && (
+            <div className="space-y-3">
+              <div className="text-[13px] font-semibold text-[#1c3a5e] uppercase tracking-wide pb-1 border-b border-[#1c3a5e]">
+                Profit &amp; Loss Group
+              </div>
+
+              {/* P&L GROUP */}
+              <div className="flex gap-2">
+                <div className={label}>Group</div>
+                <select
+                  value={plGroupId}
+                  onChange={(e) => onPlGroupChange(e.target.value)}
+                  disabled={fieldDisabled}
+                  className={`flex-1 ${getInputClass(plLinked && !plGroupId ? { message: "Required" } : null, fieldDisabled)} disabled:cursor-not-allowed rounded-md`}
+                >
+                  <option value="">{profitLossGroups.length ? "Select group" : "No Profit & Loss group found"}</option>
+                  {profitLossGroups.map((g) => (
+                    <option key={g.groupId} value={g.groupId}>
+                      {g.groupName}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* P&L SUB GROUP CASCADE */}
+              <SubGroupCascade
+                groupId={plGroupId}
+                path={plSubGroupPath}
+                onChange={setPlSubGroupPath}
+                disabled={fieldDisabled}
+                labelClassName={label}
+              />
+
+              {plGroupName && (
+                <div className="rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 text-[12px] text-emerald-900">
+                  Shows in Profit &amp; Loss under <b>{plGroupName}</b>
+                  {plSubGroupPath.length > 0 ? " and the selected sub group." : "."}
+                </div>
+              )}
             </div>
           )}
         </div>
-      )}
-    </aside>
-    </div>
+
+      </div>
 
       {/* BUTTONS */}
       <div className="flex justify-end gap-3 mt-10">
