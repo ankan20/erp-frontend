@@ -45,6 +45,9 @@ export default function Page() {
           ccSubGroup0: c.ccSubGroupLevels?.[0]?.subGroupName || "",
           ccSubGroup1: c.ccSubGroupLevels?.[1]?.subGroupName || "",
           ccSubGroup2: c.ccSubGroupLevels?.[2]?.subGroupName || "",
+          plLink: c.plLinked
+            ? [c.plGroupName, c.plSubGroupPath].filter(Boolean).join(" › ")
+            : "—",
           ccName: c.ccName,
         }));
 
@@ -86,6 +89,7 @@ export default function Page() {
     { header: "Sub Group", accessor: "ccSubGroup0" },
     { header: "Sub Group 1", accessor: "ccSubGroup1" },
     { header: "Sub Group 2", accessor: "ccSubGroup2" },
+    { header: "Profit & Loss", accessor: "plLink" },
   ];
 
   if (loading) {

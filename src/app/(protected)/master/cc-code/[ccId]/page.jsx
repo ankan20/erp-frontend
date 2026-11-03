@@ -44,6 +44,9 @@ export default function Page() {
             subGroupPath: (d.ccSubGroupLevels || []).map((l) => l.subGroupId),
             headUnder: d.headUnder ?? null,
             isNonLedger: d.isNonLedger !== undefined ? d.isNonLedger : null,
+            plLinked: !!d.plLinked,
+            plGroupId: d.plGroupId ? String(d.plGroupId) : "",
+            plSubGroupPath: (d.plSubGroupLevels || []).map((l) => l.subGroupId),
           };
           setData(respdata);
         } catch {
