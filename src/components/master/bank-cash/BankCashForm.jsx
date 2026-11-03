@@ -17,6 +17,7 @@ import { apiRequest } from "@/lib/apiClient";
 import { API_ENDPOINTS } from "@/config/api.config";
 import { getInputClass } from "@/lib/formStyles";
 import { useRouter } from "next/navigation";
+import SubGroupCascade from "@/components/master/cc-code/SubGroupCascade";
 
 const schema = z.object({
   type:                   z.enum(["BANK", "CASH"]),
@@ -171,6 +172,10 @@ export default function BankCashForm({ mode = "create", disabled = false, record
   const [allProjects, setAllProjects]       = useState([]);
   const [loadingProjects, setLoadingProjects] = useState(false);
   const [linkedProjectIds, setLinkedProjectIds] = useState([]);
+  // Balance Sheet group cascade
+  const [bsGroups, setBsGroups]         = useState([]);
+  const [bsGroupId, setBsGroupId]       = useState("");
+  const [bsSubGroupPath, setBsSubGroupPath] = useState([]);
   const router = useRouter();
 
   const {
@@ -197,6 +202,16 @@ export default function BankCashForm({ mode = "create", disabled = false, record
       .finally(() => setLoadingProjects(false));
   }, []);
 
+  // Load Balance Sheet groups (exclude Profit & Loss groups)
+  useEffect(() => {
+    apiRequest({ url: API_ENDPOINTS.MASTER.GET_ALL_GROUP })
+      .then((res) => {
+        const all = res?.data || [];
+        setBsGroups(all.filter((g) => g.headUnder !== "Profit & Loss"));
+      })
+      .catch(() => {});
+  }, []);
+
   // Load initial data for edit/view
   useEffect(() => {
     if ((mode === "edit" || mode === "view") && initialData) {
@@ -215,6 +230,8 @@ export default function BankCashForm({ mode = "create", disabled = false, record
         branchManagerMailId:  initialData.branchManagerMailId || "",
       });
       setLinkedProjectIds((initialData.projects || []).map((p) => p.id));
+      setBsGroupId(initialData.groupId ? String(initialData.groupId) : "");
+      setBsSubGroupPath((initialData.bsSubGroupLevels || []).map((l) => l.subGroupId));
     }
   }, [initialData, mode, reset]);
 
@@ -235,6 +252,8 @@ export default function BankCashForm({ mode = "create", disabled = false, record
         branchManagerMailId:  initialData.branchManagerMailId || "",
       });
       setLinkedProjectIds((initialData.projects || []).map((p) => p.id));
+      setBsGroupId(initialData.groupId ? String(initialData.groupId) : "");
+      setBsSubGroupPath((initialData.bsSubGroupLevels || []).map((l) => l.subGroupId));
     }
     setIsEditing(false);
   };
@@ -257,7 +276,9 @@ export default function BankCashForm({ mode = "create", disabled = false, record
         branchManagerName:    v.branchManagerName    || undefined,
         branchManagerContact: v.branchManagerContact || undefined,
         branchManagerMailId:  v.branchManagerMailId  || undefined,
-        projectIds:           linkedProjectIds,
+        groupId:    bsGroupId ? Number(bsGroupId) : null,
+        subGroupId: bsSubGroupPath.length ? bsSubGroupPath[bsSubGroupPath.length - 1] : null,
+        projectIds: linkedProjectIds,
       };
 
       if (mode === "create") {
@@ -387,6 +408,36 @@ export default function BankCashForm({ mode = "create", disabled = false, record
           </div>
         </div>
       )}
+
+      {/* BALANCE SHEET GROUP */}
+      <div>
+        <div className="text-[13px] font-semibold text-[#1c3a5e] uppercase tracking-wide pb-1 border-b border-[#1c3a5e] mb-3">
+          Balance Sheet Group
+        </div>
+        <div className="space-y-1">
+          <div className="flex gap-2 items-center">
+            <div className={label}>Group</div>
+            <select
+              value={bsGroupId}
+              onChange={(e) => { setBsGroupId(e.target.value); setBsSubGroupPath([]); }}
+              disabled={fieldDisabled}
+              className={`flex-1 h-[30px] text-[13px] border rounded-sm px-2 disabled:bg-[#edf8ed] disabled:border-[#7fa37f] disabled:cursor-not-allowed bg-white`}
+            >
+              <option value="">Select group</option>
+              {bsGroups.map((g) => (
+                <option key={g.groupId} value={g.groupId}>{g.groupName}</option>
+              ))}
+            </select>
+          </div>
+          <SubGroupCascade
+            groupId={bsGroupId}
+            path={bsSubGroupPath}
+            onChange={setBsSubGroupPath}
+            disabled={fieldDisabled}
+            labelClassName={label}
+          />
+        </div>
+      </div>
 
       {/* LINKED PROJECTS */}
       <ProjectSelect
