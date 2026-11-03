@@ -61,6 +61,7 @@ export const API_ENDPOINTS = {
     GET_CC_CODE_BY_ID: "/master/cc-code",
     CREATE_CC_CODE: "/master/cc-code/create",
     UPDATE_CC_CODE_BY_ID: "/master/cc-code/update",
+    DELETE_CC_CODE_BY_ID: "/master/cc-code/delete", // /{ccId} DELETE — this CC code only (no cascade)
     //ledger
     GET_ALL_LEDGER: "/master/ledger/list",
     CREATE_LEDGER: "/master/ledger/create",

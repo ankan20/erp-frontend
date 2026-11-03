@@ -399,7 +399,7 @@ export default function DataTable({
                   <th
                     key={index}
                     style={width ? { width, minWidth: width, maxWidth: width } : {}}
-                    className="border border-[#2e5a72] px-2 py-1 font-semibold whitespace-nowrap text-white text-left"
+                    className={`border border-[#2e5a72] px-2 py-1 font-semibold whitespace-nowrap text-white text-left${col.thClass ? ` ${col.thClass}` : ""}`}
                   >
                     <div className="flex items-center justify-between gap-1">
 
@@ -557,6 +557,7 @@ export default function DataTable({
                           border border-[#e6e4e4] px-2 py-1 ${col.action ? "" : "cursor-pointer"}
                           ${getAlignClass(col.align)}
                           ${colIndex === 1 && !col.action ? "text-blue-600" : ""}
+                          ${col.tdClass || ""}
                         `}
                       >
                         {(() => {

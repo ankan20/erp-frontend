@@ -102,23 +102,28 @@ export default function Page() {
     setFilteredData(filtered);
   };
 
+  const bsThClass = "bg-[#15607a]";
+  const bsTdClass = "bg-[#dbeeff]";
+  const plThClass = "bg-[#1a6b3a]";
+  const plTdClass = "bg-[#daf5e3]";
+
   const bsCols = bsExpanded
     ? [
-        { header: <ExpandableHeader label="BS Group" expanded={bsExpanded} onToggle={() => setBsExpanded(false)} />, accessor: "bsGroup" },
-        { header: "Sub Group",   accessor: "bsLevel0" },
-        { header: "Sub Group 1", accessor: "bsLevel1" },
-        { header: "Sub Group 2", accessor: "bsLevel2" },
+        { header: <ExpandableHeader label="BS Group" expanded={bsExpanded} onToggle={() => setBsExpanded(false)} />, accessor: "bsGroup", thClass: bsThClass, tdClass: bsTdClass },
+        { header: "Sub Group",   accessor: "bsLevel0", thClass: bsThClass, tdClass: bsTdClass },
+        { header: "Sub Group 1", accessor: "bsLevel1", thClass: bsThClass, tdClass: bsTdClass },
+        { header: "Sub Group 2", accessor: "bsLevel2", thClass: bsThClass, tdClass: bsTdClass },
       ]
-    : [{ header: <ExpandableHeader label="Balance Sheet" expanded={bsExpanded} onToggle={() => setBsExpanded(true)} />, accessor: "bsGroup" }];
+    : [{ header: <ExpandableHeader label="Balance Sheet" expanded={bsExpanded} onToggle={() => setBsExpanded(true)} />, accessor: "bsGroup", thClass: bsThClass, tdClass: bsTdClass }];
 
   const plCols = plExpanded
     ? [
-        { header: <ExpandableHeader label="P&L Group" expanded={plExpanded} onToggle={() => setPlExpanded(false)} />, accessor: "plGroup" },
-        { header: "Sub Group",   accessor: "plLevel0" },
-        { header: "Sub Group 1", accessor: "plLevel1" },
-        { header: "Sub Group 2", accessor: "plLevel2" },
+        { header: <ExpandableHeader label="P&L Group" expanded={plExpanded} onToggle={() => setPlExpanded(false)} />, accessor: "plGroup", thClass: plThClass, tdClass: plTdClass },
+        { header: "Sub Group",   accessor: "plLevel0", thClass: plThClass, tdClass: plTdClass },
+        { header: "Sub Group 1", accessor: "plLevel1", thClass: plThClass, tdClass: plTdClass },
+        { header: "Sub Group 2", accessor: "plLevel2", thClass: plThClass, tdClass: plTdClass },
       ]
-    : [{ header: <ExpandableHeader label="Profit & Loss" expanded={plExpanded} onToggle={() => setPlExpanded(true)} />, accessor: "plGroup" }];
+    : [{ header: <ExpandableHeader label="Profit & Loss" expanded={plExpanded} onToggle={() => setPlExpanded(true)} />, accessor: "plGroup", thClass: plThClass, tdClass: plTdClass }];
 
   const columns = [
     { header: "Sl. no",   accessor: "sl" },

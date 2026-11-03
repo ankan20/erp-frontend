@@ -7,10 +7,21 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { Input } from "@/components/ui/input";
 import SaveButton from "@/components/common/SaveButton";
 import EditButton from "@/components/common/EditButton";
+import { useRouter } from "next/navigation";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { apiRequest } from "@/lib/apiClient";
 import { API_ENDPOINTS } from "@/config/api.config";
 import { toast } from "sonner";
-import { Loader2 } from "lucide-react";
+import { Loader2, Trash2 } from "lucide-react";
 import { CATEGORY_OPTIONS } from "@/config/categoryOptions.config";
 import { getInputClass } from "@/lib/formStyles";
 import SubGroupCascade from "@/components/master/cc-code/SubGroupCascade";
@@ -34,6 +45,10 @@ export default function CCForm({
   // selected sub group ids from top level down, e.g. [4, 9, 15]
   const [subGroupPath, setSubGroupPath] = useState(data?.subGroupPath || []);
   const [loading, setLoading] = useState(true);
+  const router = useRouter();
+  // delete confirmation (same pop-up as other master pages)
+  const [confirmDelete, setConfirmDelete] = useState(false);
+  const [deleteLoading, setDeleteLoading] = useState(false);
   const [isEditing, setIsEditing] = useState(mode === "create");
   // Ledger type (Balance Sheet): false = Ledger Group, true = Auto Ledger
   const [isNonLedger, setIsNonLedger] = useState(
@@ -241,6 +256,24 @@ export default function CCForm({
     setIsEditing(false);
   };
 
+  // deletes only this CC code record (no cascade)
+  const handleDeleteConfirm = async () => {
+    try {
+      setDeleteLoading(true);
+      const res = await apiRequest({
+        url: `${API_ENDPOINTS.MASTER.DELETE_CC_CODE_BY_ID}/${ccId}`,
+        method: "DELETE",
+      });
+      toast.success(res?.message || "CC Code deleted");
+      setConfirmDelete(false);
+      router.push("/master/cc-code");
+    } catch (err) {
+      toast.error(err.message || "Failed to delete CC Code");
+    } finally {
+      setDeleteLoading(false);
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex justify-center items-center h-75">
@@ -427,6 +460,18 @@ export default function CCForm({
 
       {/* BUTTONS */}
       <div className="flex justify-end gap-3 mt-10">
+        {mode === "edit" && !isViewMode && ccId && (
+          <button
+            type="button"
+            onClick={() => setConfirmDelete(true)}
+            disabled={isSubmitting || isEditing}
+            title={isEditing ? "Finish or cancel editing first" : "Delete this CC Code"}
+            className="mr-auto inline-flex items-center gap-1.5 rounded-md border border-red-300 bg-white px-4 py-1 text-sm font-medium text-red-700 hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            <Trash2 className="h-4 w-4" /> Delete
+          </button>
+        )}
+
         {!isViewMode && (
           <SaveButton
             onClick={() => handleSubmit(onSubmit)()}
@@ -444,6 +489,34 @@ export default function CCForm({
           </EditButton>
         )}
       </div>
+
+      {/* Delete confirmation */}
+      <AlertDialog open={confirmDelete} onOpenChange={(v) => { if (!v && !deleteLoading) setConfirmDelete(false); }}>
+        <AlertDialogContent className="max-w-sm">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="text-[14px]">Delete CC Code</AlertDialogTitle>
+            <AlertDialogDescription className="text-[12px]">
+              Are you sure you want to delete{" "}
+              <span className="font-semibold text-black">
+                &quot;{getValues("ccCode")} – {getValues("ccName")}&quot;
+              </span>
+              ? Only this CC code is deleted. This cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deleteLoading} className="text-[12px] h-8">
+              Cancel
+            </AlertDialogCancel>
+            <AlertDialogAction
+              disabled={deleteLoading}
+              onClick={(e) => { e.preventDefault(); handleDeleteConfirm(); }}
+              className="bg-red-600 hover:bg-red-700 text-[12px] h-8"
+            >
+              {deleteLoading ? "Deleting..." : "Delete"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
