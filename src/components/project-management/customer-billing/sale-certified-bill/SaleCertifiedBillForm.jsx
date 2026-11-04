@@ -441,10 +441,10 @@ export default function SaleCertifiedBillForm({ mode = "create", billId, onAfter
         mode === "create" ? "Certified Bill created successfully" : "Certified Bill updated successfully",
         { id: tid },
       );
+      if (res.data?.erpNo)    setErpNo(res.data.erpNo);
       if (mode === "create") {
         const newId = res.data?.id;
         if (res.data?.billingUuid) setBillUuid(res.data.billingUuid);
-        if (res.data?.erpNo)       setErpNo(res.data.erpNo);
         if (newId) setTimeout(() => router.push(`/project-management/customer-billing/sale-bill-certified/${newId}`), 400);
       }
     } catch (err) {
