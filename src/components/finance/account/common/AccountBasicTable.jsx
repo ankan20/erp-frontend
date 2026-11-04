@@ -20,6 +20,8 @@ export default function AccountBasicTable({
   disabled     = false,
   itemsLoading = false,
   emptyText    = "Select a certified bill to load items",
+  sources      = [],     // source metadata for badge labels
+  sourceColors = [],     // tailwind badge classes per source index
 }) {
   const { tableRef } = useColumnResize();
   const items      = watch("items") || [];
@@ -43,6 +45,9 @@ export default function AccountBasicTable({
               <th className="border border-gray-300 px-2 py-1.5 text-left  font-semibold">Name &amp; Description</th>
               <th className="border border-gray-300 px-2 py-1.5 text-left  font-semibold w-[88px]">HSN/SAC</th>
               <th className="border border-gray-300 px-2 py-1.5 text-right font-semibold w-[115px] min-w-[120px]">Basic Amount</th>
+              {sources.length > 1 && (
+                <th className="border border-gray-300 px-2 py-1.5 text-center font-semibold w-[80px]">Source</th>
+              )}
             </tr>
           </thead>
           <tbody>
@@ -54,61 +59,77 @@ export default function AccountBasicTable({
               </tr>
             ) : itemFields.length === 0 ? (
               <tr>
-                <td colSpan={5} className="border border-gray-200 py-6 text-center text-[#bbb] italic">
+                <td colSpan={sources.length > 1 ? 6 : 5} className="border border-gray-200 py-6 text-center text-[#bbb] italic">
                   {emptyText}
                 </td>
               </tr>
             ) : (
-              itemFields.map((field, idx) => (
-                <tr key={field.id} className={idx % 2 === 0 ? "bg-white" : "bg-[#f7f9fc]"}>
-                  <td className="border border-gray-200 px-2 py-[3px] text-center align-top pt-[6px]">{idx + 1}</td>
-                  <td className="border border-gray-200 px-2 py-[3px] align-top pt-[6px]">{watch(`items.${idx}.ccCode`)}</td>
+              itemFields.map((field, idx) => {
+                const sourceIdx  = watch(`items.${idx}.sourceIndex`);
+                const badgeColor = sourceIdx != null && sourceColors[sourceIdx % sourceColors.length];
+                const sourceLabel = sourceIdx != null ? `S${sourceIdx + 1}` : null;
 
-                  {/* Combined CC Name + editable Description */}
-                  <td className="border border-gray-200 p-0 min-w-[160px]">
-                    <div className="px-2 pt-[5px] pb-[2px] text-[12px] font-medium leading-snug text-gray-800">
-                      {watch(`items.${idx}.ccName`)}
-                    </div>
-                    <Controller
-                      name={`items.${idx}.description`}
-                      control={control}
-                      render={({ field: f }) => (
-                        <ExpandableTextCell
-                          value={f.value || ""}
-                          onChange={disabled ? undefined : f.onChange}
-                          disabled={disabled}
-                          placeholder="Enter description"
-                          label="Description"
-                          textSize="text-[11px]"
-                          className="text-gray-500"
-                        />
-                      )}
-                    />
-                  </td>
+                return (
+                  <tr key={field.id} className={idx % 2 === 0 ? "bg-white" : "bg-[#f7f9fc]"}>
+                    <td className="border border-gray-200 px-2 py-[3px] text-center align-top pt-[6px]">{idx + 1}</td>
+                    <td className="border border-gray-200 px-2 py-[3px] align-top pt-[6px]">{watch(`items.${idx}.ccCode`)}</td>
 
-                  <td className="border border-gray-200 p-0.5 align-top">
-                    <input
-                      type="text"
-                      {...register(`items.${idx}.hsnSac`)}
-                      disabled={disabled}
-                      placeholder="HSN/SAC"
-                      className={`w-full h-[26px] text-[12px] px-1.5 outline-none rounded-sm border-0 ${
-                        disabled
-                          ? "bg-[#edf8ed] text-gray-500"
-                          : "bg-transparent focus:bg-white focus:border focus:border-[#93b5cc]"
-                      }`}
-                    />
-                  </td>
-                  <td className="border border-gray-200 px-2 py-[3px] text-right font-medium align-top pt-[6px]">
-                    {fmt(watch(`items.${idx}.basicAmount`))}
-                  </td>
-                </tr>
-              ))
+                    {/* Combined CC Name + editable Description */}
+                    <td className="border border-gray-200 p-0 min-w-[160px]">
+                      <div className="px-2 pt-[5px] pb-[2px] text-[12px] font-medium leading-snug text-gray-800">
+                        {watch(`items.${idx}.ccName`)}
+                      </div>
+                      <Controller
+                        name={`items.${idx}.description`}
+                        control={control}
+                        render={({ field: f }) => (
+                          <ExpandableTextCell
+                            value={f.value || ""}
+                            onChange={disabled ? undefined : f.onChange}
+                            disabled={disabled}
+                            placeholder="Enter description"
+                            label="Description"
+                            textSize="text-[11px]"
+                            className="text-gray-500"
+                          />
+                        )}
+                      />
+                    </td>
+
+                    <td className="border border-gray-200 p-0.5 align-top">
+                      <input
+                        type="text"
+                        {...register(`items.${idx}.hsnSac`)}
+                        disabled={disabled}
+                        placeholder="HSN/SAC"
+                        className={`w-full h-[26px] text-[12px] px-1.5 outline-none rounded-sm border-0 ${
+                          disabled
+                            ? "bg-[#edf8ed] text-gray-500"
+                            : "bg-transparent focus:bg-white focus:border focus:border-[#93b5cc]"
+                        }`}
+                      />
+                    </td>
+                    <td className="border border-gray-200 px-2 py-[3px] text-right font-medium align-top pt-[6px]">
+                      {fmt(watch(`items.${idx}.basicAmount`))}
+                    </td>
+                    {sources.length > 1 && (
+                      <td className="border border-gray-200 px-1 py-[3px] text-center align-top pt-[6px]">
+                        {sourceLabel && (
+                          <span className={`inline-block text-[10px] font-semibold px-1.5 py-0.5 rounded border ${badgeColor}`}>
+                            {sourceLabel}
+                          </span>
+                        )}
+                      </td>
+                    )}
+                  </tr>
+                );
+              })
             )}
             {/* Total row */}
             <tr className={`${ACC.tableHead} font-semibold`}>
               <td colSpan={4} className="border border-gray-300 px-2 py-1.5 text-right text-[12px]">TOTAL</td>
               <td className="border border-gray-300 px-2 py-1.5 text-right text-[12px]">{fmt(basicTotal)}</td>
+              {sources.length > 1 && <td className="border border-gray-300" />}
             </tr>
           </tbody>
         </table>

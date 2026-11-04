@@ -46,6 +46,8 @@ export default function SaleBillRightPanel({
   itemsLoading   = false,
   itemFields     = [],
   actualGstTotal = null,
+  sources        = [],
+  sourceColors   = [],
 }) {
   // ── Totals (shared between GST table and Summary) ──────────────────────────
   const items    = watch("items")    || [];
@@ -84,6 +86,8 @@ export default function SaleBillRightPanel({
         control={control}
         disabled={disabled}
         itemsLoading={itemsLoading}
+        sources={sources}
+        sourceColors={sourceColors}
       />
 
       <AccountGstTable
