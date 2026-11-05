@@ -77,5 +77,32 @@ export const apiRequest = async ({
   // tell other open windows that data changed (create / update / delete)
   notifyDataChanged(method, url);
 
+  // auto-publish audit meta for single-record GET responses
+  if (
+    method === "GET" &&
+    typeof window !== "undefined" &&
+    Array.isArray(result?.data) &&
+    result.data.length === 1
+  ) {
+    const r = result.data[0] || {};
+    // accept both camelCase and snake_case field names
+    const createdAt  = r.createdAt  || r.created_at  || null;
+    const updatedAt  = r.updatedAt  || r.updated_at  || null;
+    const createdBy  = r.createdBy  || r.created_by  || null;
+    const updatedBy  = r.updatedBy  || r.updated_by  || null;
+    if (createdAt || updatedAt || createdBy || updatedBy) {
+      window.dispatchEvent(
+        new CustomEvent("erp:recordmeta", {
+          detail: {
+            createdAt: typeof createdAt === "string" ? createdAt : null,
+            updatedAt: typeof updatedAt === "string" ? updatedAt : null,
+            createdBy: typeof createdBy === "string" ? createdBy : null,
+            updatedBy: typeof updatedBy === "string" ? updatedBy : null,
+          },
+        })
+      );
+    }
+  }
+
   return result;
 };

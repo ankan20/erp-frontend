@@ -14,6 +14,8 @@ import SplitWorkspace from "@/components/split-view/SplitWorkspace";
 import PaneBridge from "@/components/split-view/PaneBridge";
 import DataSyncBoundary from "@/components/split-view/DataSyncBoundary";
 import { useIsInsidePane } from "@/components/split-view/splitStore";
+import { RecordMetaProvider } from "@/context/RecordMetaContext";
+import RecordMeta from "@/components/common/RecordMeta";
 
 export default function ProtectedLayout({ children }) {
   const pathname = usePathname();
@@ -23,6 +25,7 @@ export default function ProtectedLayout({ children }) {
   const inPane = useIsInsidePane();
 
   return (
+    <RecordMetaProvider>
     <NavigationHistoryProvider>
     <ProtectedLayoutAuth>
       <>
@@ -69,7 +72,10 @@ export default function ProtectedLayout({ children }) {
           </Suspense>
         )}
       </>
+      {/* audit badge — fixed bottom-right, shows on hover */}
+      <RecordMeta />
     </ProtectedLayoutAuth>
     </NavigationHistoryProvider>
+    </RecordMetaProvider>
   );
 }
