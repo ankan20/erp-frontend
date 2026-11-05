@@ -347,7 +347,7 @@ export default function LedgerFormNew({
   // ── Load project list ─────────────────────────────────────────────────────
   useEffect(() => {
     setLoadingProjects(true);
-    apiRequest({ url: API_ENDPOINTS.SETTING.GET_ALL_PROJECTS, method: "GET" })
+    apiRequest({ url: API_ENDPOINTS.SETTINGS.GET_ALL_PROJECTS, method: "GET" })
       .then((res) => {
         const list = Array.isArray(res?.data) ? res.data : [];
         setAllProjects(list.map((p) => ({ id: p.id, projectCode: p.projectCode || p.project_code, projectName: p.projectName || p.project_name })));
