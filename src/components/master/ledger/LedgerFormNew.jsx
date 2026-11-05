@@ -6,7 +6,7 @@ import { Controller } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
-import { ChevronDown, Loader2, Search, X } from "lucide-react";
+import { Check, ChevronDown, Loader2, Search, X } from "lucide-react";
 
 import SaveButton from "@/components/common/SaveButton";
 import PhoneInput from "@/components/common/PhoneInput";
@@ -153,6 +153,107 @@ function Section({ title, children }) {
   );
 }
 
+// ─── Project multi-select ─────────────────────────────────────────────────────
+
+function ProjectChip({ text, onRemove, disabled }) {
+  return (
+    <span className="inline-flex items-center gap-1 text-[11px] bg-blue-50 text-blue-700 border border-blue-200 rounded-full px-2.5 py-0.5 font-medium">
+      {text}
+      {!disabled && (
+        <button type="button" onClick={onRemove} className="text-blue-400 hover:text-red-500 transition-colors">
+          <X size={10} />
+        </button>
+      )}
+    </span>
+  );
+}
+
+function ProjectSelect({ value, onChange, disabled, allProjects, loading }) {
+  const [search, setSearch] = useState("");
+
+  const filtered = search.trim()
+    ? allProjects.filter((p) =>
+        [p.projectCode, p.projectName].some((f) => f?.toLowerCase().includes(search.toLowerCase()))
+      )
+    : allProjects;
+
+  const toggle = (id) => onChange(value.includes(id) ? value.filter((x) => x !== id) : [...value, id]);
+  const selectAll = () => onChange(filtered.map((p) => p.id));
+  const clearAll = () => onChange([]);
+  const allFilteredSelected = filtered.length > 0 && filtered.every((p) => value.includes(p.id));
+
+  const selectedProjects = allProjects.filter((p) => value.includes(p.id));
+
+  return (
+    <div className="border border-gray-200 rounded-md overflow-hidden">
+      <div className="px-3 py-2 bg-[#d6e6f2] border-b border-gray-200 flex items-center justify-between">
+        <span className="text-[13px] font-semibold">Linked Projects</span>
+        {!disabled && (
+          <div className="flex items-center gap-3">
+            <button type="button" onClick={allFilteredSelected ? clearAll : selectAll}
+              className="text-[11px] text-blue-600 hover:text-blue-800 transition-colors font-medium">
+              {allFilteredSelected ? "Deselect all" : "Select all"}
+            </button>
+            {value.length > 0 && (
+              <button type="button" onClick={clearAll} className="text-[11px] text-red-400 hover:text-red-600 transition-colors">
+                Clear all
+              </button>
+            )}
+          </div>
+        )}
+      </div>
+
+      {selectedProjects.length > 0 && (
+        <div className="flex flex-wrap gap-1.5 p-2 bg-blue-50/40 border-b border-blue-100 min-h-[36px]">
+          {selectedProjects.map((p) => (
+            <ProjectChip key={p.id} text={`${p.projectCode} — ${p.projectName}`}
+              onRemove={() => toggle(p.id)} disabled={disabled} />
+          ))}
+        </div>
+      )}
+
+      {!disabled && (
+        <div className="p-2 border-b border-gray-100">
+          <input type="text" value={search} onChange={(e) => setSearch(e.target.value)}
+            placeholder="Search projects..."
+            className="h-7 w-full border border-gray-300 rounded px-2 text-[12px] outline-none focus:border-blue-400 transition" />
+        </div>
+      )}
+
+      {!disabled && (
+        <div className="max-h-[180px] overflow-y-auto divide-y divide-gray-100 bg-white">
+          {loading ? (
+            <div className="flex justify-center py-5"><Loader2 className="animate-spin w-4 h-4 text-gray-400" /></div>
+          ) : filtered.length === 0 ? (
+            <div className="px-3 py-3 text-[12px] text-gray-400 text-center">No projects found</div>
+          ) : (
+            filtered.map((p) => {
+              const checked = value.includes(p.id);
+              return (
+                <button key={p.id} type="button" onClick={() => toggle(p.id)}
+                  className={`w-full flex items-center gap-2.5 px-3 py-2 text-[12px] text-left transition-colors ${checked ? "bg-blue-50 text-blue-700" : "hover:bg-gray-50 text-gray-700"}`}>
+                  <span className={`w-4 h-4 rounded border flex items-center justify-center shrink-0 ${checked ? "bg-blue-500 border-blue-500" : "border-gray-300"}`}>
+                    {checked && <Check size={10} className="text-white" strokeWidth={3} />}
+                  </span>
+                  <span className={`truncate ${checked ? "font-medium" : ""}`}>{p.projectCode} — {p.projectName}</span>
+                </button>
+              );
+            })
+          )}
+        </div>
+      )}
+
+      {disabled && selectedProjects.length === 0 && (
+        <div className="px-3 py-4 text-[12px] text-gray-400 text-center">No projects linked</div>
+      )}
+
+      <div className="px-3 py-1.5 bg-gray-50 border-t border-gray-100">
+        <span className="text-[11px] text-gray-400">{value.length} project{value.length !== 1 ? "s" : ""} linked</span>
+      </div>
+    </div>
+  );
+}
+
 // ─── Main component ───────────────────────────────────────────────────────────
 
 /**
@@ -198,6 +299,10 @@ export default function LedgerFormNew({
   // ── Ledger code ───────────────────────────────────────────────────────────
   const [ledgerCode, setLedgerCode] = useState("");
 
+  // ── Project linking ───────────────────────────────────────────────────────
+  const [linkedProjectIds, setLinkedProjectIds] = useState([]);
+  const [allProjects, setAllProjects]           = useState([]);
+  const [loadingProjects, setLoadingProjects]   = useState(false);
 
   // ── Files ─────────────────────────────────────────────────────────────────
   const [fileNames, setFileNames] = useState({});
@@ -239,6 +344,18 @@ export default function LedgerFormNew({
   }, []);
 
 
+  // ── Load project list ─────────────────────────────────────────────────────
+  useEffect(() => {
+    setLoadingProjects(true);
+    apiRequest({ url: API_ENDPOINTS.SETTING.GET_ALL_PROJECTS, method: "GET" })
+      .then((res) => {
+        const list = Array.isArray(res?.data) ? res.data : [];
+        setAllProjects(list.map((p) => ({ id: p.id, projectCode: p.projectCode || p.project_code, projectName: p.projectName || p.project_name })));
+      })
+      .catch(() => {})
+      .finally(() => setLoadingProjects(false));
+  }, []);
+
   // ── Populate from initialData ─────────────────────────────────────────────
   useEffect(() => {
     if (mode === "create" || !initialData || categories.length === 0) return;
@@ -274,6 +391,7 @@ export default function LedgerFormNew({
         gstn:  initialData.gstnFile,
         bank:  initialData.bankDetailsFile,
       });
+      setLinkedProjectIds((initialData.projects || []).map((p) => p.id));
       setPageLoading(false);
     });
   }, [initialData, categories]);
@@ -381,6 +499,7 @@ export default function LedgerFormNew({
     if (panRef.current)   panRef.current.value   = "";
     if (gstnRef.current)  gstnRef.current.value  = "";
     if (bankRef.current)  bankRef.current.value  = "";
+    setLinkedProjectIds((initialData.projects || []).map((p) => p.id));
     setIsEditing(false);
   };
 
@@ -410,6 +529,8 @@ export default function LedgerFormNew({
         supplierTypes.forEach((t) => formData.append("supplierTypes[]", t));
         natureOfService.forEach((n) => formData.append("natureOfService[]", n));
       }
+
+      linkedProjectIds.forEach((id) => formData.append("projectIds[]", id));
 
       if (files.trade) formData.append("tradeLicenceFile", files.trade);
       if (files.pan)   formData.append("panFile",          files.pan);
@@ -744,6 +865,18 @@ export default function LedgerFormNew({
               {renderFile("bank",  bankRef,  "Bank A/c Copy")}
             </div>
           </div>
+        </div>
+
+        {/* ── Linked Projects ──────────────────────────────────────────── */}
+        <div className="mt-4">
+          <div className="text-[13px] font-bold text-gray-800 border-b border-[#b8c7da] pb-0.5 mb-1">Linked Projects:</div>
+          <ProjectSelect
+            value={linkedProjectIds}
+            onChange={setLinkedProjectIds}
+            disabled={fieldDisabled}
+            allProjects={allProjects}
+            loading={loadingProjects}
+          />
         </div>
 
         {/* ── Buttons ──────────────────────────────────────────────────── */}
