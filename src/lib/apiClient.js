@@ -78,29 +78,29 @@ export const apiRequest = async ({
   notifyDataChanged(method, url);
 
   // auto-publish audit meta for single-record GET responses
-  if (
-    method === "GET" &&
-    typeof window !== "undefined" &&
-    Array.isArray(result?.data) &&
-    result.data.length === 1
-  ) {
-    const r = result.data[0] || {};
-    // accept both camelCase and snake_case field names
-    const createdAt  = r.createdAt  || r.created_at  || null;
-    const updatedAt  = r.updatedAt  || r.updated_at  || null;
-    const createdBy  = r.createdBy  || r.created_by  || null;
-    const updatedBy  = r.updatedBy  || r.updated_by  || null;
-    if (createdAt || updatedAt || createdBy || updatedBy) {
-      window.dispatchEvent(
-        new CustomEvent("erp:recordmeta", {
-          detail: {
-            createdAt: typeof createdAt === "string" ? createdAt : null,
-            updatedAt: typeof updatedAt === "string" ? updatedAt : null,
-            createdBy: typeof createdBy === "string" ? createdBy : null,
-            updatedBy: typeof updatedBy === "string" ? updatedBy : null,
-          },
-        })
-      );
+  // handles both array-of-one  (data: [{...}])  and plain-object  (data: {...})
+  if (method === "GET" && typeof window !== "undefined" && result?.data) {
+    const d = result.data;
+    const r = Array.isArray(d) && d.length === 1
+      ? d[0]
+      : (!Array.isArray(d) && typeof d === "object" ? d : null);
+    if (r) {
+      const createdAt = r.createdAt || r.created_at || null;
+      const updatedAt = r.updatedAt || r.updated_at || null;
+      const createdBy = r.createdBy || r.created_by || null;
+      const updatedBy = r.updatedBy || r.updated_by || null;
+      if (createdAt || updatedAt || createdBy || updatedBy) {
+        window.dispatchEvent(
+          new CustomEvent("erp:recordmeta", {
+            detail: {
+              createdAt: typeof createdAt === "string" ? createdAt : null,
+              updatedAt: typeof updatedAt === "string" ? updatedAt : null,
+              createdBy: typeof createdBy === "string" ? createdBy : null,
+              updatedBy: typeof updatedBy === "string" ? updatedBy : null,
+            },
+          })
+        );
+      }
     }
   }
 
