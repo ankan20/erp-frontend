@@ -19,13 +19,17 @@ export default function AccountBasicTable({
   control,
   disabled     = false,
   itemsLoading = false,
-  emptyText    = "Select a certified bill to load items",
-  sources      = [],     // source metadata for badge labels
-  sourceColors = [],     // tailwind badge classes per source index
+  emptyText    = "Select items from the source tree above",
+  sources      = [],
+  sourceColors = [],
 }) {
   const { tableRef } = useColumnResize();
   const items      = watch("items") || [];
   const basicTotal = items.reduce((s, it) => s + Number(it?.basicAmount || 0), 0);
+  const hasGstPct  = items.some((it) => Number(it?.gstPercent || 0) > 0);
+  const gstTotal   = items.reduce((s, it) => s + (Number(it?.basicAmount || 0) * Number(it?.gstPercent || 0)) / 100, 0);
+
+  const colCount = 5 + (hasGstPct ? 2 : 0);
 
   return (
     <div className="border border-gray-300 rounded-sm overflow-hidden">
@@ -41,33 +45,35 @@ export default function AccountBasicTable({
             <tr className={ACC.tableHead}>
               <th className="border border-gray-300 px-2 py-1.5 text-center font-semibold w-[46px]">SL no</th>
               <th className="border border-gray-300 px-2 py-1.5 text-left  font-semibold w-[76px]">CC Code</th>
-              {/* Merged Name + Description column */}
               <th className="border border-gray-300 px-2 py-1.5 text-left  font-semibold">Name &amp; Description</th>
               <th className="border border-gray-300 px-2 py-1.5 text-left  font-semibold w-[88px]">HSN/SAC</th>
               <th className="border border-gray-300 px-2 py-1.5 text-right font-semibold w-[115px] min-w-[120px]">Basic Amount</th>
-              {sources.length > 1 && (
-                <th className="border border-gray-300 px-2 py-1.5 text-center font-semibold w-[80px]">Source</th>
+              {hasGstPct && (
+                <>
+                  <th className="border border-gray-300 px-2 py-1.5 text-center font-semibold w-[56px]">GST %</th>
+                  <th className="border border-gray-300 px-2 py-1.5 text-right font-semibold w-[110px]">GST Amount</th>
+                </>
               )}
             </tr>
           </thead>
           <tbody>
             {itemsLoading ? (
               <tr>
-                <td colSpan={5} className="border border-gray-200 py-5 text-center text-gray-400">
+                <td colSpan={colCount} className="border border-gray-200 py-5 text-center text-gray-400">
                   <Loader2 className="animate-spin w-4 h-4 inline mr-1.5" />Loading items…
                 </td>
               </tr>
             ) : itemFields.length === 0 ? (
               <tr>
-                <td colSpan={sources.length > 1 ? 6 : 5} className="border border-gray-200 py-6 text-center text-[#bbb] italic">
+                <td colSpan={colCount} className="border border-gray-200 py-6 text-center text-[#bbb] italic">
                   {emptyText}
                 </td>
               </tr>
             ) : (
               itemFields.map((field, idx) => {
-                const sourceIdx  = watch(`items.${idx}.sourceIndex`);
-                const badgeColor = sourceIdx != null && sourceColors[sourceIdx % sourceColors.length];
-                const sourceLabel = sourceIdx != null ? `S${sourceIdx + 1}` : null;
+                const gstPct = Number(watch(`items.${idx}.gstPercent`) || 0);
+                const basic  = Number(watch(`items.${idx}.basicAmount`) || 0);
+                const gstAmt = (basic * gstPct) / 100;
 
                 return (
                   <tr key={field.id} className={idx % 2 === 0 ? "bg-white" : "bg-[#f7f9fc]"}>
@@ -110,16 +116,17 @@ export default function AccountBasicTable({
                       />
                     </td>
                     <td className="border border-gray-200 px-2 py-[3px] text-right font-medium align-top pt-[6px]">
-                      {fmt(watch(`items.${idx}.basicAmount`))}
+                      {fmt(basic)}
                     </td>
-                    {sources.length > 1 && (
-                      <td className="border border-gray-200 px-1 py-[3px] text-center align-top pt-[6px]">
-                        {sourceLabel && (
-                          <span className={`inline-block text-[10px] font-semibold px-1.5 py-0.5 rounded border ${badgeColor}`}>
-                            {sourceLabel}
-                          </span>
-                        )}
-                      </td>
+                    {hasGstPct && (
+                      <>
+                        <td className="border border-gray-200 px-2 py-[3px] text-center align-top pt-[6px] text-gray-600">
+                          {gstPct > 0 ? `${gstPct}%` : "—"}
+                        </td>
+                        <td className="border border-gray-200 px-2 py-[3px] text-right font-medium align-top pt-[6px] text-blue-700">
+                          {gstAmt > 0 ? fmt(gstAmt) : "—"}
+                        </td>
+                      </>
                     )}
                   </tr>
                 );
@@ -129,7 +136,12 @@ export default function AccountBasicTable({
             <tr className={`${ACC.tableHead} font-semibold`}>
               <td colSpan={4} className="border border-gray-300 px-2 py-1.5 text-right text-[12px]">TOTAL</td>
               <td className="border border-gray-300 px-2 py-1.5 text-right text-[12px]">{fmt(basicTotal)}</td>
-              {sources.length > 1 && <td className="border border-gray-300" />}
+              {hasGstPct && (
+                <>
+                  <td className="border border-gray-300" />
+                  <td className="border border-gray-300 px-2 py-1.5 text-right text-[12px] text-blue-700">{fmt(gstTotal)}</td>
+                </>
+              )}
             </tr>
           </tbody>
         </table>

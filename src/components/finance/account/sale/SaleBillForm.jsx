@@ -6,7 +6,7 @@ import { useFormWithToast as useForm } from "@/hooks/useFormWithToast";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
-import { Loader2, PanelLeftClose, PanelLeftOpen, Plus, Trash2 } from "lucide-react";
+import { Loader2, PanelLeftClose, PanelLeftOpen } from "lucide-react";
 import { useRouter } from "next/navigation";
 
 import SaveButton from "@/components/common/SaveButton";
@@ -26,6 +26,8 @@ import SaleBillRightPanel, {
   igstEquivalent,
 } from "@/components/finance/account/common/SaleBillRightPanel";
 
+import SaleBillSourceTree from "@/components/finance/account/sale/SaleBillSourceTree";
+
 import { apiRequest } from "@/lib/apiClient";
 import { API_ENDPOINTS } from "@/config/api.config";
 import { getLocalStorage } from "@/lib/localStorage";
@@ -39,20 +41,11 @@ const SALE_BILL_MODES = [
   { label: "Proforma Invoice", value: "Proforma Invoice" },
 ];
 
-// Source badge colours by index (cycles)
-const SOURCE_COLORS = [
-  "bg-blue-100 border-blue-300 text-blue-800",
-  "bg-emerald-100 border-emerald-300 text-emerald-800",
-  "bg-amber-100 border-amber-300 text-amber-800",
-  "bg-purple-100 border-purple-300 text-purple-800",
-];
-
 // ─── Schema ───────────────────────────────────────────────────────────────────
 
 const sourceSchema = z.object({
-  saleOrderId:    z.coerce.number().nullable().optional(),
-  erpDocNumber:   z.string().optional().default(""),
-  saleOrderDate:  z.string().optional().default(""),
+  saleOrderId:     z.coerce.number().nullable().optional(),
+  saleOrderNo:     z.string().optional().default(""),
   certifiedBillId: z.coerce.number().nullable().optional(),
   certifiedBillNo: z.string().optional().default(""),
   billingDate:     z.string().optional().default(""),
@@ -60,13 +53,16 @@ const sourceSchema = z.object({
 });
 
 const itemSchema = z.object({
-  slNo:        z.number(),
-  ccCode:      z.string(),
-  ccName:      z.string(),
-  description: z.string().optional().default(""),
-  hsnSac:      z.string().optional().default(""),
-  basicAmount: z.coerce.number().min(0).default(0),
-  sourceIndex: z.number().nullable().optional(),
+  slNo:           z.number(),
+  ccCode:         z.string(),
+  ccName:         z.string(),
+  description:    z.string().optional().default(""),
+  hsnSac:         z.string().optional().default(""),
+  basicAmount:    z.coerce.number().min(0).default(0),
+  gstPercent:     z.coerce.number().min(0).default(0),
+  billingItemId:  z.number().nullable().optional(),
+  certBillId:     z.number().nullable().optional(),
+  sourceIndex:    z.number().nullable().optional(),
 });
 
 const gstLineSchema = z.object({
@@ -98,16 +94,6 @@ const schema = z.object({
   gstLines:         z.array(gstLineSchema).length(3),
 });
 
-const DEFAULT_SOURCE = {
-  saleOrderId: null,
-  erpDocNumber: "",
-  saleOrderDate: "",
-  certifiedBillId: null,
-  certifiedBillNo: "",
-  billingDate: "",
-  basicAmount: 0,
-};
-
 const DEFAULT_VALUES = {
   mode: "",
   invoiceDate: "",
@@ -122,7 +108,7 @@ const DEFAULT_VALUES = {
   declaration: "",
   discount: 0,
   roundOff: 0,
-  sources: [{ ...DEFAULT_SOURCE }],
+  sources: [],
   items: [],
   gstLines: DEFAULT_GST_LINES,
 };
@@ -151,12 +137,8 @@ export default function SaleBillForm({
   const [erpBillNo, setErpBillNo]       = useState("");
   const [actualGstTotal, setActualGstTotal] = useState(null);
 
-  // Per-source dropdown state: saleOrderOpts is shared, certBillOpts and loading per index
-  const [saleOrderOpts, setSaleOrderOpts]         = useState([]);
-  const [certBillOptsMap, setCertBillOptsMap]     = useState({});   // { [sourceIdx]: [] }
-  const [certBillLoadingMap, setCertBillLoadingMap] = useState({}); // { [sourceIdx]: bool }
-  const [itemsLoadingMap, setItemsLoadingMap]     = useState({});   // { [sourceIdx]: bool }
-  const [bankOpts, setBankOpts]                   = useState([]);
+  const [saleOrderOpts, setSaleOrderOpts] = useState([]);
+  const [bankOpts, setBankOpts]           = useState([]);
 
   const {
     register,
@@ -169,8 +151,6 @@ export default function SaleBillForm({
     formState: { errors, isSubmitting },
   } = useForm({ resolver: zodResolver(schema), defaultValues: DEFAULT_VALUES });
 
-  const { fields: sourceFields, append: appendSource, remove: removeSource } =
-    useFieldArray({ control, name: "sources" });
   const { fields: itemFields } = useFieldArray({ control, name: "items" });
 
   const disabled = isViewMode || !isEditing || isSubmitting || isSubmitted;
@@ -202,148 +182,26 @@ export default function SaleBillForm({
       .catch(() => setBankOpts([]));
   }, []);
 
-  // ── Fetch Certified Bills for a source index ────────────────────────────────
-  const fetchCertifiedBills = useCallback(
-    async (erpDocNumber, sourceIdx) => {
-      if (!erpDocNumber || !projectCode) {
-        setCertBillOptsMap((m) => ({ ...m, [sourceIdx]: [] }));
-        return;
-      }
-      setCertBillLoadingMap((m) => ({ ...m, [sourceIdx]: true }));
-      try {
-        const res = await apiRequest({
-          url: `${API_ENDPOINTS.FINANCE.SALE_BILL.CERTIFIED_BILLS}?erpDocNumber=${encodeURIComponent(erpDocNumber)}&projectCode=${projectCode}`,
-          method: "GET",
-        });
-        setCertBillOptsMap((m) => ({
-          ...m,
-          [sourceIdx]: (Array.isArray(res.data) ? res.data : []).map((b) => ({
-            ...b,
-            displayLabel: b.erpNo ? `${b.billingNo} | ${b.erpNo}` : b.billingNo,
-          })),
-        }));
-      } catch {
-        setCertBillOptsMap((m) => ({ ...m, [sourceIdx]: [] }));
-      } finally {
-        setCertBillLoadingMap((m) => ({ ...m, [sourceIdx]: false }));
+  // ── Handle tree selection changes ─────────────────────────────────────────
+  const handleTreeSelectionChange = useCallback(
+    ({ items, sources }) => {
+      setValue("items",   items,   { shouldDirty: true });
+      setValue("sources", sources, { shouldDirty: true });
+
+      // Compute per-item GST total for the right panel
+      const perItemGst = items.reduce((sum, it) => {
+        return sum + (Number(it.basicAmount || 0) * Number(it.gstPercent || 0)) / 100;
+      }, 0);
+      setActualGstTotal(perItemGst > 0 ? perItemGst : null);
+
+      // Set bill abstract from first source (auto-fill)
+      if (sources[0]?.certifiedBillNo) {
+        setValue("billAbstractNo",   sources[0].certifiedBillNo, { shouldDirty: false });
+        setValue("billAbstractDate", sources[0].billingDate || "", { shouldDirty: false });
       }
     },
-    [projectCode],
+    [setValue],
   );
-
-  // ── Handle Sale Order selection for a source row ────────────────────────────
-  const handleOrderSelect = useCallback(
-    (value, option, sourceIdx) => {
-      setValue(`sources.${sourceIdx}.erpDocNumber`, value, { shouldDirty: true });
-      setValue(`sources.${sourceIdx}.saleOrderId`, option?.id || null, { shouldDirty: true });
-      setValue(`sources.${sourceIdx}.saleOrderDate`, option?.ogSaleOrderDate || "", { shouldDirty: true });
-      setValue(`sources.${sourceIdx}.certifiedBillId`, null, { shouldDirty: true });
-      setValue(`sources.${sourceIdx}.certifiedBillNo`, "", { shouldDirty: true });
-      setValue(`sources.${sourceIdx}.billingDate`, "", { shouldDirty: true });
-      // Remove items that belong to this source
-      const currentItems = getValues("items") || [];
-      setValue("items", currentItems.filter((it) => it.sourceIndex !== sourceIdx), { shouldDirty: true });
-      setCertBillOptsMap((m) => ({ ...m, [sourceIdx]: [] }));
-      fetchCertifiedBills(value, sourceIdx);
-    },
-    [setValue, getValues, fetchCertifiedBills],
-  );
-
-  // ── Handle Certified Bill selection → load items for that source ────────────
-  const handleCertifiedBillSelect = useCallback(
-    async (id, option, sourceIdx) => {
-      setValue(`sources.${sourceIdx}.certifiedBillId`, id ? Number(id) : null, { shouldDirty: true });
-      setValue(`sources.${sourceIdx}.certifiedBillNo`, option?.billingNo || "", { shouldDirty: true });
-      setValue(`sources.${sourceIdx}.billingDate`, option?.billingDate || "", { shouldDirty: true });
-
-      // Set bill abstract from first source
-      if (sourceIdx === 0) {
-        setValue("billAbstractNo", option?.billingNo || "", { shouldDirty: true });
-        setValue("billAbstractDate", option?.billingDate || "", { shouldDirty: true });
-      }
-
-      if (!id || !projectCode) return;
-      setItemsLoadingMap((m) => ({ ...m, [sourceIdx]: true }));
-      try {
-        const res = await apiRequest({
-          url: `${API_ENDPOINTS.FINANCE.SALE_BILL.CERTIFIED_BILL_ITEMS}?certifiedBillId=${encodeURIComponent(id)}&projectCode=${projectCode}`,
-          method: "GET",
-        });
-        const newItems = (res.data?.items || []).map((it, i) => ({
-          slNo: it.slNo || i + 1,
-          ccCode: it.ccCode || "",
-          ccName: it.ccName || "",
-          description: it.description || "",
-          hsnSac: it.hsnSac || "",
-          basicAmount: Number(it.basicAmount || 0),
-          sourceIndex: sourceIdx,
-        }));
-
-        // Merge: keep items from other sources + replace items from this source
-        const existingItems = (getValues("items") || []).filter(
-          (it) => it.sourceIndex !== sourceIdx,
-        );
-        const merged = [...existingItems, ...newItems];
-        setValue("items", merged, { shouldDirty: true });
-
-        // Update source basicAmount from sum of its items
-        const srcBasic = newItems.reduce((s, it) => s + Number(it.basicAmount || 0), 0);
-        setValue(`sources.${sourceIdx}.basicAmount`, srcBasic, { shouldDirty: true });
-
-        // Update GST from first loaded source (or aggregate)
-        if (sourceIdx === 0 || existingItems.length === 0) {
-          setValue("gstLines", mapApiGstLines(res.data?.gstLines), { shouldDirty: true });
-          setActualGstTotal(igstEquivalent(res.data?.gstLines));
-        }
-      } catch {
-        setActualGstTotal(null);
-        toast.error("Failed to load certified bill items");
-      } finally {
-        setItemsLoadingMap((m) => ({ ...m, [sourceIdx]: false }));
-      }
-    },
-    [projectCode, setValue, getValues],
-  );
-
-  // ── Add a new empty source row ──────────────────────────────────────────────
-  const handleAddSource = () => {
-    appendSource({ ...DEFAULT_SOURCE });
-  };
-
-  // ── Remove a source row and its items ──────────────────────────────────────
-  const handleRemoveSource = (sourceIdx) => {
-    const currentItems = getValues("items") || [];
-    // Remove items for deleted source, re-index items from later sources
-    const remaining = currentItems
-      .filter((it) => it.sourceIndex !== sourceIdx)
-      .map((it) => ({
-        ...it,
-        sourceIndex: it.sourceIndex > sourceIdx ? it.sourceIndex - 1 : it.sourceIndex,
-      }));
-    setValue("items", remaining, { shouldDirty: true });
-
-    // Shift certBillOpts keys
-    setCertBillOptsMap((m) => {
-      const updated = {};
-      Object.keys(m).forEach((k) => {
-        const ki = Number(k);
-        if (ki < sourceIdx) updated[ki] = m[k];
-        else if (ki > sourceIdx) updated[ki - 1] = m[k];
-      });
-      return updated;
-    });
-    setCertBillLoadingMap((m) => {
-      const updated = {};
-      Object.keys(m).forEach((k) => {
-        const ki = Number(k);
-        if (ki < sourceIdx) updated[ki] = m[k];
-        else if (ki > sourceIdx) updated[ki - 1] = m[k];
-      });
-      return updated;
-    });
-
-    removeSource(sourceIdx);
-  };
 
   // ── Load Detail (edit / view) ───────────────────────────────────────────────
   useEffect(() => {
@@ -361,20 +219,18 @@ export default function SaleBillForm({
         let sourcesData = [];
         if (Array.isArray(d.sources) && d.sources.length > 0) {
           sourcesData = d.sources.map((s) => ({
-            saleOrderId:     s.saleOrderId || null,
-            erpDocNumber:    s.saleOrderNo || "",
-            saleOrderDate:   "",
+            saleOrderId:     s.saleOrderId     || null,
+            saleOrderNo:     s.saleOrderNo     || "",
             certifiedBillId: s.certifiedBillId || null,
             certifiedBillNo: s.certifiedBillNo || "",
-            billingDate:     s.billingDate || "",
+            billingDate:     s.billingDate     || "",
             basicAmount:     Number(s.basicAmount || 0),
           }));
         } else {
           // Legacy single-source bill
           sourcesData = [{
-            saleOrderId:     d.saleOrderId || null,
-            erpDocNumber:    d.saleOrderNo || "",
-            saleOrderDate:   "",
+            saleOrderId:     d.saleOrderId     || null,
+            saleOrderNo:     d.saleOrderNo     || "",
             certifiedBillId: d.certifiedBillId || null,
             certifiedBillNo: d.certifiedBillNo || "",
             billingDate:     "",
@@ -398,13 +254,16 @@ export default function SaleBillForm({
           roundOff:         d.roundOff ?? 0,
           sources: sourcesData,
           items: (d.items || []).map((it, i) => ({
-            slNo:        it.slNo || i + 1,
-            ccCode:      it.ccCode || "",
-            ccName:      it.ccName || "",
-            description: it.description || "",
-            hsnSac:      it.hsnSac || "",
-            basicAmount: Number(it.basicAmount || 0),
-            sourceIndex: it.sourceIndex ?? null,
+            slNo:          it.slNo || i + 1,
+            ccCode:        it.ccCode || "",
+            ccName:        it.ccName || "",
+            description:   it.description || "",
+            hsnSac:        it.hsnSac || "",
+            basicAmount:   Number(it.basicAmount || 0),
+            gstPercent:    Number(it.gstPercent  || 0),
+            billingItemId: it.billingItemId || null,
+            certBillId:    null,
+            sourceIndex:   it.sourceIndex ?? null,
           })),
           gstLines: d.gstLines?.length
             ? mapApiGstLines(d.gstLines, { keepSelection: true })
@@ -413,16 +272,19 @@ export default function SaleBillForm({
         reset(formatted);
         setInitialData(formatted);
 
-        // Pre-load cert bill opts for each source
-        sourcesData.forEach((src, idx) => {
-          if (src.erpDocNumber) fetchCertifiedBills(src.erpDocNumber, idx);
-        });
-
-        const savedBasic = formatted.items.reduce((s, it) => s + Number(it.basicAmount || 0), 0);
-        const igstPct  = Number(formatted.gstLines[0]?.percent || 0);
-        const pairPct  = Number(formatted.gstLines[1]?.percent || 0) + Number(formatted.gstLines[2]?.percent || 0);
-        const effPct   = igstPct > 0 ? igstPct : pairPct;
-        setActualGstTotal(effPct > 0 && savedBasic > 0 ? (savedBasic * effPct) / 100 : null);
+        // Compute per-item GST total for right panel
+        const perItemGst = formatted.items.reduce((s, it) => {
+          return s + (Number(it.basicAmount || 0) * Number(it.gstPercent || 0)) / 100;
+        }, 0);
+        if (perItemGst > 0) {
+          setActualGstTotal(perItemGst);
+        } else {
+          const savedBasic = formatted.items.reduce((s, it) => s + Number(it.basicAmount || 0), 0);
+          const igstPct    = Number(formatted.gstLines[0]?.percent || 0);
+          const pairPct    = Number(formatted.gstLines[1]?.percent || 0) + Number(formatted.gstLines[2]?.percent || 0);
+          const effPct     = igstPct > 0 ? igstPct : pairPct;
+          setActualGstTotal(effPct > 0 && savedBasic > 0 ? (savedBasic * effPct) / 100 : null);
+        }
 
         if (d.saleBillNo) setErpBillNo(d.saleBillNo);
         if (d.saleBillUuid && onUuid) onUuid(d.saleBillUuid);
@@ -462,18 +324,28 @@ export default function SaleBillForm({
   // ── Build payload ───────────────────────────────────────────────────────────
   const buildPayload = () => {
     const v = getValues();
-    const gstLines = v.gstLines || DEFAULT_GST_LINES;
-    const basicTotal = (v.items || []).reduce((s, it) => s + Number(it.basicAmount || 0), 0);
-    const isIGST    = !!gstLines[0]?.isSelected;
-    const isCGSTSGST = !!gstLines[1]?.isSelected;
-    const hasActual  = actualGstTotal !== null && actualGstTotal !== undefined;
+    const gstLines   = v.gstLines || DEFAULT_GST_LINES;
+    const items      = v.items    || [];
+    const basicTotal = items.reduce((s, it) => s + Number(it.basicAmount || 0), 0);
 
+    // Per-item GST aggregation: sum item.basicAmount × item.gstPercent/100
+    const perItemGstTotal = items.reduce((s, it) => {
+      return s + (Number(it.basicAmount || 0) * Number(it.gstPercent || 0)) / 100;
+    }, 0);
+
+    const hasPerItem  = perItemGstTotal > 0;
+    const isIGST      = !!gstLines[0]?.isSelected;
+    const isCGSTSGST  = !!gstLines[1]?.isSelected;
+    const hasActual   = actualGstTotal !== null && actualGstTotal !== undefined;
+    const gstTotal    = hasPerItem ? perItemGstTotal : (hasActual ? actualGstTotal : 0);
+
+    // Build gst lines for backend: use per-item total; fall back to form values
     const computedGst = gstLines.map((l, i) => {
       let amt = 0;
       const legacy = (basicTotal * l.percent) / 100;
-      if (i === 0 && isIGST)    amt = hasActual ? actualGstTotal : legacy;
-      if (i === 1 && isCGSTSGST) amt = hasActual ? actualGstTotal / 2 : legacy;
-      if (i === 2 && isCGSTSGST) amt = hasActual ? actualGstTotal / 2 : legacy;
+      if (i === 0 && isIGST)     amt = hasPerItem ? gstTotal     : (hasActual ? actualGstTotal     : legacy);
+      if (i === 1 && isCGSTSGST) amt = hasPerItem ? gstTotal / 2 : (hasActual ? actualGstTotal / 2 : legacy);
+      if (i === 2 && isCGSTSGST) amt = hasPerItem ? gstTotal / 2 : (hasActual ? actualGstTotal / 2 : legacy);
       return { ...l, gstAmount: amt, isSelected: i === 0 ? isIGST : isCGSTSGST };
     });
 
@@ -493,20 +365,22 @@ export default function SaleBillForm({
       discount:         Number(v.discount || 0),
       roundOff:         Number(v.roundOff || 0),
       sources: (v.sources || []).map((s) => ({
-        saleOrderId:     s.saleOrderId || null,
-        saleOrderNo:     s.erpDocNumber || "",
+        saleOrderId:     s.saleOrderId     || null,
+        saleOrderNo:     s.saleOrderNo     || "",
         certifiedBillId: s.certifiedBillId ? Number(s.certifiedBillId) : null,
         certifiedBillNo: s.certifiedBillNo || "",
         basicAmount:     Number(s.basicAmount || 0),
       })),
-      items: (v.items || []).map((it, i) => ({
-        slNo:        it.slNo || i + 1,
-        ccCode:      it.ccCode,
-        ccName:      it.ccName,
-        description: it.description || "",
-        hsnSac:      it.hsnSac || "",
-        basicAmount: Number(it.basicAmount || 0),
-        sourceIndex: it.sourceIndex ?? null,
+      items: items.map((it, i) => ({
+        slNo:          it.slNo || i + 1,
+        ccCode:        it.ccCode      || "CRIN",
+        ccName:        it.ccName      || "",
+        description:   it.description || "",
+        hsnSac:        it.hsnSac      || "",
+        basicAmount:   Number(it.basicAmount  || 0),
+        gstPercent:    Number(it.gstPercent   || 0),
+        billingItemId: it.billingItemId || null,
+        sourceIndex:   it.sourceIndex  ?? null,
       })),
       gstLines: computedGst.map((l) => ({
         gstType:     l.gstType,
@@ -574,8 +448,6 @@ export default function SaleBillForm({
     );
   }
 
-  const watchedSources = watch("sources") || [];
-
   // ── Render ──────────────────────────────────────────────────────────────────
   return (
     <div className="p-3">
@@ -626,101 +498,17 @@ export default function SaleBillForm({
             </PMFormRow>
           </PMSection>
 
-          {/* ── Sources Section ───────────────────────────────────────────── */}
-          <PMSection title="Sources (Sale Orders & Certified Bills):">
-            <div className="space-y-3 px-1">
-              {sourceFields.map((field, sourceIdx) => {
-                const colorClass = SOURCE_COLORS[sourceIdx % SOURCE_COLORS.length];
-                const certOpts   = certBillOptsMap[sourceIdx] || [];
-                const certLoading = certBillLoadingMap[sourceIdx] || false;
-                const itmLoading  = itemsLoadingMap[sourceIdx] || false;
-                const orderVal    = watchedSources[sourceIdx]?.erpDocNumber || "";
-                const certVal     = watchedSources[sourceIdx]?.certifiedBillId || "";
-
-                return (
-                  <div
-                    key={field.id}
-                    className={`border rounded-md p-2 space-y-1.5 ${colorClass}`}
-                  >
-                    {/* Source header */}
-                    <div className="flex items-center justify-between">
-                      <span className="text-[11px] font-semibold uppercase tracking-wide">
-                        Source {sourceIdx + 1}
-                      </span>
-                      {sourceFields.length > 1 && !disabled && (
-                        <button
-                          type="button"
-                          onClick={() => handleRemoveSource(sourceIdx)}
-                          className="text-red-500 hover:text-red-700 p-0.5"
-                          title="Remove source"
-                        >
-                          <Trash2 size={13} />
-                        </button>
-                      )}
-                    </div>
-
-                    {/* Sale Order */}
-                    <div>
-                      <p className="text-[11px] text-gray-600 mb-0.5">Sale Order</p>
-                      <SearchableSelect
-                        options={saleOrderOpts}
-                        value={orderVal}
-                        disabled={disabled}
-                        onChange={(v, opt) => handleOrderSelect(v, opt, sourceIdx)}
-                        placeholder="Select Sale Order"
-                        labelKey="displayLabel"
-                        valueKey="erpDocNumber"
-                        searchKeys={["orderNo", "erpDocNumber", "displayLabel"]}
-                      />
-                    </div>
-
-                    {/* Certified Bill */}
-                    <div>
-                      <p className="text-[11px] text-gray-600 mb-0.5">Certified Bill (Abstract No.)</p>
-                      <SearchableSelect
-                        options={certOpts}
-                        value={certVal}
-                        disabled={disabled || certLoading || itmLoading || !orderVal}
-                        onChange={(v, opt) => handleCertifiedBillSelect(v, opt, sourceIdx)}
-                        placeholder={
-                          certLoading ? "Loading…"
-                          : itmLoading ? "Loading items…"
-                          : !orderVal ? "Select order first"
-                          : "Select Certified Bill"
-                        }
-                        labelKey="displayLabel"
-                        valueKey="id"
-                        searchKeys={["billingNo", "erpNo", "displayLabel"]}
-                      />
-                    </div>
-
-                    {/* Bill date auto-filled */}
-                    {watchedSources[sourceIdx]?.billingDate && (
-                      <p className="text-[11px] text-gray-500">
-                        Date: {watchedSources[sourceIdx].billingDate}
-                      </p>
-                    )}
-
-                    {itmLoading && (
-                      <p className="text-[11px] text-gray-500 flex items-center gap-1">
-                        <Loader2 size={11} className="animate-spin" /> Loading items…
-                      </p>
-                    )}
-                  </div>
-                );
-              })}
-
-              {!disabled && (
-                <button
-                  type="button"
-                  onClick={handleAddSource}
-                  className="flex items-center gap-1.5 text-[12px] text-blue-600 hover:text-blue-800 font-medium mt-1"
-                >
-                  <Plus size={13} /> Add Another Source
-                </button>
-              )}
-            </div>
-          </PMSection>
+          {/* ── Sources Section: Hierarchical Tree ───────────────────────── */}
+          <div className="mt-1">
+            <SaleBillSourceTree
+              saleOrders={saleOrderOpts}
+              projectCode={projectCode}
+              disabled={disabled}
+              onSelectionChange={handleTreeSelectionChange}
+              initialItems={mode !== "create" ? (watch("items") || []) : []}
+              initialSources={mode !== "create" ? (watch("sources") || []) : []}
+            />
+          </div>
 
           {/* Bill To / Ship To */}
           <PMSection title="Addresses:">
@@ -797,11 +585,11 @@ export default function SaleBillForm({
             setValue={setValue}
             register={register}
             disabled={disabled}
-            itemsLoading={Object.values(itemsLoadingMap).some(Boolean)}
+            itemsLoading={false}
             itemFields={itemFields}
             actualGstTotal={actualGstTotal}
-            sources={watchedSources}
-            sourceColors={SOURCE_COLORS}
+            sources={[]}
+            sourceColors={[]}
           />
 
           {/* Action Buttons */}
