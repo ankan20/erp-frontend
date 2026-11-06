@@ -25,6 +25,7 @@ import { X, ChevronRight, ChevronDown, Loader2, Search, CheckSquare, Square, Ale
 import { apiRequest } from "@/lib/apiClient";
 import { API_ENDPOINTS } from "@/config/api.config";
 import { formatAmount } from "@/helper/numberFormatter";
+import { getfmtDisplaydate } from "@/helper/getfmtDisplayDate";
 
 export default function CertifiedBillPickerModal({
   isOpen,
@@ -396,7 +397,14 @@ export default function CertifiedBillPickerModal({
                               </tr>
                             </thead>
                             <tbody>
-                              {billState.data.map((bill) => {
+                              {[...billState.data]
+                                .sort((a, b) => {
+                                  const aFull = Number(a.remaining) <= 0;
+                                  const bFull = Number(b.remaining) <= 0;
+                                  if (aFull !== bFull) return aFull ? 1 : -1;
+                                  return (b.billingDate || "").localeCompare(a.billingDate || "");
+                                })
+                                .map((bill) => {
                                 const isChecked    = selectedBillIds.has(bill.id);
                                 const isFullyBilled = Number(bill.remaining) <= 0;
                                 return (
@@ -427,7 +435,7 @@ export default function CertifiedBillPickerModal({
                                       )}
                                     </td>
                                     <td className="px-2 py-1.5 text-gray-500">
-                                      {bill.billingDate || "—"}
+                                      {getfmtDisplaydate(bill.billingDate) || "—"}
                                     </td>
                                     <td className="px-2 py-1.5 text-right font-semibold text-gray-700">
                                       {formatAmount(bill.thisBillClaim)}

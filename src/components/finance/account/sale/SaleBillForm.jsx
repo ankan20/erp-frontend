@@ -34,6 +34,7 @@ import { apiRequest }      from "@/lib/apiClient";
 import { API_ENDPOINTS }   from "@/config/api.config";
 import { getLocalStorage } from "@/lib/localStorage";
 import { zodDate }         from "@/lib/dateUtils";
+import { getfmtDisplaydate } from "@/helper/getfmtDisplayDate";
 import AiPanel             from "@/components/ai/AiPanel";
 import { formatAmount }    from "@/helper/numberFormatter";
 
@@ -750,7 +751,7 @@ export default function SaleBillForm({
                       {s.billingNo || s.certifiedBillNo || "—"}
                     </span>
                     <span className="text-gray-500">
-                      {s.billingDate || "—"}
+                      {getfmtDisplaydate(s.billingDate) || "—"}
                     </span>
                   </div>
                 ))}

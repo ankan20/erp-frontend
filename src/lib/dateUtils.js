@@ -75,6 +75,20 @@ export function isValidDate(value, label) {
 }
 
 /**
+ * Format a YYYY-MM-DD string for display as DD/MM/YYYY.
+ * Returns "—" for null / undefined / empty values.
+ *
+ * @param {string|null|undefined} value
+ * @returns {string}
+ */
+export function formatDisplayDate(value) {
+  if (!value) return "—";
+  const parts = String(value).trim().split("-");
+  if (parts.length !== 3) return value;
+  return `${parts[2]}/${parts[1]}/${parts[0]}`;
+}
+
+/**
  * Zod schema factory for date string fields.
  * Use this in place of z.string() for any date field so validation
  * lives in one place — no per-field .refine() needed.

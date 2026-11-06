@@ -19,6 +19,7 @@ import { API_ENDPOINTS }   from "@/config/api.config";
 import { getLocalStorage } from "@/lib/localStorage";
 import { formatAmount }    from "@/helper/numberFormatter";
 import { useColumnResize } from "@/hooks/useColumnResize";
+import { getfmtDisplaydate } from "@/helper/getfmtDisplayDate";
 
 const LABEL_W = "sm:w-[130px] sm:min-w-[130px]";
 const BASE    = API_ENDPOINTS.FINANCE.JOURNAL_VOUCHERING.BASE;
@@ -273,7 +274,7 @@ function BankPanel({ dockets, selectedDocketSid, onSelect }) {
                     {doc.voucherNo}
                   </td>
                   <td className="border border-[#d0d0d0] px-2 py-1.5 text-center text-[11px] text-gray-500">
-                    {doc.voucherDate ? new Date(doc.voucherDate).toLocaleDateString("en-IN") : "—"}
+                    {getfmtDisplaydate(doc.voucherDate) || "—"}
                   </td>
                   <td className="border border-[#d0d0d0] px-2 py-1.5 text-[11px] text-gray-600">
                     {(doc.rows || []).map((r) => r.ccName).filter(Boolean).join(", ") || "—"}

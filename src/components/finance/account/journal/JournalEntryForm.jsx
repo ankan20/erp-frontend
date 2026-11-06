@@ -27,6 +27,7 @@ import { getLocalStorage } from "@/lib/localStorage";
 import { formatAmount }    from "@/helper/numberFormatter";
 import { useColumnResize } from "@/hooks/useColumnResize";
 import { zodDate }         from "@/lib/dateUtils";
+import { getfmtDisplaydate } from "@/helper/getfmtDisplayDate";
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -645,7 +646,7 @@ export default function JournalEntryForm({ mode = "create", journalId, onAfterSu
                               }`}>{b.billLabel}</span>
                             </td>
                             <td className="px-3 py-1.5 font-medium text-[#25507a]">{b.docNo || "—"}</td>
-                            <td className="px-3 py-1.5 text-gray-500">{b.date || "—"}</td>
+                            <td className="px-3 py-1.5 text-gray-500">{getfmtDisplaydate(b.date) || "—"}</td>
                             <td className="px-3 py-1.5 text-gray-600">{b.party || "—"}</td>
                             <td className="px-3 py-1.5 text-right tabular-nums">{formatAmount(b.amount)}</td>
                           </tr>
@@ -742,7 +743,7 @@ export default function JournalEntryForm({ mode = "create", journalId, onAfterSu
                             <input type="checkbox" readOnly checked={checked} className="accent-[#25507a]" />
                           </td>
                           <td className="px-3 py-1.5 font-medium text-[#25507a]">{d.voucherNo}</td>
-                          <td className="px-3 py-1.5 text-gray-600">{d.voucherDate || "-"}</td>
+                          <td className="px-3 py-1.5 text-gray-600">{getfmtDisplaydate(d.voucherDate) || "—"}</td>
                           <td className="px-3 py-1.5 text-right tabular-nums">{formatAmount(d.totalAmount)}</td>
                           <td className="px-3 py-1.5 text-gray-500">{d.lines.map((l) => `${l.ccCode} ${formatAmount(l.amount)}`).join(", ")}</td>
                         </tr>
