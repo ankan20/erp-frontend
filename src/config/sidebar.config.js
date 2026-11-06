@@ -743,6 +743,12 @@ export const sidebarConfig = [
         activePaths: ["/hr-management/notice"],
         permissionKey: "notice",
       },
+      {
+        title: "Gang Tracker",
+        path: "/hr-management/contact-dairy",
+        activePaths: ["/hr-management/contact-dairy"],
+        permissionKey: "hr_gang_tracker",
+      },
     ],
   },
 

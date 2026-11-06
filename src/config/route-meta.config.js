@@ -801,6 +801,11 @@ export const routeMetaConfig = [
     breadcrumbs: ["HR Management", "Reports", "Performance & Discipline"],
   },
 
+  {
+    basePath: "/hr-management/contact-dairy",
+    breadcrumbs: ["HR Management", "Gang Tracker"],
+  },
+
   // Asset Management
   {
     basePath: "/asset-management/asset-register/new",
