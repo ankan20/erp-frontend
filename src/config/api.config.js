@@ -787,6 +787,15 @@ export const API_ENDPOINTS = {
       ADD_TASK:    "/hr/onboarding/",             // /:empId/tasks POST
       UPDATE_TASK: "/hr/onboarding/task/",        // /:taskId PUT
     },
+    GANG_TRACKER: {
+      LIST:     "/hr/gang-tracker",          // GET ?search&status&skill
+      CREATE:   "/hr/gang-tracker",          // POST
+      GET:      "/hr/gang-tracker/",         // /:id GET
+      UPDATE:   "/hr/gang-tracker/",         // /:id PUT
+      DELETE:   "/hr/gang-tracker/",         // /:id DELETE
+      FOLLOWUP: "/hr/gang-tracker/",         // /:id/followup POST
+      SKILLS:   "/hr/gang-tracker/skills",   // GET
+    },
   },
 
   AI: {
