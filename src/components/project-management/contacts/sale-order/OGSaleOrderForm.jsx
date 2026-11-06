@@ -25,6 +25,7 @@ import AmountInput        from "@/components/common/AmountInput";
 import GstInput           from "@/components/common/GstInput";
 import { formatAmount }   from "@/helper/numberFormatter";
 
+import SearchableSelect    from "@/components/common/SearchableSelect";
 import { apiRequest }      from "@/lib/apiClient";
 import { API_ENDPOINTS }   from "@/config/api.config";
 import { getLocalStorage } from "@/lib/localStorage";
@@ -103,6 +104,10 @@ export default function OGSaleOrderForm({ mode = "create", saleOrderId, onAfterS
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [unitOptions, setUnitOptions] = useState([]);
 
+  const [debtorId,      setDebtorId]      = useState(null);
+  const [debtorOptions, setDebtorOptions] = useState([]);
+  const initialDebtorId = useRef(null);
+
   const [files,        setFiles]        = useState({ att1: null, att2: null, att3: null });
   const [existingUrls, setExistingUrls] = useState({ att1: "", att2: "", att3: "" });
   const [initialUrls,  setInitialUrls]  = useState({ att1: "", att2: "", att3: "" });
@@ -148,6 +153,17 @@ export default function OGSaleOrderForm({ mode = "create", saleOrderId, onAfterS
       .catch(() => setUnitOptions([]));
   }, []);
 
+  // ── FETCH DEBTOR LIST ─────────────────────────────────────────────────────────
+  useEffect(() => {
+    if (!projectCode) return;
+    apiRequest({
+      url:    `${API_ENDPOINTS.MASTER.GET_ALL_LEDGER}?type=debtor`,
+      method: "GET",
+    })
+      .then((res) => setDebtorOptions(Array.isArray(res.data) ? res.data : []))
+      .catch(() => setDebtorOptions([]));
+  }, [projectCode]);
+
   // ── FETCH DETAIL ─────────────────────────────────────────────────────────────
   useEffect(() => {
     if (mode === "create" || !saleOrderId) return;
@@ -177,6 +193,10 @@ export default function OGSaleOrderForm({ mode = "create", saleOrderId, onAfterS
 
         reset(formatted);
         setInitialData(formatted);
+
+        const dId = d.debtorId ?? null;
+        setDebtorId(dId);
+        initialDebtorId.current = dId;
 
         const urls = { att1: d.attachment1 || "", att2: d.attachment2 || "", att3: d.attachment3 || "" };
         setExistingUrls(urls);
@@ -209,6 +229,7 @@ export default function OGSaleOrderForm({ mode = "create", saleOrderId, onAfterS
   const handleEdit = () => {
     if (isEditing) {
       if (initialData) reset(initialData);
+      setDebtorId(initialDebtorId.current);
       setFiles({ att1: null, att2: null, att3: null });
       setExistingUrls(initialUrls);
       setFileResetKey((k) => k + 1);
@@ -230,6 +251,7 @@ export default function OGSaleOrderForm({ mode = "create", saleOrderId, onAfterS
     fd.append("orderNo",         v.orderNo         || "");
     fd.append("orderValidity",   v.orderValidity   || "");
     fd.append("orderTitle",      v.orderTitle      || "");
+    fd.append("debtorId",        debtorId ?? "");
 
     const serializeRows = (rows) =>
       JSON.stringify(
@@ -398,6 +420,21 @@ export default function OGSaleOrderForm({ mode = "create", saleOrderId, onAfterS
                 disabled={disabled}
                 className="max-w-[200px]"
               />
+            </PMFormRow>
+
+            <PMFormRow label="Sundry Debtor" labelWidth="sm:w-[130px] sm:min-w-[130px]">
+              <div className="max-w-[300px] w-full">
+                <SearchableSelect
+                  options={debtorOptions}
+                  value={debtorId}
+                  onChange={(val) => setDebtorId(val)}
+                  placeholder="Select Debtor"
+                  valueKey="ledgerId"
+                  labelKey="ledgerName"
+                  searchKeys={["ledgerCode", "ledgerName"]}
+                  disabled={disabled}
+                />
+              </div>
             </PMFormRow>
 
             <div>
