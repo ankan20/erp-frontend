@@ -89,8 +89,6 @@ const schema = z.object({
   referenceDate:    zodDate(z, "referenceDate"),
   billToAddress:    z.string().optional().default(""),
   shipToAddress:    z.string().optional().default(""),
-  billAbstractNo:   z.string().optional().default(""),
-  billAbstractDate: zodDate(z, "billAbstractDate"),
   bankAcId:         z.coerce.number().nullable().optional(),
   paymentTermsDays: z.string().optional().default(""),
   declaration:      z.string().optional().default(""),
@@ -108,8 +106,6 @@ const DEFAULT_VALUES = {
   referenceDate: "",
   billToAddress: "",
   shipToAddress: "",
-  billAbstractNo: "",
-  billAbstractDate: "",
   bankAcId: null,
   paymentTermsDays: "",
   declaration: "",
@@ -292,6 +288,12 @@ export default function SaleBillForm({
     })), { shouldDirty: true });
     setValue("gstLines", newGstLines, { shouldDirty: true });
 
+    // Auto-populate Reference No from bill numbers (always)
+    // Reference Date: always set from first bill's date (editable for multi-bill cases)
+    const refNo = sources.map((s) => s.billingNo || s.certifiedBillNo).filter(Boolean).join(", ");
+    setValue("referenceNo", refNo, { shouldDirty: true });
+    setValue("referenceDate", sources[0]?.billingDate || "", { shouldDirty: true });
+
   }, [sources, breakdownSelections]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── Modal confirm ────────────────────────────────────────────────────────────
@@ -414,12 +416,9 @@ export default function SaleBillForm({
         const formatted = {
           mode:             d.mode || "",
           invoiceDate:      d.invoiceDate || "",
-          referenceNo:      d.referenceNo || "",
           referenceDate:    d.referenceDate || "",
           billToAddress:    d.billToAddress || "",
           shipToAddress:    d.shipToAddress || "",
-          billAbstractNo:   d.billAbstractNo || "",
-          billAbstractDate: d.billAbstractDate || "",
           bankAcId:         d.bankAcId || null,
           paymentTermsDays: parsePaymentTerms(d.paymentTerms),
           declaration:      d.declaration || "",
@@ -531,21 +530,14 @@ export default function SaleBillForm({
     // gstLines amounts are already correctly computed by the breakdown useEffect
     const computedGst = gstLines.map((l) => ({ ...l }));
 
-    // Abstract: join all selected bill abstract numbers
-    const abstractNo   = sources.map((s) => s.billingNo || s.certifiedBillNo).filter(Boolean).join(", ");
-    const abstractDate = sources[0]?.billingDate || "";
-
     return {
       projectCode,
       mode:             v.mode,
       invoiceDate:      v.invoiceDate || "",
-      referenceNo:      v.referenceNo || "",
       referenceDate:    v.referenceDate || "",
       billToAddress:    v.billToAddress || "",
       shipToAddress:    v.shipToAddress || "",
-      billAbstractNo:   abstractNo || v.billAbstractNo || "",
-      billAbstractDate: abstractDate || v.billAbstractDate || "",
-      bankAc:           v.bankAcId ? Number(v.bankAcId) : null,
+      bankAcId:         v.bankAcId ? Number(v.bankAcId) : null,
       paymentTerms:     v.paymentTermsDays ? `${v.paymentTermsDays} Days` : "",
       declaration:      v.declaration || "",
       discount:         Number(v.discount || 0),
@@ -692,15 +684,32 @@ export default function SaleBillForm({
               />
             </PMFormRow>
             <PMFormRow label="Reference No." labelWidth="sm:w-[150px] sm:min-w-[150px]">
-              <PMInput
-                {...register("referenceNo")}
-                disabled={disabled}
-                placeholder="Reference No."
-                fieldLabel="Reference No."
+              <Controller
+                name="referenceNo"
+                control={control}
+                render={({ field }) => (
+                  <PMInput
+                    {...field}
+                    disabled={true}
+                    placeholder="Auto-filled from certified bills"
+                    fieldLabel="Reference No."
+                  />
+                )}
               />
             </PMFormRow>
             <PMFormRow label="Reference Date" labelWidth="sm:w-[150px] sm:min-w-[150px]">
-              <PMDateInput {...register("referenceDate")} disabled={disabled} className="max-w-[200px]" />
+              <Controller
+                name="referenceDate"
+                control={control}
+                render={({ field }) => (
+                  <PMDateInput
+                    {...field}
+                    disabled={disabled}
+                    hasError={errors.referenceDate}
+                    className="max-w-[200px]"
+                  />
+                )}
+              />
             </PMFormRow>
           </PMSection>
 
@@ -740,29 +749,6 @@ export default function SaleBillForm({
             </PMFormRow>
           </PMSection>
 
-          {/* Bill Abstract — multi-source display */}
-          <PMSection title="Bill Abstract:">
-            {sources.length > 0 ? (
-              <div className="space-y-1">
-                {sources.map((s, i) => (
-                  <div key={s.certifiedBillId || i} className="flex gap-2 items-center text-[12px] px-1">
-                    <span className="text-gray-400 w-4 shrink-0">{i + 1}.</span>
-                    <span className="font-semibold text-[#1c3a5e] min-w-[80px]">
-                      {s.billingNo || s.certifiedBillNo || "—"}
-                    </span>
-                    <span className="text-gray-500">
-                      {getfmtDisplaydate(s.billingDate) || "—"}
-                    </span>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <p className="text-[12px] text-gray-400 italic px-1">
-                Abstract details will appear after selecting Certified Bills.
-              </p>
-            )}
-          </PMSection>
-
           {/* Bank & Payment */}
           <PMSection title="Bank & Payment:">
             <PMFormRow label="Bank A/c" labelWidth="sm:w-[150px] sm:min-w-[150px]">
@@ -782,13 +768,20 @@ export default function SaleBillForm({
             </PMFormRow>
             <PMFormRow label="Payment Terms" labelWidth="sm:w-[150px] sm:min-w-[150px]">
               <div className="flex items-center gap-1.5 max-w-[180px]">
-                <PMInput
-                  type="number"
-                  min="0"
-                  {...register("paymentTermsDays")}
-                  disabled={disabled}
-                  placeholder="e.g. 30"
-                  fieldLabel="Payment Terms (Days)"
+                <Controller
+                  name="paymentTermsDays"
+                  control={control}
+                  render={({ field }) => (
+                    <PMInput
+                      {...field}
+                      type="text"
+                      inputMode="numeric"
+                      pattern="[0-9]*"
+                      disabled={disabled}
+                      placeholder="e.g. 30"
+                      fieldLabel="Payment Terms (Days)"
+                    />
+                  )}
                 />
                 <span className="text-[13px] text-[#444] shrink-0">Days</span>
               </div>

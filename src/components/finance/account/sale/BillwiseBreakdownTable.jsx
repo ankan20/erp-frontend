@@ -121,9 +121,11 @@ export default function BillwiseBreakdownTable({
               <th className="border border-[#b0b0b0] px-2 py-1.5 text-right font-semibold w-[110px]">
                 Amount
               </th>
-              <th className="border border-[#b0b0b0] px-2 py-1.5 text-center font-semibold w-[55px]" data-col-resize-last="true">
-                Select
-              </th>
+              {!disabled && (
+                <th className="border border-[#b0b0b0] px-2 py-1.5 text-center font-semibold w-[55px]" data-col-resize-last="true">
+                  Select
+                </th>
+              )}
             </tr>
           </thead>
           <tbody>
@@ -167,10 +169,18 @@ export default function BillwiseBreakdownTable({
                 },
               ];
 
+              // In view mode, only count visible (checked) rows for rowSpan
+              const visibleRows = disabled ? rows.filter((r) => (selections[r.key]?.checked ?? false)) : rows;
+              const visibleCount = visibleRows.length || 1;
+              let visibleRi = -1;
+
               return rows.map((row, ri) => {
                 const sel         = selections[row.key] || {};
                 const isChecked   = sel.checked ?? false;
                 const description = sel.description ?? "";
+                // In view/disabled mode hide unselected rows entirely
+                if (disabled && !isChecked) return null;
+                visibleRi++;
                 // row.disabled dims the row (mutex exclusion) but checkbox stays clickable
                 // so users can click CGST/SGST to automatically switch from IGST and vice-versa
                 const isRowMuted       = disabled || row.disabled;
@@ -183,31 +193,31 @@ export default function BillwiseBreakdownTable({
                     key={row.key}
                     className={`${isChecked ? "bg-green-50" : ri % 2 === 0 ? "bg-white" : "bg-gray-50"} ${isRowMuted ? "opacity-50" : ""}`}
                   >
-                    {/* ERP No — only on first row of each bill */}
-                    {ri === 0 ? (
+                    {/* ERP No — only on first visible row of each bill */}
+                    {visibleRi === 0 ? (
                       <td
                         className="border border-[#d0d0d0] px-2 py-1 font-semibold text-[#1c3a5e] text-[10px]"
-                        rowSpan={rows.length}
+                        rowSpan={visibleCount}
                       >
                         {source.saleOrderErpNo || "—"}
                       </td>
                     ) : null}
 
-                    {/* Sale Order (Customer Order No) — only on first row */}
-                    {ri === 0 ? (
+                    {/* Sale Order (Customer Order No) — only on first visible row */}
+                    {visibleRi === 0 ? (
                       <td
                         className="border border-[#d0d0d0] px-2 py-1 text-gray-700 text-[10px]"
-                        rowSpan={rows.length}
+                        rowSpan={visibleCount}
                       >
                         {source.saleOrderNo || "—"}
                       </td>
                     ) : null}
 
-                    {/* Bill No — only on first row */}
-                    {ri === 0 ? (
+                    {/* Bill No — only on first visible row */}
+                    {visibleRi === 0 ? (
                       <td
                         className="border border-[#d0d0d0] px-2 py-1 font-semibold text-[#1c3a5e]"
-                        rowSpan={rows.length}
+                        rowSpan={visibleCount}
                       >
                         {source.certifiedBillNo || "—"}
                       </td>
@@ -232,15 +242,17 @@ export default function BillwiseBreakdownTable({
                     <td className="border border-[#d0d0d0] px-2 py-1 text-right font-semibold">
                       {formatAmount(row.amount)}
                     </td>
-                    <td className="border border-[#d0d0d0] px-2 py-1 text-center">
-                      <input
-                        type="checkbox"
-                        checked={isChecked}
-                        onChange={(e) => handleCheck(row.key, e.target.checked)}
-                        disabled={isCheckboxDisabled}
-                        className="h-3.5 w-3.5 accent-blue-600 cursor-pointer disabled:cursor-not-allowed"
-                      />
-                    </td>
+                    {!disabled && (
+                      <td className="border border-[#d0d0d0] px-2 py-1 text-center">
+                        <input
+                          type="checkbox"
+                          checked={isChecked}
+                          onChange={(e) => handleCheck(row.key, e.target.checked)}
+                          disabled={isCheckboxDisabled}
+                          className="h-3.5 w-3.5 accent-blue-600 cursor-pointer disabled:cursor-not-allowed"
+                        />
+                      </td>
+                    )}
                   </tr>
                 );
               });

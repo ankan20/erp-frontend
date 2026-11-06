@@ -111,6 +111,8 @@ export default function AccountingJournalTable({
               const bulkChecked  = hasBulkToggle ? isBulkChecked(entry.ccCode) : false;
               // isSelected may be undefined for callers that don't set it (treat as selected)
               const isSelected   = entry.isSelected !== false;
+              // In view/disabled mode hide unselected rows entirely
+              if (disabled && !isSelected) return null;
               const rowBg        = isSelected
                 ? (idx % 2 === 0 ? "bg-white" : "bg-[#fafafa]")
                 : "bg-gray-50 opacity-50";
