@@ -46,7 +46,7 @@ export default function DocketVoucherListPage() {
           modeOfPayment:  r.modeOfPayment                   || "",
           bankCode:       r.bankCode                        || "—",
           paymentRefId:   r.paymentRefId                    || "",
-          ccCodes:        r.ccCodes                         || "",
+          ccNames:        r.ccNames                         || "",
           amount:         Number(r.totalAmount || 0).toLocaleString("en-IN", {
             minimumFractionDigits: 2, maximumFractionDigits: 2,
           }),
@@ -94,7 +94,7 @@ export default function DocketVoucherListPage() {
     { header: "Payment Mode", accessor: "modeOfPayment",  width: "120px" },
     { header: "Account",      accessor: "bankCode",       width: "110px" },
     { header: "Trans. ID",    accessor: "paymentRefId",   width: "120px" },
-    { header: "CC Codes",     accessor: "ccCodes",        width: "130px" },
+    { header: "CC Names",     accessor: "ccNames",        width: "150px" },
     { header: "Amount",       accessor: "amount",         width: "110px", align: "right" },
     { header: "Status",       accessor: "workflowStatus", width: "110px" },
     { header: "Created By",   accessor: "createdBy",      width: "120px" },
