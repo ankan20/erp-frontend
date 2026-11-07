@@ -151,7 +151,7 @@ export default function BRRForm({ mode = "create", brrId, onDataLoaded, onAfterS
 
   // Load ledgers
   useEffect(() => {
-    apiRequest({ url: API_ENDPOINTS.MASTER.GET_ALL_LEDGER, method: "GET" })
+    apiRequest({ url: `${API_ENDPOINTS.MASTER.GET_ALL_LEDGER}?type=creditor`, method: "GET" })
       .then((res) => setLedgerList(res.data || []))
       .catch(() => toast.error("Failed to load vendor list"));
   }, []);

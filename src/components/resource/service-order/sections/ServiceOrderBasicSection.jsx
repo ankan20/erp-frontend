@@ -96,7 +96,7 @@ export default function ServiceOrderBasicSection({
   useEffect(() => {
     const fetchLedgers = async () => {
       try {
-        const res = await apiRequest({ url: API_ENDPOINTS.MASTER.GET_ALL_LEDGER, method: "GET" });
+        const res = await apiRequest({ url: `${API_ENDPOINTS.MASTER.GET_ALL_LEDGER}?type=creditor`, method: "GET" });
         const list = (res.data || []).map((v) => ({
           ...v,
           displayName: v.supplierCode

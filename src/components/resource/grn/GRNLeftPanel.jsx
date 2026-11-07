@@ -134,7 +134,7 @@ export default function GRNLeftPanel({
     const fetch = async () => {
       try {
         const res = await apiRequest({
-          url: API_ENDPOINTS.MASTER.GET_ALL_LEDGER,
+          url: `${API_ENDPOINTS.MASTER.GET_ALL_LEDGER}?type=creditor`,
         });
         setLedgerList((res.data || []).slice().sort((a, b) => (a.ledgerName || "").localeCompare(b.ledgerName || "")));
       } catch {

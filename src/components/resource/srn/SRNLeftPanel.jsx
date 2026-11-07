@@ -106,7 +106,7 @@ export default function SRNLeftPanel({
 
   // ── LOAD LEDGER LIST (vendors)
   useEffect(() => {
-    apiRequest({ url: API_ENDPOINTS.MASTER.GET_ALL_LEDGER })
+    apiRequest({ url: `${API_ENDPOINTS.MASTER.GET_ALL_LEDGER}?type=creditor` })
       .then((res) => setLedgerList((res.data || []).slice().sort((a, b) => (a.ledgerName || "").localeCompare(b.ledgerName || ""))))
       .catch(() => toast.error("Failed to load vendors"));
   }, []);

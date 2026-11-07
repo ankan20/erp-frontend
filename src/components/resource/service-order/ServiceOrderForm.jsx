@@ -97,7 +97,7 @@ export default function ServiceOrderForm({ mode = "create", serviceOrderId, onUu
         let gstn = "";
         try {
           if (data.vendorId) {
-            const ledgerRes = await apiRequest({ url: API_ENDPOINTS.MASTER.GET_ALL_LEDGER, method: "GET" });
+            const ledgerRes = await apiRequest({ url: `${API_ENDPOINTS.MASTER.GET_ALL_LEDGER}?type=creditor`, method: "GET" });
             const vendor = (ledgerRes.data || []).find((v) => String(v.ledgerId) === String(data.vendorId));
             if (vendor) {
               partyAddress = vendor.registeredAddress  || "";
