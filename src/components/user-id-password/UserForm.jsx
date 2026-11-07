@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect } from "react";
 import { X } from "lucide-react";
 import AuthImage from "@/components/common/AuthImage";
+import { userFileUrl } from "@/lib/userFiles";
 import { Input } from "@/components/ui/input";
 import SaveButton from "@/components/common/SaveButton";
 import EditButton from "@/components/common/EditButton";
@@ -89,8 +90,8 @@ export default function UserForm({ mode = "create", data }) {
         });
 
         // signature preview (use URL)
-        setPreviewSignature(data.signatureUrl || "");
-        setPreviewPhoto(data.profilePictureUrl || "");
+        setPreviewSignature(userFileUrl(data.id, "signature", data.signatureUrl));
+        setPreviewPhoto(userFileUrl(data.id, "profile", data.profilePictureUrl));
       }
     };
     apiCall();
@@ -206,8 +207,8 @@ export default function UserForm({ mode = "create", data }) {
       toast.success("Saved successfully", { id: toastId });
 
       setIsEditing(false);
-      setPreviewSignature(res.data[0].signatureUrl || "");
-      setPreviewPhoto(res.data[0].profilePictureUrl || "");
+      setPreviewSignature(userFileUrl(res.data[0].id, "signature", res.data[0].signatureUrl));
+      setPreviewPhoto(userFileUrl(res.data[0].id, "profile", res.data[0].profilePictureUrl));
       setPhotoName("");
       setRemoveSignature(false);
       setRemovePhoto(false);
@@ -239,7 +240,7 @@ export default function UserForm({ mode = "create", data }) {
       });
 
       // signature preview (use URL)
-      setPreviewSignature(data.signatureUrl || "");
+      setPreviewSignature(userFileUrl(data.id, "signature", data.signatureUrl));
       setSignatureName("");
       setSignatureError("");
       if (signatureRef.current) {
@@ -247,7 +248,7 @@ export default function UserForm({ mode = "create", data }) {
       }
       setPhotoName("");
       setPhotoError("");
-      setPreviewPhoto(data.profilePictureUrl || "");
+      setPreviewPhoto(userFileUrl(data.id, "profile", data.profilePictureUrl));
       if (photoRef.current) {
         photoRef.current.value = "";
       }

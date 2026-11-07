@@ -18,6 +18,7 @@ import { API_ENDPOINTS } from "@/config/api.config";
 import { User, LogOut, Camera } from "lucide-react";
 import ProfilePictureUploadModal from "@/components/common/ProfilePictureUploadModal";
 import AuthImage from "@/components/common/AuthImage";
+import { userFileUrl } from "@/lib/userFiles";
 import { useComm } from "@/context/CommContext";
 import { ROLE, roleMap } from "@/config/role.config";
 
@@ -57,7 +58,8 @@ export default function AppNavbar() {
     const loadMe = async () => {
       try {
         const res = await apiRequest({ url: API_ENDPOINTS.ME });
-        if (alive) setProfilePic(res?.data?.[0]?.profilePicture || "");
+        const me = res?.data?.[0];
+        if (alive) setProfilePic(userFileUrl(me?.id, "profile", me?.profilePicture));
       } catch {
         // avatar falls back to the default icon
       }
