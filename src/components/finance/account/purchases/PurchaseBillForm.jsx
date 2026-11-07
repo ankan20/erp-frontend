@@ -146,9 +146,9 @@ export default function PurchaseBillForm({ mode = "create", billId, onAfterSubmi
   const isIGST     = !!watchedGstLines[0]?.isSelected;
   const isCGSTSGST = !!watchedGstLines[1]?.isSelected;
   const hasActual  = actualGstTotal !== null && actualGstTotal !== undefined;
-  const igstAmt    = isIGST     ? (hasActual ? actualGstTotal     : basicTotal * (watchedGstLines[0]?.percent || 18) / 100) : 0;
-  const cgstAmt    = isCGSTSGST ? (hasActual ? actualGstTotal / 2 : basicTotal * (watchedGstLines[1]?.percent || 9)  / 100) : 0;
-  const sgstAmt    = isCGSTSGST ? (hasActual ? actualGstTotal / 2 : basicTotal * (watchedGstLines[2]?.percent || 9)  / 100) : 0;
+  const igstAmt    = isIGST     ? (hasActual ? actualGstTotal     : basicTotal * (watchedGstLines[0]?.percent || 0) / 100) : 0;
+  const cgstAmt    = isCGSTSGST ? (hasActual ? actualGstTotal / 2 : basicTotal * (watchedGstLines[1]?.percent || 0) / 100) : 0;
+  const sgstAmt    = isCGSTSGST ? (hasActual ? actualGstTotal / 2 : basicTotal * (watchedGstLines[2]?.percent || 0) / 100) : 0;
   const gstTotal   = igstAmt + cgstAmt + sgstAmt;
 
   // Sync computed GST amounts back into form state so the journal table reads them
@@ -198,9 +198,9 @@ export default function PurchaseBillForm({ mode = "create", billId, onAfterSubmi
     const curActual = actualGstTotal;
     const curHasActual = curActual !== null && curActual !== undefined;
 
-    const newIgstAmt  = willIGST     ? (curHasActual ? curActual     : basicTotal * (current[0]?.percent || 18) / 100) : 0;
-    const newCgstAmt  = willCGSTSGST ? (curHasActual ? curActual / 2 : basicTotal * (current[1]?.percent || 9)  / 100) : 0;
-    const newSgstAmt  = willCGSTSGST ? (curHasActual ? curActual / 2 : basicTotal * (current[2]?.percent || 9)  / 100) : 0;
+    const newIgstAmt  = willIGST     ? (curHasActual ? curActual     : basicTotal * (current[0]?.percent || 0) / 100) : 0;
+    const newCgstAmt  = willCGSTSGST ? (curHasActual ? curActual / 2 : basicTotal * (current[1]?.percent || 0) / 100) : 0;
+    const newSgstAmt  = willCGSTSGST ? (curHasActual ? curActual / 2 : basicTotal * (current[2]?.percent || 0) / 100) : 0;
     const newAmts     = [newIgstAmt, newCgstAmt, newSgstAmt];
     const newSelected = [willIGST, willCGSTSGST, willCGSTSGST];
 
