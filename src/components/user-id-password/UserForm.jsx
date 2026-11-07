@@ -38,6 +38,12 @@ export default function UserForm({ mode = "create", data }) {
 
   const signatureRef = useRef(null);
 
+  // Profile photo (upload only — no preview)
+  const [photoName, setPhotoName] = useState("");
+  const [photoError, setPhotoError] = useState("");
+  const [hasPhoto, setHasPhoto] = useState(false);
+  const photoRef = useRef(null);
+
   const form = useForm({
     resolver: zodResolver(schema),
     defaultValues: {
@@ -78,6 +84,7 @@ export default function UserForm({ mode = "create", data }) {
 
         // signature preview (use URL)
         setPreviewSignature(data.signatureUrl || "");
+        setHasPhoto(!!data.profilePictureUrl);
       }
     };
     apiCall();
@@ -108,6 +115,29 @@ export default function UserForm({ mode = "create", data }) {
     setPreviewSignature(URL.createObjectURL(file));
   };
 
+  //  PROFILE PHOTO HANDLER
+  const handlePhotoChange = (file) => {
+    if (!file) {
+      setPhotoName("");
+      return;
+    }
+    const allowed = ["image/png", "image/jpeg", "image/jpg", "image/webp"];
+    if (!allowed.includes(file.type)) {
+      setPhotoError("Only PNG/JPG/WEBP allowed");
+      if (photoRef.current) photoRef.current.value = "";
+      setPhotoName("");
+      return;
+    }
+    if (file.size > MAX_SIZE) {
+      setPhotoError("File ≤ 5MB");
+      if (photoRef.current) photoRef.current.value = "";
+      setPhotoName("");
+      return;
+    }
+    setPhotoError("");
+    setPhotoName(file.name);
+  };
+
   //  SUBMIT
   const onSubmit = async () => {
     let toastId;
@@ -136,6 +166,9 @@ export default function UserForm({ mode = "create", data }) {
       const file = signatureRef.current?.files?.[0];
       if (file) formData.append("signature", file);
 
+      const photo = photoRef.current?.files?.[0];
+      if (photo) formData.append("profilePicture", photo);
+
       let res = await apiRequest({
         url:
           mode === "create"
@@ -149,6 +182,8 @@ export default function UserForm({ mode = "create", data }) {
 
       setIsEditing(false);
       setPreviewSignature(res.data[0].signatureUrl || "");
+      setHasPhoto(!!res.data[0].profilePictureUrl);
+      setPhotoName("");
       if (mode == "create" || mode == "edit") {
         setTimeout(() => {
           router.push("/settings/user-id-password/");
@@ -179,6 +214,11 @@ export default function UserForm({ mode = "create", data }) {
       setSignatureError("");
       if (signatureRef.current) {
         signatureRef.current.value = "";
+      }
+      setPhotoName("");
+      setPhotoError("");
+      if (photoRef.current) {
+        photoRef.current.value = "";
       }
     }
     setIsEditing((prev) => !prev);
@@ -315,6 +355,40 @@ export default function UserForm({ mode = "create", data }) {
             <img src={previewSignature} alt="signature" className="h-[120px]" />
           </div>
         )}
+      </div>
+
+      {/* PROFILE PHOTO (upload only) */}
+      <div className="pt-2 mt-1">
+        <div className="flex items-center gap-2">
+          <div className="px-3 py-1 min-w-37.5 text-center bg-[#6fa8dc] text-white text-md rounded-sm">
+            Profile Photo
+          </div>
+
+          <button
+            type="button"
+            onClick={() => photoRef.current.click()}
+            disabled={!isEditing || isSubmitting}
+            className="px-3 py-1 bg-[#f6c85f] text-sm rounded-sm cursor-pointer disabled:cursor-not-allowed"
+          >
+            @
+          </button>
+
+          {photoName ? (
+            <span className="text-[10px]">{photoName}</span>
+          ) : (
+            hasPhoto && <span className="text-[10px] text-green-700">Uploaded</span>
+          )}
+
+          <input
+            ref={photoRef}
+            type="file"
+            hidden
+            accept="image/png, image/jpeg, image/jpg, image/webp"
+            onChange={(e) => handlePhotoChange(e.target.files?.[0])}
+          />
+        </div>
+
+        <p className={errorText}>{photoError}</p>
       </div>
 
       {/* FOOTER SIGN */}
