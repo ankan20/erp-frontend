@@ -1,7 +1,6 @@
 "use client";
 
-import { useSearchParams } from "next/navigation";
-import { useRouter }       from "next/navigation";
+import { useRouter } from "next/navigation";
 
 import HeaderWrapper    from "@/components/layout/HeaderWrapper";
 import PageHeader       from "@/components/layout/PageHeader";
@@ -11,10 +10,7 @@ import { getPageAccess }   from "@/helper/getPageAccess";
 import PaymentForm         from "@/components/finance/account/payment/PaymentForm";
 
 export default function Page() {
-  const router      = useRouter();
-  const params      = useSearchParams();
-  const paymentType = params.get("type") || "bill"; // "bill" | "voucher"
-
+  const router  = useRouter();
   const access  = getPageAccess({ pageCode: "payment", pageType: "ADD" });
   const actions = getPageActions({ router });
 
@@ -22,7 +18,7 @@ export default function Page() {
 
   return (
     <HeaderWrapper header={<PageHeader actions={actions} />}>
-      <PaymentForm mode="create" paymentType={paymentType} />
+      <PaymentForm mode="create" />
     </HeaderWrapper>
   );
 }

@@ -537,19 +537,6 @@ export const API_ENDPOINTS = {
       MY_APPROVAL_STATUS: "/finance/purchase-bill/my-approval-status/",  // /:id GET
       GET_BY_UUID:   "/finance/purchase-bill/uuid/",                     // /:uuid GET no-auth
     },
-    PURCHASE_VOUCHER: {
-      CREATE:        "/finance/purchase-voucher/create",                 // POST JSON
-      LIST:          "/finance/purchase-voucher/list",                   // GET ?projectCode&vendorId&workflowStatus&search
-      GET_BY_ID:     "/finance/purchase-voucher/",                       // /:id GET
-      EDIT:          "/finance/purchase-voucher/edit/",                  // /:id PUT JSON
-      SUBMIT:        "/finance/purchase-voucher/submit/",                // /:id POST
-      APPROVE:       "/finance/purchase-voucher/approve/",               // /:id POST
-      REBACK:        "/finance/purchase-voucher/reback/",                // /:id POST
-      REJECT:        "/finance/purchase-voucher/reject/",                // /:id POST
-      HISTORY:       "/finance/purchase-voucher/history/",               // /:id GET
-      MY_APPROVAL_STATUS: "/finance/purchase-voucher/my-approval-status/", // /:id GET
-      GET_BY_UUID:   "/finance/purchase-voucher/uuid/",                  // /:uuid GET no-auth
-    },
     SALE_RECEIPT: {
       OG_SALE_ORDERS: "/finance/sale-receipt/og-sale-orders",            // GET ?projectCode — Approved OG Sale Orders
       CREATE:         "/finance/sale-receipt/create",                    // POST JSON
@@ -602,8 +589,6 @@ export const API_ENDPOINTS = {
       GET_BY_UUID:        "/finance/credit-note/uuid/",                  // /:uuid GET no-auth
     },
     PAYMENT_VOUCHER: {
-      APPROVED_PURCHASE_VOUCHERS: "/finance/payment-voucher/approved-purchase-vouchers", // GET ?projectCode
-      PURCHASE_VOUCHER_ITEMS:     "/finance/payment-voucher/purchase-voucher-items/",    // /<pv_id> GET
       CREATE:             "/finance/payment-voucher/create",                // POST JSON
       LIST:               "/finance/payment-voucher/list",                  // GET ?projectCode&workflowStatus&vendorId&search
       GET_BY_ID:          "/finance/payment-voucher/",                      // /<pvm_id> GET

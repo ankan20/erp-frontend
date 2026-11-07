@@ -31,7 +31,7 @@ const MODULE_LABELS = {
   BRR: "Bill Receive Register", BRG: "BRR Billing GRN",
   BRS: "BRR Billing SRN", BRB: "BRR Billing",
   PURCHASE_BILL: "Purchase Bill", BILL_PAYMENT: "Bill Payment",
-  PURCHASE_VOUCHER: "Purchase Voucher", PAYMENT_VOUCHER: "Payment Voucher",
+  PAYMENT_VOUCHER: "Payment Voucher",
   SALE_BILL: "Sale Bill", SALE_RECEIPT_BILLING: "Sale Receipt Billing",
   JOURNAL_ENTRY: "Journal Entry", CONTRA_ENTRY: "Contra Entry",
   CREDIT_NOTE: "Credit Note", DEBIT_NOTE: "Debit Note",

@@ -37,57 +37,29 @@ export default function Page() {
   useEffect(() => {
     if (!projectCode || !access.allowed) return;
 
-    Promise.allSettled([
-      apiRequest({ url: `${API_ENDPOINTS.FINANCE.PAYMENT_VOUCHER.LIST}?projectCode=${projectCode}`, method: "GET" }),
-      apiRequest({ url: `${API_ENDPOINTS.FINANCE.BILL_PAYMENT.LIST}?projectCode=${projectCode}`,     method: "GET" }),
-    ])
-      .then(([pvRes, bpRes]) => {
-        const pvRows = pvRes.status === "fulfilled"
-          ? (pvRes.value?.data || []).map((r) => ({
-              _id:         r.id,
-              _type:       "voucher",
-              paymentNo:   r.paymentVouchNo     || "—",
-              date:        r.paymentDate ? getfmtDisplaydate(r.paymentDate) : "—",
-              partyName:   r.vendorName         || "—",
-              type:        "Voucher",
-              refNumber:   r.purchaseVoucherNo  || "—",
-              paymentMode: r.paymentMode        || "—",
-              utrVoucherNo: r.utrVoucherNo      || "—",
-              amount:      r.totalInvoiceAmount != null ? formatAmount(r.totalInvoiceAmount) : "—",
-              status:      r.workflowStatus     || "Draft",
-              _raw:        r,
-            }))
-          : [];
-
-        const bpRows = bpRes.status === "fulfilled"
-          ? (bpRes.value?.data || []).map((r) => ({
-              _id:         r.id,
-              _type:       "bill",
-              paymentNo:   r.receiptNo          || "—",
-              date:        r.paymentDate ? getfmtDisplaydate(r.paymentDate) : "—",
-              partyName:   r.vendorName         || "—",
-              type:        "Bill",
-              refNumber:   r.purchaseBillNo     || "—",
-              paymentMode: r.paymentMode        || "—",
-              utrVoucherNo: r.utrVoucherNo      || "—",
-              amount:      r.totalInvoiceAmount != null ? formatAmount(r.totalInvoiceAmount) : "—",
-              status:      r.workflowStatus     || "Draft",
-              _raw:        r,
-            }))
-          : [];
-
-        if (pvRes.status === "rejected") toast.error("Failed to fetch Voucher Payments");
-        if (bpRes.status === "rejected") toast.error("Failed to fetch Bill Payments");
-
-        const combined = [...pvRows, ...bpRows].sort((a, b) => {
+    apiRequest({ url: `${API_ENDPOINTS.FINANCE.BILL_PAYMENT.LIST}?projectCode=${projectCode}`, method: "GET" })
+      .then((res) => {
+        const rows = (res?.data || []).map((r) => ({
+          _id:         r.id,
+          paymentNo:   r.receiptNo          || "—",
+          date:        r.paymentDate ? getfmtDisplaydate(r.paymentDate) : "—",
+          partyName:   r.vendorName         || "—",
+          refNumber:   r.purchaseBillNo     || "—",
+          paymentMode: r.paymentMode        || "—",
+          utrVoucherNo: r.utrVoucherNo      || "—",
+          amount:      r.totalInvoiceAmount != null ? formatAmount(r.totalInvoiceAmount) : "—",
+          status:      r.workflowStatus     || "Draft",
+          _raw:        r,
+        })).sort((a, b) => {
           const da = a._raw?.paymentDate ? new Date(a._raw.paymentDate) : new Date(0);
           const db = b._raw?.paymentDate ? new Date(b._raw.paymentDate) : new Date(0);
           return db - da;
         }).map((r, i) => ({ sl: i + 1, ...r }));
 
-        setData(combined);
-        setFilteredData(combined);
+        setData(rows);
+        setFilteredData(rows);
       })
+      .catch(() => toast.error("Failed to fetch Bill Payments"))
       .finally(() => setLoading(false));
   }, [projectCode, access.allowed]);
 
@@ -116,7 +88,6 @@ export default function Page() {
     { header: "Payment Voc. No", accessor: "paymentNo",    width: "130px" },
     { header: "Date",            accessor: "date",         width: "100px" },
     { header: "Party Name",      accessor: "partyName",    width: "200px" },
-    { header: "Type",            accessor: "type",         width: "80px",  align: "center" },
     { header: "Ref. Number",     accessor: "refNumber",    width: "130px" },
     { header: "By Mode",         accessor: "paymentMode",  width: "85px",  align: "center" },
     { header: "UTR / Voc. No",   accessor: "utrVoucherNo", width: "145px" },
@@ -164,8 +135,7 @@ export default function Page() {
           actions={
             access.canAdd
               ? [
-                  { label: "+ Bill Payment",    onClick: () => router.push("/finance-management/account/payment/new?type=bill")    },
-                  { label: "+ Voucher Payment", onClick: () => router.push("/finance-management/account/payment/new?type=voucher") },
+                  { label: "+ Bill Payment", onClick: () => router.push("/finance-management/account/payment/new") },
                 ]
               : []
           }
@@ -176,7 +146,7 @@ export default function Page() {
           data={filteredData}
           onRowClick={(row) => {
             if (access.canOpenDetails)
-              router.push(`/finance-management/account/payment/${row._id}?type=${row._type}`);
+              router.push(`/finance-management/account/payment/${row._id}`);
           }}
         pendingDeleteIds={pendingDeleteIds}
         />

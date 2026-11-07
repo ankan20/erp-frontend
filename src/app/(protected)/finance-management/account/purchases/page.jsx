@@ -45,12 +45,10 @@ export default function Page() {
 
     const fetchList = async () => {
       try {
-        const [billRes, voucherRes] = await Promise.all([
-          apiRequest({ url: `${API_ENDPOINTS.FINANCE.PURCHASE_BILL.LIST}?projectCode=${projectCode}`, method: "GET" }),
-          apiRequest({ url: `${API_ENDPOINTS.FINANCE.PURCHASE_VOUCHER.LIST}?projectCode=${projectCode}`, method: "GET" }),
-        ]);
+        const billRes = await apiRequest({ url: `${API_ENDPOINTS.FINANCE.PURCHASE_BILL.LIST}?projectCode=${projectCode}`, method: "GET" });
 
-        const bills = (billRes.data || []).map((r, i) => ({
+        const merged = (billRes.data || []).map((r, i) => ({
+          sl:            i + 1,
           _id:           r.id,
           _type:         "bill",
           voucherNo:     r.purchaseBillNo || "",
@@ -64,21 +62,6 @@ export default function Page() {
           _raw:          r,
         }));
 
-        const vouchers = (voucherRes.data || []).map((r, i) => ({
-          _id:           r.id,
-          _type:         "voucher",
-          voucherNo:     r.voucherNo || "",
-          date:          getfmtDisplaydate(r.processingDate) || "",
-          partyName:     r.vendorName || "",
-          type:          "Voucher",
-          amount:        fmtNum(r.totalInvoiceAmount),
-          paid:          r.paidAmount ? fmtNum(r.paidAmount) : "-",
-          balance:       r.balance    ? fmtNum(r.balance)    : "-",
-          workflowStatus: r.workflowStatus || "",
-          _raw:          r,
-        }));
-
-        const merged = [...bills, ...vouchers].map((r, i) => ({ ...r, sl: i + 1 }));
         setData(merged);
         setFilteredData(merged);
       } catch {
@@ -122,7 +105,6 @@ export default function Page() {
     { header: "Voucher No", accessor: "voucherNo",     width: "130px" },
     { header: "Date",       accessor: "date",          width: "110px" },
     { header: "Party Name", accessor: "partyName",     width: "180px" },
-    { header: "Type",       accessor: "type",          width: "90px"  },
     { header: "Amount",     accessor: "amount",        width: "130px", align: "right" },
     { header: "Paid",       accessor: "paid",          width: "110px", align: "right" },
     { header: "Balance",    accessor: "balance",       width: "110px", align: "right" },
@@ -151,10 +133,7 @@ export default function Page() {
           showDateRange
           actions={
             access.canAdd
-              ? [
-                  { label: "+ Bill Processing",    onClick: () => router.push("/finance-management/account/purchases/bill/new") },
-                  { label: "+ Voucher Processing", onClick: () => router.push("/finance-management/account/purchases/voucher/new") },
-                ]
+              ? [{ label: "+ Bill Processing", onClick: () => router.push("/finance-management/account/purchases/bill/new") }]
               : []
           }
         />
@@ -164,8 +143,7 @@ export default function Page() {
           data={filteredData}
           onRowClick={(row) => {
             if (!access.canOpenDetails) return;
-            if (row._type === "bill")    router.push(`/finance-management/account/purchases/bill/${row._id}`);
-            if (row._type === "voucher") router.push(`/finance-management/account/purchases/voucher/${row._id}`);
+            router.push(`/finance-management/account/purchases/bill/${row._id}`);
           }}
         pendingDeleteIds={pendingDeleteIds}
         />

@@ -1,7 +1,7 @@
 "use client";
 
-import { useState }                        from "react";
-import { useParams, useRouter, useSearchParams } from "next/navigation";
+import { useState }                from "react";
+import { useParams, useRouter } from "next/navigation";
 
 import HeaderWrapper        from "@/components/layout/HeaderWrapper";
 import PageHeader           from "@/components/layout/PageHeader";
@@ -16,11 +16,8 @@ import { useDeletePending } from "@/hooks/useDeletePending";
 import PaymentForm          from "@/components/finance/account/payment/PaymentForm";
 
 export default function Page() {
-  const router      = useRouter();
-  const { id }      = useParams();
-  const params      = useSearchParams();
-  const paymentType = params.get("type") || "bill";
-  const isBill      = paymentType === "bill";
+  const router = useRouter();
+  const { id } = useParams();
 
   const access = getPageAccess({ pageCode: "payment", pageType: "EDIT" });
 
@@ -28,7 +25,7 @@ export default function Page() {
   const [openTimeline, setOpenTimeline] = useState(false);
   const [uuid,         setUuid]         = useState(null);
 
-  const EP = isBill ? API_ENDPOINTS.FINANCE.BILL_PAYMENT : API_ENDPOINTS.FINANCE.PAYMENT_VOUCHER;
+  const EP = API_ENDPOINTS.FINANCE.BILL_PAYMENT;
 
   const { isPendingForMe, myLevel, refresh, dismiss } = useMyApprovalStatus(
     EP.MY_APPROVAL_STATUS,
@@ -44,7 +41,7 @@ export default function Page() {
     router,
     onTimeLine: () => setOpenTimeline(true),
     onApprove:  access.canApprove ? () => setOpenApproval(true) : undefined,
-    onDownload: uuid ? () => window.open(`/print/payment/${uuid}?type=${paymentType}`, "_blank") : undefined,
+    onDownload: uuid ? () => window.open(`/print/payment/${uuid}`, "_blank") : undefined,
     isPendingApproval: isPendingForMe,
   });
 
@@ -59,7 +56,6 @@ export default function Page() {
       <PaymentForm
         mode={access.mode}
         paymentId={id}
-        paymentType={paymentType}
         onAfterSubmit={refresh}
         onUuid={setUuid}
       />

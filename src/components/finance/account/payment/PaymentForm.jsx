@@ -78,8 +78,7 @@ const pvGstLineSchema = z.object({
 
 const schema = z.object({
   paymentDate: zodDate(z, "paymentDate", true),
-  purchaseBillId:    z.coerce.number().nullable().optional(),
-  purchaseVoucherId: z.coerce.number().nullable().optional(),
+  purchaseBillId: z.coerce.number().nullable().optional(),
   vendorId:          z.coerce.number().nullable().optional(),
   paymentMode:       z.enum(["Cash", "Bank"]).default("Bank"),
   cashAcId:          z.coerce.number().nullable().optional().default(null),
@@ -94,8 +93,7 @@ const schema = z.object({
 
 const DEFAULT_VALUES = {
   paymentDate:       new Date().toISOString().split("T")[0],
-  purchaseBillId:    null,
-  purchaseVoucherId: null,
+  purchaseBillId: null,
   vendorId:          null,
   paymentMode:       "Bank",
   cashAcId:          null,
@@ -111,9 +109,8 @@ const DEFAULT_VALUES = {
 // ─── Component ────────────────────────────────────────────────────────────────
 
 export default function PaymentForm({
-  mode        = "create",
+  mode = "create",
   paymentId,
-  paymentType = "bill",   // "bill" | "voucher"
   onAfterSubmit,
   onUuid,
 }) {
@@ -122,7 +119,6 @@ export default function PaymentForm({
   const router      = useRouter();
   const isViewMode  = mode === "view" || mode === "approver";
   const projectCode = getLocalStorage("projectInfo")?.projectCode || "";
-  const isBill      = paymentType === "bill";
 
   const [isEditing,   setIsEditing]   = useState(mode === "create");
   const [isSubmitted, setIsSubmitted] = useState(false);
@@ -159,7 +155,7 @@ export default function PaymentForm({
   const watchDiscount   = Number(watch("discount")  || 0);
   const watchRoundOff   = Number(watch("roundOff")  || 0);
   const paymentMode     = watch("paymentMode");
-  const selectedRefId   = isBill ? watch("purchaseBillId") : watch("purchaseVoucherId");
+  const selectedRefId   = watch("purchaseBillId");
 
   const basicTotal  = watchedItems.reduce((s, it) => s + Number(it?.currentAmount || 0), 0);
   const gstTotal    = watchedGst.reduce((s, l) => s + Number(l?.currentAmount || 0), 0);
@@ -201,9 +197,7 @@ export default function PaymentForm({
       if (!projectCode) return;
       setRefLoading(true);
       try {
-        const endpoint = isBill
-          ? `${API_ENDPOINTS.FINANCE.BILL_PAYMENT.APPROVED_PURCHASE_BILLS}?projectCode=${projectCode}${vendorId ? `&vendorId=${vendorId}` : ""}`
-          : `${API_ENDPOINTS.FINANCE.PAYMENT_VOUCHER.APPROVED_PURCHASE_VOUCHERS}?projectCode=${projectCode}`;
+        const endpoint = `${API_ENDPOINTS.FINANCE.BILL_PAYMENT.APPROVED_PURCHASE_BILLS}?projectCode=${projectCode}${vendorId ? `&vendorId=${vendorId}` : ""}`;
         const res = await apiRequest({ url: endpoint, method: "GET" });
         setApprovedList(res.data || []);
       } catch {
@@ -212,17 +206,16 @@ export default function PaymentForm({
         setRefLoading(false);
       }
     },
-    [projectCode, isBill],
+    [projectCode],
   );
 
   useEffect(() => { loadApprovedList(null); }, [loadApprovedList]);
 
-  // For bill: reload when vendor changes
+  // Reload approved list when vendor changes
   const watchVendorId = watch("vendorId");
   useEffect(() => {
-    if (!isBill) return;
     loadApprovedList(watchVendorId);
-  }, [watchVendorId, isBill, loadApprovedList]);
+  }, [watchVendorId, loadApprovedList]);
 
   // ── Load items when reference is selected ────────────────────────────────────
   const loadRefItems = useCallback(
@@ -230,25 +223,17 @@ export default function PaymentForm({
       if (!refId || mode !== "create") return;
       setItemsLoading(true);
       try {
-        const endpoint = isBill
-          ? `${API_ENDPOINTS.FINANCE.BILL_PAYMENT.PURCHASE_BILL_ITEMS}${refId}`
-          : `${API_ENDPOINTS.FINANCE.PAYMENT_VOUCHER.PURCHASE_VOUCHER_ITEMS}${refId}`;
+        const endpoint = `${API_ENDPOINTS.FINANCE.BILL_PAYMENT.PURCHASE_BILL_ITEMS}${refId}`;
         const res = await apiRequest({ url: endpoint, method: "GET" });
         const d = res.data || {};
 
         // Auto-populate snapshot fields
-        if (isBill) {
-          setRefDate(d.bvsDate || "");
-          setVendorBillNo(d.vendorBillNo || "");
-          setVendorBillDate(d.vendorBillDate || "");
-          setOrderNo(d.orderNo || "");
-          setVendorName(d.vendorName || "");
-          if (d.vendorId) setValue("vendorId", d.vendorId, { shouldDirty: false });
-        } else {
-          setRefDate(d.purchaseVoucherDate || "");
-          setVendorName(d.vendorName || "");
-          if (d.vendorId) setValue("vendorId", d.vendorId, { shouldDirty: false });
-        }
+        setRefDate(d.bvsDate || "");
+        setVendorBillNo(d.vendorBillNo || "");
+        setVendorBillDate(d.vendorBillDate || "");
+        setOrderNo(d.orderNo || "");
+        setVendorName(d.vendorName || "");
+        if (d.vendorId) setValue("vendorId", d.vendorId, { shouldDirty: false });
 
         const mappedItems = (d.items || []).map((it, i) => ({
           pvItemId:      it.pvItemId      ?? null,
@@ -283,7 +268,7 @@ export default function PaymentForm({
         setItemsLoading(false);
       }
     },
-    [mode, isBill, setValue],
+    [mode, setValue],
   );
 
   useEffect(() => { loadRefItems(selectedRefId); }, [selectedRefId, loadRefItems]);
@@ -292,26 +277,21 @@ export default function PaymentForm({
   useEffect(() => {
     if (!paymentId || mode === "create") return;
 
-    const EP = isBill ? API_ENDPOINTS.FINANCE.BILL_PAYMENT : API_ENDPOINTS.FINANCE.PAYMENT_VOUCHER;
+    const EP = API_ENDPOINTS.FINANCE.BILL_PAYMENT;
 
     apiRequest({ url: `${EP.GET_BY_ID}${paymentId}`, method: "GET" })
       .then((res) => {
         const d = res.data || {};
 
-        if (isBill) {
-          setRefDate(d.bvsDate           || "");
-          setVendorBillNo(d.vendorBillNo || "");
-          setVendorBillDate(d.vendorBillDate || "");
-          setOrderNo(d.orderNo           || "");
-        } else {
-          setRefDate(d.purchaseVoucherDate || "");
-        }
+        setRefDate(d.bvsDate           || "");
+        setVendorBillNo(d.vendorBillNo || "");
+        setVendorBillDate(d.vendorBillDate || "");
+        setOrderNo(d.orderNo           || "");
         setVendorName(d.vendorName || "");
 
         reset({
-          paymentDate:       d.paymentDate    || "",
-          purchaseBillId:    d.purchaseBillId    || null,
-          purchaseVoucherId: d.purchaseVoucherId || null,
+          paymentDate:    d.paymentDate    || "",
+          purchaseBillId: d.purchaseBillId || null,
           vendorId:          d.vendorId          || null,
           paymentMode:       d.paymentMode       || "Bank",
           cashAcId:          d.cashAcId          || null,
@@ -348,14 +328,14 @@ export default function PaymentForm({
         setIsSubmitted(locked);
         setAllowSubmit(!locked);
 
-        const no = isBill ? d.receiptNo : d.paymentVouchNo;
+        const no = d.receiptNo;
         if (no) setErpPaymentNo(no);
 
-        const uuid = isBill ? d.receiptUuid : d.paymentVouchUuid;
+        const uuid = d.receiptUuid;
         if (uuid && onUuid) onUuid(uuid);
       })
       .catch(() => toast.error("Failed to load payment details"));
-  }, [paymentId, mode, isBill]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [paymentId, mode]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── Save Draft ───────────────────────────────────────────────────────────────
   const onSave = async (v) => {
@@ -366,7 +346,7 @@ export default function PaymentForm({
       return;
     }
 
-    const EP = isBill ? API_ENDPOINTS.FINANCE.BILL_PAYMENT : API_ENDPOINTS.FINANCE.PAYMENT_VOUCHER;
+    const EP = API_ENDPOINTS.FINANCE.BILL_PAYMENT;
     const url    = mode === "create" ? EP.CREATE : `${EP.EDIT}${paymentId}`;
     const method = mode === "create" ? "POST" : "PUT";
 
@@ -382,7 +362,7 @@ export default function PaymentForm({
       discount:          Number(v.discount  || 0),
       roundOff:          Number(v.roundOff  || 0),
       items:    v.items.map((it) => ({
-        ...(isBill ? { pbItemId: it.pbItemId } : { pvItemId: it.pvItemId }),
+        ...(it.pbItemId ? { pbItemId: it.pbItemId } : {}),
         ...(it.ccCodeId ? { ccCodeId: it.ccCodeId } : {}),
         slNo:          it.slNo,
         ccCode:        it.ccCode,
@@ -400,8 +380,7 @@ export default function PaymentForm({
       })),
     };
 
-    if (isBill) payload.purchaseBillId    = v.purchaseBillId    || null;
-    else        payload.purchaseVoucherId = v.purchaseVoucherId || null;
+    payload.purchaseBillId = v.purchaseBillId || null;
 
     try {
       const res = await apiRequest({ url, method, data: payload });
@@ -410,13 +389,13 @@ export default function PaymentForm({
       setIsEditing(false);
       onAfterSubmit?.();
 
-      const uuid = isBill ? res?.data?.receiptUuid : res?.data?.paymentVouchUuid;
+      const uuid = res?.data?.receiptUuid;
       if (uuid && onUuid) onUuid(uuid);
 
       if (mode === "create") {
         const newId = res.data?.id;
         if (newId)
-          setTimeout(() => router.push(`/finance-management/account/payment/${newId}?type=${paymentType}`), 400);
+          setTimeout(() => router.push(`/finance-management/account/payment/${newId}`), 400);
       }
     } catch (err) {
       toast.error(err?.message || "Failed to save");
@@ -425,7 +404,7 @@ export default function PaymentForm({
 
   // ── Submit for Approval ───────────────────────────────────────────────────────
   const onSubmitForApproval = async () => {
-    const EP = isBill ? API_ENDPOINTS.FINANCE.BILL_PAYMENT : API_ENDPOINTS.FINANCE.PAYMENT_VOUCHER;
+    const EP = API_ENDPOINTS.FINANCE.BILL_PAYMENT;
     try {
       await apiRequest({ url: `${EP.SUBMIT}${paymentId}`, method: "POST" });
       toast.success("Payment submitted for approval");
@@ -441,14 +420,6 @@ export default function PaymentForm({
     if (isEditing) { reset(); setIsEditing(false); }
     else setIsEditing(true);
   };
-
-  // ── Reference label helpers ──────────────────────────────────────────────────
-  const refLabel    = isBill ? "BVS Number"      : "JV Number";
-  const refPlaceholder = isBill ? "Filter List from Bill Entry" : "Filter List from JV Entry";
-  const refLabelKey = isBill ? "purchaseBillNo" : "voucherNo";
-  const refValueKey = "id";
-  const refFieldName = isBill ? "purchaseBillId" : "purchaseVoucherId";
-  const refDateLabel = isBill ? "BVS Date" : "JV Date";
 
   // ─── Render ──────────────────────────────────────────────────────────────────
   return (
@@ -477,95 +448,64 @@ export default function PaymentForm({
             </PMFormRow>
           </PMSection>
 
-          {/* Reference section — differs by type */}
-          {isBill ? (
-            <PMSection title="Bill Reference:">
-              <PMFormRow label="Party Name" labelWidth="sm:w-[160px] sm:min-w-[160px]">
-                <Controller name="vendorId" control={control} render={({ field }) => (
-                  <SearchableSelect
-                    options={vendorList}
-                    value={field.value ? String(field.value) : ""}
-                    disabled={disabled}
-                    onChange={(v) => {
-                      field.onChange(v ? Number(v) : null);
-                      setValue("purchaseBillId", null, { shouldDirty: true });
-                      setValue("items",    [], { shouldDirty: true });
-                      setValue("gstLines", [], { shouldDirty: true });
-                      setRefDate(""); setVendorBillNo(""); setVendorBillDate(""); setOrderNo("");
-                    }}
-                    placeholder="Select from Vendor List"
-                    labelKey="ledgerName"
-                    valueKey="ledgerId"
-                    searchKeys={["ledgerName"]}
-                  />
-                )} />
-              </PMFormRow>
+          {/* Bill Reference */}
+          <PMSection title="Bill Reference:">
+            <PMFormRow label="Party Name" labelWidth="sm:w-[160px] sm:min-w-[160px]">
+              <Controller name="vendorId" control={control} render={({ field }) => (
+                <SearchableSelect
+                  options={vendorList}
+                  value={field.value ? String(field.value) : ""}
+                  disabled={disabled}
+                  onChange={(v) => {
+                    field.onChange(v ? Number(v) : null);
+                    setValue("purchaseBillId", null, { shouldDirty: true });
+                    setValue("items",    [], { shouldDirty: true });
+                    setValue("gstLines", [], { shouldDirty: true });
+                    setRefDate(""); setVendorBillNo(""); setVendorBillDate(""); setOrderNo("");
+                  }}
+                  placeholder="Select from Vendor List"
+                  labelKey="ledgerName"
+                  valueKey="ledgerId"
+                  searchKeys={["ledgerName"]}
+                />
+              )} />
+            </PMFormRow>
 
-              <PMFormRow label="Order Number" labelWidth="sm:w-[160px] sm:min-w-[160px]">
-                <PMInput value={orderNo} disabled readOnly placeholder="[Auto from BVS]" />
-              </PMFormRow>
+            <PMFormRow label="Order Number" labelWidth="sm:w-[160px] sm:min-w-[160px]">
+              <PMInput value={orderNo} disabled readOnly placeholder="[Auto from BVS]" />
+            </PMFormRow>
 
-              <PMFormRow label="BVS Number" required={!disabled} labelWidth="sm:w-[160px] sm:min-w-[160px]">
-                <Controller name="purchaseBillId" control={control} render={({ field }) => (
-                  <SearchableSelect
-                    options={approvedList}
-                    value={field.value ? String(field.value) : ""}
-                    disabled={disabled || refLoading}
-                    onChange={(v) => {
-                      field.onChange(v ? Number(v) : null);
-                      setValue("items",    [], { shouldDirty: true });
-                      setValue("gstLines", [], { shouldDirty: true });
-                    }}
-                    placeholder={refLoading ? "Loading…" : refPlaceholder}
-                    labelKey="purchaseBillNo"
-                    valueKey="id"
-                    searchKeys={["purchaseBillNo"]}
-                  />
-                )} />
-              </PMFormRow>
+            <PMFormRow label="BVS Number" required={!disabled} labelWidth="sm:w-[160px] sm:min-w-[160px]">
+              <Controller name="purchaseBillId" control={control} render={({ field }) => (
+                <SearchableSelect
+                  options={approvedList}
+                  value={field.value ? String(field.value) : ""}
+                  disabled={disabled || refLoading}
+                  onChange={(v) => {
+                    field.onChange(v ? Number(v) : null);
+                    setValue("items",    [], { shouldDirty: true });
+                    setValue("gstLines", [], { shouldDirty: true });
+                  }}
+                  placeholder={refLoading ? "Loading…" : "Filter List from Bill Entry"}
+                  labelKey="purchaseBillNo"
+                  valueKey="id"
+                  searchKeys={["purchaseBillNo"]}
+                />
+              )} />
+            </PMFormRow>
 
-              <PMFormRow label="BVS Date" labelWidth="sm:w-[160px] sm:min-w-[160px]">
-                <PMInput value={refDate} disabled readOnly placeholder="[From Data Base]" className="max-w-[200px]" />
-              </PMFormRow>
+            <PMFormRow label="BVS Date" labelWidth="sm:w-[160px] sm:min-w-[160px]">
+              <PMInput value={refDate} disabled readOnly placeholder="[From Data Base]" className="max-w-[200px]" />
+            </PMFormRow>
 
-              <PMFormRow label="Vendor Bill No" labelWidth="sm:w-[160px] sm:min-w-[160px]">
-                <PMInput value={vendorBillNo} disabled readOnly placeholder="[From Data Base]" />
-              </PMFormRow>
+            <PMFormRow label="Vendor Bill No" labelWidth="sm:w-[160px] sm:min-w-[160px]">
+              <PMInput value={vendorBillNo} disabled readOnly placeholder="[From Data Base]" />
+            </PMFormRow>
 
-              <PMFormRow label="Vendor Bill Date" labelWidth="sm:w-[160px] sm:min-w-[160px]">
-                <PMInput value={vendorBillDate} disabled readOnly placeholder="[From Data Base]" className="max-w-[200px]" />
-              </PMFormRow>
-            </PMSection>
-          ) : (
-            <PMSection title="Voucher Reference:">
-              <PMFormRow label="JV Number" required={!disabled} labelWidth="sm:w-[160px] sm:min-w-[160px]">
-                <Controller name="purchaseVoucherId" control={control} render={({ field }) => (
-                  <SearchableSelect
-                    options={approvedList}
-                    value={field.value ? String(field.value) : ""}
-                    disabled={disabled || refLoading}
-                    onChange={(v) => {
-                      field.onChange(v ? Number(v) : null);
-                      setValue("items",    [], { shouldDirty: true });
-                      setValue("gstLines", [], { shouldDirty: true });
-                    }}
-                    placeholder={refLoading ? "Loading…" : refPlaceholder}
-                    labelKey="voucherNo"
-                    valueKey="id"
-                    searchKeys={["voucherNo"]}
-                  />
-                )} />
-              </PMFormRow>
-
-              <PMFormRow label="JV Date" labelWidth="sm:w-[160px] sm:min-w-[160px]">
-                <PMInput value={refDate} disabled readOnly placeholder="[From Data Base]" className="max-w-[200px]" />
-              </PMFormRow>
-
-              <PMFormRow label="Payment To" labelWidth="sm:w-[160px] sm:min-w-[160px]">
-                <PMInput value={vendorName} disabled readOnly placeholder="[Auto from JV]" />
-              </PMFormRow>
-            </PMSection>
-          )}
+            <PMFormRow label="Vendor Bill Date" labelWidth="sm:w-[160px] sm:min-w-[160px]">
+              <PMInput value={vendorBillDate} disabled readOnly placeholder="[From Data Base]" className="max-w-[200px]" />
+            </PMFormRow>
+          </PMSection>
 
           {/* Payment Mode */}
           <PMSection title="Payment Mode:">
@@ -676,7 +616,7 @@ export default function PaymentForm({
                     {itemFields.length === 0 ? (
                       <tr>
                         <td colSpan={7} className="border border-gray-200 px-3 py-4 text-center text-[12px] text-gray-400">
-                          {isBill ? "Select a BVS Number to load items" : "Select a JV Number to load items"}
+                          Select a BVS Number to load items
                         </td>
                       </tr>
                     ) : (
@@ -960,7 +900,7 @@ export default function PaymentForm({
 
           {mode === "edit" && !isEditing && (
             <DeleteRequestButton
-              moduleCode="PAYMENT_VOUCHER"
+              moduleCode="BILL_PAYMENT"
               recordId={Number(paymentId)}
               onDeleted={() => router.back()}
             />

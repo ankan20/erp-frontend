@@ -2,7 +2,7 @@
 import { DOCX_FONT } from "@/config/fonts.config";
 
 import { useEffect, useRef, useState } from "react";
-import { useParams, useSearchParams }  from "next/navigation";
+import { useParams }  from "next/navigation";
 import Image              from "next/image";
 import { QRCodeSVG, QRCodeCanvas } from "qrcode.react";
 import { publicRequest }  from "@/lib/publicRequest";
@@ -41,7 +41,7 @@ function SigRow({ label, name, dateStr }) {
 function printAsPDF() { window.print(); }
 
 /* ── DOCX export ───────────────────────────────────────────────────────────── */
-async function downloadDocx(data, uuid, paymentType, qrCanvasRef) {
+async function downloadDocx(data, uuid, qrCanvasRef) {
   const {
     Document, Packer, Paragraph, Table, TableRow, TableCell,
     TextRun, ImageRun, WidthType, ShadingType, BorderStyle,
@@ -52,9 +52,8 @@ async function downloadDocx(data, uuid, paymentType, qrCanvasRef) {
   let qrBuffer = null;
   try { const c = qrCanvasRef?.current; if (c) { const d = c.toDataURL("image/png"); qrBuffer = await fetch(d).then(r => r.arrayBuffer()); } } catch (_) {}
 
-  const isBill    = paymentType === "bill";
-  const docTitle  = isBill ? "BILL PAYMENT" : "VOUCHER PAYMENT";
-  const paymentNo = isBill ? data.receiptNo : data.paymentVouchNo;
+  const docTitle  = "BILL PAYMENT";
+  const paymentNo = data.receiptNo;
 
   const run      = (text, opts = {}) => new TextRun({ text: String(text ?? "-"), font: DOCX_FONT, size: 20, ...opts });
   const nilB     = { style: BorderStyle.NIL, size: 0, color: "auto" };
@@ -97,13 +96,11 @@ async function downloadDocx(data, uuid, paymentType, qrCanvasRef) {
     ["Payment No",    paymentNo || "-"],
     ["Payment Date",  fmt.date(data.paymentDate)],
     ["Payment Mode",  data.paymentMode || "-"],
-    ...(isBill ? [["BVS Date", fmt.date(data.bvsDate)], ["Vendor Bill No", data.vendorBillNo || "-"]] : [["JV Date", fmt.date(data.purchaseVoucherDate)]]),
+    ["BVS Date", fmt.date(data.bvsDate)], ["Vendor Bill No", data.vendorBillNo || "-"],
   ];
   const rightInfo = [
     ["Party Name",    data.vendorName   || "-"],
-    ...(isBill
-      ? [["Order No", data.orderNo || "-"], ["Vendor Bill Date", fmt.date(data.vendorBillDate)]]
-      : [["JV Number", data.purchaseVoucherNo || "-"]]),
+    ["Order No", data.orderNo || "-"], ["Vendor Bill Date", fmt.date(data.vendorBillDate)],
     ["UTR / Voc. No", data.utrVoucherNo  || "-"],
     ["Project Code",  data.projectCode   || "-"],
   ];
@@ -236,10 +233,7 @@ async function downloadDocx(data, uuid, paymentType, qrCanvasRef) {
 
 /* ── Main Page ─────────────────────────────────────────────────────────────── */
 export default function PaymentPrintPage() {
-  const { uuid }    = useParams();
-  const searchParams = useSearchParams();
-  const paymentType = searchParams.get("type") || "bill";
-  const isBill      = paymentType === "bill";
+  const { uuid } = useParams();
 
   const [data,    setData]    = useState(null);
   const [error,   setError]   = useState(null);
@@ -250,12 +244,11 @@ export default function PaymentPrintPage() {
 
   useEffect(() => {
     if (!uuid) return;
-    const EP = isBill ? API_ENDPOINTS.FINANCE.BILL_PAYMENT : API_ENDPOINTS.FINANCE.PAYMENT_VOUCHER;
-    publicRequest({ url: `${EP.GET_BY_UUID}${uuid}` })
+    publicRequest({ url: `${API_ENDPOINTS.FINANCE.BILL_PAYMENT.GET_BY_UUID}${uuid}` })
       .then((res) => setData(res.data))
       .catch((err) => setError({ status: err.status, message: err.message }))
       .finally(() => setLoading(false));
-  }, [uuid, isBill]);
+  }, [uuid]);
 
   if (loading) {
     return (
@@ -278,8 +271,8 @@ export default function PaymentPrintPage() {
   const roundOff     = Number(data.roundOff  || 0);
   const totalAmt     = basicCurrent + gstCurrent - discount + roundOff;
 
-  const paymentNo    = isBill ? data.receiptNo : data.paymentVouchNo;
-  const docTitle     = isBill ? "Bill Payment" : "Voucher Payment";
+  const paymentNo = data.receiptNo;
+  const docTitle  = "Bill Payment";
 
   const fmtVal = (v) => Number(v || 0) > 0
     ? Number(v).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })
@@ -290,7 +283,7 @@ export default function PaymentPrintPage() {
       <PrintTopBar
         title={`${docTitle} — ${paymentNo || ""}`}
         onDownloadPDF={printAsPDF}
-        onDownloadDocx={() => downloadDocx(data, uuid, paymentType, qrCanvasRef)}
+        onDownloadDocx={() => downloadDocx(data, uuid, qrCanvasRef)}
       />
 
       <div className="bg-gray-100 py-6 px-3 print:p-0 print:bg-white">
@@ -325,19 +318,13 @@ export default function PaymentPrintPage() {
               <InfoRow label="Payment No"   value={paymentNo} />
               <InfoRow label="Payment Date" value={fmt.date(data.paymentDate)} />
               <InfoRow label="Payment Mode" value={data.paymentMode} />
-              {isBill && <>
-                <InfoRow label="BVS Date"      value={fmt.date(data.bvsDate)} />
-                <InfoRow label="Vendor Bill No" value={data.vendorBillNo} />
-              </>}
-              {!isBill && <InfoRow label="JV Date" value={fmt.date(data.purchaseVoucherDate)} />}
+              <InfoRow label="BVS Date"      value={fmt.date(data.bvsDate)} />
+              <InfoRow label="Vendor Bill No" value={data.vendorBillNo} />
             </div>
             <div className="space-y-0.5 pl-6">
-              <InfoRow label="Party Name"    value={data.vendorName} />
-              {isBill && <>
-                <InfoRow label="Order No"         value={data.orderNo} />
-                <InfoRow label="Vendor Bill Date"  value={fmt.date(data.vendorBillDate)} />
-              </>}
-              {!isBill && <InfoRow label="JV Number" value={data.purchaseVoucherNo} />}
+              <InfoRow label="Party Name"       value={data.vendorName} />
+              <InfoRow label="Order No"         value={data.orderNo} />
+              <InfoRow label="Vendor Bill Date"  value={fmt.date(data.vendorBillDate)} />
               <InfoRow label="UTR / Voc. No" value={data.utrVoucherNo} />
               {data.projectCode && <InfoRow label="Project Code" value={data.projectCode} />}
             </div>
