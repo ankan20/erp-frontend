@@ -28,6 +28,14 @@ const ALIASES = {
   BRB: ["brb", "reconcile"],
   PURCHASE_BILL: ["pb", "purchase"],
   BILL_PAYMENT: ["payment", "pay", "bpr"],
+  OG_SALE_ORDER: ["saleorder", "ogso", "so"],
+  CLAIM_BILL: ["claim", "claimbill", "clm"],
+  CERTIFIED_BILL: ["certified", "certifiedbill", "crt", "cert"],
+  SALE_BILL: ["saleinvoice", "salebill", "invoice"],
+  SALE_RECEIPT: ["salereceipt", "receipt", "sr"],
+  SALE_RECEIPT_BILLING: ["srb", "receiptbilling"],
+  CONTRA_ENTRY: ["contra", "transfer"],
+  PETTY_CASH_VOUCHER: ["petty", "pettycash", "docket"],
 };
 
 // keep the 40 most recent responses

@@ -409,7 +409,7 @@ export default function TraceabilityWorkbench() {
                     <ReconciliationPanel recon={flow.reconciliation} onDoc={selectDoc} />
                   </TabsContent>
                   <TabsContent value="fin" className="mt-2" data-guide="fin-panel">
-                    <FinancialsPanel fin={flow.financials} onDoc={selectDoc} />
+                    <FinancialsPanel fin={flow.financials} salesFin={flow.salesFinancials} onDoc={selectDoc} />
                   </TabsContent>
                   <TabsContent value="exc" className="mt-2" data-guide="exc-panel">
                     <ExceptionsPanel exceptions={flow.exceptions} onDoc={selectDoc} />

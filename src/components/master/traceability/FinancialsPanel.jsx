@@ -27,8 +27,9 @@ const Doc = ({ no, status, onClick }) => (
   </span>
 );
 
-export default function FinancialsPanel({ fin, onDoc }) {
+export default function FinancialsPanel({ fin, salesFin, onDoc }) {
   const { brrs = [], purchaseBills = [], totals = {} } = fin || {};
+  const { ogSaleOrders = [], totals: sTotals = {} } = salesFin || {};
   const th = "whitespace-nowrap px-2 py-1.5 font-semibold";
   const td = "whitespace-nowrap px-2 py-1";
 
@@ -43,9 +44,52 @@ export default function FinancialsPanel({ fin, onDoc }) {
         </span>
       </div>
 
-      {!brrs.length && !purchaseBills.length ? (
-        <div className="py-8 text-center text-[12px] text-gray-500">No billing or accounts documents in this flow (or none you can access).</div>
-      ) : (
+      {/* ── Sales lifecycle financials (OG Sale Order → Sales Invoice → Sale Receipt) ── */}
+      {ogSaleOrders.length > 0 && (
+        <div className="space-y-1">
+          <div className="grid grid-cols-2 gap-2 md:grid-cols-4">
+            <Money label="OG Sale Order value" value={sTotals.orderAmount} />
+            <Money label="Invoiced" value={sTotals.invoiced} />
+            <Money label="Received" value={sTotals.received} tone="good" />
+            <Money label="Outstanding" value={sTotals.outstanding} tone={sTotals.outstanding > 0 ? "warn" : "base"} sub="approved invoices" />
+          </div>
+          <div className="text-[12.5px] font-semibold text-gray-800">OG Sale Orders — invoiced vs received</div>
+          <div className="overflow-x-auto rounded-md border border-[#9e9e9e]">
+            <table className="w-full min-w-[820px] border-collapse text-[12px]">
+              <thead className="bg-[#b45309] text-white">
+                <tr>
+                  <th className={`${th} text-left`}>OG Sale Order</th>
+                  <th className={`${th} text-left`}>Date</th>
+                  <th className={`${th} text-right`}>Order Amount</th>
+                  <th className={`${th} text-right`}>Invoiced</th>
+                  <th className={`${th} text-right`}>Received</th>
+                  <th className={`${th} text-right`}>In Process</th>
+                  <th className={`${th} text-right`}>Outstanding</th>
+                </tr>
+              </thead>
+              <tbody>
+                {ogSaleOrders.map((o, i) => (
+                  <tr key={o.ogSaleOrderId} className={i % 2 ? "bg-white" : "bg-[#f7f7f7]"}>
+                    <td className={td}><Doc no={o.erpDocNo} status={o.status} onClick={() => onDoc(`OG_SALE_ORDER:${o.ogSaleOrderId}`)} /></td>
+                    <td className={td}>{fmtDate(o.date)}</td>
+                    <td className={`${td} text-right tabular-nums`}>{fmtAmt(o.orderAmount)}</td>
+                    <td className={`${td} text-right tabular-nums`}>{fmtAmt(o.invoiced)}</td>
+                    <td className={`${td} text-right tabular-nums text-green-700`}>{fmtAmt(o.received)}</td>
+                    <td className={`${td} text-right tabular-nums`}>{fmtAmt(o.inProcess)}</td>
+                    <td className={`${td} text-right tabular-nums ${o.outstanding > 0 ? "bg-amber-50 font-semibold text-amber-800" : ""}`}>
+                      {o.outstanding === null ? "no approved invoice" : fmtAmt(o.outstanding)}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
+      {!brrs.length && !purchaseBills.length && !ogSaleOrders.length ? (
+        <div className="py-8 text-center text-[12px] text-gray-500">No billing, accounts or sales documents in this flow (or none you can access).</div>
+      ) : (!brrs.length && !purchaseBills.length) ? null : (
         <>
           <div className="grid grid-cols-2 gap-2 md:grid-cols-3 xl:grid-cols-6">
             <Money label="Bills received (BRR)" value={totals.billReceived} />
