@@ -2,6 +2,7 @@
 
 import { useState, useRef, useEffect } from "react";
 import { X } from "lucide-react";
+import AuthImage from "@/components/common/AuthImage";
 import { Input } from "@/components/ui/input";
 import SaveButton from "@/components/common/SaveButton";
 import EditButton from "@/components/common/EditButton";
@@ -396,7 +397,12 @@ export default function UserForm({ mode = "create", data }) {
         {/* PREVIEW */}
         {previewSignature && (
           <div className="mt-4">
-            <img src={previewSignature} alt="signature" className="h-[120px]" />
+            <AuthImage
+              src={previewSignature}
+              alt="Signature"
+              className="h-[120px]"
+              fallback={<p className="text-[11px] text-red-500">Signature uploaded but could not be loaded</p>}
+            />
           </div>
         )}
       </div>
@@ -447,11 +453,11 @@ export default function UserForm({ mode = "create", data }) {
         {/* PREVIEW */}
         {previewPhoto && (
           <div className="mt-2">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
+            <AuthImage
               src={previewPhoto}
-              alt="profile photo"
+              alt="Profile photo"
               className="h-[120px] w-[120px] object-cover rounded-full border border-[#cfcfcf]"
+              fallback={<p className="text-[11px] text-red-500">Photo uploaded but could not be loaded</p>}
             />
           </div>
         )}

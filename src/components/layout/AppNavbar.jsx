@@ -17,6 +17,7 @@ import { apiRequest } from "@/lib/apiClient";
 import { API_ENDPOINTS } from "@/config/api.config";
 import { User, LogOut, Camera } from "lucide-react";
 import ProfilePictureUploadModal from "@/components/common/ProfilePictureUploadModal";
+import AuthImage from "@/components/common/AuthImage";
 import { useComm } from "@/context/CommContext";
 import { ROLE, roleMap } from "@/config/role.config";
 
@@ -351,17 +352,12 @@ export default function AppNavbar() {
         overflow-hidden
       "
             >
-              {profilePic ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img
-                  src={profilePic}
-                  alt={username || "Profile"}
-                  className="h-full w-full object-cover"
-                  onError={() => setProfilePic("")}
-                />
-              ) : (
-                <User size={20} />
-              )}
+              <AuthImage
+                src={profilePic}
+                alt={username || "Profile"}
+                className="h-full w-full object-cover"
+                fallback={<User size={20} />}
+              />
             </button>
             {/* Online indicator */}
             <span className="absolute bottom-0.5 right-0.5 w-3 h-3 bg-emerald-500 rounded-full
