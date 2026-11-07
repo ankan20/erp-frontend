@@ -51,6 +51,7 @@ export default function ProfilePictureUploadModal({ open, onOpenChange }) {
       });
       if (!res) return; // session expired — apiClient redirects to login
       toast.success(res.message || "Profile picture updated");
+      window.dispatchEvent(new Event("erp:profile-updated"));
       setUploading(false);
       close(false);
     } catch (err) {

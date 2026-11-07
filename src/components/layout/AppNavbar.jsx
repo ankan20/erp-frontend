@@ -48,6 +48,26 @@ export default function AppNavbar() {
   const profileRef = useRef(null);
   const [showProfile, setShowProfile] = useState(false);
   const [showPhotoUpload, setShowPhotoUpload] = useState(false);
+  const [profilePic, setProfilePic] = useState("");
+
+  // Logged-in user's profile picture for the avatar; refreshed after uploads
+  useEffect(() => {
+    let alive = true;
+    const loadMe = async () => {
+      try {
+        const res = await apiRequest({ url: API_ENDPOINTS.ME });
+        if (alive) setProfilePic(res?.data?.[0]?.profilePicture || "");
+      } catch {
+        // avatar falls back to the default icon
+      }
+    };
+    loadMe();
+    window.addEventListener("erp:profile-updated", loadMe);
+    return () => {
+      alive = false;
+      window.removeEventListener("erp:profile-updated", loadMe);
+    };
+  }, []);
   // CommProvider is always an ancestor in the protected layout — safe to call here
   const comm = useComm();
 
@@ -328,9 +348,20 @@ export default function AppNavbar() {
         hover:bg-[#c6d9e8]
         transition
         cursor-pointer
+        overflow-hidden
       "
             >
-              <User size={20} />
+              {profilePic ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={profilePic}
+                  alt={username || "Profile"}
+                  className="h-full w-full object-cover"
+                  onError={() => setProfilePic("")}
+                />
+              ) : (
+                <User size={20} />
+              )}
             </button>
             {/* Online indicator */}
             <span className="absolute bottom-0.5 right-0.5 w-3 h-3 bg-emerald-500 rounded-full

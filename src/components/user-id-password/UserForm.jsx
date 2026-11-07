@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
+import { X } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import SaveButton from "@/components/common/SaveButton";
 import EditButton from "@/components/common/EditButton";
@@ -41,8 +42,12 @@ export default function UserForm({ mode = "create", data }) {
   // Profile photo (upload only — no preview)
   const [photoName, setPhotoName] = useState("");
   const [photoError, setPhotoError] = useState("");
-  const [hasPhoto, setHasPhoto] = useState(false);
+  const [previewPhoto, setPreviewPhoto] = useState("");
   const photoRef = useRef(null);
+
+  // Delete flags — sent on save when the user removes an existing file
+  const [removeSignature, setRemoveSignature] = useState(false);
+  const [removePhoto, setRemovePhoto] = useState(false);
 
   const form = useForm({
     resolver: zodResolver(schema),
@@ -84,7 +89,7 @@ export default function UserForm({ mode = "create", data }) {
 
         // signature preview (use URL)
         setPreviewSignature(data.signatureUrl || "");
-        setHasPhoto(!!data.profilePictureUrl);
+        setPreviewPhoto(data.profilePictureUrl || "");
       }
     };
     apiCall();
@@ -113,6 +118,15 @@ export default function UserForm({ mode = "create", data }) {
     setSignatureError("");
     setSignatureName(file.name);
     setPreviewSignature(URL.createObjectURL(file));
+    setRemoveSignature(false);
+  };
+
+  const handleRemoveSignature = () => {
+    if (signatureRef.current) signatureRef.current.value = "";
+    setSignatureName("");
+    setSignatureError("");
+    setPreviewSignature("");
+    setRemoveSignature(true);
   };
 
   //  PROFILE PHOTO HANDLER
@@ -136,6 +150,16 @@ export default function UserForm({ mode = "create", data }) {
     }
     setPhotoError("");
     setPhotoName(file.name);
+    setPreviewPhoto(URL.createObjectURL(file));
+    setRemovePhoto(false);
+  };
+
+  const handleRemovePhoto = () => {
+    if (photoRef.current) photoRef.current.value = "";
+    setPhotoName("");
+    setPhotoError("");
+    setPreviewPhoto("");
+    setRemovePhoto(true);
   };
 
   //  SUBMIT
@@ -143,11 +167,6 @@ export default function UserForm({ mode = "create", data }) {
     let toastId;
 
     try {
-      if (!signatureRef.current?.files?.[0] && mode === "create") {
-        setSignatureError("Required");
-        return;
-      }
-
       const values = getValues();
       if (mode === "create" && !values.password) {
         toast.error("Password is required");
@@ -169,6 +188,11 @@ export default function UserForm({ mode = "create", data }) {
       const photo = photoRef.current?.files?.[0];
       if (photo) formData.append("profilePicture", photo);
 
+      if (mode === "edit") {
+        if (!file && removeSignature) formData.append("removeSignature", "true");
+        if (!photo && removePhoto) formData.append("removeProfilePicture", "true");
+      }
+
       let res = await apiRequest({
         url:
           mode === "create"
@@ -182,8 +206,13 @@ export default function UserForm({ mode = "create", data }) {
 
       setIsEditing(false);
       setPreviewSignature(res.data[0].signatureUrl || "");
-      setHasPhoto(!!res.data[0].profilePictureUrl);
+      setPreviewPhoto(res.data[0].profilePictureUrl || "");
       setPhotoName("");
+      setRemoveSignature(false);
+      setRemovePhoto(false);
+      if (typeof window !== "undefined") {
+        window.dispatchEvent(new Event("erp:profile-updated"));
+      }
       if (mode == "create" || mode == "edit") {
         setTimeout(() => {
           router.push("/settings/user-id-password/");
@@ -217,9 +246,12 @@ export default function UserForm({ mode = "create", data }) {
       }
       setPhotoName("");
       setPhotoError("");
+      setPreviewPhoto(data.profilePictureUrl || "");
       if (photoRef.current) {
         photoRef.current.value = "";
       }
+      setRemoveSignature(false);
+      setRemovePhoto(false);
     }
     setIsEditing((prev) => !prev);
   };
@@ -338,6 +370,18 @@ export default function UserForm({ mode = "create", data }) {
             <span className="text-[10px]">{signatureName}</span>
           )}
 
+          {previewSignature && (
+            <button
+              type="button"
+              title="Remove signature"
+              onClick={handleRemoveSignature}
+              disabled={!isEditing || isSubmitting}
+              className="p-1 rounded-sm border border-red-200 bg-red-50 text-red-600 hover:bg-red-100 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              <X size={14} />
+            </button>
+          )}
+
           <input
             ref={signatureRef}
             type="file"
@@ -373,10 +417,20 @@ export default function UserForm({ mode = "create", data }) {
             @
           </button>
 
-          {photoName ? (
+          {photoName && (
             <span className="text-[10px]">{photoName}</span>
-          ) : (
-            hasPhoto && <span className="text-[10px] text-green-700">Uploaded</span>
+          )}
+
+          {previewPhoto && (
+            <button
+              type="button"
+              title="Remove profile photo"
+              onClick={handleRemovePhoto}
+              disabled={!isEditing || isSubmitting}
+              className="p-1 rounded-sm border border-red-200 bg-red-50 text-red-600 hover:bg-red-100 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              <X size={14} />
+            </button>
           )}
 
           <input
@@ -389,6 +443,18 @@ export default function UserForm({ mode = "create", data }) {
         </div>
 
         <p className={errorText}>{photoError}</p>
+
+        {/* PREVIEW */}
+        {previewPhoto && (
+          <div className="mt-2">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={previewPhoto}
+              alt="profile photo"
+              className="h-[120px] w-[120px] object-cover rounded-full border border-[#cfcfcf]"
+            />
+          </div>
+        )}
       </div>
 
       {/* FOOTER SIGN */}

@@ -7,6 +7,7 @@ export const API_ENDPOINTS = {
   VERIFY_OTP: "/auth/verify-otp",
   RESET_PASSWORD: "/auth/reset-password",
   UPLOAD_PROFILE_PICTURE: "/auth/profile-picture", // POST multipart "file" — any logged-in user
+  ME: "/auth/me", // GET logged-in user (name, role, profilePicture)
   GET_COMPANIES: "/compny/my-companies", //only for super admin
   GET_PROJECT_PERMISSION: "/project/enter", //projectcode
   SETTINGS: {
