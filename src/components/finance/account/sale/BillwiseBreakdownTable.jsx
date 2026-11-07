@@ -95,6 +95,11 @@ export default function BillwiseBreakdownTable({
     onSelectionsChange?.({ ...selections, [key]: { ...(selections[key] || {}), description } });
   };
 
+  const handleHsnSac = (key, hsnSac) => {
+    if (disabled) return;
+    onSelectionsChange?.({ ...selections, [key]: { ...(selections[key] || {}), hsnSac } });
+  };
+
   return (
     <div className="mb-4">
       {/* Header */}
@@ -117,6 +122,9 @@ export default function BillwiseBreakdownTable({
               </th>
               <th className="border border-[#b0b0b0] px-2 py-1.5 text-left font-semibold">
                 CC Name &amp; Description
+              </th>
+              <th className="border border-[#b0b0b0] px-2 py-1.5 text-left font-semibold w-[90px]">
+                HSN/SAC
               </th>
               <th className="border border-[#b0b0b0] px-2 py-1.5 text-right font-semibold w-[110px]">
                 Amount
@@ -238,6 +246,19 @@ export default function BillwiseBreakdownTable({
                           textSize="text-[10px]"
                         />
                       )}
+                    </td>
+                    {/* HSN/SAC — editable for SRCW rows only */}
+                    <td className="border border-[#d0d0d0] px-1 py-1">
+                      {!row.gstRelated ? (
+                        <input
+                          type="text"
+                          value={sel.hsnSac || ""}
+                          onChange={(e) => handleHsnSac(row.key, e.target.value)}
+                          disabled={disabled}
+                          placeholder="HSN/SAC"
+                          className="w-full text-[11px] border border-gray-300 rounded px-1 py-0.5 bg-white disabled:bg-gray-50 disabled:text-gray-600 disabled:cursor-default focus:outline-none focus:border-blue-400"
+                        />
+                      ) : null}
                     </td>
                     <td className="border border-[#d0d0d0] px-2 py-1 text-right font-semibold">
                       {formatAmount(row.amount)}

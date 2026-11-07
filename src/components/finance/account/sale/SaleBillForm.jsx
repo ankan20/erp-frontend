@@ -264,7 +264,7 @@ export default function SaleBillForm({
           // TODO: Connect SRCW CC code/name to CC master lookup (currently hardcoded)
           ccName:        "Construction of Civil Work",
           description:   srcwSel.description || "",
-          hsnSac:        "",
+          hsnSac:        srcwSel.hsnSac || "",
           basicAmount:   Number(s.basicAmount) || 0,
           gstPercent:    0, // GST handled separately via gstLines
           billingItemId: null,
@@ -327,7 +327,7 @@ export default function SaleBillForm({
     // Auto-generate initial selections: SRCW + IGST checked by default
     const initialSel = {};
     newSources.forEach((s) => {
-      initialSel[`${s.certifiedBillId}_SRCW`] = { checked: true,  description: "" };
+      initialSel[`${s.certifiedBillId}_SRCW`] = { checked: true,  description: "", hsnSac: "" };
       initialSel[`${s.certifiedBillId}_IGST`] = { checked: true,  description: "" };
       initialSel[`${s.certifiedBillId}_CGST`] = { checked: false, description: "" };
       initialSel[`${s.certifiedBillId}_SGST`] = { checked: false, description: "" };
@@ -500,6 +500,7 @@ export default function SaleBillForm({
           sel[`${s.certifiedBillId}_SRCW`] = {
             checked:     !!srcwItem,
             description: srcwItem?.description || "",
+            hsnSac:      srcwItem?.hsnSac      || "",
           };
           // GST: restore selection based on global gstLines (best effort)
           sel[`${s.certifiedBillId}_IGST`] = { checked: igstSelected, description: loadedGstLines[0]?.description || "" };
@@ -718,6 +719,7 @@ export default function SaleBillForm({
                 render={({ field }) => (
                   <PMInput
                     {...field}
+                    value={field.value ?? ""}
                     disabled={true}
                     placeholder="Auto-filled from certified bills"
                     fieldLabel="Reference No."
