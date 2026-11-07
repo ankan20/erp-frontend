@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Controller, useFieldArray }        from "react-hook-form";
 import { useFormWithToast as useForm }      from "@/hooks/useFormWithToast";
 import { z }           from "zod";
@@ -17,17 +17,17 @@ import SearchableSelect from "@/components/common/SearchableSelect";
 import PMSection       from "@/components/project-management/common/PMSection";
 import PMFormRow       from "@/components/project-management/common/PMFormRow";
 import PMInput        from "@/components/project-management/common/PMInput";
-import PMDateInput     from "@/components/project-management/common/PMDateInput";
 import PMTextarea      from "@/components/project-management/common/PMTextarea";
-import AmountInput     from "@/components/common/AmountInput";
-import AccountSummary  from "@/components/finance/account/common/AccountSummary";
+import AccountSummary           from "@/components/finance/account/common/AccountSummary";
+import AccountingJournalTable   from "@/components/finance/account/common/AccountingJournalTable";
+import ReceiptBillingBreakdownTable from "@/components/finance/account/sale/ReceiptBillingBreakdownTable";
 import { ACC }         from "@/components/finance/account/common/accountTheme";
-import { formatAmount } from "@/helper/numberFormatter";
+import { formatAmount }        from "@/helper/numberFormatter";
+import { getfmtDisplaydate }   from "@/helper/getfmtDisplayDate";
 
 import { apiRequest }      from "@/lib/apiClient";
 import { API_ENDPOINTS }   from "@/config/api.config";
 import { getLocalStorage } from "@/lib/localStorage";
-import { useColumnResize } from "@/hooks/useColumnResize";
 import { zodDate } from "@/lib/dateUtils";
 
 // ── Schema ────────────────────────────────────────────────────────────────────
@@ -95,8 +95,6 @@ export default function SaleReceiptBillingForm({
   onAfterSubmit,
   onUuid,
 }) {
-  const { tableRef: tableRef1 } = useColumnResize();
-  const { tableRef: tableRef2 } = useColumnResize();
   const router      = useRouter();
   const isViewMode  = mode === "view" || mode === "approver";
   const projectCode = getLocalStorage("projectInfo")?.projectCode || "";
@@ -107,6 +105,7 @@ export default function SaleReceiptBillingForm({
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [srbNo,       setSrbNo]       = useState("");
 
+  const [debtorName,           setDebtorName]           = useState("");
   const [saleOrderOpts,        setSaleOrderOpts]        = useState([]);
   const [allInvoiceOpts,       setAllInvoiceOpts]       = useState([]);  // full approved list
   const [invoiceOpts,          setInvoiceOpts]          = useState([]);  // filtered by selected order
@@ -245,6 +244,7 @@ export default function SaleReceiptBillingForm({
         method: "GET",
       });
       const d = res.data || {};
+      setDebtorName(d.debtorName || d.clientName || "");
       // Auto-select sale order from lookup — skip the clear-on-change effect
       skipClearOnOrderChange.current = true;
       setValue("erpDocNumber",    d.erpDocNumber    || "");
@@ -308,6 +308,7 @@ export default function SaleReceiptBillingForm({
           }),
         });
         setSrbNo(d.srbNo || "");
+        setDebtorName(d.debtorName || d.clientName || "");
         if (d.srbUuid && onUuid) onUuid(d.srbUuid);
         const locked = d.workflowStatus && !["Draft", "Reback"].includes(d.workflowStatus);
         setIsSubmitted(locked);
@@ -317,26 +318,49 @@ export default function SaleReceiptBillingForm({
       .catch(() => toast.error("Failed to load billing details"));
   }, [billingId, mode]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // ── GST mutual exclusion (IGST vs CGST+SGST) ─────────────────────────────
-  const handleGstToggle = (idx, checked) => {
-    const type = watchedGst[idx]?.gstType;
-    if (type === "IGST") {
-      setValue("gstLines.0.isSelected", checked);
-      if (checked) {
-        setValue("gstLines.1.isSelected", false); setValue("gstLines.1.currentAmount", 0);
-        setValue("gstLines.2.isSelected", false); setValue("gstLines.2.currentAmount", 0);
+  // ── GST mutual exclusion (IGST vs CGST+SGST) — full array replacement so watch() reacts ──
+  const handleGstToggle = useCallback((gstType, checked) => {
+    const current = getValues("gstLines") || DEFAULT_GST_LINES;
+    const isIgst  = gstType === "IGST";
+    const updated = current.map((g) => {
+      if (g.gstType === "IGST") {
+        const sel = isIgst ? checked : (checked ? false : g.isSelected);
+        return { ...g, isSelected: sel, currentAmount: sel ? g.currentAmount : 0 };
       }
-    } else {
-      setValue("gstLines.1.isSelected", checked);
-      setValue("gstLines.2.isSelected", checked);
-      if (checked) {
-        setValue("gstLines.0.isSelected", false); setValue("gstLines.0.currentAmount", 0);
-      } else {
-        setValue("gstLines.1.currentAmount", 0);
-        setValue("gstLines.2.currentAmount", 0);
-      }
-    }
-  };
+      // CGST / SGST — always move together
+      const sel = !isIgst ? checked : (checked ? false : g.isSelected);
+      return { ...g, isSelected: sel, currentAmount: sel ? g.currentAmount : 0 };
+    });
+    replaceGst(updated);
+  }, [getValues, replaceGst]);
+
+  // ── Journal entries derived from live form state ───────────────────────────
+  const journalEntries = useMemo(() => {
+    if (watchedItems.length === 0 || !watchedItems[0]?.ccCode) return [];
+    const entries = [];
+    watchedItems.forEach((it) => {
+      entries.push({
+        ccCode: it.ccCode,
+        ccName: it.ccName,
+        amount: Number(it.currentAmount || 0),
+        isSelected: Number(it.currentAmount || 0) > 0,
+        toggleable: false,
+      });
+    });
+    watchedGst.forEach((g) => {
+      entries.push({
+        ccCode: g.ccCode,
+        ccName: g.ccName,
+        amount: Number(g.isSelected ? g.currentAmount : 0),
+        isSelected: !!g.isSelected,
+        toggleable: true,
+        toggleKey: g.gstType,
+      });
+    });
+    return entries;
+  }, [watchedItems, watchedGst]);
+
+  const totalDr = basicTotal + gstTotal;
 
   // ── Save Draft ─────────────────────────────────────────────────────────────
   const onSave = async (v) => {
@@ -455,6 +479,7 @@ export default function SaleReceiptBillingForm({
                   onChange={(v, opt) => {
                     field.onChange(opt?.erpDocNumber || v || "");
                     setValue("saleOrderDate", opt?.ogSaleOrderDate || "");
+                    if (opt?.debtorName || opt?.clientName) setDebtorName(opt.debtorName || opt.clientName || "");
                   }}
                   placeholder="Select Sale Order"
                   labelKey="displayLabel"
@@ -464,7 +489,7 @@ export default function SaleReceiptBillingForm({
               )} />
             </PMFormRow>
             <PMFormRow label="Sale Order Date" labelWidth="sm:w-[150px] sm:min-w-[150px]">
-              <PMInput value={watch("saleOrderDate") || ""} disabled readOnly />
+              <PMInput value={watch("saleOrderDate") ? getfmtDisplaydate(watch("saleOrderDate")) : ""} disabled readOnly />
             </PMFormRow>
           </PMSection>
 
@@ -496,7 +521,7 @@ export default function SaleReceiptBillingForm({
               )}
             </PMFormRow>
             <PMFormRow label="Invoice Date" labelWidth="sm:w-[150px] sm:min-w-[150px]">
-              <PMInput value={watch("invoiceDate") || ""} disabled readOnly
+              <PMInput value={watch("invoiceDate") ? getfmtDisplaydate(watch("invoiceDate")) : ""} disabled readOnly
                 placeholder="Auto-filled from invoice" />
             </PMFormRow>
             <PMFormRow label="Certified Bill" labelWidth="sm:w-[150px] sm:min-w-[150px]">
@@ -507,7 +532,7 @@ export default function SaleReceiptBillingForm({
               <PMInput value={watch("billAbstractNo") || ""} disabled readOnly />
             </PMFormRow>
             <PMFormRow label="Bill Abstract Date" labelWidth="sm:w-[150px] sm:min-w-[150px]">
-              <PMInput value={watch("billAbstractDate") || ""} disabled readOnly />
+              <PMInput value={watch("billAbstractDate") ? getfmtDisplaydate(watch("billAbstractDate")) : ""} disabled readOnly />
             </PMFormRow>
           </PMSection>
 
@@ -530,151 +555,30 @@ export default function SaleReceiptBillingForm({
         {/* ── RIGHT PANEL ──────────────────────────────────────────────────── */}
         <div className="flex-1 min-w-0 space-y-2">
 
-          {/* BASIC Table */}
-          <div className="border border-gray-300 rounded-sm overflow-hidden">
-            <div className={`${ACC.basicHeader} px-3 py-[5px]`}>
-              <span className={ACC.sectionTitle}>BASIC</span>
-            </div>
-            <div className="overflow-x-auto max-h-[500px] overflow-y-auto">
-              <table ref={tableRef1} className="w-full min-w-[620px] border-collapse text-[12px]">
-                <thead className="sticky top-0 z-10">
-                  <tr className={ACC.tableHead}>
-                    <th className="border border-gray-300 px-2 py-1.5 text-center font-semibold w-[40px]">SL</th>
-                    <th className="border border-gray-300 px-2 py-1.5 text-left  font-semibold w-[70px]">CC Code</th>
-                    <th className="border border-gray-300 px-2 py-1.5 text-left  font-semibold">CC Name</th>
-                    <th className="border border-gray-300 px-2 py-1.5 text-right font-semibold w-[90px]">Booked</th>
-                    <th className="border border-gray-300 px-2 py-1.5 text-right font-semibold w-[90px]">Received</th>
-                    <th className="border border-gray-300 px-2 py-1.5 text-right font-semibold w-[90px]">Balance</th>
-                    <th className="border border-gray-300 px-2 py-1.5 text-right font-semibold w-[100px]">Current</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {invoiceLookupLoading ? (
-                    <tr>
-                      <td colSpan={7} className="border border-gray-200 py-5 text-center text-gray-400">
-                        <Loader2 className="animate-spin w-4 h-4 inline mr-1.5" />Loading items…
-                      </td>
-                    </tr>
-                  ) : itemFields.length === 0 || (itemFields.length === 1 && !watchedItems[0]?.ccCode) ? (
-                    <tr>
-                      <td colSpan={7} className="border border-gray-200 py-6 text-center text-[#bbb] italic">
-                        Select a Sale Order, then pick an Invoice to load items
-                      </td>
-                    </tr>
-                  ) : (
-                    itemFields.map((field, idx) => {
-                      const item       = watchedItems[idx] || {};
-                      const current    = Number(item.currentAmount || 0);
-                      const balDisplay = Number(item.balanceAmount || 0) - current;
-                      const overBalance = !disabled && current > Number(item.balanceAmount || 0);
-                      return (
-                        <tr key={field.id} className={idx % 2 === 0 ? "bg-white" : "bg-[#f7f9fc]"}>
-                          <td className="border border-gray-200 px-2 py-[3px] text-center">{idx + 1}</td>
-                          <td className="border border-gray-200 px-2 py-[3px]">{item.ccCode}</td>
-                          <td className="border border-gray-200 px-2 py-[3px] text-gray-800">{item.ccName}</td>
-                          <td className="border border-gray-200 px-2 py-[3px] text-right text-gray-600 whitespace-nowrap">{formatAmount(item.bookedAmount)}</td>
-                          <td className="border border-gray-200 px-2 py-[3px] text-right text-gray-600 whitespace-nowrap">{formatAmount(item.receivedAmount)}</td>
-                          <td className={`border border-gray-200 px-2 py-[3px] text-right font-medium whitespace-nowrap ${balDisplay < 0 ? "text-red-600" : "text-gray-800"}`}>
-                            {formatAmount(balDisplay)}
-                          </td>
-                          <td className="border border-gray-200 p-0.5">
-                            <AmountInput
-                              {...register(`items.${idx}.currentAmount`)}
-                              value={watchedItems[idx]?.currentAmount ?? ""}
-                              disabled={disabled}
-                              placeholder="0.00"
-                              className={`w-full h-[26px] text-[12px] text-right rounded-sm border-0 outline-none ${
-                                disabled
-                                  ? "bg-[#edf8ed] text-gray-500"
-                                  : overBalance
-                                  ? "bg-red-50 text-red-600 border border-red-400"
-                                  : "bg-[#fffbe6] focus:bg-white"
-                              }`}
-                            />
-                          </td>
-                        </tr>
-                      );
-                    })
-                  )}
-                  <tr className={`${ACC.tableHead} font-semibold`}>
-                    <td colSpan={6} className="border border-gray-300 px-2 py-1.5 text-right text-[12px]">TOTAL</td>
-                    <td className="border border-gray-300 px-2 py-1.5 text-right text-[12px]">{formatAmount(basicTotal)}</td>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
-          </div>
+          {/* Accounting Journal */}
+          <AccountingJournalTable
+            debtorName={debtorName || erpDocNumber || "—"}
+            entries={journalEntries}
+            totalDr={totalDr}
+            totalCr={totalDr}
+            disabled={disabled}
+            emptyText="Select an invoice to generate accounting entries"
+          />
 
-          {/* GST Table */}
-          <div className="border border-gray-300 rounded-sm overflow-hidden">
-            <div className={`${ACC.gstHeader} px-3 py-[5px]`}>
-              <span className={ACC.sectionTitle}>GST</span>
-            </div>
-            <div className="overflow-x-auto">
-              <table ref={tableRef2} className="w-full min-w-[680px] border-collapse text-[12px]">
-                <thead>
-                  <tr className={ACC.tableHead}>
-                    <th className="border border-gray-300 px-2 py-1.5 text-center font-semibold w-[30px]" />
-                    <th className="border border-gray-300 px-2 py-1.5 text-center font-semibold w-[36px]">SL</th>
-                    <th className="border border-gray-300 px-2 py-1.5 text-left  font-semibold w-[70px]">CC Code</th>
-                    <th className="border border-gray-300 px-2 py-1.5 text-left  font-semibold">CC Name</th>
-                    <th className="border border-gray-300 px-2 py-1.5 text-right font-semibold w-[85px]">Booked</th>
-                    <th className="border border-gray-300 px-2 py-1.5 text-right font-semibold w-[85px]">Received</th>
-                    <th className="border border-gray-300 px-2 py-1.5 text-right font-semibold w-[85px]">Balance</th>
-                    <th className="border border-gray-300 px-2 py-1.5 text-right font-semibold w-[95px]">Current</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {gstFields.map((field, idx) => {
-                    const line    = watchedGst[idx] || {};
-                    const current = Number(line.currentAmount || 0);
-                    const balDisplay = Number(line.balanceAmount || 0) - current;
-                    return (
-                      <tr key={field.id} className={idx % 2 === 0 ? "bg-white" : "bg-[#fdf5f0]"}>
-                        <td className="border border-gray-200 px-1 py-[3px] text-center">
-                          <input type="checkbox" checked={!!line.isSelected} disabled={disabled}
-                            onChange={(e) => handleGstToggle(idx, e.target.checked)}
-                            className="accent-[#3b6ea5] cursor-pointer" />
-                        </td>
-                        <td className="border border-gray-200 px-2 py-[3px] text-center">{idx + 1}</td>
-                        <td className="border border-gray-200 px-2 py-[3px] font-medium">{line.ccCode}</td>
-                        <td className="border border-gray-200 px-2 py-[3px] text-gray-700">
-                          {line.ccName}
-                          {line.percent > 0 && <span className="ml-1 text-[10px] text-gray-400">({line.percent}%)</span>}
-                        </td>
-                        <td className="border border-gray-200 px-2 py-[3px] text-right text-gray-600 whitespace-nowrap">
-                          {line.bookedAmount > 0 ? formatAmount(line.bookedAmount) : "—"}
-                        </td>
-                        <td className="border border-gray-200 px-2 py-[3px] text-right text-gray-600 whitespace-nowrap">
-                          {line.receivedAmount > 0 ? formatAmount(line.receivedAmount) : "—"}
-                        </td>
-                        <td className={`border border-gray-200 px-2 py-[3px] text-right font-medium whitespace-nowrap ${balDisplay < 0 ? "text-red-600" : "text-gray-800"}`}>
-                          {line.bookedAmount > 0 ? formatAmount(balDisplay) : "—"}
-                        </td>
-                        <td className="border border-gray-200 p-0.5">
-                          <AmountInput
-                            {...register(`gstLines.${idx}.currentAmount`)}
-                            value={watchedGst[idx]?.currentAmount ?? ""}
-                            disabled={disabled || !line.isSelected}
-                            placeholder="0.00"
-                            className={`w-full h-[26px] text-[12px] text-right rounded-sm border-0 outline-none ${
-                              disabled || !line.isSelected
-                                ? "bg-[#edf8ed] text-gray-400"
-                                : "bg-[#fffbe6] focus:bg-white"
-                            }`}
-                          />
-                        </td>
-                      </tr>
-                    );
-                  })}
-                  <tr className={`${ACC.tableHead} font-semibold`}>
-                    <td colSpan={7} className="border border-gray-300 px-2 py-1.5 text-right text-[12px]">TOTAL</td>
-                    <td className="border border-gray-300 px-2 py-1.5 text-right text-[12px]">{formatAmount(gstTotal)}</td>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
-          </div>
+          {/* Bill-wise Receipt Entries Breakdown */}
+          <ReceiptBillingBreakdownTable
+            invoiceNo={watch("invoiceNo") || ""}
+            saleOrderNo={erpDocNumber || ""}
+            certBillNo={watch("certifiedBillNo") || ""}
+            itemFields={itemFields}
+            gstFields={gstFields}
+            watchedItems={watchedItems}
+            watchedGst={watchedGst}
+            register={register}
+            onGstToggle={handleGstToggle}
+            disabled={disabled}
+            loading={invoiceLookupLoading}
+          />
 
           {/* Summary */}
           <AccountSummary

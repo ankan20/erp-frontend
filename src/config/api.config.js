@@ -522,9 +522,8 @@ export const API_ENDPOINTS = {
       GET_BY_UUID:          "/finance/sale-bill/uuid/",                   // /:uuid GET no-auth
     },
     PURCHASE_BILL: {
-      VENDOR_ORDERS: "/finance/purchase-bill/vendor-orders",             // GET ?vendorId&projectCode&orderType
-      BRR_LIST:      "/finance/purchase-bill/brr-list",                  // GET ?orderId&orderType&projectCode
-      BRR_ITEMS:     "/finance/purchase-bill/brr-items",                 // GET ?brrId&projectCode
+      AVAILABLE_BRRS: "/finance/purchase-bill/available-brrs",           // GET ?vendorId&projectCode
+      BRR_ITEMS:      "/finance/purchase-bill/brr-items",                // GET ?brrId&projectCode
       CREATE:        "/finance/purchase-bill/create",                    // POST JSON
       LIST:          "/finance/purchase-bill/list",                      // GET ?projectCode&mode&workflowStatus&vendorId&search
       GET_BY_ID:     "/finance/purchase-bill/",                          // /:id GET

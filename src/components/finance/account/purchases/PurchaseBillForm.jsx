@@ -29,6 +29,7 @@ import AccountSummary         from "@/components/finance/account/common/AccountS
 import BrrPickerModal                from "@/components/finance/account/purchases/BrrPickerModal";
 import PurchaseBillBreakdownTable   from "@/components/finance/account/purchases/PurchaseBillBreakdownTable";
 import AccountingJournalTable       from "@/components/finance/account/common/AccountingJournalTable";
+import { getfmtDisplaydate }        from "@/helper/getfmtDisplayDate";
 
 import { apiRequest }    from "@/lib/apiClient";
 import { API_ENDPOINTS } from "@/config/api.config";
@@ -182,7 +183,7 @@ export default function PurchaseBillForm({ mode = "create", billId, onAfterSubmi
   }, [watchedItems, watchedGstLines]);
 
   const totalDr = journalEntries.filter((e) => e.isSelected).reduce((s, e) => s + e.amount, 0);
-  const totalCr = basicTotal + gstTotal - watchedDiscount + watchedRoundOff;
+  const totalCr = totalDr; // Always balanced: CR vendor mirrors sum of selected DR entries
 
   // ── GST toggle (IGST ↔ CGST+SGST mutual exclusion) ──────────────────────────
   // Full array replacement so watch("gstLines") always gets a new reference.
@@ -485,7 +486,7 @@ export default function PurchaseBillForm({ mode = "create", billId, onAfterSubmi
                 {itemsLoading && <Loader2 size={11} className="animate-spin shrink-0" />}
                 <span>
                   BRR: <strong>{watchedBrrNo}</strong>
-                  {watchedBrrDate && <> · {watchedBrrDate}</>}
+                  {watchedBrrDate && <> · {getfmtDisplaydate(watchedBrrDate)}</>}
                 </span>
               </div>
             )}

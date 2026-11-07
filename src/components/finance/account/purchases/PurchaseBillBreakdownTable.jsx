@@ -16,8 +16,9 @@ import { Controller }      from "react-hook-form";
 import { Loader2 }         from "lucide-react";
 import { ACC }             from "@/components/finance/account/common/accountTheme";
 import ExpandableTextCell  from "@/components/project-management/common/ExpandableTextCell";
-import { formatAmount }    from "@/helper/numberFormatter";
-import { useColumnResize } from "@/hooks/useColumnResize";
+import { formatAmount }       from "@/helper/numberFormatter";
+import { useColumnResize }    from "@/hooks/useColumnResize";
+import { getfmtDisplaydate }  from "@/helper/getfmtDisplayDate";
 
 const GST_META = [
   { gstType: "IGST", ccCode: "IGST", ccName: "Input-IGST"  },
@@ -115,7 +116,7 @@ export default function PurchaseBillBreakdownTable({
                     {/* BRR Date */}
                     {isFirst && (
                       <td rowSpan={rowSpan} className="border border-[#d0d0d0] px-2 py-1 text-gray-700 text-[10px] align-top">
-                        {brrDate || "—"}
+                        {brrDate ? getfmtDisplaydate(brrDate) : "—"}
                       </td>
                     )}
 
