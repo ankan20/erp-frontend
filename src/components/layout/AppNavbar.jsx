@@ -15,7 +15,8 @@ import {
 import SearchableSelect from "@/components/common/SearchableSelect";
 import { apiRequest } from "@/lib/apiClient";
 import { API_ENDPOINTS } from "@/config/api.config";
-import { User, LogOut } from "lucide-react";
+import { User, LogOut, Camera } from "lucide-react";
+import ProfilePictureUploadModal from "@/components/common/ProfilePictureUploadModal";
 import { useComm } from "@/context/CommContext";
 import { ROLE, roleMap } from "@/config/role.config";
 
@@ -46,6 +47,7 @@ export default function AppNavbar() {
   // const projectRef = useRef(null);
   const profileRef = useRef(null);
   const [showProfile, setShowProfile] = useState(false);
+  const [showPhotoUpload, setShowPhotoUpload] = useState(false);
   // CommProvider is always an ancestor in the protected layout — safe to call here
   const comm = useComm();
 
@@ -361,6 +363,20 @@ export default function AppNavbar() {
                   </div>
                 </div>
 
+                {/* UPLOAD PROFILE PHOTO */}
+                <button
+                  onClick={() => {
+                    setShowProfile(false);
+                    setShowPhotoUpload(true);
+                  }}
+                  className="w-full flex items-center gap-2 px-4 py-3 text-left border-b hover:bg-gray-50 transition cursor-pointer"
+                >
+                  <Camera size={16} className="text-gray-700" />
+                  <span className="text-[13px] text-gray-700 font-medium">
+                    Upload Photo
+                  </span>
+                </button>
+
                 {/* LOGOUT */}
                 <button
                   onClick={handleLogout}
@@ -386,6 +402,10 @@ export default function AppNavbar() {
                 </button>
               </div>
             )}
+            <ProfilePictureUploadModal
+              open={showPhotoUpload}
+              onOpenChange={setShowPhotoUpload}
+            />
           </div>
         </div>
       </div>
