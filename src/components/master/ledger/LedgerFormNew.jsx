@@ -302,7 +302,7 @@ export default function LedgerFormNew({
   // ── Project linking ───────────────────────────────────────────────────────
   const [linkedProjectIds, setLinkedProjectIds] = useState([]);
   const [allProjects, setAllProjects]           = useState([]);
-  const [loadingProjects, setLoadingProjects]   = useState(false);
+  const [loadingProjects, setLoadingProjects]   = useState(true);
 
   // ── Files ─────────────────────────────────────────────────────────────────
   const [fileNames, setFileNames] = useState({});
@@ -346,7 +346,6 @@ export default function LedgerFormNew({
 
   // ── Load project list ─────────────────────────────────────────────────────
   useEffect(() => {
-    setLoadingProjects(true);
     apiRequest({ url: API_ENDPOINTS.SETTINGS.GET_ALL_PROJECTS, method: "GET" })
       .then((res) => {
         const list = Array.isArray(res?.data) ? res.data : [];
@@ -747,8 +746,8 @@ export default function LedgerFormNew({
           <Row label="Registered Address">
             <Input {...register("registeredAddress")} disabled={fieldDisabled} placeholder="Registered address" className={`flex-1 ${getInputClass(false, fieldDisabled)}`} />
           </Row>
-          <Row label="Corporate Address">
-            <Input {...register("corporateAddress")} disabled={fieldDisabled} placeholder="Corporate / head office address" className={`flex-1 ${getInputClass(false, fieldDisabled)}`} />
+          <Row label="Billing Address">
+            <Input {...register("corporateAddress")} disabled={fieldDisabled} placeholder="Billing address" className={`flex-1 ${getInputClass(false, fieldDisabled)}`} />
           </Row>
         </Section>
 

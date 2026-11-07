@@ -53,6 +53,8 @@ export default function Page() {
           ledgerName: p.ledgerName,
           categoryName: type === "debtor" ? (p.categoryName || "—") : categoryDisplay,
           whatsappNumber: p.whatsappNumber,
+          siteCodes:       p.siteCodes        || "—",
+          billingAddress:  p.corporateAddress || "—",
         };
       });
 
@@ -85,18 +87,20 @@ export default function Page() {
   };
 
   const creditorColumns = [
-    { header: "Sl. no",    accessor: "sl" },
-    { header: "Ledger Code", accessor: "ledgerCode" },
-    { header: "Party Name",  accessor: "ledgerName" },
-    { header: "Category",    accessor: "categoryName" },
-    { header: "Mobile",      accessor: "whatsappNumber" },
+    { header: "Sl. no",          accessor: "sl" },
+    { header: "Ledger Code",     accessor: "ledgerCode" },
+    { header: "Party Name",      accessor: "ledgerName" },
+    { header: "Category",        accessor: "categoryName" },
+    { header: "Mobile",          accessor: "whatsappNumber" },
+    { header: "Billing Address", accessor: "billingAddress" },
   ];
 
   const debtorColumns = [
-    { header: "Sl. no",    accessor: "sl" },
-    { header: "Code",      accessor: "ledgerCode" },
-    { header: "Name",      accessor: "ledgerName" },
-    { header: "Mobile",    accessor: "whatsappNumber" },
+    { header: "Sl. no",          accessor: "sl" },
+    { header: "GL Code",         accessor: "ledgerCode" },
+    { header: "Customer Name",   accessor: "ledgerName" },
+    { header: "Site Codes",      accessor: "siteCodes" },
+    { header: "Billing Address", accessor: "billingAddress" },
   ];
 
   const isLoading = loading[activeTab];

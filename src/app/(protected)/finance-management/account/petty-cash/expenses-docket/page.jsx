@@ -46,9 +46,11 @@ export default function DocketVoucherListPage() {
           modeOfPayment:  r.modeOfPayment                   || "",
           bankCode:       r.bankCode                        || "—",
           paymentRefId:   r.paymentRefId                    || "",
+          ccCodes:        r.ccCodes                         || "",
           amount:         Number(r.totalAmount || 0).toLocaleString("en-IN", {
             minimumFractionDigits: 2, maximumFractionDigits: 2,
           }),
+
           workflowStatus: r.workflowStatus || "",
           createdBy:      r.createdBy      || "",
           _raw:           r,
@@ -92,10 +94,13 @@ export default function DocketVoucherListPage() {
     { header: "Payment Mode", accessor: "modeOfPayment",  width: "120px" },
     { header: "Account",      accessor: "bankCode",       width: "110px" },
     { header: "Trans. ID",    accessor: "paymentRefId",   width: "120px" },
+    { header: "CC Codes",     accessor: "ccCodes",        width: "130px" },
     { header: "Amount",       accessor: "amount",         width: "110px", align: "right" },
     { header: "Status",       accessor: "workflowStatus", width: "110px" },
     { header: "Created By",   accessor: "createdBy",      width: "120px" },
   ];
+
+  const summaryRow = { amount: { align: "right" } };
 
   const actions = getPageActions({ router });
 
@@ -127,11 +132,12 @@ export default function DocketVoucherListPage() {
         <DataTable
           columns={columns}
           data={filteredData}
+          summaryRow={summaryRow}
           onRowClick={(row) => {
             if (!access.canOpenDetails) return;
             router.push(`/finance-management/account/petty-cash/expenses-docket/${row._id}`);
           }}
-        pendingDeleteIds={pendingDeleteIds}
+          pendingDeleteIds={pendingDeleteIds}
         />
       </div>
     </HeaderWrapper>
