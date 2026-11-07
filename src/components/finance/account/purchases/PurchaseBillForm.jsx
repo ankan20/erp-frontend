@@ -1,13 +1,13 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
-import { Controller, useFieldArray } from "react-hook-form";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { Controller } from "react-hook-form";
 import { useFormWithToast as useForm } from "@/hooks/useFormWithToast";
 import { z }              from "zod";
 import { zodResolver }    from "@hookform/resolvers/zod";
 import { toast }          from "sonner";
 import { useRouter }      from "next/navigation";
-import { Loader2, PanelLeftClose, PanelLeftOpen, Plus, Trash2 } from "lucide-react";
+import { FileSearch, Loader2, PanelLeftClose, PanelLeftOpen } from "lucide-react";
 
 import SaveButton          from "@/components/common/SaveButton";
 import SaveDraftButton     from "@/components/common/SaveDraftButton";
@@ -20,11 +20,15 @@ import PMDateInput         from "@/components/project-management/common/PMDateIn
 import PMTextarea          from "@/components/project-management/common/PMTextarea";
 import PMInput             from "@/components/project-management/common/PMInput";
 
-import SaleBillRightPanel, {
+import {
   DEFAULT_GST_LINES,
   mapApiGstLines,
   igstEquivalent,
-} from "@/components/finance/account/common/SaleBillRightPanel";
+} from "@/components/finance/account/common/AccountGstTable";
+import AccountSummary         from "@/components/finance/account/common/AccountSummary";
+import BrrPickerModal                from "@/components/finance/account/purchases/BrrPickerModal";
+import PurchaseBillBreakdownTable   from "@/components/finance/account/purchases/PurchaseBillBreakdownTable";
+import AccountingJournalTable       from "@/components/finance/account/common/AccountingJournalTable";
 
 import { apiRequest }    from "@/lib/apiClient";
 import { API_ENDPOINTS } from "@/config/api.config";
@@ -37,25 +41,8 @@ const PURCHASE_BILL_MODES = [
   { label: "Proforma Invoice",  value: "proforma_invoice" },
 ];
 
-// Source badge colours by index (cycles)
-const SOURCE_COLORS = [
-  "bg-blue-100 border-blue-300 text-blue-800",
-  "bg-emerald-100 border-emerald-300 text-emerald-800",
-  "bg-amber-100 border-amber-300 text-amber-800",
-  "bg-purple-100 border-purple-300 text-purple-800",
-];
 
 // ─── Schema ───────────────────────────────────────────────────────────────────
-
-const sourceSchema = z.object({
-  orderId:   z.coerce.number().nullable().optional(),
-  orderType: z.string().optional().default(""),
-  orderNo:   z.string().optional().default(""),
-  brrId:     z.coerce.number().nullable().optional(),
-  brrNo:     z.string().optional().default(""),
-  brrDate:   z.string().optional().default(""),
-  basicAmount: z.coerce.number().min(0).default(0),
-});
 
 const itemSchema = z.object({
   slNo:        z.number(),
@@ -64,7 +51,6 @@ const itemSchema = z.object({
   description: z.string().optional().default(""),
   hsnSac:      z.string().optional().default(""),
   basicAmount: z.coerce.number().min(0).default(0),
-  sourceIndex: z.number().nullable().optional(),
 });
 
 const gstLineSchema = z.object({
@@ -81,31 +67,32 @@ const schema = z.object({
   mode:           z.string().min(1, "Mode is required"),
   vendorId:       z.coerce.number().min(1, "Party is required"),
   processingDate: zodDate(z, "processingDate", true),
+  brrId:          z.coerce.number().nullable().optional(),
+  brrNo:          z.string().optional().default(""),
+  brrDate:        z.string().optional().default(""),
+  orderNo:        z.string().optional().default(""),
   vendorBillNo:   z.string().optional().default(""),
   vendorBillDate: zodDate(z, "vendorBillDate"),
   remarks:        z.string().optional().default(""),
   discount:       z.coerce.number().min(0).default(0),
   roundOff:       z.coerce.number().default(0),
-  sources:        z.array(sourceSchema).min(1, "At least one source required"),
   items:          z.array(itemSchema).min(1, "At least one item required"),
   gstLines:       z.array(gstLineSchema).length(3),
 });
-
-const DEFAULT_SOURCE = {
-  orderId: null, orderType: "", orderNo: "",
-  brrId: null, brrNo: "", brrDate: "", basicAmount: 0,
-};
 
 const DEFAULT_VALUES = {
   mode: "",
   vendorId: null,
   processingDate: new Date().toISOString().split("T")[0],
+  brrId: null,
+  brrNo: "",
+  brrDate: "",
+  orderNo: "",
   vendorBillNo: "",
   vendorBillDate: "",
   remarks: "",
   discount: 0,
   roundOff: 0,
-  sources: [{ ...DEFAULT_SOURCE }],
   items: [],
   gstLines: DEFAULT_GST_LINES,
 };
@@ -124,95 +111,150 @@ export default function PurchaseBillForm({ mode = "create", billId, onAfterSubmi
   const [erpBillNo,   setErpBillNo]   = useState("");
   const [actualGstTotal, setActualGstTotal] = useState(null);
 
-  const [vendorList, setVendorList] = useState([]);
-  // Per-source dropdown state
-  const [orderOptsMap,     setOrderOptsMap]     = useState({});  // { [sourceIdx]: [] }
-  const [orderLoadingMap,  setOrderLoadingMap]  = useState({});
-  const [brrOptsMap,       setBrrOptsMap]       = useState({});
-  const [brrLoadingMap,    setBrrLoadingMap]    = useState({});
-  const [itemsLoadingMap,  setItemsLoadingMap]  = useState({});
+  const [vendorList,     setVendorList]     = useState([]);
+  const [brrPickerOpen,  setBrrPickerOpen]  = useState(false);
+  const [itemsLoading,   setItemsLoading]   = useState(false);
 
   const {
-    register, control, handleSubmit, reset, getValues, setValue, watch,
+    register, control, handleSubmit, reset, setValue, watch, getValues,
     formState: { errors, isSubmitting },
   } = useForm({ resolver: zodResolver(schema), defaultValues: DEFAULT_VALUES });
 
-  const { fields: sourceFields, append: appendSource, remove: removeSource } =
-    useFieldArray({ control, name: "sources" });
-  const { fields: itemFields } = useFieldArray({ control, name: "items" });
+  const disabled         = isViewMode || !isEditing || isSubmitting || isSubmitted;
+  const watchedBrrNo     = watch("brrNo");
+  const watchedBrrDate   = watch("brrDate");
+  const selectedVendorId = watch("vendorId");
 
-  const disabled = isViewMode || !isEditing || isSubmitting || isSubmitted;
-  const watchedSources = watch("sources") || [];
+  // ── Journal derivations ──────────────────────────────────────────────────────
+  const watchedItems    = watch("items")    || [];
+  const watchedGstLines = watch("gstLines") || DEFAULT_GST_LINES;
+  const watchedDiscount = Number(watch("discount") || 0);
+  const watchedRoundOff = Number(watch("roundOff") || 0);
 
-  // ── Load Vendors ─────────────────────────────────────────────────────────────
+  const vendorName = useMemo(
+    () => vendorList.find((v) => String(v.ledgerId) === String(selectedVendorId))?.ledgerName || "Sundry Creditor",
+    [vendorList, selectedVendorId],
+  );
+
+  const basicTotal = useMemo(
+    () => watchedItems.reduce((s, it) => s + Number(it?.basicAmount || 0), 0),
+    [watchedItems],
+  );
+
+  // Mirror AccountGstTable maths so amounts stay accurate after selection toggles
+  const isIGST     = !!watchedGstLines[0]?.isSelected;
+  const isCGSTSGST = !!watchedGstLines[1]?.isSelected;
+  const hasActual  = actualGstTotal !== null && actualGstTotal !== undefined;
+  const igstAmt    = isIGST     ? (hasActual ? actualGstTotal     : basicTotal * (watchedGstLines[0]?.percent || 18) / 100) : 0;
+  const cgstAmt    = isCGSTSGST ? (hasActual ? actualGstTotal / 2 : basicTotal * (watchedGstLines[1]?.percent || 9)  / 100) : 0;
+  const sgstAmt    = isCGSTSGST ? (hasActual ? actualGstTotal / 2 : basicTotal * (watchedGstLines[2]?.percent || 9)  / 100) : 0;
+  const gstTotal   = igstAmt + cgstAmt + sgstAmt;
+
+  // Sync computed GST amounts back into form state so the journal table reads them
+  useEffect(() => {
+    setValue("gstLines.0.gstAmount", igstAmt, { shouldDirty: false });
+    setValue("gstLines.1.gstAmount", cgstAmt, { shouldDirty: false });
+    setValue("gstLines.2.gstAmount", sgstAmt, { shouldDirty: false });
+  }, [igstAmt, cgstAmt, sgstAmt]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Auto round-off
+  useEffect(() => {
+    const subtotal = basicTotal + gstTotal - watchedDiscount;
+    const auto = parseFloat((Math.round(subtotal) - subtotal).toFixed(2));
+    setValue("roundOff", auto, { shouldDirty: false });
+  }, [basicTotal, gstTotal, watchedDiscount]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const totalInvoice = basicTotal + gstTotal - watchedDiscount + watchedRoundOff;
+
+  // All DR entries for journal: item rows (not toggleable) + all 3 GST rows (toggleable)
+  const journalEntries = useMemo(() => {
+    if (watchedItems.length === 0) return [];
+    const entries = [];
+    watchedItems.forEach((it) => {
+      if (Number(it?.basicAmount || 0) > 0) {
+        entries.push({ ccCode: it.ccCode, ccName: it.ccName, amount: Number(it.basicAmount || 0), isSelected: true, toggleable: false });
+      }
+    });
+    watchedGstLines.forEach((g) => {
+      entries.push({ ccCode: g.gstType, ccName: g.ccName, amount: Number(g.gstAmount || 0), isSelected: !!g.isSelected, toggleable: true, toggleKey: g.gstType });
+    });
+    return entries;
+  }, [watchedItems, watchedGstLines]);
+
+  const totalDr = journalEntries.filter((e) => e.isSelected).reduce((s, e) => s + e.amount, 0);
+  const totalCr = basicTotal + gstTotal - watchedDiscount + watchedRoundOff;
+
+  // ── GST toggle (IGST ↔ CGST+SGST mutual exclusion) ──────────────────────────
+  // Full array replacement so watch("gstLines") always gets a new reference.
+  // Also bake in the new gstAmount immediately so the breakdown table doesn't
+  // show "—" for one render while the separate useEffect is still pending.
+  const handleGstToggle = useCallback((gstType, checked) => {
+    const current = getValues("gstLines") || DEFAULT_GST_LINES;
+
+    const willIGST     = gstType === "IGST" ? checked : (checked ? false : current[0].isSelected);
+    const willCGSTSGST = gstType !== "IGST" ? checked : (checked ? false : current[1].isSelected);
+
+    const curActual = actualGstTotal;
+    const curHasActual = curActual !== null && curActual !== undefined;
+
+    const newIgstAmt  = willIGST     ? (curHasActual ? curActual     : basicTotal * (current[0]?.percent || 18) / 100) : 0;
+    const newCgstAmt  = willCGSTSGST ? (curHasActual ? curActual / 2 : basicTotal * (current[1]?.percent || 9)  / 100) : 0;
+    const newSgstAmt  = willCGSTSGST ? (curHasActual ? curActual / 2 : basicTotal * (current[2]?.percent || 9)  / 100) : 0;
+    const newAmts     = [newIgstAmt, newCgstAmt, newSgstAmt];
+    const newSelected = [willIGST, willCGSTSGST, willCGSTSGST];
+
+    const updated = current.map((g, i) => ({
+      ...g,
+      isSelected: newSelected[i],
+      gstAmount:  newAmts[i],
+    }));
+    setValue("gstLines", updated, { shouldDirty: true });
+  }, [setValue, getValues, basicTotal, actualGstTotal]);
+
+  // ── Load Vendors (sundry creditors only: isDebtor=false) ────────────────────
   useEffect(() => {
     apiRequest({ url: API_ENDPOINTS.MASTER.GET_ALL_LEDGER, method: "GET" })
-      .then((res) => setVendorList((res.data || []).slice().sort((a, b) => (a.ledgerName || "").localeCompare(b.ledgerName || ""))))
+      .then((res) => {
+        const creditors = (res.data || [])
+          .filter((v) => v.isDebtor === false || v.isDebtor === "false")
+          .sort((a, b) => (a.ledgerName || "").localeCompare(b.ledgerName || ""));
+        setVendorList(creditors);
+      })
       .catch(() => toast.error("Failed to load vendor list"));
   }, []);
 
-  // ── Fetch orders for a source (called when vendor or source index changes) ───
-  const fetchOrdersForSource = useCallback(
-    async (vendorId, sourceIdx) => {
-      if (!vendorId || !projectCode) {
-        setOrderOptsMap((m) => ({ ...m, [sourceIdx]: [] }));
-        return;
-      }
-      setOrderLoadingMap((m) => ({ ...m, [sourceIdx]: true }));
-      try {
-        const res = await apiRequest({
-          url: `${API_ENDPOINTS.FINANCE.PURCHASE_BILL.VENDOR_ORDERS}?vendorId=${vendorId}&projectCode=${projectCode}`,
-          method: "GET",
-        });
-        setOrderOptsMap((m) => ({ ...m, [sourceIdx]: res.data || [] }));
-      } catch {
-        toast.error("Failed to load orders");
-      } finally {
-        setOrderLoadingMap((m) => ({ ...m, [sourceIdx]: false }));
-      }
-    },
-    [projectCode],
-  );
+  // ── Handle Vendor selection ──────────────────────────────────────────────────
+  const handleVendorChange = (v) => {
+    setValue("vendorId", v ? Number(v) : null, { shouldDirty: true });
+    setValue("brrId",   null, { shouldDirty: true });
+    setValue("brrNo",   "",   { shouldDirty: true });
+    setValue("brrDate", "",   { shouldDirty: true });
+    setValue("orderNo", "",   { shouldDirty: true });
+    setValue("items",   [],   { shouldDirty: true });
+    setActualGstTotal(null);
+  };
 
-  // ── Fetch BRR list for order in a source ────────────────────────────────────
-  const fetchBrrForSource = useCallback(
-    async (orderId, orderType, sourceIdx) => {
-      if (!orderId || !projectCode) {
-        setBrrOptsMap((m) => ({ ...m, [sourceIdx]: [] }));
-        return;
-      }
-      setBrrLoadingMap((m) => ({ ...m, [sourceIdx]: true }));
-      try {
-        const res = await apiRequest({
-          url: `${API_ENDPOINTS.FINANCE.PURCHASE_BILL.BRR_LIST}?orderId=${orderId}&orderType=${orderType}&projectCode=${projectCode}`,
-          method: "GET",
-        });
-        setBrrOptsMap((m) => ({ ...m, [sourceIdx]: res.data || [] }));
-      } catch {
-        toast.error("Failed to load BVS list");
-      } finally {
-        setBrrLoadingMap((m) => ({ ...m, [sourceIdx]: false }));
-      }
-    },
-    [projectCode],
-  );
+  // ── Handle BRR confirmed from picker ────────────────────────────────────────
+  const handleBrrPickerConfirm = useCallback(
+    async ({ brrId, brrNo, brrDate, orderNo }) => {
+      setValue("brrId",   brrId,        { shouldDirty: true });
+      setValue("brrNo",   brrNo  || "", { shouldDirty: true });
+      setValue("brrDate", brrDate || "", { shouldDirty: true });
+      setValue("orderNo", orderNo || "", { shouldDirty: true });
+      setValue("items", [], { shouldDirty: true });
+      setActualGstTotal(null);
 
-  // ── Fetch BRR items and merge into items array ───────────────────────────────
-  const fetchBrrItems = useCallback(
-    async (brrId, sourceIdx) => {
       if (!brrId || !projectCode) return;
-      setItemsLoadingMap((m) => ({ ...m, [sourceIdx]: true }));
+      setItemsLoading(true);
       try {
         const res = await apiRequest({
           url: `${API_ENDPOINTS.FINANCE.PURCHASE_BILL.BRR_ITEMS}?brrId=${brrId}&projectCode=${projectCode}`,
           method: "GET",
         });
         const d = res.data || {};
-        // Fill vendor bill no/date from first source
-        if (sourceIdx === 0) {
-          setValue("vendorBillNo",   d.vendorBillNo   || "");
-          setValue("vendorBillDate", d.vendorBillDate || "");
-        }
+        setValue("vendorBillNo",   d.vendorBillNo   || "");
+        setValue("vendorBillDate", d.vendorBillDate || "");
+
         const newItems = (d.items || []).map((it, i) => ({
           slNo:        i + 1,
           ccCode:      it.ccCode      || "",
@@ -220,108 +262,20 @@ export default function PurchaseBillForm({ mode = "create", billId, onAfterSubmi
           description: it.description || "",
           hsnSac:      it.hsnSac      || "",
           basicAmount: Number(it.basicAmount || 0),
-          sourceIndex: sourceIdx,
         }));
-        // Merge: keep other sources' items, replace this source's items
-        const existing = (getValues("items") || []).filter((it) => it.sourceIndex !== sourceIdx);
-        setValue("items", [...existing, ...newItems], { shouldDirty: true });
-
-        // Update source basicAmount
-        const srcBasic = newItems.reduce((s, it) => s + Number(it.basicAmount || 0), 0);
-        setValue(`sources.${sourceIdx}.basicAmount`, srcBasic, { shouldDirty: true });
-
-        // Update GST from first loaded source
-        if (sourceIdx === 0 || existing.length === 0) {
-          setValue("gstLines", mapApiGstLines(d.gstLines), { shouldDirty: true });
-          setActualGstTotal(igstEquivalent(d.gstLines));
-        }
+        setValue("items", newItems, { shouldDirty: true });
+        setValue("gstLines", mapApiGstLines(d.gstLines), { shouldDirty: true });
+        setActualGstTotal(igstEquivalent(d.gstLines));
         setAllowSubmit(false);
       } catch {
         setActualGstTotal(null);
-        toast.error("Failed to load BVS items");
+        toast.error("Failed to load BRR items");
       } finally {
-        setItemsLoadingMap((m) => ({ ...m, [sourceIdx]: false }));
+        setItemsLoading(false);
       }
     },
-    [projectCode, getValues, setValue],
+    [projectCode, setValue],
   );
-
-  // ── Reload orders for all existing sources when vendor changes ───────────────
-  const selectedVendorId = watch("vendorId");
-  useEffect(() => {
-    if (!selectedVendorId) return;
-    sourceFields.forEach((_, idx) => fetchOrdersForSource(selectedVendorId, idx));
-  }, [selectedVendorId]); // eslint-disable-line react-hooks/exhaustive-deps
-
-  // ── Handle Vendor selection ──────────────────────────────────────────────────
-  const handleVendorChange = (v) => {
-    setValue("vendorId", v ? Number(v) : null, { shouldDirty: true });
-    // Reset all sources
-    setValue("sources", [{ ...DEFAULT_SOURCE }], { shouldDirty: true });
-    setValue("items", [], { shouldDirty: true });
-    setActualGstTotal(null);
-    setOrderOptsMap({});
-    setBrrOptsMap({});
-  };
-
-  // ── Handle Order selection for a source ─────────────────────────────────────
-  const handleOrderSelect = (v, option, sourceIdx) => {
-    setValue(`sources.${sourceIdx}.orderId`,   v ? Number(v) : null, { shouldDirty: true });
-    setValue(`sources.${sourceIdx}.orderType`, option?.orderType || "", { shouldDirty: true });
-    setValue(`sources.${sourceIdx}.orderNo`,   option?.orderNo   || "", { shouldDirty: true });
-    setValue(`sources.${sourceIdx}.brrId`,     null,                   { shouldDirty: true });
-    setValue(`sources.${sourceIdx}.brrNo`,     "",                     { shouldDirty: true });
-    setValue(`sources.${sourceIdx}.brrDate`,   "",                     { shouldDirty: true });
-    // Clear items for this source
-    const existing = (getValues("items") || []).filter((it) => it.sourceIndex !== sourceIdx);
-    setValue("items", existing, { shouldDirty: true });
-    setBrrOptsMap((m) => ({ ...m, [sourceIdx]: [] }));
-    if (v) fetchBrrForSource(Number(v), option?.orderType || "", sourceIdx);
-  };
-
-  // ── Handle BRR selection for a source ───────────────────────────────────────
-  const handleBrrSelect = (v, option, sourceIdx) => {
-    setValue(`sources.${sourceIdx}.brrId`,   v ? Number(v) : null, { shouldDirty: true });
-    setValue(`sources.${sourceIdx}.brrNo`,   option?.brrNo   || "", { shouldDirty: true });
-    setValue(`sources.${sourceIdx}.brrDate`, option?.brrDate || "", { shouldDirty: true });
-    // Clear items for this source
-    const existing = (getValues("items") || []).filter((it) => it.sourceIndex !== sourceIdx);
-    setValue("items", existing, { shouldDirty: true });
-    setActualGstTotal(null);
-    if (v) fetchBrrItems(Number(v), sourceIdx);
-  };
-
-  // ── Add source row ───────────────────────────────────────────────────────────
-  const handleAddSource = () => {
-    const newIdx = sourceFields.length;
-    appendSource({ ...DEFAULT_SOURCE });
-    if (selectedVendorId) fetchOrdersForSource(selectedVendorId, newIdx);
-  };
-
-  // ── Remove source row and its items ─────────────────────────────────────────
-  const handleRemoveSource = (sourceIdx) => {
-    const existing = (getValues("items") || [])
-      .filter((it) => it.sourceIndex !== sourceIdx)
-      .map((it) => ({ ...it, sourceIndex: it.sourceIndex > sourceIdx ? it.sourceIndex - 1 : it.sourceIndex }));
-    setValue("items", existing, { shouldDirty: true });
-
-    // Shift map keys
-    const shiftMap = (m) => {
-      const updated = {};
-      Object.keys(m).forEach((k) => {
-        const ki = Number(k);
-        if (ki < sourceIdx) updated[ki] = m[k];
-        else if (ki > sourceIdx) updated[ki - 1] = m[k];
-      });
-      return updated;
-    };
-    setOrderOptsMap(shiftMap);
-    setBrrOptsMap(shiftMap);
-    setBrrLoadingMap(shiftMap);
-    setItemsLoadingMap(shiftMap);
-
-    removeSource(sourceIdx);
-  };
 
   // ── Load Detail (edit/view) ──────────────────────────────────────────────────
   useEffect(() => {
@@ -330,41 +284,19 @@ export default function PurchaseBillForm({ mode = "create", billId, onAfterSubmi
       .then((res) => {
         const d = res.data || {};
 
-        // Build sources from API
-        let sourcesData = [];
-        if (Array.isArray(d.sources) && d.sources.length > 0) {
-          sourcesData = d.sources.map((s) => ({
-            orderId:   s.orderId   || null,
-            orderType: s.orderType || "",
-            orderNo:   s.orderNo   || "",
-            brrId:     s.brrId     || null,
-            brrNo:     s.brrNo     || "",
-            brrDate:   s.brrDate   || "",
-            basicAmount: Number(s.basicAmount || 0),
-          }));
-        } else {
-          // Legacy single-source bill
-          sourcesData = [{
-            orderId:   d.orderId   || null,
-            orderType: d.orderType || "",
-            orderNo:   d.orderNo   || "",
-            brrId:     d.brrId     || null,
-            brrNo:     d.brrNo     || "",
-            brrDate:   d.brrDate   || "",
-            basicAmount: 0,
-          }];
-        }
-
         const formatted = {
           mode:           d.mode           || "",
           vendorId:       d.vendorId       || null,
           processingDate: d.processingDate || "",
+          brrId:          d.brrId          || null,
+          brrNo:          d.brrNo          || "",
+          brrDate:        d.brrDate        || "",
+          orderNo:        d.orderNo        || "",
           vendorBillNo:   d.vendorBillNo   || "",
           vendorBillDate: d.vendorBillDate || "",
           remarks:        d.remarks        || "",
           discount:       Number(d.discount || 0),
           roundOff:       Number(d.roundOff || 0),
-          sources: sourcesData,
           items: (d.items || []).map((it, i) => ({
             slNo:        i + 1,
             ccCode:      it.ccCode      || "",
@@ -372,22 +304,12 @@ export default function PurchaseBillForm({ mode = "create", billId, onAfterSubmi
             description: it.description || "",
             hsnSac:      it.hsnSac      || "",
             basicAmount: Number(it.basicAmount || 0),
-            sourceIndex: it.sourceIndex ?? null,
           })),
           gstLines: d.gstLines?.length
             ? mapApiGstLines(d.gstLines, { keepSelection: true })
             : DEFAULT_GST_LINES,
         };
         reset(formatted);
-
-        // Pre-load orders for each source
-        if (d.vendorId) {
-          sourcesData.forEach((_, idx) => fetchOrdersForSource(d.vendorId, idx));
-        }
-        // Pre-load BRR opts for each source
-        sourcesData.forEach((src, idx) => {
-          if (src.orderId) fetchBrrForSource(src.orderId, src.orderType, idx);
-        });
 
         const savedBasic = formatted.items.reduce((s, it) => s + Number(it.basicAmount || 0), 0);
         const igstPct    = Number(formatted.gstLines[0]?.percent || 0);
@@ -423,19 +345,13 @@ export default function PurchaseBillForm({ mode = "create", billId, onAfterSubmi
       mode:           v.mode,
       vendorId:       v.vendorId,
       processingDate: v.processingDate,
+      brrId:          v.brrId ? Number(v.brrId) : null,
+      orderNo:        v.orderNo || "",
       vendorBillNo:   v.vendorBillNo   || "",
       vendorBillDate: v.vendorBillDate || "",
       remarks:        v.remarks        || "",
       discount:       Number(v.discount || 0),
       roundOff:       Number(v.roundOff || 0),
-      sources: (v.sources || []).map((s) => ({
-        orderId:     s.orderId   || null,
-        orderType:   s.orderType || "",
-        orderNo:     s.orderNo   || "",
-        brrId:       s.brrId     ? Number(s.brrId) : null,
-        brrNo:       s.brrNo     || "",
-        basicAmount: Number(s.basicAmount || 0),
-      })),
       items: (v.items || []).map((it, i) => ({
         slNo:        it.slNo || i + 1,
         ccCode:      it.ccCode,
@@ -443,7 +359,6 @@ export default function PurchaseBillForm({ mode = "create", billId, onAfterSubmi
         description: it.description || "",
         hsnSac:      it.hsnSac      || "",
         basicAmount: Number(it.basicAmount || 0),
-        sourceIndex: it.sourceIndex ?? null,
       })),
       gstLines: (v.gstLines || []).map((l) => ({
         gstType:     l.gstType,
@@ -532,105 +447,53 @@ export default function PurchaseBillForm({ mode = "create", billId, onAfterSubmi
             </PMFormRow>
           </PMSection>
 
-          {/* Vendor */}
+          {/* Vendor + BRR Picker */}
           <PMSection title="Party:">
             <PMFormRow label="Party Name" required={!disabled} labelWidth="sm:w-[150px] sm:min-w-[150px]">
-              <Controller name="vendorId" control={control} render={({ field }) => (
-                <SearchableSelect
-                  options={vendorList}
-                  value={field.value ? String(field.value) : ""}
-                  disabled={disabled}
-                  onChange={(v) => handleVendorChange(v)}
-                  placeholder="Select from Vendor List"
-                  labelKey="ledgerName"
-                  valueKey="ledgerId"
-                  searchKeys={["ledgerName"]}
-                />
-              )} />
+              <div className="flex items-center gap-1.5 w-full">
+                <div className="flex-1 min-w-0">
+                  <Controller name="vendorId" control={control} render={({ field }) => (
+                    <SearchableSelect
+                      options={vendorList}
+                      value={field.value ? String(field.value) : ""}
+                      disabled={disabled}
+                      onChange={(v) => handleVendorChange(v)}
+                      placeholder="Select Vendor (Sundry Creditor)"
+                      labelKey="ledgerName"
+                      valueKey="ledgerId"
+                      searchKeys={["ledgerName"]}
+                    />
+                  )} />
+                </div>
+                {!disabled && (
+                  <button
+                    type="button"
+                    title="Select BRR"
+                    disabled={!selectedVendorId}
+                    onClick={() => setBrrPickerOpen(true)}
+                    className="shrink-0 p-1.5 rounded border border-gray-300 bg-white text-blue-600 hover:bg-blue-50 hover:border-blue-400 disabled:opacity-40 disabled:cursor-not-allowed transition"
+                  >
+                    <FileSearch size={16} />
+                  </button>
+                )}
+              </div>
             </PMFormRow>
-          </PMSection>
 
-          {/* ── Sources Section ───────────────────────────────────────────── */}
-          <PMSection title="Sources (Orders & BVS):">
-            <div className="space-y-3 px-1">
-              {sourceFields.map((field, sourceIdx) => {
-                const colorClass    = SOURCE_COLORS[sourceIdx % SOURCE_COLORS.length];
-                const orderOpts     = orderOptsMap[sourceIdx] || [];
-                const orderLoading  = orderLoadingMap[sourceIdx] || false;
-                const brrOpts       = brrOptsMap[sourceIdx] || [];
-                const brrLoading    = brrLoadingMap[sourceIdx] || false;
-                const itmLoading    = itemsLoadingMap[sourceIdx] || false;
-                const orderVal      = watchedSources[sourceIdx]?.orderId ? String(watchedSources[sourceIdx].orderId) : "";
-                const brrVal        = watchedSources[sourceIdx]?.brrId   ? String(watchedSources[sourceIdx].brrId)   : "";
-
-                return (
-                  <div key={field.id} className={`border rounded-md p-2 space-y-1.5 ${colorClass}`}>
-                    {/* Header */}
-                    <div className="flex items-center justify-between">
-                      <span className="text-[11px] font-semibold uppercase tracking-wide">
-                        Source {sourceIdx + 1}
-                      </span>
-                      {sourceFields.length > 1 && !disabled && (
-                        <button type="button" onClick={() => handleRemoveSource(sourceIdx)} className="text-red-500 hover:text-red-700 p-0.5" title="Remove source">
-                          <Trash2 size={13} />
-                        </button>
-                      )}
-                    </div>
-
-                    {/* Order */}
-                    <div>
-                      <p className="text-[11px] text-gray-600 mb-0.5">Order Number</p>
-                      <SearchableSelect
-                        options={orderOpts}
-                        value={orderVal}
-                        disabled={disabled || !selectedVendorId || orderLoading}
-                        onChange={(v, opt) => handleOrderSelect(v, opt, sourceIdx)}
-                        placeholder={orderLoading ? "Loading…" : !selectedVendorId ? "Select vendor first" : "Filter from Vendor Orders"}
-                        labelKey="orderNo"
-                        valueKey="id"
-                        searchKeys={["orderNo"]}
-                      />
-                    </div>
-
-                    {/* BRR */}
-                    <div>
-                      <p className="text-[11px] text-gray-600 mb-0.5">BVS Number</p>
-                      <SearchableSelect
-                        options={brrOpts}
-                        value={brrVal}
-                        disabled={disabled || !orderVal || brrLoading}
-                        onChange={(v, opt) => handleBrrSelect(v, opt, sourceIdx)}
-                        placeholder={brrLoading ? "Loading…" : !orderVal ? "Select order first" : "Filter from Bill Entry"}
-                        labelKey="brrNo"
-                        valueKey="id"
-                        searchKeys={["brrNo"]}
-                      />
-                    </div>
-
-                    {/* BVS date auto */}
-                    {watchedSources[sourceIdx]?.brrDate && (
-                      <p className="text-[11px] text-gray-500">BVS Date: {watchedSources[sourceIdx].brrDate}</p>
-                    )}
-
-                    {itmLoading && (
-                      <p className="text-[11px] text-gray-500 flex items-center gap-1">
-                        <Loader2 size={11} className="animate-spin" /> Loading items…
-                      </p>
-                    )}
-                  </div>
-                );
-              })}
-
-              {!disabled && (
-                <button
-                  type="button"
-                  onClick={handleAddSource}
-                  className="flex items-center gap-1.5 text-[12px] text-blue-600 hover:text-blue-800 font-medium mt-1"
-                >
-                  <Plus size={13} /> Add Another Order
-                </button>
-              )}
-            </div>
+            {/* Selected BRR info badge */}
+            {watchedBrrNo && (
+              <div className="mx-1 mt-1 px-3 py-1.5 bg-blue-50 border border-blue-200 rounded-md text-[11px] text-blue-800 flex items-center gap-2">
+                {itemsLoading && <Loader2 size={11} className="animate-spin shrink-0" />}
+                <span>
+                  BRR: <strong>{watchedBrrNo}</strong>
+                  {watchedBrrDate && <> · {watchedBrrDate}</>}
+                </span>
+              </div>
+            )}
+            {!watchedBrrNo && !disabled && selectedVendorId && (
+              <p className="mx-1 mt-1 text-[11px] text-gray-400">
+                Click <FileSearch size={11} className="inline" /> to select a BRR.
+              </p>
+            )}
           </PMSection>
 
           {/* Vendor Bill details */}
@@ -659,17 +522,41 @@ export default function PurchaseBillForm({ mode = "create", billId, onAfterSubmi
 
         {/* ── RIGHT PANEL ──────────────────────────────────────────────────── */}
         <div className="flex-1 min-w-0 space-y-2">
-          <SaleBillRightPanel
-            control={control}
-            watch={watch}
-            setValue={setValue}
-            register={register}
+
+          {/* Accounting Journal */}
+          <AccountingJournalTable
+            creditorMode
+            debtorName={vendorName}
+            entries={journalEntries}
+            totalDr={totalDr}
+            totalCr={totalCr}
             disabled={disabled}
-            itemsLoading={Object.values(itemsLoadingMap).some(Boolean)}
-            itemFields={itemFields}
-            actualGstTotal={actualGstTotal}
-            sources={watchedSources}
-            sourceColors={SOURCE_COLORS}
+            onToggle={!disabled ? handleGstToggle : undefined}
+            emptyText="Select a BRR to generate accounting entries"
+          />
+
+          {/* BRR Items + GST selection breakdown */}
+          <PurchaseBillBreakdownTable
+            orderNo={watch("orderNo")}
+            brrNo={watchedBrrNo}
+            brrDate={watchedBrrDate}
+            items={watchedItems}
+            gstLines={watchedGstLines}
+            register={register}
+            control={control}
+            onGstToggle={!disabled ? handleGstToggle : undefined}
+            disabled={disabled}
+            itemsLoading={itemsLoading}
+          />
+
+          {/* Summary */}
+          <AccountSummary
+            basicTotal={basicTotal}
+            gstTotal={gstTotal}
+            totalInvoice={totalInvoice}
+            register={register}
+            watch={watch}
+            disabled={disabled}
           />
 
           {!isViewMode && (
@@ -699,6 +586,16 @@ export default function PurchaseBillForm({ mode = "create", billId, onAfterSubmi
           )}
         </div>
       </div>
+
+      {/* BRR Picker Modal */}
+      <BrrPickerModal
+        isOpen={brrPickerOpen}
+        onClose={() => setBrrPickerOpen(false)}
+        vendorId={selectedVendorId}
+        projectCode={projectCode}
+        currentBrrId={watch("brrId") || null}
+        onConfirm={handleBrrPickerConfirm}
+      />
 
       {/* AI Assistant Panel */}
       <AiPanel
