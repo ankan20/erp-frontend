@@ -48,37 +48,7 @@ export default function Page() {
         });
         const list = (res.data || []).map((item, idx) => {
           const billingType = GRN_CATEGORIES.includes(item.orderCategory) ? "grn" : "srn";
-
-          // Normalize nested billing rows
-          const grnBillings = (item.grnBillings || []).map((b) => ({
-            billingNo:      b.brbNo || "",
-            billingDate:    getfmtDisplaydate(b.brbDate),
-            _rawDate:       b.brbDate || "",
-            workflowStatus: b.workflowStatus || "",
-            basicAmount:    fmt(b.basicAmount),
-            gstAmount:      fmt(b.gstAmount),
-            totalAmount:    fmt(b.totalAmount),
-            itemCount:      b.itemCount ?? "-",
-            _type:          "brb",
-            _billingType:   "grn",
-            _id:            b.brbId,
-            _brrId:         item.id ?? item.brrId,
-          }));
-
-          const srnBillings = (item.srnBillings || []).map((b) => ({
-            billingNo:      b.brbNo || "",
-            billingDate:    getfmtDisplaydate(b.brbDate),
-            _rawDate:       b.brbDate || "",
-            workflowStatus: b.workflowStatus || "",
-            basicAmount:    fmt(b.basicAmount),
-            gstAmount:      fmt(b.gstAmount),
-            totalAmount:    fmt(b.totalAmount),
-            itemCount:      b.itemCount ?? "-",
-            _type:          "brb",
-            _billingType:   "srn",
-            _id:            b.brbId,
-            _brrId:         item.id ?? item.brrId,
-          }));
+          const b = item.brb || null;
 
           return {
             id:            item.id ?? item.brrId,
@@ -91,13 +61,27 @@ export default function Page() {
             orderNo:       item.orderNo || "",
             partyBillNo:   item.partyBillNo || "",
             partyDate:     getfmtDisplaydate(item.partyDate),
-            basicAmount:   fmt(item.basicAmount),
-            bookedAmount:  item.bookedAmount != null ? fmt(item.bookedAmount) : null,
-            totalAmount:   fmt(item.totalAmount),
-            status:        item.workflowStatus || "",
+            // BRR amounts (may be overridden by BRB actuals in table)
+            brrBasicAmount: fmt(item.basicAmount),
+            brrGstAmount:   fmt(item.gstAmount),
+            brrTotalAmount: fmt(item.totalAmount),
+            bookedAmount:   item.bookedAmount != null ? fmt(item.bookedAmount) : null,
+            status:         item.workflowStatus || "",
             billingType,
-            grnBillings,
-            srnBillings,
+            // Single BRB (null if none exists)
+            brb: b ? {
+              _id:            b.brbId,
+              _billingType:   billingType,
+              _brrId:         item.id ?? item.brrId,
+              brbNo:          b.brbNo || "",
+              brbDate:        getfmtDisplaydate(b.brbDate),
+              _rawDate:       b.brbDate || "",
+              workflowStatus: b.workflowStatus || "",
+              basicAmount:    fmt(b.basicAmount),
+              gstAmount:      fmt(b.gstAmount),
+              totalAmount:    fmt(b.totalAmount),
+              itemCount:      b.itemCount ?? "-",
+            } : null,
           };
         });
         setData(list);
@@ -132,9 +116,10 @@ export default function Page() {
     );
   };
 
-  const handleChildRowClick = (childRow) => {
+  const handleBrbClick = (row) => {
+    if (!row.brb?._id) return;
     router.push(
-      `/resource-management/sub-contractor-billing/e-reconcile-bill/${childRow._id}?billingType=${childRow._billingType}`
+      `/resource-management/sub-contractor-billing/e-reconcile-bill/${row.brb._id}?billingType=${row.brb._billingType}`
     );
   };
 
@@ -163,12 +148,12 @@ export default function Page() {
           }
         />
         <div className="mt-1 text-xs text-gray-500 mb-2">
-          Click a BRR row to expand billing records · Click <span className="font-semibold text-blue-600">BRR No</span> to open details · Click a billing row to open e-reconcile bill
+          Click <span className="font-semibold text-blue-600">BRR No</span> to open BRR details · Click <span className="font-semibold text-blue-600">BRB No</span> to open billing record
         </div>
         <BRRExpandableTable
           data={displayData}
           onParentRowClick={handleParentRowClick}
-          onChildRowClick={handleChildRowClick}
+          onBrbClick={handleBrbClick}
           onCreateBilling={handleCreateBilling}
           search={search}
         />

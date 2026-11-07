@@ -111,6 +111,7 @@ export default function BRRForm({ mode = "create", brrId, onDataLoaded, onAfterS
   const [vendorOrders, setVendorOrders] = useState([]);
   const [orderMaxTotal, setOrderMaxTotal] = useState(null);
 
+  const [brbData, setBrbData] = useState(null); // single BRB attached to this BRR
   const [attachedFile, setAttachedFile] = useState(null);
   const [existingFileUrl, setExistingFileUrl] = useState("");
   const [initialFileUrl, setInitialFileUrl] = useState("");
@@ -213,7 +214,8 @@ export default function BRRForm({ mode = "create", brrId, onDataLoaded, onAfterS
         };
         reset(data);
         setInitialData(data);
-        onDataLoaded?.({ workflowStatus: d.workflowStatus || "", orderCategory: d.orderCategory || "", uuid: d.uuid || "" });
+        if (d.brb) setBrbData(d.brb);
+        onDataLoaded?.({ workflowStatus: d.workflowStatus || "", orderCategory: d.orderCategory || "", uuid: d.uuid || "", brb: d.brb || null });
         if (d.attachedDoc) {
           setExistingFileUrl(d.attachedDoc);
           setInitialFileUrl(d.attachedDoc);
@@ -506,31 +508,56 @@ export default function BRRForm({ mode = "create", brrId, onDataLoaded, onAfterS
             {/* Amounts */}
             <div className="flex flex-col gap-[2px] mb-4">
               <FieldRow label="Basic Amount" required>
-                <AmountInput
-                  {...register("basicAmount")}
-                  value={basicAmount}
-                  disabled={disabled}
-                  placeholder="0.00"
-                  className={`${getInputClass(errors.basicAmount, disabled)} w-full h-[34px]`}
-                />
+                {(() => {
+                  const differs = brbData && brbData.basicAmount !== Number(basicAmount);
+                  return (
+                    <div className="flex flex-col w-full gap-0.5">
+                      {differs && <span className="text-[10px] text-gray-400 line-through px-1">{formatAmount(basicAmount)}</span>}
+                      <AmountInput
+                        {...register("basicAmount")}
+                        value={brbData ? brbData.basicAmount : basicAmount}
+                        disabled={disabled || !!brbData}
+                        placeholder="0.00"
+                        className={`${getInputClass(errors.basicAmount, disabled || !!brbData)} w-full h-[34px]`}
+                      />
+                      {differs && <span className="text-[10px] text-green-600 px-1">BRB: {formatAmount(brbData.basicAmount)}</span>}
+                    </div>
+                  );
+                })()}
               </FieldRow>
               <FieldRow label="GST Amount" required>
-                <AmountInput
-                  {...register("gstAmount")}
-                  value={gstAmount}
-                  disabled={disabled}
-                  placeholder="0.00"
-                  className={`${getInputClass(errors.gstAmount, disabled)} w-full h-[34px]`}
-                />
+                {(() => {
+                  const differs = brbData && brbData.gstAmount !== Number(gstAmount);
+                  return (
+                    <div className="flex flex-col w-full gap-0.5">
+                      {differs && <span className="text-[10px] text-gray-400 line-through px-1">{formatAmount(gstAmount)}</span>}
+                      <AmountInput
+                        {...register("gstAmount")}
+                        value={brbData ? brbData.gstAmount : gstAmount}
+                        disabled={disabled || !!brbData}
+                        placeholder="0.00"
+                        className={`${getInputClass(errors.gstAmount, disabled || !!brbData)} w-full h-[34px]`}
+                      />
+                      {differs && <span className="text-[10px] text-green-600 px-1">BRB: {formatAmount(brbData.gstAmount)}</span>}
+                    </div>
+                  );
+                })()}
               </FieldRow>
               <FieldRow label="Total Amount">
-                <div>
-                  <Input
-                    value={formatAmount(totalAmount)}
-                    disabled
-                    className={`${getInputClass(false, true)} w-full h-[34px] ${totalExceedsOrder ? "bg-red-50 border-red-400" : "bg-orange-50"}`}
-                  />
-                </div>
+                {(() => {
+                  const differs = brbData && brbData.totalAmount !== totalAmount;
+                  return (
+                    <div className="flex flex-col w-full gap-0.5">
+                      {differs && <span className="text-[10px] text-gray-400 line-through px-1">{formatAmount(totalAmount)}</span>}
+                      <Input
+                        value={formatAmount(brbData ? brbData.totalAmount : totalAmount)}
+                        disabled
+                        className={`${getInputClass(false, true)} w-full h-[34px] ${!brbData && totalExceedsOrder ? "bg-red-50 border-red-400" : "bg-orange-50"}`}
+                      />
+                      {differs && <span className="text-[10px] text-green-600 px-1">BRB: {formatAmount(brbData.totalAmount)}</span>}
+                    </div>
+                  );
+                })()}
               </FieldRow>
             </div>
 

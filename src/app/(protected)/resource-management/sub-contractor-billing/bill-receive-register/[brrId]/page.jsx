@@ -28,6 +28,7 @@ export default function Page() {
   const [brrStatus, setBrrStatus]         = useState("");
   const [orderCategory, setOrderCategory] = useState("");
   const [uuid, setUuid]                   = useState("");
+  const [activeBrb, setActiveBrb]         = useState(null);
 
   const access = getPageAccess({ pageCode: "bill_receive_register", pageType: "EDIT" });
   const { isPendingForMe, myLevel, refresh, dismiss } = useMyApprovalStatus(
@@ -50,6 +51,9 @@ export default function Page() {
 
   const isApproved  = brrStatus.toLowerCase() === "approved";
   const billingType = GRN_CATEGORIES.includes(orderCategory) ? "grn" : "srn";
+  // BRB exists and is not Rejected → lock the create button
+  const brbIsActive = activeBrb && activeBrb.workflowStatus?.toLowerCase() !== "rejected";
+  const canCreateBrb = isApproved && !brbIsActive;
 
   const handleOpenEReconcile = () => {
     // TODO: may change whether to check approval status strictly — currently only active when approved
@@ -69,10 +73,12 @@ export default function Page() {
       <BRRForm
         mode={access.mode}
         brrId={brrId}
-        onDataLoaded={({ workflowStatus, orderCategory: cat, uuid: u }) => {
+        onDataLoaded={({ workflowStatus, orderCategory: cat, uuid: u, brb }) => {
           setBrrStatus(workflowStatus);
           setOrderCategory(cat);
           if (u) setUuid(u);
+          // brb is null if none, or object with workflowStatus if exists
+          setActiveBrb(brb || null);
         }}
         onAfterSubmit={refresh}
       />
@@ -83,14 +89,16 @@ export default function Page() {
           <button
             type="button"
             onClick={handleOpenEReconcile}
-            disabled={!isApproved}
+            disabled={!canCreateBrb}
             title={
-              isApproved
-                ? `Create ${billingType === "grn" ? "GRN" : "SRN"} Billing (E-Reconcile)`
-                : "BRR must be Approved to create E-Reconcile Billing"
+              !isApproved
+                ? "BRR must be Approved to create E-Reconcile Billing"
+                : brbIsActive
+                  ? `Billing record (${activeBrb.workflowStatus}) already exists for this BRR`
+                  : `Create ${billingType === "grn" ? "GRN" : "SRN"} Billing (E-Reconcile)`
             }
             className={`inline-flex items-center gap-2 px-4 h-[36px] rounded-md border text-[13px] font-semibold transition-all
-              ${isApproved
+              ${canCreateBrb
                 ? "bg-[#7fc3d4] border-[#4a9fb5] text-black hover:bg-[#6ab8cb] cursor-pointer"
                 : "bg-gray-100 border-gray-300 text-gray-400 cursor-not-allowed opacity-60"
               }`}
@@ -98,9 +106,13 @@ export default function Page() {
             <Plug className="w-4 h-4" />
             Create E-Reconcile Bill ({billingType === "grn" ? "GRN" : "SRN"})
           </button>
-          {!isApproved && brrStatus && (
+          {brbIsActive ? (
+            <span className="text-xs text-amber-600">
+              BRB <strong>{activeBrb.workflowStatus}</strong> — billing record already exists
+            </span>
+          ) : !isApproved && brrStatus ? (
             <span className="text-xs text-gray-500">Available after BRR approval</span>
-          )}
+          ) : null}
         </div>
       </div>
 
