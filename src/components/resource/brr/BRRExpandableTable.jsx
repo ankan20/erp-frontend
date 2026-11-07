@@ -731,7 +731,6 @@ export default function BRRExpandableTable({
                           billings={billings}
                           orderCategory={row.orderCategory}
                           onChildRowClick={(childRow) => onChildRowClick && onChildRowClick(childRow, row)}
-                          search={search}
                         />
                       </td>
                     </tr>
