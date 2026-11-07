@@ -10,8 +10,8 @@ import { Loader2 }      from "lucide-react";
  * ReceiptBillingBreakdownTable
  *
  * Per-invoice receipt entry table showing Booked / Received / Balance / Current columns.
- * Item rows are always selected (checked+disabled). GST rows are toggleable with
- * IGST ↔ CGST+SGST mutual exclusion.
+ * Item rows are always present. GST rows shown only when is_selected = true (from invoice).
+ * No toggle — GST selection is determined by the sale invoice itself.
  *
  * Props
  *   invoiceNo, saleOrderNo, certBillNo  string  — header identifiers (rowSpan across all rows)
@@ -20,7 +20,6 @@ import { Loader2 }      from "lucide-react";
  *   watchedItems  []  — live watched items array from parent form
  *   watchedGst    []  — live watched gstLines array from parent form
  *   register      fn  — RHF register (for currentAmount inputs)
- *   onGstToggle   (gstType, checked) => void
  *   disabled      bool
  *   loading       bool
  */
@@ -33,7 +32,6 @@ export default function ReceiptBillingBreakdownTable({
   watchedItems = [],
   watchedGst   = [],
   register,
-  onGstToggle,
   disabled = false,
   loading  = false,
 }) {
@@ -43,32 +41,23 @@ export default function ReceiptBillingBreakdownTable({
 
   if (!loading && !hasItems) return null;
 
-  // Build a flat list of all rows for unified rowSpan tracking
+  // Build a flat list: all item rows + only selected GST rows
   const allRows = [
     ...itemFields.map((f, idx) => ({
       id: f.id, type: "item", fieldIdx: idx,
       data: watchedItems[idx] || {},
     })),
-    ...gstFields.map((f, idx) => ({
-      id: f.id, type: "gst", fieldIdx: idx,
-      data: watchedGst[idx] || {},
-    })),
+    ...gstFields
+      .map((f, idx) => ({ id: f.id, type: "gst", fieldIdx: idx, data: watchedGst[idx] || {} }))
+      .filter((r) => !!r.data.isSelected),
   ];
 
-  // In view/disabled mode hide rows with no current amount (or unselected GST)
+  // In view/disabled mode hide items with no current amount
   const visibleRows = disabled
-    ? allRows.filter((r) =>
-        r.type === "item"
-          ? Number(r.data.currentAmount || 0) > 0
-          : !!r.data.isSelected,
-      )
+    ? allRows.filter((r) => r.type === "item" ? Number(r.data.currentAmount || 0) > 0 : true)
     : allRows.filter((r) => r.type === "item" ? !!r.data.ccCode : true);
 
   const totalSpan = visibleRows.length || 1;
-
-  // GST mutual exclusion indicators
-  const anyIgstChecked = !!watchedGst[0]?.isSelected;
-  const anyCgstChecked = !!watchedGst[1]?.isSelected;
 
   return (
     <div className="mb-4">
@@ -87,12 +76,11 @@ export default function ReceiptBillingBreakdownTable({
               <th className="border border-[#b0b0b0] px-2 py-1.5 text-right font-semibold w-[85px]">Booked</th>
               <th className="border border-[#b0b0b0] px-2 py-1.5 text-right font-semibold w-[85px]">Received</th>
               <th className="border border-[#b0b0b0] px-2 py-1.5 text-right font-semibold w-[85px]">Balance</th>
-              <th className="border border-[#b0b0b0] px-2 py-1.5 text-right font-semibold w-[95px]">Current</th>
               <th
-                className="border border-[#b0b0b0] px-2 py-1.5 text-center font-semibold w-[55px]"
+                className="border border-[#b0b0b0] px-2 py-1.5 text-right font-semibold w-[95px]"
                 data-col-resize-last="true"
               >
-                Select
+                Current
               </th>
             </tr>
           </thead>
@@ -100,13 +88,13 @@ export default function ReceiptBillingBreakdownTable({
           <tbody>
             {loading ? (
               <tr>
-                <td colSpan={9} className="border border-gray-200 py-5 text-center text-gray-400">
+                <td colSpan={8} className="border border-gray-200 py-5 text-center text-gray-400">
                   <Loader2 className="animate-spin w-4 h-4 inline mr-1.5" />Loading items…
                 </td>
               </tr>
             ) : visibleRows.length === 0 ? (
               <tr>
-                <td colSpan={9} className="border border-gray-200 py-6 text-center text-[#bbb] italic text-[11px]">
+                <td colSpan={8} className="border border-gray-200 py-6 text-center text-[#bbb] italic text-[11px]">
                   No receipt entries to display
                 </td>
               </tr>
@@ -119,15 +107,9 @@ export default function ReceiptBillingBreakdownTable({
                 const balDisplay = Number(data.balanceAmount || 0) - current;
                 const overBalance = !disabled && current > Number(data.balanceAmount || 0);
 
-                // GST checkbox mutex: IGST disabled when CGST/SGST active, and vice-versa
-                const isGstCheckboxDisabled = disabled
-                  || (data.gstType === "IGST" ? anyCgstChecked : anyIgstChecked);
-
                 const rowBg = isItemRow
                   ? (fieldIdx % 2 === 0 ? "bg-white" : "bg-[#f7f9fc]")
-                  : (data.isSelected
-                      ? "bg-green-50"
-                      : fieldIdx % 2 === 0 ? "bg-white" : "bg-[#fdf5f0]");
+                  : "bg-green-50";
 
                 return (
                   <tr key={row.id} className={rowBg}>
@@ -194,41 +176,16 @@ export default function ReceiptBillingBreakdownTable({
                             : `gstLines.${fieldIdx}.currentAmount`,
                         )}
                         value={data.currentAmount ?? ""}
-                        disabled={disabled || (!isItemRow && !data.isSelected)}
+                        disabled={disabled}
                         placeholder="0.00"
                         className={`w-full h-[26px] text-[11px] text-right rounded-sm border-0 outline-none ${
-                          disabled || (!isItemRow && !data.isSelected)
+                          disabled
                             ? "bg-[#edf8ed] text-gray-400"
                             : overBalance
                             ? "bg-red-50 text-red-600 border border-red-400"
                             : "bg-[#fffbe6] focus:bg-white"
                         }`}
                       />
-                    </td>
-
-                    {/* Select — checked+disabled for items; toggleable for GST */}
-                    <td className="border border-[#d0d0d0] px-2 py-[3px] text-center">
-                      {isItemRow ? (
-                        <input
-                          type="checkbox"
-                          checked
-                          readOnly
-                          disabled
-                          className="h-3.5 w-3.5 accent-blue-600"
-                        />
-                      ) : (
-                        <input
-                          type="checkbox"
-                          checked={!!data.isSelected}
-                          disabled={isGstCheckboxDisabled}
-                          onChange={(e) =>
-                            !isGstCheckboxDisabled && onGstToggle?.(data.gstType, e.target.checked)
-                          }
-                          className={`h-3.5 w-3.5 accent-[#3b6ea5] ${
-                            isGstCheckboxDisabled ? "cursor-not-allowed" : "cursor-pointer"
-                          }`}
-                        />
-                      )}
                     </td>
                   </tr>
                 );
@@ -240,7 +197,7 @@ export default function ReceiptBillingBreakdownTable({
 
       {!loading && hasItems && (
         <p className="text-[10px] text-gray-400 mt-1 px-1">
-          IGST and CGST/SGST are mutually exclusive. CGST and SGST are always selected together.
+          GST rows shown are as selected on the sale invoice. Enter current amount for each row.
         </p>
       )}
     </div>

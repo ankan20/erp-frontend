@@ -7,28 +7,36 @@ import { z }           from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { toast }       from "sonner";
 import { useRouter }   from "next/navigation";
-import { Loader2, PanelLeftClose, PanelLeftOpen } from "lucide-react";
+import {
+  Loader2, PanelLeftClose, PanelLeftOpen,
+  FileText, X, Search, AlertCircle,
+} from "lucide-react";
+import PMDateInput from "@/components/project-management/common/PMDateInput";
+import {
+  Tooltip,
+  TooltipTrigger,
+  TooltipContent,
+  TooltipProvider,
+} from "@/components/ui/tooltip";
 
-import SaveButton      from "@/components/common/SaveButton";
-import SaveDraftButton from "@/components/common/SaveDraftButton";
-import EditButton      from "@/components/common/EditButton";
+import SaveButton          from "@/components/common/SaveButton";
+import SaveDraftButton     from "@/components/common/SaveDraftButton";
+import EditButton          from "@/components/common/EditButton";
 import DeleteRequestButton from "@/components/common/DeleteRequestButton";
-import SearchableSelect from "@/components/common/SearchableSelect";
-import PMSection       from "@/components/project-management/common/PMSection";
-import PMFormRow       from "@/components/project-management/common/PMFormRow";
-import PMInput        from "@/components/project-management/common/PMInput";
-import PMTextarea      from "@/components/project-management/common/PMTextarea";
+import PMSection           from "@/components/project-management/common/PMSection";
+import PMFormRow           from "@/components/project-management/common/PMFormRow";
+import PMInput             from "@/components/project-management/common/PMInput";
+import PMTextarea          from "@/components/project-management/common/PMTextarea";
 import AccountSummary           from "@/components/finance/account/common/AccountSummary";
 import AccountingJournalTable   from "@/components/finance/account/common/AccountingJournalTable";
 import ReceiptBillingBreakdownTable from "@/components/finance/account/sale/ReceiptBillingBreakdownTable";
-import { ACC }         from "@/components/finance/account/common/accountTheme";
-import { formatAmount }        from "@/helper/numberFormatter";
-import { getfmtDisplaydate }   from "@/helper/getfmtDisplayDate";
+import { formatAmount }  from "@/helper/numberFormatter";
+import { getfmtDisplaydate } from "@/helper/getfmtDisplayDate";
 
 import { apiRequest }      from "@/lib/apiClient";
 import { API_ENDPOINTS }   from "@/config/api.config";
 import { getLocalStorage } from "@/lib/localStorage";
-import { zodDate } from "@/lib/dateUtils";
+import { zodDate }         from "@/lib/dateUtils";
 
 // ── Schema ────────────────────────────────────────────────────────────────────
 
@@ -55,36 +63,275 @@ const gstLineSchema = z.object({
 });
 
 const DEFAULT_GST_LINES = [
-  { gstType: "IGST", ccCode: "IGST", ccName: "Input-IGST", percent: 18, bookedAmount: 0, receivedAmount: 0, balanceAmount: 0, currentAmount: 0, isSelected: false },
-  { gstType: "CGST", ccCode: "CGST", ccName: "Input-CGST", percent: 9,  bookedAmount: 0, receivedAmount: 0, balanceAmount: 0, currentAmount: 0, isSelected: false },
-  { gstType: "SGST", ccCode: "SGST", ccName: "Input-SGST", percent: 9,  bookedAmount: 0, receivedAmount: 0, balanceAmount: 0, currentAmount: 0, isSelected: false },
+  { gstType: "IGST", ccCode: "IGST", ccName: "Output-IGST", percent: 0, bookedAmount: 0, receivedAmount: 0, balanceAmount: 0, currentAmount: 0, isSelected: false },
+  { gstType: "CGST", ccCode: "CGST", ccName: "Output-CGST", percent: 0, bookedAmount: 0, receivedAmount: 0, balanceAmount: 0, currentAmount: 0, isSelected: false },
+  { gstType: "SGST", ccCode: "SGST", ccName: "Output-SGST", percent: 0, bookedAmount: 0, receivedAmount: 0, balanceAmount: 0, currentAmount: 0, isSelected: false },
 ];
 
 const schema = z.object({
-  erpDocNumber:    z.string().default(""),
-  saleOrderDate: zodDate(z, "saleOrderDate"),
-  certifiedBillId:  z.coerce.number().nullable().optional(),  // set from invoice lookup, not user-selected
-  certifiedBillNo:  z.string().default(""),                   // display only, not in payload
-  billAbstractNo:   z.string().default(""),
-  billAbstractDate: zodDate(z, "billAbstractDate"),
-  invoiceNo:        z.string().optional().default(""),
-  invoiceDate:      z.string().optional().default(""),        // read-only, auto-filled from invoice lookup
-  billToAddress:    z.string().optional().default(""),
-  shipToAddress:    z.string().optional().default(""),
-  discount:         z.coerce.number().min(0).default(0),
-  roundOff:         z.coerce.number().default(0),
-  items:            z.array(itemSchema).min(1, "At least one item is required"),
-  gstLines:         z.array(gstLineSchema).length(3),
+  srbDate:           zodDate(z, "Date", true),
+  erpDocNumber:      z.string().default(""),
+  saleOrderDate:     zodDate(z, "saleOrderDate"),
+  certifiedBillId:   z.coerce.number().nullable().optional(),
+  certifiedBillNo:   z.string().default(""),
+  certifiedBillDate: zodDate(z, "certifiedBillDate"),
+  invoiceNo:         z.string().optional().default(""),
+  invoiceDate:       z.string().optional().default(""),
+  billToAddress:     z.string().optional().default(""),
+  shipToAddress:     z.string().optional().default(""),
+  discount:          z.coerce.number().min(0).default(0),
+  roundOff:          z.coerce.number().default(0),
+  items:             z.array(itemSchema).min(1, "At least one item is required"),
+  gstLines:          z.array(gstLineSchema).length(3),
 });
 
 const DEFAULT_VALUES = {
-  erpDocNumber: "", saleOrderDate: "", certifiedBillId: null, certifiedBillNo: "",
-  billAbstractNo: "", billAbstractDate: "",
+  srbDate: "",
+  erpDocNumber: "", saleOrderDate: "", certifiedBillId: null,
+  certifiedBillNo: "", certifiedBillDate: "",
   invoiceNo: "", invoiceDate: "", billToAddress: "", shipToAddress: "",
   discount: 0, roundOff: 0,
   items:    [{ slNo: 1, ccCode: "", ccName: "", bookedAmount: 0, receivedAmount: 0, balanceAmount: 0, currentAmount: 0 }],
   gstLines: DEFAULT_GST_LINES,
 };
+
+// ── Invoice Picker Modal ───────────────────────────────────────────────────────
+
+const STATUS_CFG = {
+  Free:    { cls: "bg-green-100 text-green-700 border-green-300",   tip: "Not yet received — full amount available" },
+  Partial: { cls: "bg-blue-100 text-blue-700 border-blue-300",      tip: "Partially received — balance available to receive" },
+  Draft:   { cls: "bg-yellow-100 text-yellow-700 border-yellow-300", tip: "A Draft receipt billing is in progress — cannot select" },
+};
+
+function InvoiceStatusBadge({ status }) {
+  const { cls, tip } = STATUS_CFG[status] || { cls: "bg-gray-100 text-gray-600 border-gray-300", tip: status };
+  return (
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <span className={`inline-flex px-2 py-0.5 rounded text-[10px] font-semibold border cursor-help ${cls}`}>
+          {status}
+        </span>
+      </TooltipTrigger>
+      <TooltipContent side="left" variant="text">{tip}</TooltipContent>
+    </Tooltip>
+  );
+}
+
+function InvoicePickerModal({ open, onClose, onConfirm, projectCode, currentInvoiceNo }) {
+  const [invoices,    setInvoices]    = useState([]);
+  const [loading,     setLoading]     = useState(false);
+  const [error,       setError]       = useState(null);
+  const [selectedId,  setSelectedId]  = useState(null);
+  const [search,      setSearch]      = useState("");
+
+  useEffect(() => {
+    if (!open || !projectCode) return;
+    setSearch("");
+    setSelectedId(null);
+    setInvoices([]);
+    setLoading(true);
+    setError(null);
+    apiRequest({
+      url: `${API_ENDPOINTS.FINANCE.SALE_RECEIPT_BILLING.AVAILABLE_INVOICES}?projectCode=${projectCode}`,
+      method: "GET",
+    })
+      .then((res) => {
+        const list = Array.isArray(res.data) ? res.data : [];
+        setInvoices(list);
+        if (currentInvoiceNo) {
+          const match = list.find((inv) => inv.saleBillNo === currentInvoiceNo);
+          if (match) setSelectedId(match.id);
+        }
+      })
+      .catch((err) => setError(err?.message || "Failed to load invoices"))
+      .finally(() => setLoading(false));
+  }, [open, projectCode]);
+
+  const filtered = useMemo(() => {
+    if (!search.trim()) return invoices;
+    const q = search.toLowerCase();
+    return invoices.filter((inv) =>
+      (inv.saleBillNo      || "").toLowerCase().includes(q) ||
+      (inv.saleOrderNo     || "").toLowerCase().includes(q) ||
+      (inv.customerOrderNo || "").toLowerCase().includes(q),
+    );
+  }, [invoices, search]);
+
+  const selectedInv = invoices.find((inv) => inv.id === selectedId) || null;
+
+  const handleConfirm = () => {
+    if (!selectedInv) return;
+    onConfirm(selectedInv);
+    onClose();
+  };
+
+  if (!open) return null;
+
+  return (
+    <TooltipProvider>
+      <div
+        className="fixed inset-0 z-50 flex items-center justify-center bg-black/40"
+        onClick={(e) => e.target === e.currentTarget && onClose()}
+      >
+        <div className="bg-white rounded-xl shadow-2xl w-full max-w-4xl mx-4 flex flex-col max-h-[85vh]">
+
+          {/* Header */}
+          <div className="flex items-center justify-between px-5 py-4 border-b border-gray-200 shrink-0">
+            <div>
+              <h2 className="text-base font-semibold text-gray-800">Select Sale Invoice</h2>
+              <p className="text-xs text-gray-500 mt-0.5">
+                Showing only invoices not yet linked to a receipt billing.
+              </p>
+            </div>
+            <button type="button" onClick={onClose} className="text-gray-400 hover:text-gray-600 transition">
+              <X className="h-5 w-5" />
+            </button>
+          </div>
+
+          {/* Search */}
+          <div className="px-5 py-3 border-b border-gray-100 shrink-0">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+              <input
+                type="text"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder="Search by invoice no, sale order no, customer order no…"
+                className="w-full pl-9 pr-3 py-1.5 border border-gray-300 rounded-md text-[13px] focus:outline-none focus:ring-2 focus:ring-blue-300"
+              />
+            </div>
+          </div>
+
+          {/* Selected badge */}
+          {selectedInv && (
+            <div className="px-5 py-2 bg-blue-50 border-b border-blue-100 shrink-0 flex items-center gap-2 text-[12px]">
+              <span className="text-blue-700">
+                Selected: <strong>{selectedInv.saleBillNo}</strong>
+                {selectedInv.invoiceDate ? ` — ${getfmtDisplaydate(selectedInv.invoiceDate)}` : ""}
+                <span className="ml-2 text-gray-500">({formatAmount(selectedInv.totalInvoiceAmount)})</span>
+              </span>
+            </div>
+          )}
+
+          {/* Table */}
+          <div className="overflow-auto flex-1">
+            {loading ? (
+              <div className="flex items-center justify-center py-14 text-gray-500">
+                <Loader2 className="h-5 w-5 animate-spin mr-2" />
+                Loading invoices…
+              </div>
+            ) : error ? (
+              <div className="flex items-center gap-2 text-red-600 text-sm py-8 px-5">
+                <AlertCircle className="h-4 w-4" />
+                {error}
+              </div>
+            ) : (
+              <table className="w-full border-collapse text-[12px] min-w-[860px]">
+                <thead className="sticky top-0 z-10 bg-[#1c3a5e] text-white">
+                  <tr>
+                    <th className="px-3 py-2 w-[32px]"></th>
+                    <th className="px-3 py-2 text-left font-semibold">Invoice No</th>
+                    <th className="px-3 py-2 text-left font-semibold">Invoice Date</th>
+                    <th className="px-3 py-2 text-left font-semibold">Sale Order</th>
+                    <th className="px-3 py-2 text-left font-semibold">Customer Order No</th>
+                    <th className="px-3 py-2 text-right font-semibold">Booked</th>
+                    <th className="px-3 py-2 text-right font-semibold">Received</th>
+                    <th className="px-3 py-2 text-right font-semibold">Balance</th>
+                    <th className="px-3 py-2 text-center font-semibold w-[75px]">Status</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {filtered.length === 0 ? (
+                    <tr>
+                      <td colSpan={9} className="py-10 text-center text-gray-400 text-[12px] italic">
+                        {search ? "No invoices match your search." : "No available invoices found."}
+                      </td>
+                    </tr>
+                  ) : filtered.map((inv, idx) => {
+                    const isSelectable = inv.receiptStatus === "Free" || inv.receiptStatus === "Partial";
+                    const isSelected   = inv.id === selectedId;
+                    return (
+                      <tr
+                        key={inv.id}
+                        onClick={() => isSelectable && setSelectedId(inv.id)}
+                        className={`border-b border-gray-100 transition ${
+                          !isSelectable
+                            ? "opacity-50 cursor-not-allowed bg-gray-50"
+                            : isSelected
+                            ? "bg-blue-50 border-blue-200 cursor-pointer"
+                            : idx % 2 === 0
+                            ? "bg-white hover:bg-gray-50 cursor-pointer"
+                            : "bg-[#f7f9fc] hover:bg-gray-100 cursor-pointer"
+                        }`}
+                      >
+                        {/* Radio */}
+                        <td className="px-3 py-2 text-center">
+                          {isSelectable && (
+                            <span
+                              className={`inline-flex h-3.5 w-3.5 rounded-full border-2 items-center justify-center
+                                ${isSelected ? "border-blue-500 bg-blue-500" : "border-gray-400 bg-white"}`}
+                            >
+                              {isSelected && <span className="h-1.5 w-1.5 rounded-full bg-white" />}
+                            </span>
+                          )}
+                        </td>
+                        <td className="px-3 py-2 font-semibold text-[#1c3a5e]">{inv.saleBillNo}</td>
+                        <td className="px-3 py-2 text-gray-600 whitespace-nowrap">
+                          {inv.invoiceDate ? getfmtDisplaydate(inv.invoiceDate) : "—"}
+                        </td>
+                        <td className="px-3 py-2 font-semibold text-gray-800">{inv.saleOrderNo || "—"}</td>
+                        <td className="px-3 py-2 text-gray-600">{inv.customerOrderNo || "—"}</td>
+                        <td className="px-3 py-2 text-right text-gray-700 whitespace-nowrap">
+                          {formatAmount(inv.bookedAmount ?? inv.totalInvoiceAmount)}
+                        </td>
+                        <td className="px-3 py-2 text-right text-gray-500 whitespace-nowrap">
+                          {(inv.receivedAmount ?? 0) > 0 ? formatAmount(inv.receivedAmount) : "—"}
+                        </td>
+                        <td className="px-3 py-2 text-right font-semibold text-[#1c3a5e] whitespace-nowrap">
+                          {formatAmount(inv.balanceAmount ?? inv.bookedAmount ?? inv.totalInvoiceAmount)}
+                        </td>
+                        <td className="px-3 py-2 text-center">
+                          <InvoiceStatusBadge status={inv.receiptStatus} />
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            )}
+          </div>
+
+          {/* Footer */}
+          <div className="flex items-center justify-between px-5 py-4 border-t border-gray-200 shrink-0 bg-gray-50 rounded-b-xl">
+            <p className="text-[12px] text-gray-500">
+              {selectedInv
+                ? `Selected: ${selectedInv.saleBillNo}${selectedInv.receiptStatus === "Partial" ? ` — Balance: ${formatAmount(selectedInv.balanceAmount)}` : ` — ${formatAmount(selectedInv.totalInvoiceAmount)}`}`
+                : `${filtered.length} invoice${filtered.length !== 1 ? "s" : ""} available`}
+            </p>
+            <div className="flex gap-2">
+              <button
+                type="button"
+                onClick={onClose}
+                className="px-4 py-1.5 text-[13px] text-gray-600 border border-gray-300 rounded-md hover:bg-gray-100 transition"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleConfirm}
+                disabled={!selectedInv}
+                className="px-4 py-1.5 text-[13px] font-semibold text-white bg-blue-600 rounded-md hover:bg-blue-700 disabled:opacity-40 disabled:cursor-not-allowed transition"
+              >
+                Confirm
+              </button>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </TooltipProvider>
+  );
+}
 
 // ── Component ─────────────────────────────────────────────────────────────────
 
@@ -99,19 +346,18 @@ export default function SaleReceiptBillingForm({
   const isViewMode  = mode === "view" || mode === "approver";
   const projectCode = getLocalStorage("projectInfo")?.projectCode || "";
 
-  const [isEditing,   setIsEditing]   = useState(mode === "create");
-  const [isSubmitted, setIsSubmitted] = useState(false);
-  const [allowSubmit, setAllowSubmit] = useState(mode === "edit");
-  const [sidebarOpen, setSidebarOpen] = useState(true);
-  const [srbNo,       setSrbNo]       = useState("");
-
-  const [debtorName,           setDebtorName]           = useState("");
-  const [saleOrderOpts,        setSaleOrderOpts]        = useState([]);
-  const [allInvoiceOpts,       setAllInvoiceOpts]       = useState([]);  // full approved list
-  const [invoiceOpts,          setInvoiceOpts]          = useState([]);  // filtered by selected order
-  const [invoicesLoading,      setInvoicesLoading]      = useState(false);
+  const [isEditing,          setIsEditing]          = useState(mode === "create");
+  const [isSubmitted,        setIsSubmitted]        = useState(false);
+  const [allowSubmit,        setAllowSubmit]        = useState(mode === "edit");
+  const [sidebarOpen,        setSidebarOpen]        = useState(true);
+  const [srbNo,              setSrbNo]              = useState("");
+  const [debtorName,         setDebtorName]         = useState("");
+  const [paymentAcName,      setPaymentAcName]      = useState("");
+  const [paymentAcCode,      setPaymentAcCode]      = useState("");
+  const [pickerOpen,         setPickerOpen]         = useState(false);
   const [invoiceLookupLoading, setInvoiceLookupLoading] = useState(false);
-  const skipClearOnOrderChange = useRef(false);          // prevents clearing when lookup sets erpDocNumber
+  const [selectedInvoiceMeta, setSelectedInvoiceMeta] = useState(null); // { saleBillNo, customerOrderNo }
+  const skipClearOnOrderChange = useRef(false);
 
   const {
     register, control, handleSubmit, reset, setValue, watch, getValues,
@@ -125,21 +371,21 @@ export default function SaleReceiptBillingForm({
 
   const watchedItems  = watch("items")    || [];
   const watchedGst    = watch("gstLines") || DEFAULT_GST_LINES;
-  const erpDocNumber = watch("erpDocNumber");
+  const erpDocNumber  = watch("erpDocNumber");
   const discount      = Number(watch("discount") || 0);
 
   const basicTotal   = watchedItems.reduce((s, it) => s + Number(it?.currentAmount || 0), 0);
   const gstTotal     = watchedGst.filter((l) => l.isSelected).reduce((s, l) => s + Number(l.currentAmount || 0), 0);
   const totalInvoice = basicTotal + gstTotal - discount + Number(watch("roundOff") || 0);
 
-  // ── Auto round-off ─────────────────────────────────────────────────────────
+  // ── Auto round-off ──────────────────────────────────────────────
   useEffect(() => {
     const sub = basicTotal + gstTotal - discount;
     const ro  = Math.round(sub) - sub;
     setValue("roundOff", Math.round(ro * 100) / 100, { shouldDirty: false });
   }, [basicTotal, gstTotal, discount]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // ── Helpers to populate items from API response ────────────────────────────
+  // ── Helpers ─────────────────────────────────────────────────────
   const applyReceiptItems = useCallback((d) => {
     replaceItems(
       (d.items || []).map((it, i) => ({
@@ -158,85 +404,19 @@ export default function SaleReceiptBillingForm({
         const match = apiGst.find((l) => l.gstType === def.gstType);
         return match
           ? { ...def, ccCode: match.ccCode || def.ccCode, ccName: match.ccName || def.ccName,
-              // ?? not || — a genuine 0% from the API must not fall back to the default rate
               percent: Number(match.percent ?? def.percent),
               bookedAmount: Number(match.bookedAmount || 0), receivedAmount: Number(match.receivedAmount || 0),
-              balanceAmount: Number(match.balanceAmount || 0),
-              currentAmount: Number(match.currentAmount || 0),
+              balanceAmount: Number(match.balanceAmount || 0), currentAmount: Number(match.currentAmount || 0),
               isSelected: !!match.isSelected }
           : { ...def, bookedAmount: 0, receivedAmount: 0, balanceAmount: 0, currentAmount: 0, isSelected: false };
       }),
     );
   }, [replaceItems, replaceGst]);
 
-  // ── Load Sale Orders on mount ──────────────────────────────────────────────
-  // TODO: replace with a dedicated sale-receipt sale order API when available
-  useEffect(() => {
-    if (!projectCode) return;
-    apiRequest({
-      url: `${API_ENDPOINTS.PROJECT.OG_SALE_ORDER.LIST}?projectCode=${projectCode}&workflowStatus=Approved`,
-      method: "GET",
-    })
-      .then((res) => {
-        setSaleOrderOpts(
-          (res.data || []).map((o) => ({
-            ...o,
-            displayLabel: o.orderTitle ? `${o.erpDocNumber} — ${o.orderTitle}` : o.erpDocNumber,
-          })),
-        );
-      })
-      .catch(() => {});
-  }, [projectCode]);
-
-  // ── Load ALL approved invoices once at mount ───────────────────────────────
-  // Full list enables direct invoice selection without picking a sale order first.
-  // TODO: add extra server-side filters here if the API supports them in future (e.g. &notAlreadyReceipted=true)
-  useEffect(() => {
-    if (!projectCode) return;
-    setInvoicesLoading(true);
-    apiRequest({
-      url: `${API_ENDPOINTS.FINANCE.SALE_BILL.LIST}?projectCode=${projectCode}&workflowStatus=Approved`,
-      method: "GET",
-    })
-      .then((res) => {
-        const list = res.data || [];
-        setAllInvoiceOpts(list);
-        setInvoiceOpts(list);   // show all by default (no sale order selected yet)
-      })
-      .catch(() => toast.error("Failed to load invoices"))
-      .finally(() => setInvoicesLoading(false));
-  }, [projectCode]);
-
-  // ── Filter invoice list client-side when sale order changes ───────────────
-  useEffect(() => {
-    if (!erpDocNumber) {
-      setInvoiceOpts(allInvoiceOpts);   // no filter — show all
-    } else {
-      setInvoiceOpts(allInvoiceOpts.filter((inv) => inv.saleOrderNo === erpDocNumber));
-    }
-  }, [erpDocNumber, allInvoiceOpts]);
-
-  // ── Clear invoice-dependent fields when user manually changes sale order ───
-  // Skipped when lookup sets erpDocNumber (lookup handles its own field fills)
-  useEffect(() => {
-    if (skipClearOnOrderChange.current) { skipClearOnOrderChange.current = false; return; }
-    if (!erpDocNumber) return;
-    setValue("invoiceNo",        "");
-    setValue("invoiceDate",      "");
-    setValue("certifiedBillId",  null);
-    setValue("certifiedBillNo",  "");
-    setValue("billAbstractNo",   "");
-    setValue("billAbstractDate", "");
-    setValue("billToAddress",    "");
-    setValue("shipToAddress",    "");
-    replaceItems([{ slNo: 1, ccCode: "", ccName: "", bookedAmount: 0, receivedAmount: 0, balanceAmount: 0, currentAmount: 0 }]);
-    replaceGst(DEFAULT_GST_LINES);
-  }, [erpDocNumber]); // eslint-disable-line react-hooks/exhaustive-deps
-
-  // ── Invoice selected → invoice-lookup fills everything (order, cert bill, items, GST) ─
-  // No separate receipt-items or certified-bills API calls needed — invoice-lookup returns all of it.
-  const handleInvoiceSelect = useCallback(async (saleBillNo) => {
+  // ── Invoice selected from picker → lookup fills everything ──────
+  const handleInvoiceSelect = useCallback(async (saleBillNo, meta = null) => {
     if (!saleBillNo || !projectCode) return;
+    setPickerOpen(false);
     setInvoiceLookupLoading(true);
     try {
       const res = await apiRequest({
@@ -245,18 +425,16 @@ export default function SaleReceiptBillingForm({
       });
       const d = res.data || {};
       setDebtorName(d.debtorName || d.clientName || "");
-      // Auto-select sale order from lookup — skip the clear-on-change effect
-      skipClearOnOrderChange.current = true;
-      setValue("erpDocNumber",    d.erpDocNumber    || "");
-      setValue("saleOrderDate",    d.saleOrderDate    || "");
-      setValue("invoiceNo",        d.invoiceNo        || saleBillNo);
-      setValue("invoiceDate",      d.invoiceDate      || "");
-      setValue("certifiedBillId",  d.certifiedBillId  || null);
-      setValue("certifiedBillNo",  d.certifiedBillNo  || "");
-      setValue("billAbstractNo",   d.billAbstractNo   || d.certifiedBillNo || "");
-      setValue("billAbstractDate", d.billAbstractDate || "");
-      setValue("billToAddress",    d.billToAddress    || "");
-      setValue("shipToAddress",    d.shipToAddress    || "");
+      setSelectedInvoiceMeta(meta);
+      setValue("erpDocNumber",    d.erpDocNumber    || d.ogSaleOrderNo || "");
+      setValue("saleOrderDate",   d.saleOrderDate   || "");
+      setValue("invoiceNo",       d.invoiceNo        || saleBillNo);
+      setValue("invoiceDate",     d.invoiceDate      || "");
+      setValue("certifiedBillId",   d.certifiedBillId   || null);
+      setValue("certifiedBillNo",   d.certifiedBillNo   || "");
+      setValue("certifiedBillDate", d.certifiedBillDate || "");
+      setValue("billToAddress",     d.billToAddress     || "");
+      setValue("shipToAddress",     d.shipToAddress     || "");
       applyReceiptItems({ ...d, items: (d.items || []).map((it) => ({ ...it, currentAmount: 0 })) });
     } catch (err) {
       toast.error(err?.message || "Failed to load invoice details");
@@ -265,27 +443,55 @@ export default function SaleReceiptBillingForm({
     }
   }, [projectCode, setValue, applyReceiptItems]);
 
-  // ── Fetch Detail (edit/view) ───────────────────────────────────────────────
+  // ── Picker row selected ─────────────────────────────────────────
+  const handlePickerSelect = useCallback((inv) => {
+    handleInvoiceSelect(inv.saleBillNo, { customerOrderNo: inv.customerOrderNo, saleOrderNo: inv.saleOrderNo });
+  }, [handleInvoiceSelect]);
+
+  // ── Fetch parent receipt payment account (create mode only) ───────
+  useEffect(() => {
+    if (!receiptId || mode !== "create") return;
+    apiRequest({ url: `${API_ENDPOINTS.FINANCE.SALE_RECEIPT.GET_BY_ID}${receiptId}`, method: "GET" })
+      .then((res) => {
+        const d = res.data || {};
+        const mode = (d.paymentMode || "").toUpperCase();
+        if (mode === "BANK") {
+          const name = d.bankAcNo ? `${d.bankAcName} (Acc: ${d.bankAcNo})` : (d.bankAcName || "BANK");
+          setPaymentAcName(name);
+          setPaymentAcCode("BANK");
+        } else if (mode === "CASH") {
+          const name = d.cashAcNo ? `${d.cashAcName} (Acc: ${d.cashAcNo})` : (d.cashAcName || "CASH");
+          setPaymentAcName(name);
+          setPaymentAcCode("CASH");
+        } else if (mode) {
+          // unknown mode — show raw value so journal isn't blank
+          setPaymentAcName(mode);
+          setPaymentAcCode(mode);
+        }
+      })
+      .catch((err) => console.warn("SRB: failed to fetch parent receipt for payment account", err));
+  }, [receiptId]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // ── Fetch Detail (edit/view) ────────────────────────────────────
   useEffect(() => {
     if (!billingId || mode === "create") return;
     apiRequest({ url: `${API_ENDPOINTS.FINANCE.SALE_RECEIPT_BILLING.GET_BY_ID}${billingId}`, method: "GET" })
       .then((res) => {
         const d = res.data || {};
-        // Prevent the clear-on-order-change effect from wiping items/GST after reset sets erpDocNumber
         skipClearOnOrderChange.current = true;
         reset({
+          srbDate:         d.srbDate         || "",
           erpDocNumber:    d.erpDocNumber    || "",
-          saleOrderDate:    d.saleOrderDate    || "",
-          certifiedBillId:  d.certifiedBillId  || null,
-          certifiedBillNo:  d.certifiedBillNo  || "",
-          billAbstractNo:   d.billAbstractNo   || d.certifiedBillNo || "",
-          billAbstractDate: d.billAbstractDate || "",
-          invoiceNo:        d.invoiceNo        || "",
-          invoiceDate:      d.invoiceDate      || "",
-          billToAddress:    d.billToAddress    || "",
-          shipToAddress:    d.shipToAddress    || "",
-          discount:         Number(d.discount  || 0),
-          roundOff:         Number(d.roundOff  || 0),
+          saleOrderDate:   d.saleOrderDate   || "",
+          certifiedBillId:   d.certifiedBillId   || null,
+          certifiedBillNo:   d.certifiedBillNo   || "",
+          certifiedBillDate: d.certifiedBillDate || "",
+          invoiceNo:       d.invoiceNo        || "",
+          invoiceDate:     d.invoiceDate      || "",
+          billToAddress:   d.billToAddress    || "",
+          shipToAddress:   d.shipToAddress    || "",
+          discount:        Number(d.discount  || 0),
+          roundOff:        Number(d.roundOff  || 0),
           items: (d.items || []).map((it, i) => ({
             slNo:           i + 1,
             ccCode:         it.ccCode         || "",
@@ -299,7 +505,6 @@ export default function SaleReceiptBillingForm({
             const match = (d.gstLines || []).find((l) => l.gstType === def.gstType);
             return match
               ? { ...def, ccCode: match.ccCode || def.ccCode, ccName: match.ccName || def.ccName,
-                  // ?? not || — a genuine 0% must not fall back to the default rate
                   percent: Number(match.percent ?? def.percent),
                   bookedAmount: Number(match.bookedAmount || 0), receivedAmount: Number(match.receivedAmount || 0),
                   balanceAmount: Number(match.balanceAmount || 0), currentAmount: Number(match.currentAmount || 0),
@@ -309,6 +514,8 @@ export default function SaleReceiptBillingForm({
         });
         setSrbNo(d.srbNo || "");
         setDebtorName(d.debtorName || d.clientName || "");
+        setPaymentAcName(d.paymentAccountName || "");
+        setPaymentAcCode(d.paymentAccountCode || "");
         if (d.srbUuid && onUuid) onUuid(d.srbUuid);
         const locked = d.workflowStatus && !["Draft", "Reback"].includes(d.workflowStatus);
         setIsSubmitted(locked);
@@ -318,51 +525,16 @@ export default function SaleReceiptBillingForm({
       .catch(() => toast.error("Failed to load billing details"));
   }, [billingId, mode]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // ── GST mutual exclusion (IGST vs CGST+SGST) — full array replacement so watch() reacts ──
-  const handleGstToggle = useCallback((gstType, checked) => {
-    const current = getValues("gstLines") || DEFAULT_GST_LINES;
-    const isIgst  = gstType === "IGST";
-    const updated = current.map((g) => {
-      if (g.gstType === "IGST") {
-        const sel = isIgst ? checked : (checked ? false : g.isSelected);
-        return { ...g, isSelected: sel, currentAmount: sel ? g.currentAmount : 0 };
-      }
-      // CGST / SGST — always move together
-      const sel = !isIgst ? checked : (checked ? false : g.isSelected);
-      return { ...g, isSelected: sel, currentAmount: sel ? g.currentAmount : 0 };
-    });
-    replaceGst(updated);
-  }, [getValues, replaceGst]);
-
-  // ── Journal entries derived from live form state ───────────────────────────
-  const journalEntries = useMemo(() => {
-    if (watchedItems.length === 0 || !watchedItems[0]?.ccCode) return [];
-    const entries = [];
-    watchedItems.forEach((it) => {
-      entries.push({
-        ccCode: it.ccCode,
-        ccName: it.ccName,
-        amount: Number(it.currentAmount || 0),
-        isSelected: Number(it.currentAmount || 0) > 0,
-        toggleable: false,
-      });
-    });
-    watchedGst.forEach((g) => {
-      entries.push({
-        ccCode: g.ccCode,
-        ccName: g.ccName,
-        amount: Number(g.isSelected ? g.currentAmount : 0),
-        isSelected: !!g.isSelected,
-        toggleable: true,
-        toggleKey: g.gstType,
-      });
-    });
-    return entries;
-  }, [watchedItems, watchedGst]);
-
   const totalDr = basicTotal + gstTotal;
 
-  // ── Save Draft ─────────────────────────────────────────────────────────────
+  // ── Journal entries (DR rows; CR = debtor) ──────────────────────
+  // In sale receipt: DR = Bank/Cash account (payment in), CR = Debtor
+  const journalEntries = useMemo(() => {
+    if (!paymentAcCode) return [];
+    return [{ ccCode: paymentAcCode, ccName: paymentAcName || paymentAcCode, amount: totalDr, isSelected: true, toggleable: false }];
+  }, [paymentAcName, paymentAcCode, totalDr]);
+
+  // ── Save Draft ──────────────────────────────────────────────────
   const onSave = async (v) => {
     for (let i = 0; i < v.items.length; i++) {
       const it = v.items[i];
@@ -381,14 +553,15 @@ export default function SaleReceiptBillingForm({
 
     const payload = {
       projectCode,
+      srbDate:          v.srbDate          || "",
       receiptId:        receiptId ? Number(receiptId) : undefined,
       certifiedBillId:  v.certifiedBillId,
       invoiceNo:        v.invoiceNo        || "",
       invoiceDate:      v.invoiceDate      || "",
-      billToAddress:    v.billToAddress    || "",
-      shipToAddress:    v.shipToAddress    || "",
-      billAbstractNo:   v.billAbstractNo   || "",
-      billAbstractDate: v.billAbstractDate || "",
+      billToAddress:     v.billToAddress     || "",
+      shipToAddress:     v.shipToAddress     || "",
+      certifiedBillNo:   v.certifiedBillNo   || "",
+      certifiedBillDate: v.certifiedBillDate || "",
       discount:         Number(v.discount  || 0),
       roundOff:         Number(v.roundOff  || 0),
       items: v.items.map((it, i) => ({
@@ -447,7 +620,13 @@ export default function SaleReceiptBillingForm({
     else setIsEditing(true);
   };
 
-  // ── Render ─────────────────────────────────────────────────────────────────
+  const invoiceNo     = watch("invoiceNo")     || "";
+  const invoiceDate   = watch("invoiceDate")   || "";
+  const saleOrderDate = watch("saleOrderDate") || "";
+  const certBillNo      = watch("certifiedBillNo")   || "";
+  const certBillDate    = watch("certifiedBillDate") || "";
+
+  // ── Render ─────────────────────────────────────────────────────
   return (
     <div className="p-3">
       <button
@@ -461,78 +640,76 @@ export default function SaleReceiptBillingForm({
 
       <div className="flex flex-col gap-3 lg:flex-row lg:items-start">
 
-        {/* ── LEFT PANEL ───────────────────────────────────────────────────── */}
+        {/* ── LEFT PANEL ─────────────────────────────────────────── */}
         <div className={`w-full lg:w-[380px] lg:shrink-0 space-y-2 ${!sidebarOpen ? "lg:hidden" : ""}`}>
 
-          <PMSection title="Sale Order:">
-            {mode !== "create" && (
-              <PMFormRow label="SRB No" labelWidth="sm:w-[150px] sm:min-w-[150px]">
-                <PMInput value={srbNo || "[Auto]"} disabled readOnly />
-              </PMFormRow>
-            )}
-            <PMFormRow label="ERP Doc No" required={!disabled} labelWidth="sm:w-[150px] sm:min-w-[150px]">
-              <Controller name="erpDocNumber" control={control} render={({ field }) => (
-                <SearchableSelect
-                  options={saleOrderOpts}
+          <PMSection title="Invoice / Bill:">
+            <PMFormRow label="ERP Doc No" labelWidth="sm:w-[150px] sm:min-w-[150px]">
+              <PMInput value={srbNo || "[Auto]"} disabled readOnly />
+            </PMFormRow>
+
+            <PMFormRow label="Date" required={!disabled} labelWidth="sm:w-[150px] sm:min-w-[150px]">
+              <Controller name="srbDate" control={control} render={({ field }) => (
+                <PMDateInput
                   value={field.value || ""}
+                  onChange={field.onChange}
                   disabled={disabled}
-                  onChange={(v, opt) => {
-                    field.onChange(opt?.erpDocNumber || v || "");
-                    setValue("saleOrderDate", opt?.ogSaleOrderDate || "");
-                    if (opt?.debtorName || opt?.clientName) setDebtorName(opt.debtorName || opt.clientName || "");
-                  }}
-                  placeholder="Select Sale Order"
-                  labelKey="displayLabel"
-                  valueKey="erpDocNumber"
-                  searchKeys={["displayLabel", "erpDocNumber", "orderTitle"]}
+                  hasError={!!errors.srbDate}
                 />
               )} />
             </PMFormRow>
-            <PMFormRow label="Sale Order Date" labelWidth="sm:w-[150px] sm:min-w-[150px]">
-              <PMInput value={watch("saleOrderDate") ? getfmtDisplaydate(watch("saleOrderDate")) : ""} disabled readOnly />
-            </PMFormRow>
-          </PMSection>
 
-          <PMSection title="Invoice / Bill:">
+            {/* Invoice picker field */}
             <PMFormRow label="Invoice No" required={!disabled} labelWidth="sm:w-[150px] sm:min-w-[150px]">
-              {disabled ? (
-                <PMInput value={watch("invoiceNo") || ""} disabled readOnly />
-              ) : (
-                <Controller name="invoiceNo" control={control} render={({ field }) => (
-                  <SearchableSelect
-                    options={invoiceOpts}
-                    value={field.value || ""}
-                    disabled={false}
-                    onChange={(v) => {
-                      field.onChange(v || "");
-                      if (v) handleInvoiceSelect(v);
-                    }}
-                    placeholder={invoicesLoading ? "Loading…" : "Select Invoice"}
-                    labelKey="saleBillNo"
-                    valueKey="saleBillNo"
-                    searchKeys={["saleBillNo", "certifiedBillNo", "saleOrderNo"]}
+              <div className="flex items-center gap-1 w-full">
+                <div className="flex-1 min-w-0">
+                  <PMInput
+                    value={invoiceNo || ""}
+                    disabled
+                    readOnly
+                    placeholder={invoiceLookupLoading ? "Loading…" : "— select via icon —"}
                   />
-                )} />
-              )}
-              {invoiceLookupLoading && (
-                <p className="text-[11px] text-[#3b6ea5] mt-0.5 flex items-center gap-1">
-                  <Loader2 className="w-3 h-3 animate-spin" /> Loading invoice details…
-                </p>
-              )}
+                </div>
+                {!disabled && (
+                  <button
+                    type="button"
+                    onClick={() => setPickerOpen(true)}
+                    title="Browse available invoices"
+                    className="shrink-0 flex items-center justify-center w-[30px] h-[30px] rounded-sm border border-[#3b6ea5] bg-[#3b6ea5]/10 hover:bg-[#3b6ea5]/20 text-[#3b6ea5] transition"
+                  >
+                    {invoiceLookupLoading
+                      ? <Loader2 size={14} className="animate-spin" />
+                      : <FileText size={14} />
+                    }
+                  </button>
+                )}
+              </div>
             </PMFormRow>
+
             <PMFormRow label="Invoice Date" labelWidth="sm:w-[150px] sm:min-w-[150px]">
-              <PMInput value={watch("invoiceDate") ? getfmtDisplaydate(watch("invoiceDate")) : ""} disabled readOnly
-                placeholder="Auto-filled from invoice" />
+              <PMInput value={invoiceDate ? getfmtDisplaydate(invoiceDate) : ""} disabled readOnly placeholder="Auto-filled" />
             </PMFormRow>
-            <PMFormRow label="Certified Bill" labelWidth="sm:w-[150px] sm:min-w-[150px]">
-              <PMInput value={watch("certifiedBillNo") || ""} disabled readOnly
-                placeholder="Auto-filled from invoice" />
+
+            <PMFormRow label="Sale Order No" labelWidth="sm:w-[150px] sm:min-w-[150px]">
+              <PMInput value={erpDocNumber || ""} disabled readOnly placeholder="Auto-filled" />
             </PMFormRow>
-            <PMFormRow label="Bill Abstract No" labelWidth="sm:w-[150px] sm:min-w-[150px]">
-              <PMInput value={watch("billAbstractNo") || ""} disabled readOnly />
+
+            {selectedInvoiceMeta?.customerOrderNo && (
+              <PMFormRow label="Customer Order No" labelWidth="sm:w-[150px] sm:min-w-[150px]">
+                <PMInput value={selectedInvoiceMeta.customerOrderNo} disabled readOnly />
+              </PMFormRow>
+            )}
+
+            <PMFormRow label="Sale Order Date" labelWidth="sm:w-[150px] sm:min-w-[150px]">
+              <PMInput value={saleOrderDate ? getfmtDisplaydate(saleOrderDate) : ""} disabled readOnly placeholder="Auto-filled" />
             </PMFormRow>
-            <PMFormRow label="Bill Abstract Date" labelWidth="sm:w-[150px] sm:min-w-[150px]">
-              <PMInput value={watch("billAbstractDate") ? getfmtDisplaydate(watch("billAbstractDate")) : ""} disabled readOnly />
+
+            <PMFormRow label="Certified Bill No" labelWidth="sm:w-[150px] sm:min-w-[150px]">
+              <PMInput value={certBillNo} disabled readOnly placeholder="Auto-filled" />
+            </PMFormRow>
+
+            <PMFormRow label="Certified Bill Date" labelWidth="sm:w-[150px] sm:min-w-[150px]">
+              <PMInput value={certBillDate ? getfmtDisplaydate(certBillDate) : ""} disabled readOnly placeholder="Auto-filled" />
             </PMFormRow>
           </PMSection>
 
@@ -552,35 +729,32 @@ export default function SaleReceiptBillingForm({
           </PMSection>
         </div>
 
-        {/* ── RIGHT PANEL ──────────────────────────────────────────────────── */}
+        {/* ── RIGHT PANEL ────────────────────────────────────────── */}
         <div className="flex-1 min-w-0 space-y-2">
 
-          {/* Accounting Journal */}
           <AccountingJournalTable
-            debtorName={debtorName || erpDocNumber || "—"}
+            debtorName={debtorName || "—"}
             entries={journalEntries}
             totalDr={totalDr}
             totalCr={totalDr}
             disabled={disabled}
+            creditorMode={true}
             emptyText="Select an invoice to generate accounting entries"
           />
 
-          {/* Bill-wise Receipt Entries Breakdown */}
           <ReceiptBillingBreakdownTable
-            invoiceNo={watch("invoiceNo") || ""}
+            invoiceNo={invoiceNo}
             saleOrderNo={erpDocNumber || ""}
-            certBillNo={watch("certifiedBillNo") || ""}
+            certBillNo={certBillNo}
             itemFields={itemFields}
             gstFields={gstFields}
             watchedItems={watchedItems}
             watchedGst={watchedGst}
             register={register}
-            onGstToggle={handleGstToggle}
             disabled={disabled}
             loading={invoiceLookupLoading}
           />
 
-          {/* Summary */}
           <AccountSummary
             basicTotal={basicTotal}
             gstTotal={gstTotal}
@@ -591,7 +765,6 @@ export default function SaleReceiptBillingForm({
             wordsLabel="Amount (In Word)"
           />
 
-          {/* Action Buttons */}
           {!isViewMode && (
             <div className="flex items-center justify-end gap-2 pt-1 flex-wrap">
               {isEditing && (
@@ -616,18 +789,26 @@ export default function SaleReceiptBillingForm({
                   {isEditing ? "Cancel" : "Edit"}
                 </EditButton>
               )}
-
-
-          {mode === "edit" && !isEditing && (
-            <DeleteRequestButton
-              moduleCode="SALE_RECEIPT_BILLING"
-              recordId={Number(billingId)}
-              onDeleted={() => router.back()}
-            />
-          )}            </div>
+              {mode === "edit" && !isEditing && (
+                <DeleteRequestButton
+                  moduleCode="SALE_RECEIPT_BILLING"
+                  recordId={Number(billingId)}
+                  onDeleted={() => router.back()}
+                />
+              )}
+            </div>
           )}
         </div>
       </div>
+
+      {/* ── Invoice Picker Modal ────────────────────────────────── */}
+      <InvoicePickerModal
+        open={pickerOpen}
+        onClose={() => setPickerOpen(false)}
+        onConfirm={handlePickerSelect}
+        projectCode={projectCode}
+        currentInvoiceNo={invoiceNo}
+      />
     </div>
   );
 }

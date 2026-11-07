@@ -102,9 +102,8 @@ async function downloadDocx(data, uuid, qrCanvasRef) {
   const rightInfo = [
     ["ERP Doc No",    data.erpDocNumber || "-"],
     ["Sale Order Date",  fmt.date(data.saleOrderDate)],
-    ["Certified Bill",   data.certifiedBillNo || "-"],
-    ["Bill Abstract No", data.billAbstractNo || "-"],
-    ["Abstract Date",    fmt.date(data.billAbstractDate)],
+    ["Certified Bill No", data.certifiedBillNo || "-"],
+    ["Certified Bill Date", fmt.date(data.certifiedBillDate)],
     ...(data.shipToAddress ? [["Ship To", data.shipToAddress]] : []),
   ];
 
@@ -320,9 +319,8 @@ export default function SaleReceiptBillingPrintPage() {
             <div className="space-y-0.5 pl-6">
               <InfoRow label="ERP Doc No"    value={data.erpDocNumber} />
               <InfoRow label="Sale Order Date"  value={fmt.date(data.saleOrderDate)} />
-              <InfoRow label="Certified Bill"   value={data.certifiedBillNo} />
-              <InfoRow label="Bill Abstract No" value={data.billAbstractNo} />
-              <InfoRow label="Abstract Date"    value={fmt.date(data.billAbstractDate)} />
+              <InfoRow label="Certified Bill No"   value={data.certifiedBillNo} />
+              <InfoRow label="Certified Bill Date" value={fmt.date(data.certifiedBillDate)} />
               {data.shipToAddress && (
                 <p className={VAL}><span className={LBL}>Ship To</span> : <span className="whitespace-pre-wrap">{data.shipToAddress}</span></p>
               )}

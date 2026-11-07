@@ -99,7 +99,7 @@ export default function AccountingJournalTable({
             {creditorMode ? (
               <>
                 {/* CR row — creditor/vendor (first, fixed) */}
-                {totalCr > 0 && (
+                {(totalCr > 0 || entries.length > 0) && (
                   <tr className="bg-[#f0fbf0]">
                     <td className="border border-[#d0d0d0] px-2 py-1.5 font-semibold text-[#3a6a2a]">
                       CR
@@ -111,7 +111,7 @@ export default function AccountingJournalTable({
                       —
                     </td>
                     <td className="border border-[#d0d0d0] px-2 py-1.5 text-right font-semibold text-[#3a6a2a]">
-                      {formatAmount(totalCr)}
+                      {totalCr > 0 ? formatAmount(totalCr) : "—"}
                     </td>
                     {hasBulkToggle && <td className="border border-[#d0d0d0] px-2 py-1.5" />}
                     {hasToggle     && <td className="border border-[#d0d0d0] px-2 py-1.5" />}
@@ -162,7 +162,7 @@ export default function AccountingJournalTable({
             ) : (
               <>
                 {/* DR row — debtor */}
-                {totalDr > 0 && (
+                {(totalDr > 0 || entries.length > 0) && (
                   <tr className="bg-[#eef4fb]">
                     <td className="border border-[#d0d0d0] px-2 py-1.5 font-semibold text-[#1c3a5e]">
                       DR
@@ -171,7 +171,7 @@ export default function AccountingJournalTable({
                       {debtorName || "—"}
                     </td>
                     <td className="border border-[#d0d0d0] px-2 py-1.5 text-right font-semibold text-[#1c3a5e]">
-                      {formatAmount(totalDr)}
+                      {totalDr > 0 ? formatAmount(totalDr) : "—"}
                     </td>
                     <td className="border border-[#d0d0d0] px-2 py-1.5 text-right text-gray-400">
                       —

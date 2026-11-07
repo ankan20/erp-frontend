@@ -545,8 +545,7 @@ export const API_ENDPOINTS = {
       DELETE:         "/finance/sale-receipt/delete/",                   // /:id DELETE (blocked if any child not Rejected)
     },
     SALE_RECEIPT_BILLING: {
-      CERTIFIED_BILLS:    "/finance/sale-receipt-billing/certified-bills",     // GET ?erpDocNumber&projectCode
-      RECEIPT_ITEMS:      "/finance/sale-receipt-billing/receipt-items",       // GET ?certifiedBillId&projectCode
+      AVAILABLE_INVOICES: "/finance/sale-receipt-billing/available-invoices",  // GET ?projectCode
       INVOICE_LOOKUP:     "/finance/sale-receipt-billing/invoice-lookup",      // GET ?invoiceNo&projectCode
       CREATE:             "/finance/sale-receipt-billing/create",              // POST JSON (needs receiptId)
       LIST:               "/finance/sale-receipt-billing/list",                // GET ?receiptId&projectCode&workflowStatus

@@ -54,9 +54,9 @@ const gstLineSchema = z.object({
 });
 
 const DEFAULT_GST_LINES = [
-  { gstType: "IGST", ccCode: "IGST", ccName: "Input-IGST", percent: 18, bookedAmount: 0, receivedAmount: 0, balanceAmount: 0, currentAmount: 0, isSelected: false },
-  { gstType: "CGST", ccCode: "CGST", ccName: "Input-CGST", percent: 9,  bookedAmount: 0, receivedAmount: 0, balanceAmount: 0, currentAmount: 0, isSelected: false },
-  { gstType: "SGST", ccCode: "SGST", ccName: "Input-SGST", percent: 9,  bookedAmount: 0, receivedAmount: 0, balanceAmount: 0, currentAmount: 0, isSelected: false },
+  { gstType: "IGST", ccCode: "IGST", ccName: "Output-IGST", percent: 0, bookedAmount: 0, receivedAmount: 0, balanceAmount: 0, currentAmount: 0, isSelected: false },
+  { gstType: "CGST", ccCode: "CGST", ccName: "Output-CGST", percent: 0, bookedAmount: 0, receivedAmount: 0, balanceAmount: 0, currentAmount: 0, isSelected: false },
+  { gstType: "SGST", ccCode: "SGST", ccName: "Output-SGST", percent: 0, bookedAmount: 0, receivedAmount: 0, balanceAmount: 0, currentAmount: 0, isSelected: false },
 ];
 
 const schema = z.object({
