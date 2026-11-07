@@ -57,10 +57,11 @@ export default function CertifiedBillPickerModal({
     if (!isOpen || currentSources.length === 0) return;
     const first = currentSources[0];
     setSelectedOrderMeta({
-      id:         first.saleOrderId,
-      orderNo:    first.saleOrderNo,
-      erpNo:      first.saleOrderErpNo || "",
-      debtorName: first.debtorName || "",
+      id:                     first.saleOrderId,
+      orderNo:                first.saleOrderNo,
+      erpNo:                  first.saleOrderErpNo || "",
+      debtorName:             first.debtorName || "",
+      debtorCorporateAddress: first.debtorCorporateAddress || "",
     });
     setSelectedBillIds(new Set(currentSources.map((s) => s.certifiedBillId)));
   }, [isOpen]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -127,10 +128,11 @@ export default function CertifiedBillPickerModal({
     }
 
     setSelectedOrderMeta({
-      id:         order.id,
-      orderNo:    order.orderNo,
-      erpNo:      order.erpDocNumber,
-      debtorName: order.debtorName || "",
+      id:                     order.id,
+      orderNo:                order.orderNo,
+      erpNo:                  order.erpDocNumber,
+      debtorName:             order.debtorName || "",
+      debtorCorporateAddress: order.debtorCorporateAddress || "",
     });
 
     // Only consider bills that still have remaining amount
@@ -160,10 +162,11 @@ export default function CertifiedBillPickerModal({
     }
 
     setSelectedOrderMeta({
-      id:         order.id,
-      orderNo:    order.orderNo,
-      erpNo:      order.erpDocNumber,
-      debtorName: order.debtorName || "",
+      id:                     order.id,
+      orderNo:                order.orderNo,
+      erpNo:                  order.erpDocNumber,
+      debtorName:             order.debtorName || "",
+      debtorCorporateAddress: order.debtorCorporateAddress || "",
     });
 
     setSelectedBillIds((prev) => {
@@ -184,10 +187,11 @@ export default function CertifiedBillPickerModal({
     if (!pendingSwitch) return;
     const { order, bill, selectAll, bills } = pendingSwitch;
     setSelectedOrderMeta({
-      id:         order.id,
-      orderNo:    order.orderNo,
-      erpNo:      order.erpDocNumber,
-      debtorName: order.debtorName || "",
+      id:                     order.id,
+      orderNo:                order.orderNo,
+      erpNo:                  order.erpDocNumber,
+      debtorName:             order.debtorName || "",
+      debtorCorporateAddress: order.debtorCorporateAddress || "",
     });
     if (selectAll && bills?.length > 0) {
       setSelectedBillIds(new Set(bills.map((b) => b.id)));
@@ -212,11 +216,12 @@ export default function CertifiedBillPickerModal({
           return null;
         }
         return {
-          saleOrderId:      selectedOrderMeta.id,
-          saleOrderNo:      selectedOrderMeta.orderNo,
-          saleOrderErpNo:   selectedOrderMeta.erpNo,
-          debtorName:       selectedOrderMeta.debtorName,
-          certifiedBillId:  b.id,
+          saleOrderId:            selectedOrderMeta.id,
+          saleOrderNo:            selectedOrderMeta.orderNo,
+          saleOrderErpNo:         selectedOrderMeta.erpNo,
+          debtorName:             selectedOrderMeta.debtorName,
+          debtorCorporateAddress: selectedOrderMeta.debtorCorporateAddress || "",
+          certifiedBillId:        b.id,
           certifiedBillNo:  b.billingNo,
           billingDate:      b.billingDate,
           basicAmount:      Number(b.remaining) || 0,

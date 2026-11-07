@@ -149,7 +149,8 @@ export default function SaleBillForm({
   const [initialDebtorName, setInitialDebtorName] = useState("");
   const [initialBreakdownSel, setInitialBreakdownSel] = useState({});
 
-  const [bankOpts, setBankOpts] = useState([]);
+  const [bankOpts,         setBankOpts]         = useState([]);
+  const [shippingAddrOpts, setShippingAddrOpts] = useState([]);
 
   const {
     register,
@@ -229,6 +230,24 @@ export default function SaleBillForm({
       .catch(() => setBankOpts([]));
   }, []);
 
+  // ── Fetch project shipping addresses from project details (once on mount) ─────
+  useEffect(() => {
+    const projectId = getLocalStorage("projectInfo")?.projectId;
+    if (!projectId) return;
+    apiRequest({
+      url: `${API_ENDPOINTS.SETTINGS.GET_PROJECT_BY_ID}/${projectId}`,
+      method: "GET",
+    })
+      .then((res) => {
+        const d = res.data?.[0] || {};
+        const opts = [d.shippingAddress, d.shippingAddress2, d.shippingAddress3]
+          .filter(Boolean)
+          .map((addr) => ({ value: addr, label: addr }));
+        setShippingAddrOpts(opts);
+      })
+      .catch(() => {});
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
   // ── Sync breakdown selections → RHF items + gstLines ────────────────────────
   useEffect(() => {
     if (sources.length === 0) return;
@@ -300,6 +319,10 @@ export default function SaleBillForm({
   const handleModalConfirm = useCallback((newSources) => {
     setSources(newSources);
     setDebtorName(newSources[0]?.debtorName || "");
+    // Auto-fill billing address from debtor's corporate address (keep editable)
+    if (newSources[0]?.debtorCorporateAddress) {
+      setValue("billToAddress", newSources[0].debtorCorporateAddress, { shouldDirty: true });
+    }
 
     // Auto-generate initial selections: SRCW + IGST checked by default
     const initialSel = {};
@@ -454,6 +477,11 @@ export default function SaleBillForm({
               const name = soRes.data?.debtorName || soRes.data?.debtor?.ledgerName || "";
               setDebtorName(name);
               setInitialDebtorName(name);
+              // Auto-fill billing address if not already set on the loaded bill
+              const corpAddr = soRes.data?.debtorCorporateAddress;
+              if (corpAddr && !formatted.billToAddress) {
+                setValue("billToAddress", corpAddr, { shouldDirty: false });
+              }
             })
             .catch(() => {});
         }
@@ -736,13 +764,14 @@ export default function SaleBillForm({
                 name="shipToAddress"
                 control={control}
                 render={({ field }) => (
-                  <PMTextarea
-                    value={field.value || ""}
-                    onChange={field.onChange}
+                  <SearchableSelect
+                    options={shippingAddrOpts}
+                    value={shippingAddrOpts.find((o) => o.value === field.value)?.value || ""}
+                    onChange={(v) => field.onChange(v || "")}
+                    placeholder="Select project site address…"
+                    labelKey="label"
+                    valueKey="value"
                     disabled={disabled}
-                    placeholder="Site address"
-                    rows={2}
-                    maxRows={5}
                   />
                 )}
               />
