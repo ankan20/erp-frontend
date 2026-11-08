@@ -19,6 +19,7 @@ import { apiRequest } from "@/lib/apiClient";
 import { API_ENDPOINTS } from "@/config/api.config";
 import { getLocalStorage } from "@/lib/localStorage";
 import { useRouter } from "next/navigation";
+import { useCopySource, forCopy, copyLoadedToast } from "@/lib/copyRecord";
 
 const defaultValues = {
   categoryCode: "Purchases_Order",
@@ -49,6 +50,10 @@ const defaultValues = {
 };
 
 export default function OrderForm({ mode = "create", orderId, onUuid, onAfterSubmit }) {
+  // Copy: /new?copy=<id> pre-fills this create form from that record.
+  const copyFromId = useCopySource();
+  const isCopy = mode === "create" && !!copyFromId;
+
   const [activeTab, setActiveTab] = useState("items");
   const [loading, setLoading] = useState(false);
   const [isEditing, setIsEditing] = useState(mode === "create");
@@ -107,18 +112,19 @@ export default function OrderForm({ mode = "create", orderId, onUuid, onAfterSub
 
   // ─── LOAD ORDER
   useEffect(() => {
-    if (mode === "create" || !orderId) return;
+    const loadId = isCopy ? copyFromId : orderId;
+    if ((mode === "create" && !isCopy) || !loadId) return;
 
     const fetchOrder = async () => {
       try {
         setLoading(true);
         const res = await apiRequest({
-          url: `${API_ENDPOINTS.RESOURCE.PROCUREMENT.ORDER.GET_ORDER_BY_ID}/${orderId}`,
+          url: `${API_ENDPOINTS.RESOURCE.PROCUREMENT.ORDER.GET_ORDER_BY_ID}/${loadId}`,
           method: "GET",
         });
         const data = res.data;
 
-        if (data.uuid && onUuid) onUuid(data.uuid);
+        if (data.uuid && onUuid && !isCopy) onUuid(data.uuid);
 
         // Fetch party address/gstn — derived from secondary APIs
         let partyAddress = "";
@@ -189,6 +195,14 @@ export default function OrderForm({ mode = "create", orderId, onUuid, onAfterSub
         const isWithoutIndent = items.length > 0 && items.some((item) => item.indentItemId === null);
         setWithIndent(!isWithoutIndent);
 
+        if (isCopy) {
+          const copied = forCopy(formattedData, { clear: ["orderNo"] });
+          reset(copied);
+          setInitialData(copied);
+          copyLoadedToast(data.orderNo);
+          return;
+        }
+
         reset(formattedData);
         setInitialData(formattedData);
         setExistingFileUrl(data.orderFile || "");
@@ -214,7 +228,7 @@ export default function OrderForm({ mode = "create", orderId, onUuid, onAfterSub
     };
 
     fetchOrder();
-  }, [orderId, mode, reset]);
+  }, [copyFromId, orderId, mode, reset]);
 
   // ─── BUILD PAYLOAD (FormData — supports file)
   const buildFormData = () => {

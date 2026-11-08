@@ -12,6 +12,7 @@ import PageHeader from "@/components/layout/PageHeader";
 import HeaderWrapper from "@/components/layout/HeaderWrapper";
 import { isMasterEditable } from "@/helper/getMasterAccess";
 import PageNotAvailable from "@/components/common/PageNotAvailable";
+import { useCopyData } from "@/lib/copyRecord";
 
 export default function Page() {
   const [categories, setCategories] = useState(
@@ -20,6 +21,8 @@ export default function Page() {
   // const [ccList, setCcList] = useState([]);
   // const [loading, setLoading] = useState(true);
   const router = useRouter();
+  // Copy: /new?copy=<id> opens this form pre-filled from that record.
+  const { data: copyData, ready: copyReady } = useCopyData(`${API_ENDPOINTS.MASTER.GET_ITEM_BY_ID}/`);
   const canEdit = isMasterEditable();
 
   const actions = getPageActions({
@@ -51,10 +54,13 @@ export default function Page() {
       return <PageNotAvailable />;
     }
 
+  if (!copyReady) return null;
+
   return (
     <>
       <HeaderWrapper header={<PageHeader actions={actions} />}>
-        <ItemForm mode="create" categories={categories} />
+        <ItemForm
+        initialData={copyData || undefined} mode="create" categories={categories} />
       </HeaderWrapper>
     </>
   );

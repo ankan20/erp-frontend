@@ -24,6 +24,7 @@ import DLRDetailsTable, { emptyRow } from "./DLRDetailsTable";
 import DLRSummaryTab from "./DLRSummaryTab";
 import FileUpload, { ACCEPT_DOC, TYPES_DOC } from "@/components/common/FileUpload";
 import { zodDate } from "@/lib/dateUtils";
+import { useCopySource, forCopy, copyLoadedToast } from "@/lib/copyRecord";
 
 // ── Schema ────────────────────────────────────────────────────────────────────
 
@@ -79,6 +80,10 @@ export default function DLRForm({
   onAfterSubmit,
   disabled: disabledProp = false,
 }) {
+  // Copy: /new?copy=<id> pre-fills this create form from that record.
+  const copyFromId = useCopySource();
+  const isCopy = mode === "create" && !!copyFromId;
+
   const router = useRouter();
 
   const projectInfo  = getLocalStorage("projectInfo");
@@ -177,12 +182,13 @@ export default function DLRForm({
 
   // ── Load DLR details (edit/view/approver) ─────────────────────────────────
   useEffect(() => {
-    if (mode === "create" || !dlrId) return;
+    const loadId = isCopy ? copyFromId : dlrId;
+    if ((mode === "create" && !isCopy) || !loadId) return;
     const fetchDLR = async () => {
       setIsLoading(true);
       try {
         const res = await apiRequest({
-          url: `${API_ENDPOINTS.RESOURCE.MANPOWER.DLR.GET_BY_ID}/${dlrId}`,
+          url: `${API_ENDPOINTS.RESOURCE.MANPOWER.DLR.GET_BY_ID}/${loadId}`,
           method: "GET",
         });
         const d = Array.isArray(res?.data) ? res.data[0] : res?.data;
@@ -218,6 +224,16 @@ export default function DLRForm({
         setItems(mappedItems.length > 0 ? mappedItems : [emptyRow()]);
         setInitialItems(mappedItems.length > 0 ? mappedItems : [emptyRow()]);
 
+        if (isCopy) {
+          reset({ ...formData, dlrNo: "" });
+          setWorkflowStatus("");
+          const fresh = mappedItems.length > 0 ? mappedItems.map(({ id, ...it }) => it) : [emptyRow()];
+          setItems(fresh);
+          setInitialItems(fresh);
+          copyLoadedToast(d.dlrNo);
+          return;
+        }
+
         if (d.scanCopy) {
           setScanCopyUrl(d.scanCopy);
           setInitialScanUrl(d.scanCopy);
@@ -238,7 +254,7 @@ export default function DLRForm({
       }
     };
     fetchDLR();
-  }, [dlrId, mode, reset]);
+  }, [copyFromId, dlrId, mode, reset]);
 
   // ── Also handle initialData prop (passed from outside) ───────────────────
   useEffect(() => {

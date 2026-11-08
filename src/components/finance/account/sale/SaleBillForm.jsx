@@ -37,6 +37,7 @@ import { zodDate }         from "@/lib/dateUtils";
 import { getfmtDisplaydate } from "@/helper/getfmtDisplayDate";
 import AiPanel             from "@/components/ai/AiPanel";
 import { formatAmount }    from "@/helper/numberFormatter";
+import { useCopySource, forCopy, copyLoadedToast } from "@/lib/copyRecord";
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -127,6 +128,10 @@ export default function SaleBillForm({
   onAfterSubmit,
   onUuid,
 }) {
+  // Copy: /new?copy=<id> pre-fills this create form from that record.
+  const copyFromId = useCopySource();
+  const isCopy = mode === "create" && !!copyFromId;
+
   const isViewMode = mode === "view" || mode === "approver";
   const router     = useRouter();
   const projectCode = getLocalStorage("projectInfo")?.projectCode || "";
@@ -381,12 +386,13 @@ export default function SaleBillForm({
 
   // ── Load Detail (edit / view) ────────────────────────────────────────────────
   useEffect(() => {
-    if (mode === "create" || !billId) return;
+    const loadId = isCopy ? copyFromId : billId;
+    if ((mode === "create" && !isCopy) || !loadId) return;
     const fetchDetail = async () => {
       setIsLoading(true);
       try {
         const res = await apiRequest({
-          url: `${API_ENDPOINTS.FINANCE.SALE_BILL.GET_BY_ID}${billId}`,
+          url: `${API_ENDPOINTS.FINANCE.SALE_BILL.GET_BY_ID}${loadId}`,
           method: "GET",
         });
         const d = res.data;
@@ -511,6 +517,11 @@ export default function SaleBillForm({
         setInitialBreakdownSel(sel);
         setInitialSources(sourcesData);
 
+        if (isCopy) {
+          copyLoadedToast(d.saleBillNo);
+          return;
+        }
+
         if (d.saleBillNo && d.saleBillNo !== "auto") setErpBillNo(d.saleBillNo);
         if (d.saleBillUuid && onUuid) onUuid(d.saleBillUuid);
 
@@ -532,7 +543,7 @@ export default function SaleBillForm({
       }
     };
     fetchDetail();
-  }, [billId, mode]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [copyFromId, billId, mode]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── Edit / Cancel ────────────────────────────────────────────────────────────
   const handleEdit = () => {

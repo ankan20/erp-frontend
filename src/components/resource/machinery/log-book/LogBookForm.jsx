@@ -20,6 +20,7 @@ import { getInputClass, labelClass as baseLabelClass } from "@/lib/formStyles";
 const labelClass = `${baseLabelClass} shrink-0 min-w-[180px] w-[180px]`;
 import { useRouter } from "next/navigation";
 import { zodDate } from "@/lib/dateUtils";
+import { useCopySource, forCopy, copyLoadedToast } from "@/lib/copyRecord";
 
 const LB = API_ENDPOINTS.RESOURCE.MACHINERY.LOG_BOOK;
 
@@ -44,6 +45,10 @@ const defaultValues = {
 };
 
 export default function LogBookForm({ mode = "create", logBookId, onAfterSubmit }) {
+  // Copy: /new?copy=<id> pre-fills this create form from that record.
+  const copyFromId = useCopySource();
+  const isCopy = mode === "create" && !!copyFromId;
+
   const [loading, setLoading] = useState(false);
   const [isEditing, setIsEditing] = useState(mode === "create");
   const [isSubmitted, setIsSubmitted] = useState(false);
@@ -71,14 +76,15 @@ export default function LogBookForm({ mode = "create", logBookId, onAfterSubmit 
 
   // Load details for edit/view
   useEffect(() => {
-    if (mode === "create" || !logBookId) return;
+    const loadId = isCopy ? copyFromId : logBookId;
+    if ((mode === "create" && !isCopy) || !loadId) return;
 
     const fetch = async () => {
       try {
         setLoading(true);
-        const res = await apiRequest({ url: `${LB.DETAILS}/${logBookId}`, method: "GET" });
+        const res = await apiRequest({ url: `${LB.DETAILS}/${loadId}`, method: "GET" });
         const d = res.data;
-        setLogBookNo(d.logBookNo || "");
+        setLogBookNo(isCopy ? "" : d.logBookNo || "");
 
         const fd = {
           createDate: d.createDate || "",
@@ -92,6 +98,10 @@ export default function LogBookForm({ mode = "create", logBookId, onAfterSubmit 
 
         reset(fd);
         setInitialData(fd);
+        if (isCopy) {
+          copyLoadedToast(d.logBookNo);
+          return;
+        }
 
         const st = (d.workflowStatus || "").toLowerCase();
         if (mode === "edit" && !["draft", "reback"].includes(st)) {
@@ -112,7 +122,7 @@ export default function LogBookForm({ mode = "create", logBookId, onAfterSubmit 
     };
 
     fetch();
-  }, [logBookId, mode, reset]);
+  }, [copyFromId, logBookId, mode, reset]);
 
   const buildPayload = () => {
     const v = getValues();

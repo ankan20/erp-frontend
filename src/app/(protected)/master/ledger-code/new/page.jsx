@@ -13,11 +13,14 @@ import HeaderWrapper from "@/components/layout/HeaderWrapper";
 import { isMasterEditable } from "@/helper/getMasterAccess";
 import PageNotAvailable from "@/components/common/PageNotAvailable";
 import LedgerFormNew from "@/components/master/ledger/LedgerFormNew";
+import { useCopyData } from "@/lib/copyRecord";
 
 export default function Page() {
   const [categories, setCategories] = useState(CATEGORY_OPTIONS.ledgerCategory);
   const [loading, setLoading] = useState(true);
   const router = useRouter();
+  // Copy: /new?copy=<id> opens this form pre-filled from that record.
+  const { data: copyData, ready: copyReady } = useCopyData(`${API_ENDPOINTS.MASTER.GET_LEDGER_BY_ID}/`);
   const canEdit = isMasterEditable();
 
   const actions = getPageActions({
@@ -54,10 +57,13 @@ export default function Page() {
     return <PageNotAvailable />;
   }
 
+  if (!copyReady) return null;
+
   return (
     <>
       <HeaderWrapper header={<PageHeader actions={actions} />}>
-        <LedgerFormNew mode="create" categories={categories} />
+        <LedgerFormNew
+        initialData={copyData || undefined} mode="create" categories={categories} />
       </HeaderWrapper>
     </>
   );

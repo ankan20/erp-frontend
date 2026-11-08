@@ -93,7 +93,7 @@ export default function UnitForm({ mode = "create",disabled=false, unitId, initi
 
   // EDIT MODE DATA
   useEffect(() => {
-    if ((mode === "edit" || mode==="view") && initialData) {
+    if (initialData /* edit, view or copy */) {
       reset({
         unitName: initialData.unitName || "",
         shortName: initialData.shortName || "",

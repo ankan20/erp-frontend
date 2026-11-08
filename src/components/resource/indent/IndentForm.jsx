@@ -26,6 +26,7 @@ import IndentItemsTable from "@/components/resource/indent/IndentItemsTable";
 import ExpandableTextField from "@/components/common/ExpandableTextField";
 import { useRouter } from "next/navigation";
 import { zodDate } from "@/lib/dateUtils";
+import { useCopySource, forCopy, copyLoadedToast } from "@/lib/copyRecord";
 
 const indentSchema = z.object({
   categoryCode: z.string().min(1),
@@ -84,6 +85,10 @@ export default function IndentForm({
   onUuid,
   onAfterSubmit,
 }) {
+  // Copy: /new?copy=<id> pre-fills this create form from that record.
+  const copyFromId = useCopySource();
+  const isCopy = mode === "create" && !!copyFromId;
+
   const isViewMode = mode === "view" || mode === "approver";
 
   const [isEditing, setIsEditing] = useState(mode === "create");
@@ -168,14 +173,15 @@ export default function IndentForm({
   };
 
   useEffect(() => {
-    if (mode === "create" || !indentId) return;
+    const loadId = isCopy ? copyFromId : indentId;
+    if ((mode === "create" && !isCopy) || !loadId) return;
 
     const fetchIndent = async () => {
       try {
         setIsLoading(true);
 
         const res = await apiRequest({
-          url: `${API_ENDPOINTS.RESOURCE.PROCUREMENT.INDENT.GET_INDENT_BY_ID}${indentId}`,
+          url: `${API_ENDPOINTS.RESOURCE.PROCUREMENT.INDENT.GET_INDENT_BY_ID}${loadId}`,
           method: "GET",
         });
 
@@ -224,6 +230,15 @@ export default function IndentForm({
           })) || [defaultItemRow],
         };
 
+        if (isCopy) {
+          const copied = forCopy(formattedData, { clear: ["indentNo"], rowIdKeys: ["indentItemId"] });
+          reset(copied);
+          setInitialData(copied);
+          copyLoadedToast(data.indentNo);
+          if (data.categoryCode) await fetchItemsByCategory(data.categoryCode, copied.items);
+          return;
+        }
+
         reset(formattedData);
 
         setInitialData(formattedData);
@@ -264,7 +279,7 @@ export default function IndentForm({
     };
 
     fetchIndent();
-  }, [indentId, mode]);
+  }, [copyFromId, indentId, mode]);
 
 
   // Saving a draft re-creates the indent items on the server (new ids), so

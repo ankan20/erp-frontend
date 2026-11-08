@@ -26,6 +26,7 @@ import { apiRequest }    from "@/lib/apiClient";
 import { API_ENDPOINTS } from "@/config/api.config";
 import { getLocalStorage } from "@/lib/localStorage";
 import { zodDate } from "@/lib/dateUtils";
+import { useCopySource, forCopy, copyLoadedToast } from "@/lib/copyRecord";
 
 const DELIVERY_MODE_OPTIONS = [
   "By Hand",
@@ -68,6 +69,10 @@ const defaultValues = {
 };
 
 export default function DrawingRegisterForm({ mode = "create", drId, onAfterSubmit }) {
+  // Copy: /new?copy=<id> pre-fills this create form from that record.
+  const copyFromId = useCopySource();
+  const isCopy = mode === "create" && !!copyFromId;
+
   const isViewMode = mode === "view" || mode === "approver";
 
   const [isEditing,       setIsEditing]      = useState(mode === "create");
@@ -98,13 +103,14 @@ export default function DrawingRegisterForm({ mode = "create", drId, onAfterSubm
 
   // ── Fetch detail ───────────────────────────────────────────────────────────
   useEffect(() => {
-    if (mode === "create" || !drId) return;
+    const loadId = isCopy ? copyFromId : drId;
+    if ((mode === "create" && !isCopy) || !loadId) return;
 
     const fetchDetail = async () => {
       setIsLoading(true);
       try {
         const res = await apiRequest({
-          url:    `${API_ENDPOINTS.PROJECT.REGISTER.DRAWING_REGISTER.GET_DRAWING_REGISTER_BY_ID}/${drId}`,
+          url:    `${API_ENDPOINTS.PROJECT.REGISTER.DRAWING_REGISTER.GET_DRAWING_REGISTER_BY_ID}/${loadId}`,
           method: "GET",
         });
         const d = res.data;
@@ -125,6 +131,13 @@ export default function DrawingRegisterForm({ mode = "create", drId, onAfterSubm
         };
         reset(formatted);
         setInitialData(formatted);
+        if (isCopy) {
+          const copied = { ...formatted, drNo: "" };
+          reset(copied);
+          setInitialData(copied);
+          copyLoadedToast(d.drNo);
+          return;
+        }
 
         const furl = d.attachment || "";
         setExistingFileUrl(furl);
@@ -151,7 +164,7 @@ export default function DrawingRegisterForm({ mode = "create", drId, onAfterSubm
     };
 
     fetchDetail();
-  }, [drId, mode]);
+  }, [copyFromId, drId, mode]);
 
   // ── Edit / Cancel ──────────────────────────────────────────────────────────
   const handleEdit = () => {

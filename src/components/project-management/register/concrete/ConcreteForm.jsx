@@ -25,6 +25,7 @@ import { apiRequest }      from "@/lib/apiClient";
 import { API_ENDPOINTS }   from "@/config/api.config";
 import { getLocalStorage } from "@/lib/localStorage";
 import { zodDate, zodTime } from "@/lib/dateUtils";
+import { useCopySource, forCopy, copyLoadedToast } from "@/lib/copyRecord";
 
 const concreteSchema = z.object({
   referenceOrderNo:   z.string().optional(),
@@ -57,6 +58,10 @@ const defaultValues = {
 };
 
 export default function ConcreteForm({ mode = "create", registryId, onAfterSubmit }) {
+  // Copy: /new?copy=<id> pre-fills this create form from that record.
+  const copyFromId = useCopySource();
+  const isCopy = mode === "create" && !!copyFromId;
+
   const isViewMode = mode === "view" || mode === "approver";
 
   const [isEditing,       setIsEditing]      = useState(mode === "create");
@@ -87,13 +92,14 @@ export default function ConcreteForm({ mode = "create", registryId, onAfterSubmi
 
   // ── Fetch detail ───────────────────────────────────────────────────────────
   useEffect(() => {
-    if (mode === "create" || !registryId) return;
+    const loadId = isCopy ? copyFromId : registryId;
+    if ((mode === "create" && !isCopy) || !loadId) return;
 
     const fetchDetail = async () => {
       setIsLoading(true);
       try {
         const res = await apiRequest({
-          url:    `${API_ENDPOINTS.PROJECT.REGISTER.CONCRETE.GET_DETAILS_BY_ID}/${registryId}`,
+          url:    `${API_ENDPOINTS.PROJECT.REGISTER.CONCRETE.GET_DETAILS_BY_ID}/${loadId}`,
           method: "GET",
         });
         // API returns an array; take first element
@@ -114,6 +120,10 @@ export default function ConcreteForm({ mode = "create", registryId, onAfterSubmi
         };
         reset(formatted);
         setInitialData(formatted);
+        if (isCopy) {
+          copyLoadedToast();
+          return;
+        }
 
         const furl = d.attachBatchFile || "";
         setExistingFileUrl(furl);
@@ -140,7 +150,7 @@ export default function ConcreteForm({ mode = "create", registryId, onAfterSubmi
     };
 
     fetchDetail();
-  }, [registryId, mode]);
+  }, [copyFromId, registryId, mode]);
 
   // ── Edit / Cancel ──────────────────────────────────────────────────────────
   const handleEdit = () => {

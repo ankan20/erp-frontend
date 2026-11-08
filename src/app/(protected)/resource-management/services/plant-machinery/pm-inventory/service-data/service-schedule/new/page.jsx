@@ -7,17 +7,24 @@ import PageHeader from "@/components/layout/PageHeader";
 import HeaderWrapper from "@/components/layout/HeaderWrapper";
 import { getPageActions } from "@/components/common/PageActionButtons";
 import ServiceScheduleForm from "@/components/resource/machinery/ServiceScheduleForm";
+import { useCopyData } from "@/lib/copyRecord";
+import { API_ENDPOINTS } from "@/config/api.config";
 
 export default function Page() {
   const router = useRouter();
+  // Copy: /new?copy=<id> opens this form pre-filled from that record.
+  const { data: copyData, ready: copyReady } = useCopyData(API_ENDPOINTS.RESOURCE.MACHINERY.SERVICE_SCHEDULE.GET_BY_ID);
   const access = getPageAccess({ pageCode: "pm_inventory", pageType: "ADD" });
   const actions = getPageActions({ router });
 
   if (!access.allowed) return <PageNotAvailable />;
 
+  if (!copyReady) return null;
+
   return (
     <HeaderWrapper header={<PageHeader actions={actions} />}>
-      <ServiceScheduleForm mode="create" />
+      <ServiceScheduleForm
+        initialData={copyData || undefined} mode="create" />
     </HeaderWrapper>
   );
 }

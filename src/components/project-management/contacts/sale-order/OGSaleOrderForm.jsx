@@ -32,6 +32,7 @@ import { getLocalStorage } from "@/lib/localStorage";
 import { getInputClass }   from "@/lib/formStyles";
 import { useColumnResize } from "@/hooks/useColumnResize";
 import { zodDate } from "@/lib/dateUtils";
+import { useCopySource, forCopy, copyLoadedToast } from "@/lib/copyRecord";
 
 // ── SCHEMA ────────────────────────────────────────────────────────────────────
 const rowSchema = z.object({
@@ -91,6 +92,10 @@ const mapRow = (it, type) => ({
 
 // ── COMPONENT ─────────────────────────────────────────────────────────────────
 export default function OGSaleOrderForm({ mode = "create", saleOrderId, onAfterSubmit, onUuid }) {
+  // Copy: /new?copy=<id> pre-fills this create form from that record.
+  const copyFromId = useCopySource();
+  const isCopy = mode === "create" && !!copyFromId;
+
   const { tableRef } = useColumnResize();
   const isViewMode  = mode === "view" || mode === "approver";
   const router      = useRouter();
@@ -166,13 +171,14 @@ export default function OGSaleOrderForm({ mode = "create", saleOrderId, onAfterS
 
   // ── FETCH DETAIL ─────────────────────────────────────────────────────────────
   useEffect(() => {
-    if (mode === "create" || !saleOrderId) return;
+    const loadId = isCopy ? copyFromId : saleOrderId;
+    if ((mode === "create" && !isCopy) || !loadId) return;
 
     const fetchDetail = async () => {
       setIsLoading(true);
       try {
         const res = await apiRequest({
-          url:    `${API_ENDPOINTS.PROJECT.OG_SALE_ORDER.GET_BY_ID}${saleOrderId}`,
+          url:    `${API_ENDPOINTS.PROJECT.OG_SALE_ORDER.GET_BY_ID}${loadId}`,
           method: "GET",
         });
         const d = res.data;
@@ -197,6 +203,12 @@ export default function OGSaleOrderForm({ mode = "create", saleOrderId, onAfterS
         const dId = d.debtorId ?? null;
         setDebtorId(dId);
         initialDebtorId.current = dId;
+
+        if (isCopy) {
+          reset({ ...formatted, erpDocNumber: "" });
+          copyLoadedToast(d.erpDocNumber);
+          return;
+        }
 
         const urls = { att1: d.attachment1 || "", att2: d.attachment2 || "", att3: d.attachment3 || "" };
         setExistingUrls(urls);
@@ -223,7 +235,7 @@ export default function OGSaleOrderForm({ mode = "create", saleOrderId, onAfterS
     };
 
     fetchDetail();
-  }, [saleOrderId, mode]);
+  }, [copyFromId, saleOrderId, mode]);
 
   // ── EDIT / CANCEL ─────────────────────────────────────────────────────────────
   const handleEdit = () => {

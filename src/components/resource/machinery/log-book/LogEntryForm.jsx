@@ -20,6 +20,7 @@ import { getInputClass, labelClass as baseLabelClass } from "@/lib/formStyles";
 const labelClass = `${baseLabelClass} shrink-0 min-w-[180px] w-[180px]`;
 import { useRouter } from "next/navigation";
 import { zodDate } from "@/lib/dateUtils";
+import { useCopySource, forCopy, copyLoadedToast } from "@/lib/copyRecord";
 
 const LE = API_ENDPOINTS.RESOURCE.MACHINERY.LOG_ENTRY;
 const LB = API_ENDPOINTS.RESOURCE.MACHINERY.LOG_BOOK;
@@ -53,6 +54,10 @@ const SectionTitle = ({ children }) => (
 );
 
 export default function LogEntryForm({ mode = "create", entryId, onAfterSubmit }) {
+  // Copy: /new?copy=<id> pre-fills this create form from that record.
+  const copyFromId = useCopySource();
+  const isCopy = mode === "create" && !!copyFromId;
+
   const [loading, setLoading] = useState(false);
   const [isEditing, setIsEditing] = useState(mode === "create");
   const [isSubmitted, setIsSubmitted] = useState(false);
@@ -82,14 +87,15 @@ export default function LogEntryForm({ mode = "create", entryId, onAfterSubmit }
 
   // Load entry details for edit/view
   useEffect(() => {
-    if (mode === "create" || !entryId) return;
+    const loadId = isCopy ? copyFromId : entryId;
+    if ((mode === "create" && !isCopy) || !loadId) return;
 
     const fetch = async () => {
       try {
         setLoading(true);
-        const res = await apiRequest({ url: `${LE.DETAILS}/${entryId}`, method: "GET" });
+        const res = await apiRequest({ url: `${LE.DETAILS}/${loadId}`, method: "GET" });
         const d = res.data;
-        setLogUid(d.logUid || "");
+        setLogUid(isCopy ? "" : d.logUid || "");
         setAutoFields({
           partyName: d.partyName || "",
           machineryName: d.machineryName || "",
@@ -109,6 +115,10 @@ export default function LogEntryForm({ mode = "create", entryId, onAfterSubmit }
 
         reset(fd);
         setInitialData(fd);
+        if (isCopy) {
+          copyLoadedToast(d.logUid);
+          return;
+        }
 
         const st = (d.workflowStatus || "").toLowerCase();
         if (mode === "edit" && !["draft", "reback"].includes(st)) {
@@ -129,7 +139,7 @@ export default function LogEntryForm({ mode = "create", entryId, onAfterSubmit }
     };
 
     fetch();
-  }, [entryId, mode, reset]);
+  }, [copyFromId, entryId, mode, reset]);
 
   const buildPayload = () => {
     const v = getValues();

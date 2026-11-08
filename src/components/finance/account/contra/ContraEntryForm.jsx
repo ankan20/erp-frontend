@@ -26,6 +26,7 @@ import { API_ENDPOINTS }   from "@/config/api.config";
 import { getLocalStorage } from "@/lib/localStorage";
 import { formatAmount }    from "@/helper/numberFormatter";
 import { useColumnResize } from "@/hooks/useColumnResize";
+import { useCopySource, forCopy, copyLoadedToast } from "@/lib/copyRecord";
 
 // ─── Schema ───────────────────────────────────────────────────────────────────
 
@@ -53,6 +54,10 @@ const DEFAULT_VALUES = {
 // ─── Component ────────────────────────────────────────────────────────────────
 
 export default function ContraEntryForm({ mode = "create", contraId, onAfterSubmit, onUuid }) {
+  // Copy: /new?copy=<id> pre-fills this create form from that record.
+  const copyFromId = useCopySource();
+  const isCopy = mode === "create" && !!copyFromId;
+
   const router      = useRouter();
   const isViewMode  = mode === "view" || mode === "approver";
   const projectCode = getLocalStorage("projectInfo")?.projectCode || "";
@@ -102,8 +107,9 @@ export default function ContraEntryForm({ mode = "create", contraId, onAfterSubm
 
   // ── Fetch detail (edit / view) ────────────────────────────────────────────
   useEffect(() => {
-    if (!contraId || mode === "create") return;
-    apiRequest({ url: `${API_ENDPOINTS.FINANCE.CONTRA_ENTRY.GET_BY_ID}${contraId}`, method: "GET" })
+    const loadId = isCopy ? copyFromId : contraId;
+    if ((mode === "create" && !isCopy) || !loadId) return;
+    apiRequest({ url: `${API_ENDPOINTS.FINANCE.CONTRA_ENTRY.GET_BY_ID}${loadId}`, method: "GET" })
       .then((res) => {
         const d = res.data || {};
         const sorted = [...(d.lines || [])].sort((a, b) => a.slNo - b.slNo);
@@ -119,6 +125,10 @@ export default function ContraEntryForm({ mode = "create", contraId, onAfterSubm
               }))
             : DEFAULT_VALUES.lines,
         });
+        if (isCopy) {
+          copyLoadedToast(d.voucherNo);
+          return;
+        }
         setErpVoucherNo(d.voucherNo || "");
         setEntryDate(d.entryDate   || "");
         const locked = d.workflowStatus && !["Draft", "Reback"].includes(d.workflowStatus);
@@ -127,7 +137,7 @@ export default function ContraEntryForm({ mode = "create", contraId, onAfterSubm
         if (d.contraUuid && onUuid) onUuid(d.contraUuid);
       })
       .catch(() => toast.error("Failed to load contra entry"));
-  }, [contraId, mode]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [copyFromId, contraId, mode]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── Save Draft ────────────────────────────────────────────────────────────
   const onSave = async (v) => {

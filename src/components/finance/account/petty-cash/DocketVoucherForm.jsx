@@ -31,6 +31,7 @@ import { getLocalStorage } from "@/lib/localStorage";
 import { formatAmount }    from "@/helper/numberFormatter";
 import { useColumnResize } from "@/hooks/useColumnResize";
 import { zodDate } from "@/lib/dateUtils";
+import { useCopySource, forCopy, copyLoadedToast } from "@/lib/copyRecord";
 
 const PAYMENT_MODE_OPTIONS = [
   { value: "Cash",     label: "Cash"     },
@@ -80,6 +81,10 @@ export default function DocketVoucherForm({
   onAfterSubmit,
   basePath = "/finance-management/account/petty-cash/expenses-docket",
 }) {
+  // Copy: /new?copy=<id> pre-fills this create form from that record.
+  const copyFromId = useCopySource();
+  const isCopy = mode === "create" && !!copyFromId;
+
   const isViewMode = mode === "view" || mode === "approver";
 
   const [isEditing,         setIsEditing]         = useState(mode === "create");
@@ -194,17 +199,20 @@ export default function DocketVoucherForm({
 
   // Load existing voucher
   useEffect(() => {
-    if (mode === "create" || !voucherId) return;
+    const loadId = isCopy ? copyFromId : voucherId;
+    if ((mode === "create" && !isCopy) || !loadId) return;
     const load = async () => {
       try {
         setIsLoading(true);
         const res = await apiRequest({
-          url:    `${API_ENDPOINTS.FINANCE.PETTY_CASH.DOCKET_VOUCHER.GET_BY_ID}${voucherId}`,
+          url:    `${API_ENDPOINTS.FINANCE.PETTY_CASH.DOCKET_VOUCHER.GET_BY_ID}${loadId}`,
           method: "GET",
         });
         const d = res.data;
-        setVoucherNo(d.voucherNo || "");
-        if (d.voucherUuid) onUuid?.(d.voucherUuid);
+        if (!isCopy) {
+          setVoucherNo(d.voucherNo || "");
+          if (d.voucherUuid) onUuid?.(d.voucherUuid);
+        }
         if (d.budgetId) {
           apiRequest({ url: `${API_ENDPOINTS.FINANCE.PETTY_CASH.DOCKET_VOUCHER.BUDGET_ROWS}${d.budgetId}`, method: "GET" })
             .then((br) => {
@@ -231,6 +239,10 @@ export default function DocketVoucherForm({
         const loadedBcId = d.bankCashId ? String(d.bankCashId) : "";
         setBankCashId(loadedBcId);
         setInitialBankCashId(loadedBcId);
+        if (isCopy) {
+          copyLoadedToast(d.voucherNo);
+          return;
+        }
         setExistingFileUrl(d.attachmentUrl || d.attachment || "");
         setInitialFileUrl(d.attachmentUrl  || d.attachment || "");
 
@@ -251,7 +263,7 @@ export default function DocketVoucherForm({
     };
     load();
 
-  }, [voucherId, mode]);
+  }, [copyFromId, voucherId, mode]);
 
   const buildPayload = () => {
     const v = getValues();

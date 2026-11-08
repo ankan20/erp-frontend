@@ -357,7 +357,7 @@ export default function LedgerFormNew({
 
   // ── Populate from initialData ─────────────────────────────────────────────
   useEffect(() => {
-    if (mode === "create" || !initialData || categories.length === 0) return;
+    if (!initialData || categories.length === 0) return; // edit, view or copy
     reset({
       ledgerName:           initialData.ledgerName           || "",
       registeredAddress:    initialData.registeredAddress    || "",

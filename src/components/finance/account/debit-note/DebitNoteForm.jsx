@@ -40,6 +40,7 @@ import { getLocalStorage } from "@/lib/localStorage";
 import { DEBIT_NOTE_OPTIONS, DN_CODE_BY_NAME } from "./debitNoteOptions";
 import { useColumnResize } from "@/hooks/useColumnResize";
 import { zodDate } from "@/lib/dateUtils";
+import { useCopySource, forCopy, copyLoadedToast } from "@/lib/copyRecord";
 
 // ─── helpers ──────────────────────────────────────────────────────────────────
 const fmt = (val) => {
@@ -113,6 +114,10 @@ const DEFAULT_VALUES = {
 
 // ─── Component ────────────────────────────────────────────────────────────────
 export default function DebitNoteForm({ mode = "create", noteId, onAfterSubmit, onUuid }) {
+  // Copy: /new?copy=<id> pre-fills this create form from that record.
+  const copyFromId = useCopySource();
+  const isCopy = mode === "create" && !!copyFromId;
+
   const router      = useRouter();
   const isViewMode  = mode === "view" || mode === "approver";
   const projectCode = getLocalStorage("projectInfo")?.projectCode || "";
@@ -144,8 +149,9 @@ export default function DebitNoteForm({ mode = "create", noteId, onAfterSubmit, 
 
   // ── Fetch detail (edit / view) ────────────────────────────────────────────
   useEffect(() => {
-    if (!noteId || mode === "create") return;
-    apiRequest({ url: `${API_ENDPOINTS.FINANCE.DEBIT_NOTE.GET_BY_ID}${noteId}`, method: "GET" })
+    const loadId = isCopy ? copyFromId : noteId;
+    if ((mode === "create" && !isCopy) || !loadId) return;
+    apiRequest({ url: `${API_ENDPOINTS.FINANCE.DEBIT_NOTE.GET_BY_ID}${loadId}`, method: "GET" })
       .then((res) => {
         const d = res.data || {};
         reset({
@@ -179,6 +185,10 @@ export default function DebitNoteForm({ mode = "create", noteId, onAfterSubmit, 
               }))
             : DEBIT_GST_LINES,
         });
+        if (isCopy) {
+          copyLoadedToast(d.debitNoteNo);
+          return;
+        }
         const locked = d.workflowStatus && !["Draft", "Reback"].includes(d.workflowStatus);
         setIsSubmitted(locked);
         setAllowSubmit(!locked);
@@ -186,7 +196,7 @@ export default function DebitNoteForm({ mode = "create", noteId, onAfterSubmit, 
         if (d.debitNoteUuid && onUuid) onUuid(d.debitNoteUuid);
       })
       .catch(() => toast.error("Failed to load debit note details"));
-  }, [noteId, mode]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [copyFromId, noteId, mode]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── Save Draft ────────────────────────────────────────────────────────────
   const onSave = async (v) => {

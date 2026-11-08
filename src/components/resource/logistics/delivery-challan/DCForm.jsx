@@ -20,6 +20,7 @@ import { getLocalStorage } from "@/lib/localStorage";
 import DCBasicSection from "./DCBasicSection";
 import DCItemsTable from "./DCItemsTable";
 import { zodDate } from "@/lib/dateUtils";
+import { useCopySource, forCopy, copyLoadedToast } from "@/lib/copyRecord";
 
 // ── ZOD SCHEMA ────────────────────────────────────────────────────────────────
 const dcSchema = z.object({
@@ -72,6 +73,10 @@ const defaultValues = {
 
 // ── COMPONENT ─────────────────────────────────────────────────────────────────
 export default function DCForm({ mode = "create", dcId, onAfterSubmit }) {
+  // Copy: /new?copy=<id> pre-fills this create form from that record.
+  const copyFromId = useCopySource();
+  const isCopy = mode === "create" && !!copyFromId;
+
   const isViewMode = mode === "view" || mode === "approver";
   const router     = useRouter();
   const fileRef    = useRef(null);
@@ -106,13 +111,14 @@ export default function DCForm({ mode = "create", dcId, onAfterSubmit }) {
 
   // ── LOAD DC DETAILS (edit / view / approver) ───────────────────────────────
   useEffect(() => {
-    if (mode === "create" || !dcId) return;
+    const loadId = isCopy ? copyFromId : dcId;
+    if ((mode === "create" && !isCopy) || !loadId) return;
 
     const fetchDC = async () => {
       setIsLoading(true);
       try {
         const res = await apiRequest({
-          url: `${API_ENDPOINTS.RESOURCE.MATERIAL_MANAGEMENT.LOGISTICS.DC.GET_BY_ID}/${dcId}`,
+          url: `${API_ENDPOINTS.RESOURCE.MATERIAL_MANAGEMENT.LOGISTICS.DC.GET_BY_ID}/${loadId}`,
         });
         const d = res.data?.[0] || res.data;
 
@@ -155,6 +161,12 @@ export default function DCForm({ mode = "create", dcId, onAfterSubmit }) {
         setItems(mappedItems);
         setInitialItems(mappedItems);
 
+        if (isCopy) {
+          reset({ ...formData, dcNo: "" });
+          copyLoadedToast(d.dcNo);
+          return;
+        }
+
         const furl = d.attachedDoc || "";
         setExistingFileUrl(furl);
         setInitialFileUrl(furl);
@@ -178,7 +190,7 @@ export default function DCForm({ mode = "create", dcId, onAfterSubmit }) {
     };
 
     fetchDC();
-  }, [dcId, mode]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [copyFromId, dcId, mode]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── ORDER ITEMS CALLBACK ───────────────────────────────────────────────────
   const handleOrderItemsFetched = (data) => {

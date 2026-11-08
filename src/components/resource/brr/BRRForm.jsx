@@ -26,6 +26,7 @@ import { getLocalStorage } from "@/lib/localStorage";
 import { getInputClass, labelClass } from "@/lib/formStyles";
 import { zodDate } from "@/lib/dateUtils";
 import { useRouter } from "next/navigation";
+import { useCopySource, forCopy, copyLoadedToast } from "@/lib/copyRecord";
 
 // All order sub-categories from terms config
 const ORDER_CATEGORIES = [
@@ -101,6 +102,10 @@ function FieldRow({ label, children, required }) {
 
 /* ─── BRRForm ──────────────────────────────────────────────── */
 export default function BRRForm({ mode = "create", brrId, onDataLoaded, onAfterSubmit }) {
+  // Copy: /new?copy=<id> pre-fills this create form from that record.
+  const copyFromId = useCopySource();
+  const isCopy = mode === "create" && !!copyFromId;
+
   const [loading, setLoading]       = useState(false);
   const [isEditing, setIsEditing]   = useState(mode === "create");
   const [isSubmitted, setIsSubmitted] = useState(false);
@@ -186,11 +191,12 @@ export default function BRRForm({ mode = "create", brrId, onDataLoaded, onAfterS
 
   // Load BRR in edit/view/approver mode
   useEffect(() => {
-    if (mode === "create" || !brrId) return;
+    const loadId = isCopy ? copyFromId : brrId;
+    if ((mode === "create" && !isCopy) || !loadId) return;
     const fetchBRR = async () => {
       setLoading(true);
       try {
-        const res = await apiRequest({ url: `${API_ENDPOINTS.RESOURCE.BILL_RECEIVE_REGISTER.DETAILS}/${brrId}`, method: "GET" });
+        const res = await apiRequest({ url: `${API_ENDPOINTS.RESOURCE.BILL_RECEIVE_REGISTER.DETAILS}/${loadId}`, method: "GET" });
         const d = res.data;
         const data = {
           vendorId:          String(d.vendorId || ""),
@@ -212,6 +218,13 @@ export default function BRRForm({ mode = "create", brrId, onDataLoaded, onAfterS
           brrNo:             d.brrNo              || "",
           brrDate:           d.brrDate            || "",
         };
+        if (isCopy) {
+          const copied = { ...data, brrNo: "" };
+          reset(copied);
+          setInitialData(copied);
+          copyLoadedToast(d.brrNo);
+          return;
+        }
         reset(data);
         setInitialData(data);
         if (d.brb) setBrbData(d.brb);
@@ -236,7 +249,7 @@ export default function BRRForm({ mode = "create", brrId, onDataLoaded, onAfterS
       }
     };
     fetchBRR();
-  }, [brrId, mode, reset]);
+  }, [copyFromId, brrId, mode, reset]);
 
   // Build FormData payload
   const buildFormData = () => {

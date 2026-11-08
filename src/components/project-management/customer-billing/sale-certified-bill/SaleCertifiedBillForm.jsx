@@ -31,6 +31,7 @@ import { getLocalStorage } from "@/lib/localStorage";
 import { getInputClass }   from "@/lib/formStyles";
 import { useResizableTable } from "@/hooks/useResizableTable";
 import { zodDate } from "@/lib/dateUtils";
+import { useCopySource, forCopy, copyLoadedToast } from "@/lib/copyRecord";
 
 const BILL_MODE = "sale_certified_bill";
 
@@ -122,6 +123,10 @@ const defaultValues = {
 
 // ── COMPONENT ─────────────────────────────────────────────────────────────────
 export default function SaleCertifiedBillForm({ mode = "create", billId, onAfterSubmit, onUuid }) {
+  // Copy: /new?copy=<id> pre-fills this create form from that record.
+  const copyFromId = useCopySource();
+  const isCopy = mode === "create" && !!copyFromId;
+
   const isViewMode  = mode === "view" || mode === "approver";
   const router      = useRouter();
   const projectCode = getLocalStorage("projectInfo")?.projectCode || "";
@@ -295,12 +300,13 @@ export default function SaleCertifiedBillForm({ mode = "create", billId, onAfter
 
   // ── FETCH DETAIL (edit / view mode) ──────────────────────────────────────────
   useEffect(() => {
-    if (mode === "create" || !billId) return;
+    const loadId = isCopy ? copyFromId : billId;
+    if ((mode === "create" && !isCopy) || !loadId) return;
     const fetchDetail = async () => {
       setIsLoading(true);
       try {
         const res = await apiRequest({
-          url:    `${API_ENDPOINTS.PROJECT.SALE_CERTIFIED_BILL.GET_BY_ID}${billId}`,
+          url:    `${API_ENDPOINTS.PROJECT.SALE_CERTIFIED_BILL.GET_BY_ID}${loadId}`,
           method: "GET",
         });
         const d = res.data;
@@ -347,6 +353,11 @@ export default function SaleCertifiedBillForm({ mode = "create", billId, onAfter
             );
           }).catch(() => setPrevCertBillOpts([]));
         }
+        if (isCopy) {
+          reset({ ...formatted, erpNo: "" });
+          copyLoadedToast(d.erpNo);
+          return;
+        }
         onUuid?.(d.billingUuid || "");
         setBillUuid(d.billingUuid || "");
         setErpNo(d.erpNo || "");
@@ -370,7 +381,7 @@ export default function SaleCertifiedBillForm({ mode = "create", billId, onAfter
       }
     };
     fetchDetail();
-  }, [billId, mode]);
+  }, [copyFromId, billId, mode]);
 
   // ── EDIT / CANCEL ──────────────────────────────────────────────────────────────
   const handleEdit = () => {

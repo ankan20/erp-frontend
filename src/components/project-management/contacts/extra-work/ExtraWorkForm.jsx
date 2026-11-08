@@ -26,6 +26,7 @@ import { getLocalStorage } from "@/lib/localStorage";
 import { getInputClass }   from "@/lib/formStyles";
 import { useColumnResize } from "@/hooks/useColumnResize";
 import { zodDate } from "@/lib/dateUtils";
+import { useCopySource, forCopy, copyLoadedToast } from "@/lib/copyRecord";
 
 // ── SCHEMA ────────────────────────────────────────────────────────────────────
 const itemSchema = z.object({
@@ -83,6 +84,10 @@ const fmt = (val) => {
 
 // ── COMPONENT ─────────────────────────────────────────────────────────────────
 export default function ExtraWorkForm({ mode = "create", extraWorkId, onAfterSubmit }) {
+  // Copy: /new?copy=<id> pre-fills this create form from that record.
+  const copyFromId = useCopySource();
+  const isCopy = mode === "create" && !!copyFromId;
+
   const isViewMode = mode === "view" || mode === "approver";
   const router     = useRouter();
 
@@ -145,13 +150,14 @@ export default function ExtraWorkForm({ mode = "create", extraWorkId, onAfterSub
 
   // ── FETCH DETAIL ─────────────────────────────────────────────────────────────
   useEffect(() => {
-    if (mode === "create" || !extraWorkId) return;
+    const loadId = isCopy ? copyFromId : extraWorkId;
+    if ((mode === "create" && !isCopy) || !loadId) return;
 
     const fetchDetail = async () => {
       setIsLoading(true);
       try {
         const res = await apiRequest({
-          url:    `${API_ENDPOINTS.PROJECT.EXTRA_WORK.GET_BY_ID}${extraWorkId}`,
+          url:    `${API_ENDPOINTS.PROJECT.EXTRA_WORK.GET_BY_ID}${loadId}`,
           method: "GET",
         });
         const d = res.data;
@@ -177,6 +183,13 @@ export default function ExtraWorkForm({ mode = "create", extraWorkId, onAfterSub
         };
         if (!formatted.items.length) formatted.items = [{ ...DEFAULT_ITEM }];
 
+        if (isCopy) {
+          const copied = { ...formatted, extraWorkNo: "" };
+          reset(copied);
+          setInitialData(copied);
+          copyLoadedToast(d.extraWorkNo);
+          return;
+        }
         reset(formatted);
         setInitialData(formatted);
 
@@ -207,7 +220,7 @@ export default function ExtraWorkForm({ mode = "create", extraWorkId, onAfterSub
     };
 
     fetchDetail();
-  }, [extraWorkId, mode]);
+  }, [copyFromId, extraWorkId, mode]);
 
   // ── EDIT / CANCEL ─────────────────────────────────────────────────────────────
   const handleEdit = () => {

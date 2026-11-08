@@ -31,6 +31,7 @@ import { getLocalStorage } from "@/lib/localStorage";
 import { formatAmount }    from "@/helper/numberFormatter";
 import { useColumnResize } from "@/hooks/useColumnResize";
 import { zodDate } from "@/lib/dateUtils";
+import { useCopySource, forCopy, copyLoadedToast } from "@/lib/copyRecord";
 
 const FREQUENCY_OPTIONS = [
   { value: "Weekly",    label: "Weekly"    },
@@ -83,6 +84,10 @@ const defaultValues = {
 };
 
 export default function BudgetForm({ mode = "create", budgetId, canApprove = false, onUuid, onAfterSubmit }) {
+  // Copy: /new?copy=<id> pre-fills this create form from that record.
+  const copyFromId = useCopySource();
+  const isCopy = mode === "create" && !!copyFromId;
+
   const { tableRef } = useColumnResize();
   const isViewMode = mode === "view" || mode === "approver";
   const [isEditing,         setIsEditing]         = useState(mode === "create");
@@ -134,25 +139,27 @@ export default function BudgetForm({ mode = "create", budgetId, canApprove = fal
   }, []);
 
   useEffect(() => {
-    if (mode === "create" || !budgetId) return;
+    const loadId = isCopy ? copyFromId : budgetId;
+    if ((mode === "create" && !isCopy) || !loadId) return;
 
     const load = async () => {
       try {
         setIsLoading(true);
         const [res, revRes] = await Promise.allSettled([
-          apiRequest({ url: `${API_ENDPOINTS.FINANCE.PETTY_CASH.BUDGET.GET_BY_ID}${budgetId}`, method: "GET" }),
+          apiRequest({ url: `${API_ENDPOINTS.FINANCE.PETTY_CASH.BUDGET.GET_BY_ID}${loadId}`, method: "GET" }),
           apiRequest({ url: `${API_ENDPOINTS.FINANCE.PETTY_CASH.BUDGET.REVISION_HISTORY}${budgetId}`, method: "GET" }),
         ]);
 
         if (res.status === "rejected") throw new Error(res.reason?.message || "Failed to load budget");
         const d = res.value.data;
 
-        setBudgetNo(d.budgetNo || "");
-        setWorkflowStatus(d.workflowStatus || "");
-        if (d.budgetUuid) onUuid?.(d.budgetUuid);
-
-        const ids = (d.details || []).map((it) => it.id ?? it.budgetDetailId ?? null);
-        setDetailIds(ids);
+        if (!isCopy) {
+          setBudgetNo(d.budgetNo || "");
+          setWorkflowStatus(d.workflowStatus || "");
+          if (d.budgetUuid) onUuid?.(d.budgetUuid);
+          const ids = (d.details || []).map((it) => it.id ?? it.budgetDetailId ?? null);
+          setDetailIds(ids);
+        }
 
         const formData = {
           budgetDate:      d.budgetDate      || "",
@@ -170,6 +177,10 @@ export default function BudgetForm({ mode = "create", budgetId, canApprove = fal
         };
         reset(formData);
         setInitialData(formData);
+        if (isCopy) {
+          copyLoadedToast(d.budgetNo);
+          return;
+        }
         setExistingFileUrl(d.attachment || "");
         setInitialFileUrl(d.attachment  || "");
 
@@ -201,7 +212,7 @@ export default function BudgetForm({ mode = "create", budgetId, canApprove = fal
 
     load();
 
-  }, [budgetId, mode]);
+  }, [copyFromId, budgetId, mode]);
 
   const handleStartRevise = () => {
     const inputs = {};
