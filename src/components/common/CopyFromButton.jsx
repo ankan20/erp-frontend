@@ -3,11 +3,11 @@
 // "Copy from…" on a create page: pick an earlier entry of this module and the
 // form fills with its details (same as the Copy button on a detail page).
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { CopyPlus, Loader2, Search } from "lucide-react";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
-import { loadPickRows, startCopyFrom, useCopySource } from "@/lib/copyRecord";
+import { loadPickDetail, loadPickRows, startCopyFrom, useCopySource } from "@/lib/copyRecord";
 
 const SHOW_MAX = 200;
 
@@ -33,6 +33,26 @@ export default function CopyFromButton({ base, className = "" }) {
   }, [q, state.rows]);
 
   const active = shown.find((r) => String(r.id) === String(activeId)) || shown[0] || null;
+
+  // Full record (items etc.) of the entry being looked at — loaded after a short pause.
+  const [details, setDetails] = useState({}); // id → { status, data }
+  const activeKey = open && active ? String(active.id) : null;
+  useEffect(() => {
+    if (!activeKey || details[activeKey]) return;
+    const t = setTimeout(() => {
+      setDetails((m) => ({ ...m, [activeKey]: { status: "loading" } }));
+      loadPickDetail(base, activeKey)
+        .then((data) => setDetails((m) => ({ ...m, [activeKey]: { status: "done", data } })))
+        .catch(() => setDetails((m) => ({ ...m, [activeKey]: { status: "error" } })));
+    }, 250);
+    return () => clearTimeout(t);
+  }, [activeKey, base, details]);
+  const detail = activeKey ? details[activeKey] : null;
+  const extraFields = useMemo(() => {
+    if (!active || detail?.status !== "done" || !detail.data) return [];
+    const seen = new Set(active.fields.map((f) => f.label));
+    return detail.data.fields.filter((f) => !seen.has(f.label));
+  }, [active, detail]);
 
   const pick = (id) => {
     setOpen(false);
@@ -131,13 +151,53 @@ export default function CopyFromButton({ base, className = "" }) {
                   </button>
                 </div>
                 <dl className="grid grid-cols-[auto_minmax(0,1fr)] gap-x-3 gap-y-1.5 text-xs">
-                  {active.fields.map((f, i) => (
+                  {[...active.fields, ...extraFields].map((f, i) => (
                     <div key={i} className="contents">
                       <dt className="text-gray-500 whitespace-nowrap">{f.label}</dt>
                       <dd className="text-gray-900 break-words">{f.value}</dd>
                     </div>
                   ))}
                 </dl>
+
+                {detail?.status === "loading" && (
+                  <div className="flex items-center gap-1.5 text-[11px] text-gray-400 mt-3">
+                    <Loader2 size={12} className="animate-spin" /> Loading items…
+                  </div>
+                )}
+                {detail?.status === "error" && (
+                  <p className="text-[11px] text-gray-400 mt-3">Could not load the items of this entry.</p>
+                )}
+                {detail?.status === "done" &&
+                  detail.data?.tables.map((t) => (
+                    <div key={t.label} className="mt-3">
+                      <div className="text-[11px] font-semibold text-gray-600 mb-1">
+                        {t.label} ({t.rows.length + t.more})
+                      </div>
+                      <div className="overflow-x-auto rounded border border-gray-200 bg-white">
+                        <table className="w-full text-[11px]">
+                          <thead className="bg-gray-100 text-gray-600">
+                            <tr>
+                              <th className="px-1.5 py-1 text-left font-medium">#</th>
+                              {t.columns.map((c) => (
+                                <th key={c} className="px-1.5 py-1 text-left font-medium whitespace-nowrap">{c}</th>
+                              ))}
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {t.rows.map((row, ri) => (
+                              <tr key={ri} className="border-t border-gray-100 align-top">
+                                <td className="px-1.5 py-1 text-gray-400">{ri + 1}</td>
+                                {row.map((cell, ci) => (
+                                  <td key={ci} className="px-1.5 py-1 text-gray-900">{cell}</td>
+                                ))}
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                      {t.more > 0 && <p className="text-[10px] text-gray-400 mt-0.5">+{t.more} more</p>}
+                    </div>
+                  ))}
               </>
             ) : (
               <p className="text-xs text-gray-400 text-center py-6">Point at an entry to see its details</p>

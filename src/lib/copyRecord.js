@@ -80,56 +80,57 @@ export const COPYABLE = {
 // "Copy from…" on a create page: where to list the earlier entries.
 //   url: list endpoint · project: add ?projectCode · id: row id field
 //   params: extra query · uniq: keep one row per this field
+//   detail: full-record URL (for the item details in the hover panel)
 const E = API_ENDPOINTS;
 export const PICK_LISTS = {
-  "/master/asset-code": { url: E.MASTER.GET_ALL_ASSET, id: "assetId" },
-  "/master/bank-cash": { url: E.MASTER.BANK_CASH.LIST, id: "id" },
-  "/master/cc-code": { url: E.MASTER.GET_ALL_CC_CODE, id: "ccId" },
-  "/master/item-code": { url: E.MASTER.GET_ALL_ITEM, id: "itemId" },
-  "/master/ledger-code": { url: E.MASTER.GET_ALL_LEDGER, id: "ledgerId" },
-  "/master/terms-condition": { url: E.MASTER.TERM.LIST, id: "termId" },
-  "/master/unit": { url: E.MASTER.GET_ALL_UNIT, id: "unitId" },
+  "/master/asset-code": { detail: (id) => `${E.MASTER.GET_ASSET_BY_ID}/${id}`, url: E.MASTER.GET_ALL_ASSET, id: "assetId" },
+  "/master/bank-cash": { detail: (id) => `${E.MASTER.BANK_CASH.GET_BY_ID}/${id}`, url: E.MASTER.BANK_CASH.LIST, id: "id" },
+  "/master/cc-code": { detail: (id) => `${E.MASTER.GET_CC_CODE_BY_ID}/${id}`, url: E.MASTER.GET_ALL_CC_CODE, id: "ccId" },
+  "/master/item-code": { detail: (id) => `${E.MASTER.GET_ITEM_BY_ID}/${id}`, url: E.MASTER.GET_ALL_ITEM, id: "itemId" },
+  "/master/ledger-code": { detail: (id) => `${E.MASTER.GET_LEDGER_BY_ID}/${id}`, url: E.MASTER.GET_ALL_LEDGER, id: "ledgerId" },
+  "/master/terms-condition": { detail: (id) => `${E.MASTER.TERM.GET_BY_ID}/${id}`, url: E.MASTER.TERM.LIST, id: "termId" },
+  "/master/unit": { detail: (id) => `${E.MASTER.GET_UNIT_BY_ID}/${id}`, url: E.MASTER.GET_ALL_UNIT, id: "unitId" },
 
-  "/finance-management/account/contra": { url: E.FINANCE.CONTRA_ENTRY.LIST, project: true },
-  "/finance-management/account/credit-note": { url: E.FINANCE.CREDIT_NOTE.LIST, project: true },
-  "/finance-management/account/debit-note": { url: E.FINANCE.DEBIT_NOTE.LIST, project: true },
-  "/finance-management/account/journal": { url: E.FINANCE.JOURNAL_ENTRY.LIST, project: true },
-  "/finance-management/account/payment": { url: E.FINANCE.BILL_PAYMENT.LIST, project: true },
-  "/finance-management/account/petty-cash/budget": { url: E.FINANCE.PETTY_CASH.BUDGET.LIST, project: true },
-  "/finance-management/account/petty-cash/expenses-docket": { url: E.FINANCE.PETTY_CASH.DOCKET_VOUCHER.LIST, project: true },
-  "/finance-management/account/purchases/bill": { url: E.FINANCE.PURCHASE_BILL.LIST, project: true },
-  "/finance-management/account/receipt": { url: E.FINANCE.SALE_RECEIPT.LIST, project: true },
-  "/finance-management/account/sale": { url: E.FINANCE.SALE_BILL.LIST, project: true },
+  "/finance-management/account/contra": { detail: (id) => `${E.FINANCE.CONTRA_ENTRY.GET_BY_ID}${id}`, url: E.FINANCE.CONTRA_ENTRY.LIST, project: true },
+  "/finance-management/account/credit-note": { detail: (id) => `${E.FINANCE.CREDIT_NOTE.GET_BY_ID}${id}`, url: E.FINANCE.CREDIT_NOTE.LIST, project: true },
+  "/finance-management/account/debit-note": { detail: (id) => `${E.FINANCE.DEBIT_NOTE.GET_BY_ID}${id}`, url: E.FINANCE.DEBIT_NOTE.LIST, project: true },
+  "/finance-management/account/journal": { detail: (id) => `${E.FINANCE.JOURNAL_ENTRY.GET_BY_ID}${id}`, url: E.FINANCE.JOURNAL_ENTRY.LIST, project: true },
+  "/finance-management/account/payment": { detail: (id) => `${E.FINANCE.BILL_PAYMENT.GET_BY_ID}${id}`, url: E.FINANCE.BILL_PAYMENT.LIST, project: true },
+  "/finance-management/account/petty-cash/budget": { detail: (id) => `${E.FINANCE.PETTY_CASH.BUDGET.GET_BY_ID}${id}`, url: E.FINANCE.PETTY_CASH.BUDGET.LIST, project: true },
+  "/finance-management/account/petty-cash/expenses-docket": { detail: (id) => `${E.FINANCE.PETTY_CASH.DOCKET_VOUCHER.GET_BY_ID}${id}`, url: E.FINANCE.PETTY_CASH.DOCKET_VOUCHER.LIST, project: true },
+  "/finance-management/account/purchases/bill": { detail: (id) => `${E.FINANCE.PURCHASE_BILL.GET_BY_ID}${id}`, url: E.FINANCE.PURCHASE_BILL.LIST, project: true },
+  "/finance-management/account/receipt": { detail: (id) => `${E.FINANCE.SALE_RECEIPT.GET_BY_ID}${id}`, url: E.FINANCE.SALE_RECEIPT.LIST, project: true },
+  "/finance-management/account/sale": { detail: (id) => `${E.FINANCE.SALE_BILL.GET_BY_ID}${id}`, url: E.FINANCE.SALE_BILL.LIST, project: true },
 
-  "/logistics/delivery-challan": { url: E.RESOURCE.MATERIAL_MANAGEMENT.LOGISTICS.DC.LIST, project: true },
+  "/logistics/delivery-challan": { detail: (id) => `${E.RESOURCE.MATERIAL_MANAGEMENT.LOGISTICS.DC.GET_BY_ID}/${id}`, url: E.RESOURCE.MATERIAL_MANAGEMENT.LOGISTICS.DC.LIST, project: true },
 
-  "/project-management/contacts/budget": { url: E.PROJECT.BUDGET_MASTER.LIST, project: true },
-  "/project-management/contacts/extra-work": { url: E.PROJECT.EXTRA_WORK.LIST, project: true },
-  "/project-management/contacts/sale-order": { url: E.PROJECT.OG_SALE_ORDER.LIST, project: true },
-  "/project-management/customer-billing/sale-bill-certified": { url: E.PROJECT.SALE_CERTIFIED_BILL.LIST, project: true, params: { mode: "sale_certified_bill" } },
-  "/project-management/customer-billing/sale-bill-claim": { url: E.PROJECT.SALE_CLAIM_BILL.LIST, project: true, params: { mode: "sale_claim_bill" } },
-  "/project-management/register/bbs": { url: E.PROJECT.REGISTER.BBS_REGISTER.LIST, project: true },
-  "/project-management/register/concrete": { url: E.PROJECT.REGISTER.CONCRETE.GET_ALL_CONCRETE, project: true },
-  "/project-management/register/drawing": { url: E.PROJECT.REGISTER.DRAWING_REGISTER.GET_ALL_DRAWING_REGISTER, project: true },
-  "/project-management/register/hindrance": { url: E.PROJECT.REGISTER.HINDRANCE_REGISTER.LIST, project: true },
+  "/project-management/contacts/budget": { detail: (id) => `${E.PROJECT.BUDGET_MASTER.GET_BY_ID}${id}`, url: E.PROJECT.BUDGET_MASTER.LIST, project: true },
+  "/project-management/contacts/extra-work": { detail: (id) => `${E.PROJECT.EXTRA_WORK.GET_BY_ID}${id}`, url: E.PROJECT.EXTRA_WORK.LIST, project: true },
+  "/project-management/contacts/sale-order": { detail: (id) => `${E.PROJECT.OG_SALE_ORDER.GET_BY_ID}${id}`, url: E.PROJECT.OG_SALE_ORDER.LIST, project: true },
+  "/project-management/customer-billing/sale-bill-certified": { detail: (id) => `${E.PROJECT.SALE_CERTIFIED_BILL.GET_BY_ID}${id}`, url: E.PROJECT.SALE_CERTIFIED_BILL.LIST, project: true, params: { mode: "sale_certified_bill" } },
+  "/project-management/customer-billing/sale-bill-claim": { detail: (id) => `${E.PROJECT.SALE_CLAIM_BILL.GET_BY_ID}${id}`, url: E.PROJECT.SALE_CLAIM_BILL.LIST, project: true, params: { mode: "sale_claim_bill" } },
+  "/project-management/register/bbs": { detail: (id) => `${E.PROJECT.REGISTER.BBS_REGISTER.GET_BY_ID}/${id}`, url: E.PROJECT.REGISTER.BBS_REGISTER.LIST, project: true },
+  "/project-management/register/concrete": { detail: (id) => `${E.PROJECT.REGISTER.CONCRETE.GET_DETAILS_BY_ID}/${id}`, url: E.PROJECT.REGISTER.CONCRETE.GET_ALL_CONCRETE, project: true },
+  "/project-management/register/drawing": { detail: (id) => `${E.PROJECT.REGISTER.DRAWING_REGISTER.GET_DRAWING_REGISTER_BY_ID}/${id}`, url: E.PROJECT.REGISTER.DRAWING_REGISTER.GET_ALL_DRAWING_REGISTER, project: true },
+  "/project-management/register/hindrance": { detail: (id) => `${E.PROJECT.REGISTER.HINDRANCE_REGISTER.GET_BY_ID}/${id}`, url: E.PROJECT.REGISTER.HINDRANCE_REGISTER.LIST, project: true },
 
-  "/resource-management/contact-dairy/materials": { url: E.SUPPLIER.LIST, id: "supplierId", params: { supplierType: "materials" } },
-  "/resource-management/contact-dairy/plant-machinery": { url: E.SUPPLIER.LIST, id: "supplierId", params: { supplierType: "plant_machinery" } },
-  "/resource-management/contact-dairy/work-force": { url: E.SUPPLIER.LIST, id: "supplierId", params: { supplierType: "work_force" } },
-  "/resource-management/material/gin": { url: E.RESOURCE.MATERIAL_MANAGEMENT.GIN.GET_ALL_GIN, project: true },
-  "/resource-management/material/grn": { url: E.RESOURCE.MATERIAL_MANAGEMENT.GRN.GET_ALL_GRN, project: true },
-  "/resource-management/procurement/indent": { url: E.RESOURCE.PROCUREMENT.INDENT.GET_ALL_INDENT, project: true },
-  "/resource-management/procurement/order/material-order": { url: E.RESOURCE.PROCUREMENT.ORDER.GET_ALL_ORDER, project: true },
-  "/resource-management/procurement/order/service-order": { url: E.RESOURCE.PROCUREMENT.ORDER.PROJECT_WORK.GET_ALL_ORDER, project: true },
-  "/resource-management/services/manpower/dlr": { url: E.RESOURCE.MANPOWER.DLR.LIST },
-  "/resource-management/services/plant-machinery/batching-plant": { url: E.RESOURCE.BATCHING_PLANT.LIST, project: true },
-  "/resource-management/services/plant-machinery/log-sheet/log-book": { url: E.RESOURCE.MACHINERY.LOG_ENTRY.LIST, project: true, id: "logBookId", uniq: "logBookId" },
-  "/resource-management/services/plant-machinery/log-sheet/log-entry": { url: E.RESOURCE.MACHINERY.LOG_ENTRY.LIST, project: true, id: "entryId" },
-  "/resource-management/services/plant-machinery/pm-inventory/pm-id": { url: E.RESOURCE.MACHINERY.PM_ID.LIST },
-  "/resource-management/services/plant-machinery/pm-inventory/service-data/service-history": { url: E.RESOURCE.MACHINERY.SERVICE_HISTORY.LIST },
-  "/resource-management/services/plant-machinery/pm-inventory/service-data/service-schedule": { url: E.RESOURCE.MACHINERY.SERVICE_SCHEDULE.LIST },
-  "/resource-management/services/srn": { url: E.RESOURCE.MATERIAL_MANAGEMENT.SRN.GET_ALL_SRN, project: true },
-  "/resource-management/sub-contractor-billing/bill-receive-register": { url: E.RESOURCE.BILL_RECEIVE_REGISTER.LIST, project: true, id: "id", alt: "brrId" },
+  "/resource-management/contact-dairy/materials": { detail: (id) => `${E.SUPPLIER.GET_BY_ID}/${id}`, url: E.SUPPLIER.LIST, id: "supplierId", params: { supplierType: "materials" } },
+  "/resource-management/contact-dairy/plant-machinery": { detail: (id) => `${E.SUPPLIER.GET_BY_ID}/${id}`, url: E.SUPPLIER.LIST, id: "supplierId", params: { supplierType: "plant_machinery" } },
+  "/resource-management/contact-dairy/work-force": { detail: (id) => `${E.SUPPLIER.GET_BY_ID}/${id}`, url: E.SUPPLIER.LIST, id: "supplierId", params: { supplierType: "work_force" } },
+  "/resource-management/material/gin": { detail: (id) => `${E.RESOURCE.MATERIAL_MANAGEMENT.GIN.GET_GIN_BY_ID}/${id}`, url: E.RESOURCE.MATERIAL_MANAGEMENT.GIN.GET_ALL_GIN, project: true },
+  "/resource-management/material/grn": { detail: (id) => `${E.RESOURCE.MATERIAL_MANAGEMENT.GRN.GET_GRN_BY_ID}/${id}`, url: E.RESOURCE.MATERIAL_MANAGEMENT.GRN.GET_ALL_GRN, project: true },
+  "/resource-management/procurement/indent": { detail: (id) => `${E.RESOURCE.PROCUREMENT.INDENT.GET_INDENT_BY_ID}${id}`, url: E.RESOURCE.PROCUREMENT.INDENT.GET_ALL_INDENT, project: true },
+  "/resource-management/procurement/order/material-order": { detail: (id) => `${E.RESOURCE.PROCUREMENT.ORDER.GET_ORDER_BY_ID}/${id}`, url: E.RESOURCE.PROCUREMENT.ORDER.GET_ALL_ORDER, project: true },
+  "/resource-management/procurement/order/service-order": { detail: (id) => `${E.RESOURCE.PROCUREMENT.ORDER.PROJECT_WORK.GET_ORDER_BY_ID}/${id}`, url: E.RESOURCE.PROCUREMENT.ORDER.PROJECT_WORK.GET_ALL_ORDER, project: true },
+  "/resource-management/services/manpower/dlr": { detail: (id) => `${E.RESOURCE.MANPOWER.DLR.GET_BY_ID}/${id}`, url: E.RESOURCE.MANPOWER.DLR.LIST },
+  "/resource-management/services/plant-machinery/batching-plant": { detail: (id) => `${E.RESOURCE.BATCHING_PLANT.DETAILS}/${id}`, url: E.RESOURCE.BATCHING_PLANT.LIST, project: true },
+  "/resource-management/services/plant-machinery/log-sheet/log-book": { detail: (id) => `${E.RESOURCE.MACHINERY.LOG_BOOK.DETAILS}/${id}`, url: E.RESOURCE.MACHINERY.LOG_ENTRY.LIST, project: true, id: "logBookId", uniq: "logBookId" },
+  "/resource-management/services/plant-machinery/log-sheet/log-entry": { detail: (id) => `${E.RESOURCE.MACHINERY.LOG_ENTRY.DETAILS}/${id}`, url: E.RESOURCE.MACHINERY.LOG_ENTRY.LIST, project: true, id: "entryId" },
+  "/resource-management/services/plant-machinery/pm-inventory/pm-id": { detail: (id) => `${E.RESOURCE.MACHINERY.PM_ID.GET_BY_ID}${id}`, url: E.RESOURCE.MACHINERY.PM_ID.LIST },
+  "/resource-management/services/plant-machinery/pm-inventory/service-data/service-history": { detail: (id) => `${E.RESOURCE.MACHINERY.SERVICE_HISTORY.GET_BY_ID}${id}`, url: E.RESOURCE.MACHINERY.SERVICE_HISTORY.LIST },
+  "/resource-management/services/plant-machinery/pm-inventory/service-data/service-schedule": { detail: (id) => `${E.RESOURCE.MACHINERY.SERVICE_SCHEDULE.GET_BY_ID}${id}`, url: E.RESOURCE.MACHINERY.SERVICE_SCHEDULE.LIST },
+  "/resource-management/services/srn": { detail: (id) => `${E.RESOURCE.MATERIAL_MANAGEMENT.SRN.GET_SRN_BY_ID}/${id}`, url: E.RESOURCE.MATERIAL_MANAGEMENT.SRN.GET_ALL_SRN, project: true },
+  "/resource-management/sub-contractor-billing/bill-receive-register": { detail: (id) => `${E.RESOURCE.BILL_RECEIVE_REGISTER.DETAILS}/${id}`, url: E.RESOURCE.BILL_RECEIVE_REGISTER.LIST, project: true, id: "id", alt: "brrId" },
 };
 
 const canAdd = (base) => {
@@ -207,12 +208,15 @@ const fmtValue = (k, v) => {
   if (date) return date;
   if (typeof v === "number" && /amount|value|total|rate|cost|price|basic|gst|qty|quantity/i.test(k))
     return v.toLocaleString("en-IN", { maximumFractionDigits: 2 });
-  return String(v).replace(/_/g, " ");
+  // "Pending_L1" → "Pending L1" for statuses/types; codes like MAT_0012 stay as they are.
+  return /status|type|mode|category|frequency/i.test(k) && !/code$/i.test(k) ? String(v).replace(/_/g, " ") : String(v);
 };
 
 // "indentPlacedBy" → "Indent Placed By", "gstn" → "GSTN"
 const ACRONYMS = { gst: "GST", gstn: "GSTN", gstin: "GSTIN", pan: "PAN", erp: "ERP", uid: "UID", cc: "CC", dc: "DC", grn: "GRN", gin: "GIN", srn: "SRN", brr: "BRR", utr: "UTR", hsn: "HSN", sac: "SAC", no: "No" };
+const LABELS = { itemDisplayCode: "Item Code", unitItem: "Unit", itemUnit: "Unit", drCr: "Dr/Cr" };
 const labelOf = (k) =>
+  LABELS[k] ||
   k
     .replace(/_/g, " ")
     .replace(/([a-z0-9])([A-Z])/g, "$1 $2")
@@ -365,4 +369,82 @@ export const useCopyData = (urlPrefix, transform = (d) => d) => {
   }, [copyId]); // eslint-disable-line react-hooks/exhaustive-deps
   const ready = !copyId || (state.id === copyId && state.done);
   return { copyId, data: state.id === copyId ? state.data : null, ready };
+};
+
+// ---- full record for the hover panel (item tables etc.) ---------------------
+
+const detailCache = new Map(); // `${base}|${id}` → Promise
+
+// Which columns to show for a line-item table, best first.
+// Each group lists field names in order of preference; the first present wins.
+const COL_ORDER = [
+  ["itemName", "fullName", "ccName", "accountName", "ledgerName", "name"],
+  ["itemDescription", "description", "shortDescription"],
+  ["itemDisplayCode", "itemCode", "ccCode", "manCode", "code"],
+  ["qty", "orderQty", "issueQty", "currentReceivedQty", "claimQty", "certifiedQty", "quantity", "totalWorkingHr"],
+  ["unit", "itemUnit", "unitItem"],
+  ["rate", "unitRate"],
+  ["basicAmount", "amount", "budgetAmount", "debitAmount", "creditAmount", "currentAmount", "totalAmount", "gstAmount", "ccValue"],
+  ["gstPercent", "percent"],
+  ["location", "storeLocation", "useLocation", "stockLocation", "note", "remarks", "drCr"],
+];
+const MAX_COLS = 6;
+const MAX_ROWS = 25;
+
+const toTable = (key, arr) => {
+  const objs = arr.filter((x) => x && typeof x === "object" && !Array.isArray(x));
+  if (!objs.length) return null;
+  const keys = [...new Set(objs.flatMap((o) => Object.keys(o)))].filter(
+    (k) => !HIDDEN.test(k) && objs.some((o) => o[k] != null && o[k] !== "" && typeof o[k] !== "object"),
+  );
+  const cols = [];
+  for (const group of COL_ORDER) {
+    const k = group.find((x) => keys.includes(x) && !cols.includes(x));
+    if (k) cols.push(k);
+    if (cols.length >= MAX_COLS) break;
+  }
+  if (!cols.length) cols.push(...keys.slice(0, MAX_COLS));
+  if (!cols.length) return null;
+  // GST lines etc. often come with every row empty / unselected — skip those rows.
+  const rows = objs
+    .filter((o) => o.isSelected !== false)
+    .filter((o) => cols.some((c) => o[c] != null && o[c] !== "" && o[c] !== 0))
+    .map((o) => cols.map((c) => (o[c] == null || o[c] === "" ? "" : fmtValue(c, o[c]))));
+  if (!rows.length) return null;
+  return { label: labelOf(key), columns: cols.map(labelOf), rows: rows.slice(0, MAX_ROWS), more: Math.max(0, rows.length - MAX_ROWS) };
+};
+
+/**
+ * Full record for the hover panel: { fields: [{label,value}], tables: [{label, columns, rows, more}] }.
+ * Cached per entry; null when the module has no details address.
+ */
+export const loadPickDetail = (base, id) => {
+  const cfg = PICK_LISTS[base];
+  if (!cfg?.detail) return Promise.resolve(null);
+  const key = `${base}|${id}`;
+  if (!detailCache.has(key)) {
+    const p = apiRequest({ url: cfg.detail(id), method: "GET" })
+      .then((res) => {
+        const d = Array.isArray(res?.data) ? res.data[0] : res?.data;
+        if (!d || typeof d !== "object") return { fields: [], tables: [] };
+        const fields = [];
+        for (const [k, v] of Object.entries(d)) {
+          if (HIDDEN.test(k) || v == null || v === "" || typeof v === "object") continue;
+          fields.push({ label: labelOf(k), value: fmtValue(k, v) });
+        }
+        const tables = [];
+        for (const [k, v] of Object.entries(d)) {
+          if (!Array.isArray(v) || /^terms$|termGroups|revisions|history|timeline|approv/i.test(k)) continue;
+          const t = toTable(k, v);
+          if (t) tables.push(t);
+        }
+        return { fields, tables };
+      })
+      .catch((e) => {
+        detailCache.delete(key); // allow a retry
+        throw e;
+      });
+    detailCache.set(key, p);
+  }
+  return detailCache.get(key);
 };
