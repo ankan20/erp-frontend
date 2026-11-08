@@ -353,6 +353,23 @@ export const API_ENDPOINTS = {
 
   //project-management/register/concrete
   PROJECT: {
+    // Daily Progress Report — site photos → AI → daily report (module code "daily_progress_report")
+    DPR: {
+      PHOTOS:             "/project-mgmt/dpr/photos",             // POST multipart (projectCode, photos[], meta) · GET ?projectCode&date · PUT/DELETE /:id
+      REANALYSE:          "/project-mgmt/dpr/photos",             // /:id/reanalyse POST
+      LIST:               "/project-mgmt/dpr/list",               // GET ?projectCode — one row per day
+      DAY:                "/project-mgmt/dpr/day",                // GET ?projectCode&date — report + photos + site records
+      DETAILS:            "/project-mgmt/dpr/details",            // /:id GET
+      GENERATE:           "/project-mgmt/dpr/generate",           // POST { projectCode, date }
+      UPDATE:             "/project-mgmt/dpr/edit",               // /:id PUT
+      SUBMIT:             "/project-mgmt/dpr/submit",             // /:id POST
+      APPROVE:            "/project-mgmt/dpr/approve",            // /:id POST
+      REBACK:             "/project-mgmt/dpr/reback",             // /:id POST
+      REJECT:             "/project-mgmt/dpr/reject",             // /:id POST
+      HISTORY:            "/project-mgmt/dpr/history",            // /:id GET
+      MY_APPROVAL_STATUS: "/project-mgmt/dpr/my-approval-status", // /:id GET
+      GET_BY_UUID:        "/project-mgmt/dpr/uuid",               // /:uuid GET no-auth
+    },
     OG_SALE_ORDER: {
       LIST:               "/project-mgmt/og-sale-order/list",                       // GET ?projectCode&workflowStatus&search
       CREATE:             "/project-mgmt/og-sale-order/create",                     // POST multipart/form-data
