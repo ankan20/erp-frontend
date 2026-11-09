@@ -873,7 +873,7 @@ export default function PaymentForm({
               voucherNo:      it.voucherNo      || "",
               entryDate:      it.entryDate      || "",
               purchaseBillNo: "", brrNo: "", brrDate: "", orderNo: "",
-              slNo: i + 1, ccCode: it.ccCode || "", ccName: it.ccName || "", description: "",
+              slNo: i + 1, ccCode: it.ccCode || "", ccName: it.ccName || "", description: it.description || "",
               bookedAmount: Number(it.bookedAmount || 0), paidAmount: Number(it.paidAmount || 0),
               balanceAmount: Number(it.balanceAmount || 0), currentAmount: Number(it.currentAmount || 0),
             })),
