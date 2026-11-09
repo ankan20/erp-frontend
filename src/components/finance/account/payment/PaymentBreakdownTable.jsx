@@ -9,11 +9,12 @@ import { Loader2 }      from "lucide-react";
 /**
  * PaymentBreakdownTable
  *
- * Multi-bill payment entry table.
- * Rows are grouped by purchaseBillNo/orderNo (rowSpan per group).
- * Each item/gstLine carries its own purchaseBillNo, brrNo, orderNo.
+ * Multi-bill / voucher payment entry table.
+ * For bill mode: rows grouped by purchaseBillNo/orderNo (rowSpan per group).
+ * For voucher mode: rows grouped by voucherNo, no GST rows.
  *
  * Props
+ *   paymentType   "bill"|"voucher"
  *   itemFields    []   — from useFieldArray
  *   gstFields     []   — from useFieldArray
  *   watchedItems  []   — live watched items array
@@ -23,6 +24,7 @@ import { Loader2 }      from "lucide-react";
  *   loading       bool
  */
 export default function PaymentBreakdownTable({
+  paymentType  = "bill",
   itemFields   = [],
   gstFields    = [],
   watchedItems = [],
@@ -31,6 +33,7 @@ export default function PaymentBreakdownTable({
   disabled = false,
   loading  = false,
 }) {
+  const isVoucher = paymentType === "voucher";
   const { tableRef } = useColumnResize();
 
   const hasItems = itemFields.length > 0 && watchedItems[0]?.ccCode;
@@ -42,28 +45,27 @@ export default function PaymentBreakdownTable({
       id: f.id, type: "item", fieldIdx: idx,
       data: watchedItems[idx] || {},
     })),
-    ...gstFields
+    // No GST rows for voucher payments
+    ...(!isVoucher ? gstFields
       .map((f, idx) => ({ id: f.id, type: "gst", fieldIdx: idx, data: watchedGst[idx] || {} }))
-      .filter((r) => !!r.data.isSelected),
+      .filter((r) => !!r.data.isSelected) : []),
   ];
 
   const visibleRows = disabled
     ? allRows.filter((r) => Number(r.data.currentAmount || 0) > 0)
     : allRows.filter((r) => r.type === "item" ? !!r.data.ccCode : true);
 
-  // Group consecutive rows that share the same purchaseBillNo for rowSpan
-  // We annotate each row with { showBillCell, billRowSpan }
+  // Group consecutive rows that share the same bill/voucher identifier for rowSpan
+  const getGroupKey = (data) => isVoucher
+    ? (data.voucherNo || "")
+    : `${data.purchaseBillNo || ""}|${data.orderNo || ""}`;
+
   const annotated = visibleRows.map((row, vi) => {
-    const billNo = row.data.purchaseBillNo || "";
-    const orderNo = row.data.orderNo || "";
+    const key = getGroupKey(row.data);
 
     // Find the first row in this group
     let groupStart = vi;
-    while (
-      groupStart > 0 &&
-      (visibleRows[groupStart - 1].data.purchaseBillNo || "") === billNo &&
-      (visibleRows[groupStart - 1].data.orderNo || "") === orderNo
-    ) {
+    while (groupStart > 0 && getGroupKey(visibleRows[groupStart - 1].data) === key) {
       groupStart--;
     }
     const isFirstInGroup = groupStart === vi;
@@ -71,10 +73,7 @@ export default function PaymentBreakdownTable({
     // Calculate span
     let span = 0;
     for (let j = vi; j < visibleRows.length; j++) {
-      if (
-        (visibleRows[j].data.purchaseBillNo || "") === billNo &&
-        (visibleRows[j].data.orderNo || "") === orderNo
-      ) {
+      if (getGroupKey(visibleRows[j].data) === key) {
         span++;
       } else {
         break;
@@ -87,16 +86,26 @@ export default function PaymentBreakdownTable({
   return (
     <div className="mb-4">
       <div className={`px-3 py-1.5 ${ACC.gstHeader}`}>
-        <span className={ACC.sectionTitle}>Bill-wise Payment Entries:</span>
+        <span className={ACC.sectionTitle}>{isVoucher ? "Voucher-wise Payment Entries:" : "Bill-wise Payment Entries:"}</span>
       </div>
 
       <div className="overflow-x-auto max-h-[500px] overflow-y-auto">
         <table ref={tableRef} className="w-full border-collapse text-[11px] min-w-[800px]">
           <thead className="sticky top-0 z-10">
             <tr className={ACC.tableHead}>
-              <th className="border border-[#b0b0b0] px-2 py-1.5 text-left font-semibold w-[90px]">PR No</th>
-              <th className="border border-[#b0b0b0] px-2 py-1.5 text-left font-semibold w-[85px]">Order No</th>
-              <th className="border border-[#b0b0b0] px-2 py-1.5 text-left font-semibold">CC Name</th>
+              {isVoucher ? (
+                <>
+                  <th className="border border-[#b0b0b0] px-2 py-1.5 text-left font-semibold w-[110px]">Voucher No</th>
+                  <th className="border border-[#b0b0b0] px-2 py-1.5 text-left font-semibold w-[85px]">Date</th>
+                </>
+              ) : (
+                <>
+                  <th className="border border-[#b0b0b0] px-2 py-1.5 text-left font-semibold w-[90px]">PR No</th>
+                  <th className="border border-[#b0b0b0] px-2 py-1.5 text-left font-semibold w-[85px]">Order No</th>
+                </>
+              )}
+              <th className="border border-[#b0b0b0] px-2 py-1.5 text-left font-semibold w-[120px]">CC Name</th>
+              <th className="border border-[#b0b0b0] px-2 py-1.5 text-left font-semibold">Description</th>
               <th className="border border-[#b0b0b0] px-2 py-1.5 text-right font-semibold w-[85px]">Booked</th>
               <th className="border border-[#b0b0b0] px-2 py-1.5 text-right font-semibold w-[85px]">Paid</th>
               <th className="border border-[#b0b0b0] px-2 py-1.5 text-right font-semibold w-[85px]">Balance</th>
@@ -112,13 +121,13 @@ export default function PaymentBreakdownTable({
           <tbody>
             {loading ? (
               <tr>
-                <td colSpan={7} className="border border-gray-200 py-5 text-center text-gray-400">
+                <td colSpan={8} className="border border-gray-200 py-5 text-center text-gray-400">
                   <Loader2 className="animate-spin w-4 h-4 inline mr-1.5" />Loading items…
                 </td>
               </tr>
             ) : annotated.length === 0 ? (
               <tr>
-                <td colSpan={7} className="border border-gray-200 py-6 text-center text-[#bbb] italic text-[11px]">
+                <td colSpan={8} className="border border-gray-200 py-6 text-center text-[#bbb] italic text-[11px]">
                   No payment entries to display
                 </td>
               </tr>
@@ -138,18 +147,37 @@ export default function PaymentBreakdownTable({
                   <tr key={row.id} className={rowBg}>
                     {showBillCell && (
                       <>
-                        <td
-                          className="border border-[#d0d0d0] px-2 py-1 font-semibold text-[#1c3a5e] text-[10px] align-top"
-                          rowSpan={billRowSpan}
-                        >
-                          {data.purchaseBillNo || "—"}
-                        </td>
-                        <td
-                          className="border border-[#d0d0d0] px-2 py-1 text-gray-700 text-[10px] align-top"
-                          rowSpan={billRowSpan}
-                        >
-                          {data.orderNo || "—"}
-                        </td>
+                        {isVoucher ? (
+                          <>
+                            <td
+                              className="border border-[#d0d0d0] px-2 py-1 font-semibold text-[#1c3a5e] text-[10px] align-top"
+                              rowSpan={billRowSpan}
+                            >
+                              {data.voucherNo || "—"}
+                            </td>
+                            <td
+                              className="border border-[#d0d0d0] px-2 py-1 text-gray-500 text-[10px] align-top"
+                              rowSpan={billRowSpan}
+                            >
+                              {data.entryDate ? data.entryDate.slice(0, 10) : "—"}
+                            </td>
+                          </>
+                        ) : (
+                          <>
+                            <td
+                              className="border border-[#d0d0d0] px-2 py-1 font-semibold text-[#1c3a5e] text-[10px] align-top"
+                              rowSpan={billRowSpan}
+                            >
+                              {data.purchaseBillNo || "—"}
+                            </td>
+                            <td
+                              className="border border-[#d0d0d0] px-2 py-1 text-gray-700 text-[10px] align-top"
+                              rowSpan={billRowSpan}
+                            >
+                              {data.orderNo || "—"}
+                            </td>
+                          </>
+                        )}
                       </>
                     )}
 
@@ -160,9 +188,10 @@ export default function PaymentBreakdownTable({
                       {!isItemRow && data.percent > 0 && (
                         <span className="ml-1 text-[10px] text-gray-400">({data.percent}%)</span>
                       )}
-                      {isItemRow && data.description && (
-                        <div className="text-[10px] text-gray-400 mt-0.5">{data.description}</div>
-                      )}
+                    </td>
+
+                    <td className="border border-[#d0d0d0] px-2 py-[3px] text-[11px] text-gray-500">
+                      {isItemRow ? (data.description || "—") : "—"}
                     </td>
 
                     <td className="border border-[#d0d0d0] px-2 py-[3px] text-right text-gray-600 whitespace-nowrap">
@@ -208,7 +237,7 @@ export default function PaymentBreakdownTable({
         </table>
       </div>
 
-      {!loading && hasItems && (
+      {!loading && hasItems && !isVoucher && (
         <p className="text-[10px] text-gray-400 mt-1 px-1">
           GST rows shown are as selected on the purchase bill. Enter current payment amount for each row.
         </p>
