@@ -47,6 +47,7 @@ const pvItemSchema = z.object({
   slNo:            z.number().default(1),
   ccCode:          z.string().default(""),
   ccName:          z.string().default(""),
+  description:     z.string().nullable().optional().default(""),
   bookedAmount:    z.coerce.number().default(0),
   paidAmount:      z.coerce.number().default(0),
   balanceAmount:   z.coerce.number().default(0),
@@ -57,6 +58,9 @@ const pvGstLineSchema = z.object({
   gstType:        z.string().default(""),
   purchaseBillId: z.number().nullable().optional(),
   purchaseBillNo: z.string().default(""),
+  orderNo:        z.string().default(""),
+  brrNo:          z.string().default(""),
+  brrDate:        z.string().default(""),
   ccCode:         z.string().default(""),
   ccName:         z.string().default(""),
   percent:        z.coerce.number().default(0),
@@ -81,6 +85,13 @@ const schema = z.object({
   roundOff:        z.coerce.number().default(0),
   items:           z.array(pvItemSchema).default([]),
   gstLines:        z.array(pvGstLineSchema).default([]),
+}).superRefine((val, ctx) => {
+  if (val.paymentMode === "Bank" && !val.bankAcId) {
+    ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Bank account is required", path: ["bankAcId"] });
+  }
+  if (val.paymentMode === "Cash" && !val.cashAcId) {
+    ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Cash account is required", path: ["cashAcId"] });
+  }
 });
 
 // ── Purchase Bill Picker Modal ─────────────────────────────────────────────────
@@ -487,6 +498,7 @@ export default function PaymentForm({
         slNo: i + 1,
         ccCode: it.ccCode || "",
         ccName: it.ccName || "",
+        description: it.description || "",
         bookedAmount: Number(it.bookedAmount || 0),
         paidAmount: Number(it.paidAmount || 0),
         balanceAmount: Number(it.balanceAmount || 0),
@@ -494,17 +506,20 @@ export default function PaymentForm({
       })));
 
       replaceGst((d.gstLines || []).map((l) => ({
-        gstType: l.gstType || "",
+        gstType:        l.gstType        || "",
         purchaseBillId: l.purchaseBillId ?? null,
         purchaseBillNo: l.purchaseBillNo || "",
-        ccCode: l.ccCode || "",
-        ccName: l.ccName || "",
-        percent: Number(l.percent || 0),
-        bookedAmount: Number(l.bookedAmount || 0),
-        paidAmount: Number(l.paidAmount || 0),
-        balanceAmount: Number(l.balanceAmount || 0),
-        currentAmount: 0,
-        isSelected: !!l.isSelected,
+        orderNo:        l.orderNo        || "",
+        brrNo:          l.brrNo          || "",
+        brrDate:        l.brrDate        || "",
+        ccCode:         l.ccCode         || "",
+        ccName:         l.ccName         || "",
+        percent:        Number(l.percent    || 0),
+        bookedAmount:   Number(l.bookedAmount  || 0),
+        paidAmount:     Number(l.paidAmount    || 0),
+        balanceAmount:  Number(l.balanceAmount || 0),
+        currentAmount:  0,
+        isSelected:     !!l.isSelected,
       })));
 
       setAllowSubmit(false);
@@ -566,14 +581,17 @@ export default function PaymentForm({
             brrNo:          it.brrNo          || "",
             brrDate:        it.brrDate        || "",
             orderNo:        it.orderNo        || "",
-            slNo: i + 1, ccCode: it.ccCode || "", ccName: it.ccName || "",
+            slNo: i + 1, ccCode: it.ccCode || "", ccName: it.ccName || "", description: it.description || "",
             bookedAmount: Number(it.bookedAmount || 0), paidAmount: Number(it.paidAmount || 0),
             balanceAmount: Number(it.balanceAmount || 0), currentAmount: Number(it.currentAmount || 0),
           })),
           gstLines: (d.gstLines || []).map((l) => ({
-            gstType: l.gstType || "",
+            gstType:        l.gstType        || "",
             purchaseBillId: l.purchaseBillId ?? null,
             purchaseBillNo: l.purchaseBillNo || "",
+            orderNo:        l.orderNo        || "",
+            brrNo:          l.brrNo          || "",
+            brrDate:        l.brrDate        || "",
             ccCode: l.ccCode || "", ccName: l.ccName || "",
             percent: Number(l.percent || 0),
             bookedAmount: Number(l.bookedAmount || 0), paidAmount: Number(l.paidAmount || 0),
@@ -814,36 +832,48 @@ export default function PaymentForm({
             </PMFormRow>
 
             {paymentMode === "Cash" && (
-              <PMFormRow label="Cash A/c" labelWidth="sm:w-[160px] sm:min-w-[160px]">
-                <Controller name="cashAcId" control={control} render={({ field }) => (
-                  <SearchableSelect
-                    options={cashOpts}
-                    value={field.value ? String(field.value) : ""}
-                    disabled={disabled}
-                    onChange={(v) => field.onChange(v ? Number(v) : null)}
-                    placeholder="Select Cash Account"
-                    labelKey="displayLabel"
-                    valueKey="id"
-                    searchKeys={["displayLabel", "bankCode"]}
-                  />
-                )} />
+              <PMFormRow label="Cash A/c" required={!disabled} labelWidth="sm:w-[160px] sm:min-w-[160px]">
+                <div className="flex-1">
+                  <Controller name="cashAcId" control={control} render={({ field }) => (
+                    <SearchableSelect
+                      options={cashOpts}
+                      value={field.value ? String(field.value) : ""}
+                      disabled={disabled}
+                      onChange={(v) => field.onChange(v ? Number(v) : null)}
+                      placeholder="Select Cash Account"
+                      labelKey="displayLabel"
+                      valueKey="id"
+                      searchKeys={["displayLabel", "bankCode"]}
+                      hasError={!!errors.cashAcId}
+                    />
+                  )} />
+                  {errors.cashAcId && (
+                    <p className="text-[11px] text-red-500 mt-0.5">{errors.cashAcId.message}</p>
+                  )}
+                </div>
               </PMFormRow>
             )}
 
             {paymentMode === "Bank" && (
-              <PMFormRow label="Bank A/c" labelWidth="sm:w-[160px] sm:min-w-[160px]">
-                <Controller name="bankAcId" control={control} render={({ field }) => (
-                  <SearchableSelect
-                    options={bankOpts}
-                    value={field.value ? String(field.value) : ""}
-                    disabled={disabled}
-                    onChange={(v) => field.onChange(v ? Number(v) : null)}
-                    placeholder="Select Bank Account"
-                    labelKey="displayLabel"
-                    valueKey="id"
-                    searchKeys={["displayLabel", "bankCode"]}
-                  />
-                )} />
+              <PMFormRow label="Bank A/c" required={!disabled} labelWidth="sm:w-[160px] sm:min-w-[160px]">
+                <div className="flex-1">
+                  <Controller name="bankAcId" control={control} render={({ field }) => (
+                    <SearchableSelect
+                      options={bankOpts}
+                      value={field.value ? String(field.value) : ""}
+                      disabled={disabled}
+                      onChange={(v) => field.onChange(v ? Number(v) : null)}
+                      placeholder="Select Bank Account"
+                      labelKey="displayLabel"
+                      valueKey="id"
+                      searchKeys={["displayLabel", "bankCode"]}
+                      hasError={!!errors.bankAcId}
+                    />
+                  )} />
+                  {errors.bankAcId && (
+                    <p className="text-[11px] text-red-500 mt-0.5">{errors.bankAcId.message}</p>
+                  )}
+                </div>
               </PMFormRow>
             )}
 

@@ -48,7 +48,7 @@ export default function PaymentBreakdownTable({
   ];
 
   const visibleRows = disabled
-    ? allRows.filter((r) => r.type === "item" ? Number(r.data.currentAmount || 0) > 0 : true)
+    ? allRows.filter((r) => Number(r.data.currentAmount || 0) > 0)
     : allRows.filter((r) => r.type === "item" ? !!r.data.ccCode : true);
 
   // Group consecutive rows that share the same purchaseBillNo for rowSpan
@@ -159,6 +159,9 @@ export default function PaymentBreakdownTable({
                       </span>
                       {!isItemRow && data.percent > 0 && (
                         <span className="ml-1 text-[10px] text-gray-400">({data.percent}%)</span>
+                      )}
+                      {isItemRow && data.description && (
+                        <div className="text-[10px] text-gray-400 mt-0.5">{data.description}</div>
                       )}
                     </td>
 

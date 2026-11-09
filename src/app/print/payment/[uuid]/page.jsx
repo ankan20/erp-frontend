@@ -133,8 +133,8 @@ async function downloadDocx(data, uuid, qrCanvasRef) {
   };
   const nc = (val, w, bold = false, shading) => tc(val > 0 ? fmt.number(val) : "—", w, bold, shading, "right");
 
-  const items    = data.items    || [];
-  const gstLines = data.gstLines || [];
+  const items    = (data.items    || []).filter((it) => Number(it.currentAmount || 0) > 0);
+  const gstLines = (data.gstLines || []).filter((l)  => Number(l.currentAmount  || 0) > 0);
   const basicCurrent = items.reduce((s, it) => s + Number(it.currentAmount || 0), 0);
   const gstCurrent   = gstLines.reduce((s, l) => s + Number(l.currentAmount || 0), 0);
   const discount     = Number(data.discount  || 0);
@@ -263,8 +263,8 @@ export default function PaymentPrintPage() {
 
   if (error || !data) return <PrintErrorPage status={error?.status} message={error?.message} />;
 
-  const items    = data.items    || [];
-  const gstLines = data.gstLines || [];
+  const items    = (data.items    || []).filter((it) => Number(it.currentAmount || 0) > 0);
+  const gstLines = (data.gstLines || []).filter((l)  => Number(l.currentAmount  || 0) > 0);
   const basicCurrent = items.reduce((s, it) => s + Number(it.currentAmount || 0), 0);
   const gstCurrent   = gstLines.reduce((s, l)  => s + Number(l.currentAmount  || 0), 0);
   const discount     = Number(data.discount  || 0);
