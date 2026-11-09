@@ -1,4 +1,5 @@
-const API_BASE_URL = "https://132.154.156.82/api"; //change here later
+// Override only for local testing: NEXT_PUBLIC_API_BASE_URL=http://localhost:5099
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || "https://132.154.156.82/api";
 
 export const API_ENDPOINTS = {
   LOGIN: "/auth/login",
