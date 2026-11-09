@@ -16,7 +16,7 @@
  *     brrData: { brrId, brrNo, brrDate, orderId, orderNo, orderType, basicAmount }
  */
 
-import { useState, useEffect, useMemo } from "react";
+import { useReducer, useEffect, useMemo } from "react";
 import { X, Loader2, Search, AlertCircle } from "lucide-react";
 import { apiRequest }       from "@/lib/apiClient";
 import { API_ENDPOINTS }    from "@/config/api.config";
@@ -66,29 +66,34 @@ export default function BrrPickerModal({
   currentBrrId = null,
   onConfirm,
 }) {
-  const [brrs,        setBrrs]        = useState([]);
-  const [loading,     setLoading]     = useState(false);
-  const [error,       setError]       = useState(null);
-  const [selectedId,  setSelectedId]  = useState(null);
-  const [search,      setSearch]      = useState("");
+  const [state, dispatch] = useReducer(
+    (s, a) => {
+      switch (a.type) {
+        case "OPEN":    return { brrs: [], loading: !!a.fetch, error: null, selectedId: a.selectedId, search: "" };
+        case "LOADED":  return { ...s, loading: false, brrs: a.brrs };
+        case "ERROR":   return { ...s, loading: false, error: a.error };
+        case "SELECT":  return { ...s, selectedId: a.id };
+        case "SEARCH":  return { ...s, search: a.search };
+        default:        return s;
+      }
+    },
+    { brrs: [], loading: false, error: null, selectedId: null, search: "" },
+  );
+  const { brrs, loading, error, selectedId, search } = state;
 
   // ── Reset + fetch on open ───────────────────────────────────────────────────
   useEffect(() => {
     if (!isOpen) return;
-    setSearch("");
-    setSelectedId(currentBrrId || null);
-    setBrrs([]);
-    if (!vendorId || !projectCode) return;
+    const canFetch = !!(vendorId && projectCode);
+    dispatch({ type: "OPEN", selectedId: currentBrrId || null, fetch: canFetch });
+    if (!canFetch) return;
 
-    setLoading(true);
-    setError(null);
     apiRequest({
       url: `${API_ENDPOINTS.FINANCE.PURCHASE_BILL.AVAILABLE_BRRS}?vendorId=${vendorId}&projectCode=${projectCode}`,
       method: "GET",
     })
-      .then((res) => setBrrs(Array.isArray(res.data) ? res.data : []))
-      .catch((err) => setError(err.message || "Failed to load BRR list"))
-      .finally(() => setLoading(false));
+      .then((res) => dispatch({ type: "LOADED", brrs: Array.isArray(res.data) ? res.data : [] }))
+      .catch((err) => dispatch({ type: "ERROR", error: err.message || "Failed to load BRR list" }));
   }, [isOpen, vendorId, projectCode, currentBrrId]);
 
   // ── Filtered rows ───────────────────────────────────────────────────────────
@@ -150,7 +155,7 @@ export default function BrrPickerModal({
             <input
               type="text"
               value={search}
-              onChange={(e) => setSearch(e.target.value)}
+              onChange={(e) => dispatch({ type: "SEARCH", search: e.target.value })}
               placeholder="Search by BRR No, Order No, or Customer Bill No..."
               className="w-full pl-9 pr-3 py-1.5 border border-gray-300 rounded-md text-[13px] focus:outline-none focus:ring-2 focus:ring-blue-300"
             />
@@ -185,11 +190,11 @@ export default function BrrPickerModal({
               <thead className="sticky top-0 z-10 bg-[#1c3a5e] text-white">
                 <tr>
                   <th className="px-3 py-2 text-left font-semibold w-[30px]"></th>
-                  <th className="px-3 py-2 text-left font-semibold">Order No</th>
-                  <th className="px-3 py-2 text-left font-semibold w-[55px]">Type</th>
+                  <th className="px-3 py-2 text-left font-semibold">Party Bill No</th>
+                  <th className="px-3 py-2 text-left font-semibold w-[90px]">Bill Date</th>
                   <th className="px-3 py-2 text-left font-semibold">BRR ERP No</th>
-                  <th className="px-3 py-2 text-left font-semibold">Customer Bill No</th>
-                  <th className="px-3 py-2 text-left font-semibold w-[90px]">Date</th>
+                  <th className="px-3 py-2 text-left font-semibold">Order No</th>
+                  <th className="px-3 py-2 text-left font-semibold w-[75px]">Linkage</th>
                   <th className="px-3 py-2 text-right font-semibold w-[90px]">Amount</th>
                   <th className="px-3 py-2 text-center font-semibold w-[75px]">Status</th>
                 </tr>
@@ -212,7 +217,7 @@ export default function BrrPickerModal({
                     return (
                       <tr
                         key={brr.id}
-                        onClick={() => setSelectedId(brr.id)}
+                        onClick={() => dispatch({ type: "SELECT", id: brr.id })}
                         className={`cursor-pointer border-b border-gray-100 transition
                           ${isSelected
                             ? "bg-blue-50 border-blue-200"
@@ -231,26 +236,34 @@ export default function BrrPickerModal({
                           </span>
                         </td>
 
-                        <td className="px-3 py-2 font-semibold text-[#1c3a5e]">
-                          {brr.orderNo || "—"}
-                        </td>
-
-                        <td className="px-3 py-2">
-                          <span className="bg-gray-100 text-gray-600 px-1.5 py-0.5 rounded text-[10px] font-medium">
-                            {brr.orderType}
-                          </span>
-                        </td>
-
-                        <td className="px-3 py-2 font-semibold text-gray-800">
-                          {brr.brrNo}
-                        </td>
-
                         <td className="px-3 py-2 text-gray-600">
                           {brr.partyBillNo || "—"}
                         </td>
 
                         <td className="px-3 py-2 text-gray-500 whitespace-nowrap">
                           {brr.brrDate ? getfmtDisplaydate(brr.brrDate) : "—"}
+                        </td>
+
+                        <td className="px-3 py-2 font-semibold text-blue-600">
+                          <a
+                            href={`/resource-management/sub-contractor-billing/bill-receive-register/${brr.id}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            onClick={(e) => e.stopPropagation()}
+                            className="hover:underline"
+                          >
+                            {brr.brrNo}
+                          </a>
+                        </td>
+
+                        <td className="px-3 py-2 font-semibold text-[#1c3a5e]">
+                          {brr.orderNo || "—"}
+                        </td>
+
+                        <td className="px-3 py-2">
+                          <span className="bg-gray-100 text-gray-600 px-1.5 py-0.5 rounded text-[10px] font-medium">
+                            {brr.orderType || "—"}
+                          </span>
                         </td>
 
                         <td className="px-3 py-2 text-right font-semibold text-gray-800 whitespace-nowrap">
