@@ -146,6 +146,9 @@ export default function ReceiptBillingBreakdownTable({
                       {!isItemRow && data.percent > 0 && (
                         <span className="ml-1 text-[10px] text-gray-400">({data.percent}%)</span>
                       )}
+                      {isItemRow && data.description && (
+                        <div className="text-[10px] text-gray-400 mt-0.5">{data.description}</div>
+                      )}
                     </td>
 
                     {/* Booked */}

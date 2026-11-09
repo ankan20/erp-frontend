@@ -160,9 +160,12 @@ async function downloadDocx(data, uuid, qrCanvasRef) {
     rows: [
       new TableRow({ tableHeader: true, children: ["SL", "CC Code", "CC Name", "Booked (₹)", "Received (₹)", "Balance (₹)", "Current (₹)"].map((h, i) => tCell(h, cW[i], true, headShading, "center")) }),
       ...items.map((it, idx) => new TableRow({ children: [
-        tCell(idx + 1,                cW[0], false, undefined, "center"),
-        tCell(it.ccCode,              cW[1]),
-        tCell(it.ccName,              cW[2]),
+        tCell(idx + 1,                                                             cW[0], false, undefined, "center"),
+        tCell(it.ccCode,                                                           cW[1]),
+        new TableCell({ children: [
+          new Paragraph({ children: [run(it.ccName || "", { bold: false })] }),
+          ...(it.description ? [new Paragraph({ children: [run(it.description, { size: 16, color: "888888" })] })] : []),
+        ], width: { size: cW[2], type: WidthType.DXA }, margins: { top: 40, bottom: 40, left: 60, right: 60 } }),
         numCell(it.bookedAmount,   cW[3]),
         numCell(it.receivedAmount, cW[4]),
         numCell(it.balanceAmount,  cW[5]),
@@ -353,7 +356,10 @@ export default function SaleReceiptBillingPrintPage() {
                     <tr key={idx} className={idx % 2 === 0 ? COLOR.tableRowOdd : COLOR.tableRowEven}>
                       <td className={`${B} px-2 py-1.5 ${SIZE.tableCell} text-center`}>{idx + 1}</td>
                       <td className={`${B} px-2 py-1.5 ${SIZE.tableCell}`} style={{ whiteSpace: "nowrap" }}>{it.ccCode}</td>
-                      <td className={`${B} px-2 py-1.5 ${SIZE.tableCell} ${WEIGHT.medium}`} style={{ wordBreak: "break-word" }}>{it.ccName}</td>
+                      <td className={`${B} px-2 py-1.5 ${SIZE.tableCell} ${WEIGHT.medium}`} style={{ wordBreak: "break-word" }}>
+                        {it.ccName}
+                        {it.description && <div className="text-gray-400 font-normal" style={{ fontSize: "0.75em" }}>{it.description}</div>}
+                      </td>
                       <td className={`${B} px-2 py-1.5 ${SIZE.tableCell} text-right`} style={{ whiteSpace: "nowrap" }}><FmtNum value={it.bookedAmount} /></td>
                       <td className={`${B} px-2 py-1.5 ${SIZE.tableCell} text-right`} style={{ whiteSpace: "nowrap" }}><FmtNum value={it.receivedAmount} /></td>
                       <td className={`${B} px-2 py-1.5 ${SIZE.tableCell} text-right`} style={{ whiteSpace: "nowrap" }}><FmtNum value={it.balanceAmount} /></td>

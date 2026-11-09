@@ -144,7 +144,12 @@ async function downloadDocx(data, uuid, qrCanvasRef) {
   const makeItemRows = (rows, isGst = false) => rows.map((it, idx) => new TableRow({ children: [
     tc(idx + 1, cW[0], false, undefined, "center"),
     tc(it.ccCode || "—", cW[1]),
-    tc(it.ccName || "—", cW[2]),
+    !isGst && it.description
+      ? new TableCell({ children: [
+          new Paragraph({ children: [run(it.ccName || "—")] }),
+          new Paragraph({ children: [run(it.description, { size: 16, color: "888888" })] }),
+        ], width: { size: cW[2], type: WidthType.DXA }, margins: { top: 40, bottom: 40, left: 60, right: 60 } })
+      : tc(it.ccName || "—", cW[2]),
     nc(it.bookedAmount,  cW[3]),
     nc(it.paidAmount,    cW[4]),
     nc(it.balanceAmount, cW[5]),
@@ -362,7 +367,10 @@ export default function PaymentPrintPage() {
                     <tr key={idx} className={idx % 2 === 0 ? COLOR.tableRowOdd : COLOR.tableRowEven}>
                       <td className={`${B} px-2 py-1.5 ${SIZE.tableCell} text-center`}>{idx + 1}</td>
                       <td className={`${B} px-2 py-1.5 ${SIZE.tableCell}`}>{it.ccCode}</td>
-                      <td className={`${B} px-2 py-1.5 ${SIZE.tableCell}`}>{it.ccName}</td>
+                      <td className={`${B} px-2 py-1.5 ${SIZE.tableCell}`}>
+                        {it.ccName}
+                        {it.description && <div className="text-gray-400 font-normal" style={{ fontSize: "0.75em" }}>{it.description}</div>}
+                      </td>
                       <td className={`${B} px-2 py-1.5 ${SIZE.tableCell} text-right`}>{fmtVal(it.bookedAmount)}</td>
                       <td className={`${B} px-2 py-1.5 ${SIZE.tableCell} text-right`}>{fmtVal(it.paidAmount)}</td>
                       <td className={`${B} px-2 py-1.5 ${SIZE.tableCell} text-right`}>{fmtVal(it.balanceAmount)}</td>
