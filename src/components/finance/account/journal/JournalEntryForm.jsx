@@ -56,6 +56,7 @@ const drLineSchema = z.object({
   type:        z.enum(["CC", "Vendor", "Customer"]),
   accountId:   z.coerce.number().nullable().optional(),
   customerRef: z.string().optional().default(""),
+  description: z.string().optional().default(""),
   debitAmount: z.coerce.number().min(0).default(0),
 });
 
@@ -69,11 +70,12 @@ const schema = z.object({
   entryDate: zodDate(z, "entryDate"),
   remarks:   z.string().optional().default(""),
   drLines:   z.array(drLineSchema).min(1),
-  crLine:    crLineSchema,
+  crLine:    crLineSchema.nullable().optional(),
 });
 
-const BLANK_DR = { type: "CC", accountId: null, customerRef: "", debitAmount: 0 };
-const BLANK_CR = { type: "CC", accountId: null, customerRef: "" };
+const BLANK_DR    = { type: "CC",     accountId: null, customerRef: "", description: "", debitAmount: 0 };
+const BLANK_CR    = { type: "CC",     accountId: null, customerRef: "" };
+const BLANK_CR_JE = { type: "Vendor", accountId: null, customerRef: "" };
 const DEFAULT_VALUES = { entryDate: "", remarks: "", drLines: [{ ...BLANK_DR }], crLine: { ...BLANK_CR } };
 
 // ─── Component ────────────────────────────────────────────────────────────────
@@ -94,6 +96,7 @@ export default function JournalEntryForm({ mode = "create", journalId, onAfterSu
   const [erpVoucherNo,    setErpVoucherNo]    = useState("");
   const [workflowStatus,  setWorkflowStatus]  = useState("");
   const [entryMode,       setEntryMode]       = useState("new_voucher");
+  const [entryType,       setEntryType]       = useState("double"); // "single" | "double"
   const [ccCodeList,      setCcCodeList]      = useState([]);
   const [vendorList,      setVendorList]      = useState([]);
 
@@ -129,13 +132,37 @@ export default function JournalEntryForm({ mode = "create", journalId, onAfterSu
   const totalDebit  = watchedDrLines.reduce((s, l) => s + Number(l.debitAmount || 0), 0);
   const totalCredit = totalDebit;
 
+  // Single/Double applies only to new_voucher and bulk_docket
+  const isJournalMode  = entryMode === "new_voucher" || entryMode === "bulk_docket";
+  const isSingleEntry  = isJournalMode && entryType === "single";
+  const isDoubleJE     = isJournalMode && entryType === "double";
+
+  const handleEntryTypeChange = (type) => {
+    setEntryType(type);
+    if (type === "double") {
+      const curCrType = watchedCrLine?.type;
+      if (!curCrType || curCrType === "CC") {
+        setValue("crLine.type", "Vendor");
+        setValue("crLine.accountId", null);
+      }
+    }
+  };
+
+  // Ensure crLine.type is never "CC" in double-entry / bulk_docket (CC is Dr-only)
+  useEffect(() => {
+    if ((isDoubleJE || isBulkDocket) && (!watchedCrLine?.type || watchedCrLine.type === "CC")) {
+      setValue("crLine.type", "Vendor");
+      setValue("crLine.accountId", null);
+    }
+  }, [isDoubleJE, isBulkDocket]); // eslint-disable-line react-hooks/exhaustive-deps
+
   // Load CC codes and vendors
   useEffect(() => {
     if (!projectCode) return;
     apiRequest({ url: `${API_ENDPOINTS.MASTER.GET_ALL_CC_CODE}?projectCode=${projectCode}`, method: "GET" })
       .then((res) => setCcCodeList((res.data || []).map((c) => ({ ...c, displayLabel: `${c.ccCode} — ${c.ccName}` }))))
       .catch(() => {});
-    apiRequest({ url: API_ENDPOINTS.MASTER.GET_ALL_LEDGER, method: "GET" })
+    apiRequest({ url: `${API_ENDPOINTS.MASTER.GET_ALL_LEDGER}?type=creditor`, method: "GET" })
       .then((res) => setVendorList((res.data || []).map((v) => ({ ...v, displayLabel: `${v.ledgerCode} — ${v.ledgerName}` }))))
       .catch(() => {});
   }, [projectCode]);
@@ -168,12 +195,19 @@ export default function JournalEntryForm({ mode = "create", journalId, onAfterSu
         const d       = res.data || {};
         const sorted  = [...(d.lines || [])].sort((a, b) => a.slNo - b.slNo);
         const drLines = sorted.filter((l) => l.drCr === "Dr");
-        const crLine  = sorted.find((l) => l.drCr === "Cr") || {};
+        const crLine  = sorted.find((l) => l.drCr === "Cr") || null;
         const _lineType = (l) => l.ccId ? "CC" : l.vendorId ? "Vendor" : l.customerRef ? "Customer" : "CC";
-        const mapDr   = (l) => ({ type: _lineType(l), accountId: l.ccId || l.vendorId || null, customerRef: l.customerRef || "", debitAmount: Number(l.debitAmount || 0) });
+        const mapDr   = (l) => ({ type: _lineType(l), accountId: l.ccId || l.vendorId || null, customerRef: l.customerRef || "", description: l.description || "", debitAmount: Number(l.debitAmount || 0) });
         const mapCr   = (l) => ({ type: _lineType(l), accountId: l.ccId || l.vendorId || null, customerRef: l.customerRef || "" });
-        reset({ entryDate: d.entryDate || "", remarks: d.remarks || "", drLines: drLines.length ? drLines.map(mapDr) : [{ ...BLANK_DR }], crLine: mapCr(crLine) });
-        setEntryMode(d.entryMode || "new_voucher");
+        const loadedMode = d.entryMode || "new_voucher";
+        const isSingleMode = !crLine && loadedMode !== "adjustment";
+        reset({
+          entryDate: d.entryDate || "", remarks: d.remarks || "",
+          drLines: drLines.length ? drLines.map(mapDr) : [{ ...BLANK_DR }],
+          crLine: crLine ? mapCr(crLine) : { ...BLANK_CR_JE },
+        });
+        setEntryMode(loadedMode);
+        setEntryType(isSingleMode ? "single" : "double");
         if (d.refBillType) { setRefBillType(d.refBillType); setRefBillId(d.refBillId || null); setRefBillDocNo(d.refBillDocNo || ""); }
         if (isCopy) {
           copyLoadedToast(d.voucherNo);
@@ -201,12 +235,12 @@ export default function JournalEntryForm({ mode = "create", journalId, onAfterSu
       const docket = docketList.find((d) => d.id === did);
       if (!docket) continue;
       for (const line of docket.lines) {
-        // Find the CC code id from our ccCodeList
         const cc = ccCodeList.find((c) => c.ccCode === line.ccCode);
         newLines.push({
           type:        "CC",
           accountId:   cc?.ccId ?? null,
           debitAmount: line.amount,
+          description: line.description || "",
         });
       }
     }
@@ -231,7 +265,10 @@ export default function JournalEntryForm({ mode = "create", journalId, onAfterSu
       if (l.type !== "Customer" && !l.accountId) { toast.error(`Select account for Dr line ${i + 1}`); return; }
       if (Number(l.debitAmount || 0) <= 0) { toast.error(`Dr line ${i + 1}: amount must be > 0`); return; }
     }
-    if (v.crLine.type !== "Customer" && !v.crLine.accountId) { toast.error("Select account for Cr line"); return; }
+    const needsCr = !isSingleEntry;
+    if (needsCr && v.crLine?.type !== "Customer" && !v.crLine?.accountId) {
+      toast.error("Select account for Cr line"); return;
+    }
     const drTotal = v.drLines.reduce((s, l) => s + Number(l.debitAmount || 0), 0);
     const url    = mode === "create" ? API_ENDPOINTS.FINANCE.JOURNAL_ENTRY.CREATE : `${API_ENDPOINTS.FINANCE.JOURNAL_ENTRY.EDIT}${journalId}`;
     const method = mode === "create" ? "POST" : "PUT";
@@ -241,9 +278,13 @@ export default function JournalEntryForm({ mode = "create", journalId, onAfterSu
       ccId:        l.type === "CC"       ? Number(l.accountId) : null,
       vendorId:    l.type === "Vendor"   ? Number(l.accountId) : null,
       customerRef: l.type === "Customer" ? (clientName || l.customerRef || "") : null,
+      description: l.description || null,
       debitAmount:  debitAmt,
       creditAmount: creditAmt,
     });
+    const crLines = needsCr
+      ? [_linePayload(v.crLine, v.drLines.length + 1, "Cr", 0, drTotal)]
+      : [];
     const payload = {
       projectCode,
       entryMode,
@@ -251,9 +292,10 @@ export default function JournalEntryForm({ mode = "create", journalId, onAfterSu
       remarks:     v.remarks || "",
       refBillType: entryMode === "adjustment" ? (refBillType || null) : null,
       refBillId:   entryMode === "adjustment" ? (refBillId   || null) : null,
+      docketIds:   entryMode === "bulk_docket" ? selectedDocketIds : [],
       lines: [
         ...v.drLines.map((l, i) => _linePayload(l, i + 1, "Dr", Number(l.debitAmount || 0), 0)),
-        _linePayload(v.crLine, v.drLines.length + 1, "Cr", 0, drTotal),
+        ...crLines,
       ],
     };
     try {
@@ -320,42 +362,72 @@ export default function JournalEntryForm({ mode = "create", journalId, onAfterSu
             </PMFormRow>
 
             {/* Mode — radio on create, label on view/edit */}
-            <div className="flex items-center gap-2">
-              <span className="text-[12.5px] font-semibold text-gray-600 whitespace-nowrap">Mode :</span>
-              {mode === "create" ? (
-                <div className="flex items-center gap-4">
-                  {MODES.map((m) => (
-                    <label key={m.value} className="flex items-center gap-1.5 cursor-pointer">
-                      <input
-                        type="radio"
-                        name="entryMode"
-                        value={m.value}
-                        checked={entryMode === m.value}
-                        onChange={() => {
-                          setEntryMode(m.value);
-                          setSelectedDocketIds([]);
-                          replaceDr([{ ...BLANK_DR }]);
-                        }}
-                        className="accent-[#25507a]"
-                      />
-                      <span className="text-[12.5px] text-gray-700">{m.label}</span>
-                      <span className="text-[11px] text-gray-400">({m.prefix}…)</span>
-                      {m.value === "bulk_docket" && entryMode === "bulk_docket" && !disabled && (
+            <div className="flex flex-wrap items-center gap-3">
+              <div className="flex items-center gap-2">
+                <span className="text-[12.5px] font-semibold text-gray-600 whitespace-nowrap">Mode :</span>
+                {mode === "create" ? (
+                  <div className="flex items-center gap-4">
+                    {MODES.map((m) => (
+                      <label key={m.value} className="flex items-center gap-1.5 cursor-pointer">
+                        <input
+                          type="radio"
+                          name="entryMode"
+                          value={m.value}
+                          checked={entryMode === m.value}
+                          onChange={() => {
+                            setEntryMode(m.value);
+                            setSelectedDocketIds([]);
+                            replaceDr([{ ...BLANK_DR }]);
+                            if (m.value === "adjustment") setEntryType("double");
+                          }}
+                          className="accent-[#25507a]"
+                        />
+                        <span className="text-[12.5px] text-gray-700">{m.label}</span>
+                        <span className="text-[11px] text-gray-400">({m.prefix}…)</span>
+                        {m.value === "bulk_docket" && entryMode === "bulk_docket" && !disabled && (
+                          <button
+                            type="button"
+                            onClick={() => setDocketModalOpen(true)}
+                            className="ml-1 flex items-center gap-1 text-[11px] px-1.5 py-0.5 rounded border border-[#25507a] text-[#25507a] hover:bg-[#25507a] hover:text-white transition"
+                            title="Select Docket Vouchers"
+                          >
+                            <ListFilter size={12} />
+                            {selectedDocketIds.length > 0 && <span>{selectedDocketIds.length} selected</span>}
+                          </button>
+                        )}
+                      </label>
+                    ))}
+                  </div>
+                ) : (
+                  <span className="text-[12.5px] text-gray-700 font-medium">{modeLabel}</span>
+                )}
+              </div>
+
+              {/* Single / Double toggle — only for new_voucher / bulk_docket */}
+              {isJournalMode && (
+                <div className="flex items-center gap-2">
+                  <span className="text-[12.5px] font-semibold text-gray-600 whitespace-nowrap">Entry :</span>
+                  {!disabled ? (
+                    <div className="flex rounded border border-gray-300 overflow-hidden text-[11.5px]">
+                      {["single", "double"].map((t) => (
                         <button
+                          key={t}
                           type="button"
-                          onClick={() => setDocketModalOpen(true)}
-                          className="ml-1 flex items-center gap-1 text-[11px] px-1.5 py-0.5 rounded border border-[#25507a] text-[#25507a] hover:bg-[#25507a] hover:text-white transition"
-                          title="Select Docket Vouchers"
+                          onClick={() => handleEntryTypeChange(t)}
+                          className={`px-3 py-0.5 capitalize transition ${
+                            entryType === t
+                              ? "bg-[#25507a] text-white"
+                              : "text-gray-600 hover:bg-gray-100"
+                          }`}
                         >
-                          <ListFilter size={12} />
-                          {selectedDocketIds.length > 0 && <span>{selectedDocketIds.length} selected</span>}
+                          {t}
                         </button>
-                      )}
-                    </label>
-                  ))}
+                      ))}
+                    </div>
+                  ) : (
+                    <span className="text-[12.5px] text-gray-700 font-medium capitalize">{entryType}</span>
+                  )}
                 </div>
-              ) : (
-                <span className="text-[12.5px] text-gray-700 font-medium">{modeLabel}</span>
               )}
             </div>
           </div>
@@ -425,16 +497,20 @@ export default function JournalEntryForm({ mode = "create", journalId, onAfterSu
                       <span className="inline-block px-1.5 py-0.5 rounded text-[10px] font-bold bg-red-50 text-red-500 border border-red-100">Dr</span>
                     </td>
                     <td className="py-1 pr-1">
-                      <Controller name={`drLines.${idx}.type`} control={control} render={({ field: f }) => (
-                        <select value={f.value} disabled={rowDisabled}
-                          onChange={(e) => { f.onChange(e.target.value); setValue(`drLines.${idx}.accountId`, null); setValue(`drLines.${idx}.customerRef`, ""); }}
-                          className={typeSel}
-                        >
-                          <option value="CC">CC Code</option>
-                          <option value="Vendor">Vendor</option>
-                          <option value="Customer">Customer</option>
-                        </select>
-                      )} />
+                      {isJournalMode ? (
+                        <div className={`${typeSel} flex items-center px-2 text-gray-700`}>CC Code</div>
+                      ) : (
+                        <Controller name={`drLines.${idx}.type`} control={control} render={({ field: f }) => (
+                          <select value={f.value} disabled={rowDisabled}
+                            onChange={(e) => { f.onChange(e.target.value); setValue(`drLines.${idx}.accountId`, null); setValue(`drLines.${idx}.customerRef`, ""); }}
+                            className={typeSel}
+                          >
+                            <option value="CC">CC Code</option>
+                            <option value="Vendor">Vendor</option>
+                            <option value="Customer">Customer</option>
+                          </select>
+                        )} />
+                      )}
                     </td>
                     <td className="py-1 pr-1">
                       <AccountSelect name={`drLines.${idx}.accountId`} lineType={line.type} isDisabled={rowDisabled} />
@@ -461,26 +537,39 @@ export default function JournalEntryForm({ mode = "create", journalId, onAfterSu
                 );
               })}
 
-              {/* ── CR ROW ────────────────────────────────────────────── */}
+              {/* ── CR ROW — hidden in single entry mode ──────────────── */}
+              {!isSingleEntry && (
               <tr className="bg-green-50/40 hover:bg-green-50/70 transition-colors border-b border-gray-100">
                 <td className="px-3 py-1 text-center text-[11px] text-gray-400">{drFields.length + 1}</td>
                 <td className="px-2 py-1 text-center">
                   <span className="inline-block px-1.5 py-0.5 rounded text-[10px] font-bold bg-green-50 text-green-600 border border-green-100">Cr</span>
                 </td>
                 <td className="py-1 pr-1">
-                  <Controller name="crLine.type" control={control} render={({ field: f }) => (
-                    <select value={f.value} disabled={disabled}
-                      onChange={(e) => { f.onChange(e.target.value); setValue("crLine.accountId", null); setValue("crLine.customerRef", ""); }}
-                      className={typeSel}
-                    >
-                      <option value="CC">CC Code</option>
-                      <option value="Vendor">Vendor</option>
-                      <option value="Customer">Customer</option>
-                    </select>
-                  )} />
+                  {(isDoubleJE || isBulkDocket) ? (
+                    <Controller name="crLine.type" control={control} render={({ field: f }) => (
+                      <select value={f.value === "CC" ? "Vendor" : f.value} disabled={disabled}
+                        onChange={(e) => { f.onChange(e.target.value); setValue("crLine.accountId", null); setValue("crLine.customerRef", ""); }}
+                        className={typeSel}
+                      >
+                        <option value="Vendor">Vendor</option>
+                        <option value="Customer">Customer</option>
+                      </select>
+                    )} />
+                  ) : (
+                    <Controller name="crLine.type" control={control} render={({ field: f }) => (
+                      <select value={f.value} disabled={disabled}
+                        onChange={(e) => { f.onChange(e.target.value); setValue("crLine.accountId", null); setValue("crLine.customerRef", ""); }}
+                        className={typeSel}
+                      >
+                        <option value="CC">CC Code</option>
+                        <option value="Vendor">Vendor</option>
+                        <option value="Customer">Customer</option>
+                      </select>
+                    )} />
+                  )}
                 </td>
                 <td className="py-1 pr-1">
-                  <AccountSelect name="crLine.accountId" lineType={watchedCrLine.type} />
+                  <AccountSelect name="crLine.accountId" lineType={watchedCrLine?.type} />
                 </td>
                 <td className="py-1 pr-1">
                   <div className={`${readonlyAmt} text-gray-300`}>—</div>
@@ -516,6 +605,7 @@ export default function JournalEntryForm({ mode = "create", journalId, onAfterSu
                   )}
                 </td>
               </tr>
+              )}
 
               {/* ── GRAND TOTAL ───────────────────────────────────────── */}
               <tr className="bg-[#dce8f5] border-t-2 border-[#b8d0e8]">
@@ -525,9 +615,12 @@ export default function JournalEntryForm({ mode = "create", journalId, onAfterSu
                 <td className="px-3 py-2 text-right text-[13px] font-bold text-gray-800 tabular-nums">
                   {formatAmount(totalDebit)}
                 </td>
-                <td className="px-3 py-2 text-right text-[13px] font-bold text-gray-800 tabular-nums">
-                  {formatAmount(totalCredit)}
-                </td>
+                {!isSingleEntry && (
+                  <td className="px-3 py-2 text-right text-[13px] font-bold text-gray-800 tabular-nums">
+                    {formatAmount(totalCredit)}
+                  </td>
+                )}
+                {isSingleEntry && <td />}
                 <td />
               </tr>
 

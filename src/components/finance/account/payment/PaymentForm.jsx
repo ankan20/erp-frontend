@@ -39,11 +39,15 @@ import { useCopySource, forCopy, copyLoadedToast } from "@/lib/copyRecord";
 const pvItemSchema = z.object({
   pvItemId:        z.number().nullable().optional(),
   pbItemId:        z.number().nullable().optional(),
+  jeLineId:        z.number().nullable().optional(),
   purchaseBillId:  z.number().nullable().optional(),
   purchaseBillNo:  z.string().default(""),
   brrNo:           z.string().default(""),
   brrDate:         z.string().default(""),
   orderNo:         z.string().default(""),
+  journalEntryId:  z.number().nullable().optional(),
+  voucherNo:       z.string().default(""),
+  entryDate:       z.string().default(""),
   slNo:            z.number().default(1),
   ccCode:          z.string().default(""),
   ccName:          z.string().default(""),
@@ -72,19 +76,22 @@ const pvGstLineSchema = z.object({
 });
 
 const schema = z.object({
-  paymentDate:     zodDate(z, "paymentDate", true),
-  purchaseBillId:  z.coerce.number().nullable().optional(),
-  purchaseBillIds: z.array(z.number()).default([]),
-  vendorId:        z.coerce.number().nullable().optional(),
-  paymentMode:     z.enum(["Cash", "Bank"]).default("Bank"),
-  cashAcId:        z.coerce.number().nullable().optional().default(null),
-  bankAcId:        z.coerce.number().nullable().optional().default(null),
-  utrVoucherNo:    z.string().optional().default(""),
-  paymentRemarks:  z.string().optional().default(""),
-  discount:        z.coerce.number().min(0).default(0),
-  roundOff:        z.coerce.number().default(0),
-  items:           z.array(pvItemSchema).default([]),
-  gstLines:        z.array(pvGstLineSchema).default([]),
+  paymentDate:       zodDate(z, "paymentDate", true),
+  paymentType:       z.enum(["bill", "voucher"]).default("bill"),
+  purchaseBillId:    z.coerce.number().nullable().optional(),
+  purchaseBillIds:   z.array(z.number()).default([]),
+  journalEntryId:    z.coerce.number().nullable().optional(),
+  journalEntryIds:   z.array(z.number()).default([]),
+  vendorId:          z.coerce.number().nullable().optional(),
+  paymentMode:       z.enum(["Cash", "Bank"]).default("Bank"),
+  cashAcId:          z.coerce.number().nullable().optional().default(null),
+  bankAcId:          z.coerce.number().nullable().optional().default(null),
+  utrVoucherNo:      z.string().optional().default(""),
+  paymentRemarks:    z.string().optional().default(""),
+  discount:          z.coerce.number().min(0).default(0),
+  roundOff:          z.coerce.number().default(0),
+  items:             z.array(pvItemSchema).default([]),
+  gstLines:          z.array(pvGstLineSchema).default([]),
 }).superRefine((val, ctx) => {
   if (val.paymentMode === "Bank" && !val.bankAcId) {
     ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Bank account is required", path: ["bankAcId"] });
@@ -306,6 +313,198 @@ function PurchaseBillPickerModal({ open, onClose, onConfirm, projectCode, vendor
   );
 }
 
+// ── Journal Voucher Picker Modal ───────────────────────────────────────────────
+
+function JournalVoucherPickerModal({ open, onClose, onConfirm, projectCode, vendorId, currentJeIds = [] }) {
+  const [vouchers,    setVouchers]    = useState([]);
+  const [loading,     setLoading]     = useState(false);
+  const [selectedIds, setSelectedIds] = useState(new Set());
+  const [search,      setSearch]      = useState("");
+
+  useEffect(() => {
+    if (!open || !projectCode) return;
+    setLoading(true);
+    setSearch("");
+    const url = `${API_ENDPOINTS.FINANCE.BILL_PAYMENT.APPROVED_JOURNAL_VOUCHERS}?projectCode=${projectCode}${vendorId ? `&vendorId=${vendorId}` : ""}`;
+    apiRequest({ url, method: "GET" })
+      .then((res) => {
+        const list = Array.isArray(res.data) ? res.data : [];
+        setVouchers(list);
+        setSelectedIds(new Set(currentJeIds.filter((id) => list.some((v) => v.id === id))));
+      })
+      .catch(() => toast.error("Failed to load journal vouchers"))
+      .finally(() => setLoading(false));
+  }, [open, projectCode, vendorId]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  if (!open) return null;
+
+  const filtered = search.trim()
+    ? vouchers.filter((v) =>
+        (v.voucherNo  || "").toLowerCase().includes(search.toLowerCase()) ||
+        (v.entryDate  || "").toLowerCase().includes(search.toLowerCase())
+      )
+    : vouchers;
+
+  const toggle = (id, isDisabled) => {
+    if (isDisabled) return;
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  };
+
+  const handleConfirm = () => {
+    if (selectedIds.size === 0) { toast.error("Select at least one journal voucher"); return; }
+    const selected = vouchers.filter((v) => selectedIds.has(v.id));
+    onConfirm(selected);
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+      <div className="bg-white rounded-sm shadow-xl w-full max-w-4xl mx-3 flex flex-col max-h-[85vh]">
+        {/* Header */}
+        <div className="flex items-center justify-between px-4 py-3 border-b bg-[#f0f4fa]">
+          <div>
+            <span className="text-[13px] font-semibold text-[#3b6ea5]">Select Journal Voucher(s)</span>
+            {selectedIds.size > 0 && (
+              <span className="ml-2 text-[11px] text-blue-600 font-medium">{selectedIds.size} selected</span>
+            )}
+          </div>
+          <button type="button" onClick={onClose} className="p-1 hover:bg-gray-200 rounded">
+            <X size={16} />
+          </button>
+        </div>
+
+        {/* Search */}
+        <div className="px-4 py-2 border-b">
+          <div className="relative">
+            <Search size={13} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400" />
+            <input
+              type="text"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Search by voucher no or date…"
+              className="w-full pl-8 pr-3 py-1.5 text-[11px] border border-gray-200 rounded-sm outline-none focus:border-[#3b6ea5]"
+            />
+          </div>
+        </div>
+
+        {/* Table */}
+        <div className="flex-1 overflow-auto px-2 py-2">
+          {loading ? (
+            <div className="flex items-center justify-center py-10 text-gray-400 text-[11px]">
+              <Loader2 className="animate-spin w-4 h-4 mr-2" />Loading vouchers…
+            </div>
+          ) : filtered.length === 0 ? (
+            <div className="text-center py-10 text-gray-400 text-[11px] italic">
+              No approved journal vouchers found{vendorId ? " for this party" : ""}
+            </div>
+          ) : (
+            <table className="w-full border-collapse text-[11px]">
+              <thead>
+                <tr className="bg-[#f0f4fa]">
+                  <th className="border border-[#dde] px-2 py-1.5 text-left font-semibold w-[32px]"></th>
+                  <th className="border border-[#dde] px-2 py-1.5 text-left font-semibold">Voucher No</th>
+                  <th className="border border-[#dde] px-2 py-1.5 text-left font-semibold w-[90px]">Date</th>
+                  <th className="border border-[#dde] px-2 py-1.5 text-left font-semibold w-[80px]">Type</th>
+                  <th className="border border-[#dde] px-2 py-1.5 text-right font-semibold w-[90px]">Total Dr</th>
+                  <th className="border border-[#dde] px-2 py-1.5 text-right font-semibold w-[90px]">Paid</th>
+                  <th className="border border-[#dde] px-2 py-1.5 text-right font-semibold w-[90px]">Balance</th>
+                  <th className="border border-[#dde] px-2 py-1.5 text-center font-semibold w-[70px]">Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                {filtered.map((v) => {
+                  const locked     = v.isLocked;
+                  const fullyPaid  = v.balanceAmount <= 0;
+                  const isDisabled = locked || fullyPaid;
+                  const checked    = selectedIds.has(v.id);
+
+                  return (
+                    <tr
+                      key={v.id}
+                      onClick={() => toggle(v.id, isDisabled)}
+                      className={`cursor-pointer hover:bg-blue-50 transition ${checked ? "bg-blue-50" : ""} ${isDisabled ? "opacity-50 cursor-not-allowed" : ""}`}
+                    >
+                      <td className="border border-[#dde] px-2 py-1 text-center">
+                        <input
+                          type="checkbox"
+                          checked={checked}
+                          readOnly
+                          disabled={isDisabled}
+                          className="cursor-pointer"
+                        />
+                      </td>
+                      <td className="border border-[#dde] px-2 py-1 font-semibold text-[#1c3a5e]">{v.voucherNo || "—"}</td>
+                      <td className="border border-[#dde] px-2 py-1 text-gray-500 whitespace-nowrap">
+                        {v.entryDate ? v.entryDate.slice(0, 10) : "—"}
+                      </td>
+                      <td className="border border-[#dde] px-2 py-1 text-gray-500">
+                        {v.entryMode === "bulk_docket" ? "Bulk" : "Single"}
+                      </td>
+                      <td className="border border-[#dde] px-2 py-1 text-right text-gray-700">
+                        {v.totalDebit > 0 ? formatAmount(v.totalDebit) : "—"}
+                      </td>
+                      <td className="border border-[#dde] px-2 py-1 text-right text-orange-600 font-medium">
+                        {v.totalPaid > 0 ? formatAmount(v.totalPaid) : "—"}
+                      </td>
+                      <td className={`border border-[#dde] px-2 py-1 text-right font-semibold ${v.balanceAmount <= 0 ? "text-red-500" : "text-[#2a4a2a]"}`}>
+                        {v.totalDebit > 0 ? formatAmount(v.balanceAmount) : "—"}
+                      </td>
+                      <td className="border border-[#dde] px-2 py-1 text-center">
+                        {locked ? (
+                          <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded ${
+                            v.paymentStatus === "Approved"
+                              ? "text-blue-700 bg-blue-50"
+                              : "text-purple-700 bg-purple-50"
+                          }`}>
+                            {v.paymentStatus?.startsWith("Pending") ? "Pending" : v.paymentStatus || "Draft"}
+                          </span>
+                        ) : fullyPaid ? (
+                          <span className="text-[10px] font-semibold text-gray-400 bg-gray-100 px-1.5 py-0.5 rounded">Fully Paid</span>
+                        ) : (
+                          <span className="text-[10px] font-semibold text-green-700 bg-green-50 px-1.5 py-0.5 rounded">Available</span>
+                        )}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          )}
+        </div>
+
+        {/* Footer */}
+        <div className="flex items-center justify-between px-4 py-3 border-t bg-[#f8fafc]">
+          <span className="text-[11px] text-gray-500">
+            {selectedIds.size > 0
+              ? `${selectedIds.size} voucher(s) selected`
+              : "Check one or more vouchers to pay together"}
+          </span>
+          <div className="flex gap-2">
+            <button
+              type="button"
+              onClick={onClose}
+              className="px-4 py-1.5 text-[12px] border border-gray-300 rounded-sm hover:bg-gray-100 transition"
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              onClick={handleConfirm}
+              disabled={selectedIds.size === 0}
+              className="px-4 py-1.5 text-[12px] bg-[#3b6ea5] text-white rounded-sm hover:bg-[#2f5a8e] disabled:opacity-50 disabled:cursor-not-allowed transition"
+            >
+              Confirm Selection
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ── Component ─────────────────────────────────────────────────────────────────
 
 export default function PaymentForm({
@@ -331,6 +530,7 @@ export default function PaymentForm({
   const [paymentAcName,      setPaymentAcName]      = useState("");
   const [paymentAcCode,      setPaymentAcCode]      = useState("");
   const [pickerOpen,         setPickerOpen]         = useState(false);
+  const [voucherPickerOpen,  setVoucherPickerOpen]  = useState(false);
   const [itemsLoading,       setItemsLoading]       = useState(false);
   const [bankCashOpts,       setBankCashOpts]       = useState([]);
   const [vendorList,         setVendorList]         = useState([]);
@@ -341,37 +541,46 @@ export default function PaymentForm({
   const [vendorBillNo,   setVendorBillNo]   = useState("");
   const [vendorBillDate, setVendorBillDate] = useState("");
 
+  // Voucher snapshot — derived from selected journal entries
+  const [selectedVouchers, setSelectedVouchers] = useState([]);
+
   const skipClearOnVendorChange = useRef(false);
 
   const {
     register, control, handleSubmit, reset, setValue, watch,
     formState: { errors, isSubmitting },
   } = useForm({ resolver: zodResolver(schema), defaultValues: {
-    paymentDate:     new Date().toISOString().split("T")[0],
-    purchaseBillId:  null,
-    purchaseBillIds: [],
-    vendorId:        null,
-    paymentMode:     "Bank",
-    cashAcId:        null,
-    bankAcId:        null,
-    utrVoucherNo:    "",
-    paymentRemarks:  "",
-    discount:        0,
-    roundOff:        0,
-    items:           [],
-    gstLines:        [],
+    paymentDate:       new Date().toISOString().split("T")[0],
+    paymentType:       "bill",
+    purchaseBillId:    null,
+    purchaseBillIds:   [],
+    journalEntryId:    null,
+    journalEntryIds:   [],
+    vendorId:          null,
+    paymentMode:       "Bank",
+    cashAcId:          null,
+    bankAcId:          null,
+    utrVoucherNo:      "",
+    paymentRemarks:    "",
+    discount:          0,
+    roundOff:          0,
+    items:             [],
+    gstLines:          [],
   }});
 
   const { fields: itemFields, replace: replaceItems }       = useFieldArray({ control, name: "items" });
   const { fields: gstFields,  replace: replaceGst }         = useFieldArray({ control, name: "gstLines" });
 
-  const disabled       = isViewMode || !isEditing || isSubmitting || isSubmitted;
-  const paymentMode    = watch("paymentMode");
-  const watchedItems   = watch("items")           || [];
-  const watchedGst     = watch("gstLines")        || [];
-  const purchaseBillId = watch("purchaseBillId");
-  const purchaseBillIds = watch("purchaseBillIds") || [];
-  const vendorId       = watch("vendorId");
+  const disabled        = isViewMode || !isEditing || isSubmitting || isSubmitted;
+  const paymentMode     = watch("paymentMode");
+  const paymentType     = watch("paymentType") || "bill";
+  const isVoucher       = paymentType === "voucher";
+  const watchedItems    = watch("items")            || [];
+  const watchedGst      = watch("gstLines")         || [];
+  const purchaseBillId  = watch("purchaseBillId");
+  const purchaseBillIds = watch("purchaseBillIds")  || [];
+  const journalEntryIds = watch("journalEntryIds")  || [];
+  const vendorId        = watch("vendorId");
 
   // Totals
   const basicTotal   = watchedItems.reduce((s, it) => s + Number(it?.currentAmount || 0), 0);
@@ -403,7 +612,6 @@ export default function PaymentForm({
         .then((res) => setBankCashOpts(res.data || []))
         .catch(() => {});
     }
-    // Load creditor list
     apiRequest({ url: `${API_ENDPOINTS.MASTER.GET_ALL_LEDGER}?type=creditor`, method: "GET" })
       .then((res) => setVendorList((res.data || []).sort((a, b) => (a.ledgerName || "").localeCompare(b.ledgerName || ""))))
       .catch(() => {});
@@ -488,21 +696,25 @@ export default function PaymentForm({
       }
 
       replaceItems((d.items || []).map((it, i) => ({
-        pvItemId: null,
-        pbItemId: it.pbItemId ?? null,
+        pvItemId:       null,
+        pbItemId:       it.pbItemId       ?? null,
+        jeLineId:       null,
+        journalEntryId: null,
+        voucherNo:      "",
+        entryDate:      "",
         purchaseBillId: it.purchaseBillId ?? null,
         purchaseBillNo: it.purchaseBillNo || "",
-        brrNo: it.brrNo || "",
-        brrDate: it.brrDate || "",
-        orderNo: it.orderNo || "",
-        slNo: i + 1,
-        ccCode: it.ccCode || "",
-        ccName: it.ccName || "",
-        description: it.description || "",
-        bookedAmount: Number(it.bookedAmount || 0),
-        paidAmount: Number(it.paidAmount || 0),
-        balanceAmount: Number(it.balanceAmount || 0),
-        currentAmount: 0,
+        brrNo:          it.brrNo          || "",
+        brrDate:        it.brrDate        || "",
+        orderNo:        it.orderNo        || "",
+        slNo:           i + 1,
+        ccCode:         it.ccCode         || "",
+        ccName:         it.ccName         || "",
+        description:    it.description    || "",
+        bookedAmount:   Number(it.bookedAmount  || 0),
+        paidAmount:     Number(it.paidAmount    || 0),
+        balanceAmount:  Number(it.balanceAmount || 0),
+        currentAmount:  0,
       })));
 
       replaceGst((d.gstLines || []).map((l) => ({
@@ -530,7 +742,77 @@ export default function PaymentForm({
     }
   }, [mode, setValue, replaceItems, replaceGst]);
 
-  useEffect(() => { loadBillsItems(purchaseBillIds); }, [purchaseBillIds?.join(",")]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => {
+    if (!isVoucher) loadBillsItems(purchaseBillIds);
+  }, [purchaseBillIds?.join(","), isVoucher]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // ── Load items when voucher(s) selected (create mode) ──────────────
+  const loadVoucherItems = useCallback(async (jeIds) => {
+    if (!jeIds || jeIds.length === 0 || mode !== "create") return;
+    setItemsLoading(true);
+    try {
+      let d;
+      if (jeIds.length === 1) {
+        const res = await apiRequest({ url: `${API_ENDPOINTS.FINANCE.BILL_PAYMENT.JOURNAL_VOUCHER_ITEMS}${jeIds[0]}`, method: "GET" });
+        const single = res.data || {};
+        d = {
+          entries: [{
+            id:        single.journalEntryId,
+            voucherNo: single.voucherNo,
+            entryDate: single.entryDate,
+            vendorId:  single.vendorId,
+            vendorName: single.vendorName,
+          }],
+          items: (single.items || []).map((it) => ({
+            ...it,
+            journalEntryId: single.journalEntryId,
+            voucherNo:      single.voucherNo,
+            entryDate:      single.entryDate,
+          })),
+        };
+      } else {
+        const params = jeIds.map((id) => `jeIds=${id}`).join("&");
+        const res = await apiRequest({ url: `${API_ENDPOINTS.FINANCE.BILL_PAYMENT.JOURNAL_VOUCHER_ITEMS_MULTI}?${params}`, method: "GET" });
+        d = res.data || {};
+      }
+
+      const firstEntry = (d.entries || [])[0] || {};
+      setSelectedVouchers(d.entries || []);
+
+      if (firstEntry.vendorName) setVendorName(firstEntry.vendorName);
+      if (firstEntry.vendorId) {
+        skipClearOnVendorChange.current = true;
+        setValue("vendorId", firstEntry.vendorId, { shouldDirty: false });
+      }
+
+      replaceItems((d.items || []).map((it, i) => ({
+        pvItemId:       null,
+        pbItemId:       null,
+        jeLineId:       it.jeLineId ?? null,
+        journalEntryId: it.journalEntryId ?? null,
+        voucherNo:      it.voucherNo || "",
+        entryDate:      it.entryDate || "",
+        slNo:           i + 1,
+        ccCode:         it.ccCode || "",
+        ccName:         it.ccName || "",
+        description:    it.description || "",
+        bookedAmount:   Number(it.bookedAmount || 0),
+        paidAmount:     Number(it.paidAmount   || 0),
+        balanceAmount:  Number(it.balanceAmount || 0),
+        currentAmount:  0,
+      })));
+      replaceGst([]);
+      setAllowSubmit(false);
+    } catch {
+      toast.error("Failed to load voucher items");
+    } finally {
+      setItemsLoading(false);
+    }
+  }, [mode, setValue, replaceItems, replaceGst]);
+
+  useEffect(() => {
+    if (isVoucher) loadVoucherItems(journalEntryIds);
+  }, [journalEntryIds?.join(","), isVoucher]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── Fetch Detail (edit/view) ─────────────────────────────────────
   useEffect(() => {
@@ -557,25 +839,88 @@ export default function PaymentForm({
           setPaymentAcName(name); setPaymentAcCode("CASH");
         }
 
+        const loadedPaymentType = d.paymentType || "bill";
+        const isLoadedVoucher = loadedPaymentType === "voucher";
+
+        if (isLoadedVoucher) {
+          // Voucher payment load
+          setSelectedVouchers(d.entries?.length ? d.entries : [{ id: d.journalEntryId, voucherNo: d.voucherNo }]);
+
+          // Build unique JE ids from items
+          const jeIdsFromItems = [...new Set((d.items || []).map((it) => it.journalEntryId).filter(Boolean))];
+          const resolvedJeIds = jeIdsFromItems.length ? jeIdsFromItems : (d.journalEntryId ? [d.journalEntryId] : []);
+
+          reset({
+            paymentDate:     d.paymentDate    || "",
+            paymentType:     "voucher",
+            purchaseBillId:  null,
+            purchaseBillIds: [],
+            journalEntryId:  d.journalEntryId || null,
+            journalEntryIds: resolvedJeIds,
+            vendorId:        d.vendorId       || null,
+            paymentMode:     d.paymentMode    || "Bank",
+            cashAcId:        d.cashAcId       || null,
+            bankAcId:        d.bankAcId       || null,
+            utrVoucherNo:    d.utrVoucherNo   || "",
+            paymentRemarks:  d.paymentRemarks || "",
+            discount:        Number(d.discount  || 0),
+            roundOff:        Number(d.roundOff  || 0),
+            items: (d.items || []).map((it, i) => ({
+              pvItemId:       isCopy ? null : it.id ?? null,
+              pbItemId:       null,
+              jeLineId:       it.jeLineId       ?? null,
+              journalEntryId: it.journalEntryId ?? null,
+              voucherNo:      it.voucherNo      || "",
+              entryDate:      it.entryDate      || "",
+              purchaseBillNo: "", brrNo: "", brrDate: "", orderNo: "",
+              slNo: i + 1, ccCode: it.ccCode || "", ccName: it.ccName || "", description: "",
+              bookedAmount: Number(it.bookedAmount || 0), paidAmount: Number(it.paidAmount || 0),
+              balanceAmount: Number(it.balanceAmount || 0), currentAmount: Number(it.currentAmount || 0),
+            })),
+            gstLines: [],
+          });
+
+          if (!isCopy) {
+            const no = d.receiptNo;
+            if (no) setErpPaymentNo(no);
+            const uuid = d.receiptUuid;
+            if (uuid && onUuid) onUuid(uuid);
+            const locked = d.workflowStatus && !["Draft", "Reback"].includes(d.workflowStatus);
+            setIsSubmitted(locked);
+            setAllowSubmit(!locked);
+            setIsEditing(false);
+          } else {
+            copyLoadedToast(d.receiptNo);
+          }
+          return;
+        }
+
+        // ── Bill payment load ──────────────────────────────────────
         // Collect unique bill ids from items (multi-bill support)
         const billIdsFromItems = [...new Set((d.items || []).map((it) => it.purchaseBillId).filter(Boolean))];
         const resolvedBillIds = billIdsFromItems.length ? billIdsFromItems : (d.purchaseBillId ? [d.purchaseBillId] : []);
 
         reset({
-          paymentDate:     d.paymentDate    || "",
-          purchaseBillId:  d.purchaseBillId || null,
-          purchaseBillIds: resolvedBillIds,
-          vendorId:        d.vendorId       || null,
-          paymentMode:     d.paymentMode    || "Bank",
-          cashAcId:        d.cashAcId       || null,
-          bankAcId:        d.bankAcId       || null,
-          utrVoucherNo:    d.utrVoucherNo   || "",
-          paymentRemarks:  d.paymentRemarks || "",
-          discount:        Number(d.discount  || 0),
-          roundOff:        Number(d.roundOff  || 0),
+          paymentDate:       d.paymentDate    || "",
+          paymentType:       "bill",
+          purchaseBillId:    d.purchaseBillId || null,
+          purchaseBillIds:   resolvedBillIds,
+          journalEntryId:    null,
+          journalEntryIds:   [],
+          vendorId:          d.vendorId       || null,
+          paymentMode:       d.paymentMode    || "Bank",
+          cashAcId:          d.cashAcId       || null,
+          bankAcId:          d.bankAcId       || null,
+          utrVoucherNo:      d.utrVoucherNo   || "",
+          paymentRemarks:    d.paymentRemarks || "",
+          discount:          Number(d.discount  || 0),
+          roundOff:          Number(d.roundOff  || 0),
           items: (d.items || []).map((it, i) => ({
             pvItemId:       isCopy ? null : it.id ?? null,
             pbItemId:       it.pbItemId       ?? null,
+            jeLineId:       null,
+            journalEntryId: null,
+            voucherNo:      "", entryDate:      "",
             purchaseBillId: it.purchaseBillId ?? null,
             purchaseBillNo: it.purchaseBillNo || "",
             brrNo:          it.brrNo          || "",
@@ -632,6 +977,28 @@ export default function PaymentForm({
     setPickerOpen(false);
   }, [setValue]);
 
+  // ── Voucher picker confirm ────────────────────────────────────────
+  const handleVoucherConfirm = useCallback((vouchers) => {
+    const ids = vouchers.map((v) => v.id);
+    setValue("journalEntryIds", ids, { shouldDirty: true });
+    setValue("journalEntryId", ids[0] ?? null, { shouldDirty: false });
+    setVoucherPickerOpen(false);
+  }, [setValue]);
+
+  // ── Payment type toggle ───────────────────────────────────────────
+  const handlePaymentTypeChange = useCallback((type) => {
+    setValue("paymentType", type, { shouldDirty: true });
+    // Clear both bill and voucher selections on type switch
+    setValue("purchaseBillId",  null, { shouldDirty: true });
+    setValue("purchaseBillIds", [],   { shouldDirty: true });
+    setValue("journalEntryId",  null, { shouldDirty: true });
+    setValue("journalEntryIds", [],   { shouldDirty: true });
+    replaceItems([]);
+    replaceGst([]);
+    setSelectedBills([]); setBrrDate(""); setVendorBillNo(""); setVendorBillDate("");
+    setSelectedVouchers([]);
+  }, [setValue, replaceItems, replaceGst]);
+
   // Clear bill/items when vendor changes (unless auto-set from bill load)
   const prevVendorId = useRef(vendorId);
   useEffect(() => {
@@ -643,9 +1010,12 @@ export default function PaymentForm({
     if (prevVendorId.current !== vendorId && mode === "create") {
       setValue("purchaseBillId",  null, { shouldDirty: true });
       setValue("purchaseBillIds", [],   { shouldDirty: true });
+      setValue("journalEntryId",  null, { shouldDirty: true });
+      setValue("journalEntryIds", [],   { shouldDirty: true });
       replaceItems([]);
       replaceGst([]);
       setSelectedBills([]); setBrrDate(""); setVendorBillNo(""); setVendorBillDate("");
+      setSelectedVouchers([]);
     }
     prevVendorId.current = vendorId;
   }, [vendorId]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -668,32 +1038,61 @@ export default function PaymentForm({
     const url    = mode === "create" ? EP.CREATE : `${EP.EDIT}${paymentId}`;
     const method = mode === "create" ? "POST"    : "PUT";
 
-    const billIds = (v.purchaseBillIds || []).length ? v.purchaseBillIds : (v.purchaseBillId ? [v.purchaseBillId] : []);
-    const payload = {
-      projectCode,
-      paymentDate:     v.paymentDate,
-      purchaseBillId:  billIds[0] || null,
-      purchaseBillIds: billIds,
-      vendorId:        v.vendorId       || null,
-      paymentMode:     v.paymentMode,
-      cashAcId:        v.paymentMode === "Cash" ? (v.cashAcId || null) : null,
-      bankAcId:        v.paymentMode === "Bank" ? (v.bankAcId || null) : null,
-      utrVoucherNo:    v.utrVoucherNo  || "",
-      paymentRemarks:  v.paymentRemarks || "",
-      discount:        Number(v.discount  || 0),
-      roundOff:        Number(v.roundOff  || 0),
-      items: v.items.map((it) => ({
-        ...(it.pbItemId       ? { pbItemId:       it.pbItemId       } : {}),
-        ...(it.purchaseBillId ? { purchaseBillId: it.purchaseBillId } : {}),
-        slNo: it.slNo, ccCode: it.ccCode, ccName: it.ccName,
-        bookedAmount: Number(it.bookedAmount || 0), currentAmount: Number(it.currentAmount || 0),
-      })),
-      gstLines: v.gstLines.map((l) => ({
-        gstType: l.gstType, ccCode: l.ccCode, ccName: l.ccName,
-        bookedAmount: Number(l.bookedAmount || 0), currentAmount: Number(l.currentAmount || 0),
-        isSelected: !!l.isSelected,
-      })),
-    };
+    const pType = v.paymentType || "bill";
+    let payload;
+
+    if (pType === "voucher") {
+      const jeIds = (v.journalEntryIds || []).length ? v.journalEntryIds : (v.journalEntryId ? [v.journalEntryId] : []);
+      payload = {
+        projectCode,
+        paymentType:       "voucher",
+        paymentDate:       v.paymentDate,
+        journalEntryId:    jeIds[0] || null,
+        journalEntryIds:   jeIds,
+        vendorId:          v.vendorId       || null,
+        paymentMode:       v.paymentMode,
+        cashAcId:          v.paymentMode === "Cash" ? (v.cashAcId || null) : null,
+        bankAcId:          v.paymentMode === "Bank" ? (v.bankAcId || null) : null,
+        utrVoucherNo:      v.utrVoucherNo   || "",
+        paymentRemarks:    v.paymentRemarks || "",
+        discount:          Number(v.discount  || 0),
+        roundOff:          Number(v.roundOff  || 0),
+        items: v.items.map((it) => ({
+          ...(it.jeLineId ? { jeLineId: it.jeLineId } : {}),
+          slNo: it.slNo, ccCode: it.ccCode, ccName: it.ccName,
+          bookedAmount: Number(it.bookedAmount || 0), currentAmount: Number(it.currentAmount || 0),
+        })),
+        gstLines: [],
+      };
+    } else {
+      const billIds = (v.purchaseBillIds || []).length ? v.purchaseBillIds : (v.purchaseBillId ? [v.purchaseBillId] : []);
+      payload = {
+        projectCode,
+        paymentType:     "bill",
+        paymentDate:     v.paymentDate,
+        purchaseBillId:  billIds[0] || null,
+        purchaseBillIds: billIds,
+        vendorId:        v.vendorId       || null,
+        paymentMode:     v.paymentMode,
+        cashAcId:        v.paymentMode === "Cash" ? (v.cashAcId || null) : null,
+        bankAcId:        v.paymentMode === "Bank" ? (v.bankAcId || null) : null,
+        utrVoucherNo:    v.utrVoucherNo   || "",
+        paymentRemarks:  v.paymentRemarks || "",
+        discount:        Number(v.discount  || 0),
+        roundOff:        Number(v.roundOff  || 0),
+        items: v.items.map((it) => ({
+          ...(it.pbItemId       ? { pbItemId:       it.pbItemId       } : {}),
+          ...(it.purchaseBillId ? { purchaseBillId: it.purchaseBillId } : {}),
+          slNo: it.slNo, ccCode: it.ccCode, ccName: it.ccName,
+          bookedAmount: Number(it.bookedAmount || 0), currentAmount: Number(it.currentAmount || 0),
+        })),
+        gstLines: v.gstLines.map((l) => ({
+          gstType: l.gstType, ccCode: l.ccCode, ccName: l.ccName,
+          bookedAmount: Number(l.bookedAmount || 0), currentAmount: Number(l.currentAmount || 0),
+          isSelected: !!l.isSelected,
+        })),
+      };
+    }
 
     try {
       const res = await apiRequest({ url, method, data: payload });
@@ -754,9 +1153,28 @@ export default function PaymentForm({
             <PMFormRow label="Payment Date" required={!disabled} labelWidth="sm:w-[160px] sm:min-w-[160px]">
               <PMDateInput {...register("paymentDate")} disabled={disabled} hasError={errors.paymentDate} className="max-w-[200px]" />
             </PMFormRow>
+            <PMFormRow label="Payment Type" labelWidth="sm:w-[160px] sm:min-w-[160px]">
+              <div className="flex items-center gap-0 border border-gray-200 rounded-sm overflow-hidden text-[11px]">
+                {["bill", "voucher"].map((type) => (
+                  <button
+                    key={type}
+                    type="button"
+                    disabled={disabled}
+                    onClick={() => !disabled && handlePaymentTypeChange(type)}
+                    className={`px-3 py-1 font-medium transition capitalize ${
+                      paymentType === type
+                        ? "bg-[#3b6ea5] text-white"
+                        : "bg-white text-gray-500 hover:bg-gray-50"
+                    } ${disabled ? "cursor-not-allowed opacity-70" : "cursor-pointer"}`}
+                  >
+                    {type === "bill" ? "Bill" : "Voucher"}
+                  </button>
+                ))}
+              </div>
+            </PMFormRow>
           </PMSection>
 
-          <PMSection title="BILL REFERENCE:">
+          <PMSection title={isVoucher ? "VOUCHER REFERENCE:" : "BILL REFERENCE:"}>
             <PMFormRow label="Party (Creditor)" labelWidth="sm:w-[160px] sm:min-w-[160px]">
               <Controller name="vendorId" control={control} render={({ field }) => (
                 <SearchableSelect
@@ -776,43 +1194,75 @@ export default function PaymentForm({
               )} />
             </PMFormRow>
 
-            <PMFormRow label="PR No(s)" required={!disabled} labelWidth="sm:w-[160px] sm:min-w-[160px]">
-              <div className="flex items-start gap-1.5 flex-1">
-                <div className="flex-1 min-h-[28px] flex flex-wrap gap-1 px-2 py-1 border border-gray-200 rounded-sm bg-gray-50 text-[11px]">
-                  {selectedBills.length > 0 ? (
-                    selectedBills.map((b) => (
-                      <span key={b.id ?? b.purchaseBillNo} className="bg-[#dbeafe] text-[#1c3a5e] px-1.5 py-0.5 rounded font-medium">
-                        {b.purchaseBillNo || `#${b.id}`}
-                      </span>
-                    ))
-                  ) : (
-                    <span className="text-gray-400 italic">Click icon to select bill(s)</span>
-                  )}
-                </div>
-                {!disabled && (
-                  <button
-                    type="button"
-                    onClick={() => setPickerOpen(true)}
-                    title="Select Purchase Bill(s)"
-                    className="p-1.5 rounded border border-[#3b6ea5] text-[#3b6ea5] hover:bg-[#3b6ea5] hover:text-white transition shrink-0 mt-0.5"
-                  >
-                    <FileText size={14} />
-                  </button>
-                )}
-              </div>
-            </PMFormRow>
+            {isVoucher ? (
+              <>
+                <PMFormRow label="Voucher(s)" required={!disabled} labelWidth="sm:w-[160px] sm:min-w-[160px]">
+                  <div className="flex items-start gap-1.5 flex-1">
+                    <div className="flex-1 min-h-[28px] flex flex-wrap gap-1 px-2 py-1 border border-gray-200 rounded-sm bg-gray-50 text-[11px]">
+                      {selectedVouchers.length > 0 ? (
+                        selectedVouchers.map((v) => (
+                          <span key={v.id} className="bg-[#f0fdf4] text-[#166534] border border-[#bbf7d0] px-1.5 py-0.5 rounded font-medium">
+                            {v.voucherNo || `#${v.id}`}
+                          </span>
+                        ))
+                      ) : (
+                        <span className="text-gray-400 italic">Click icon to select voucher(s)</span>
+                      )}
+                    </div>
+                    {!disabled && (
+                      <button
+                        type="button"
+                        onClick={() => setVoucherPickerOpen(true)}
+                        title="Select Journal Voucher(s)"
+                        className="p-1.5 rounded border border-[#166534] text-[#166534] hover:bg-[#166534] hover:text-white transition shrink-0 mt-0.5"
+                      >
+                        <FileText size={14} />
+                      </button>
+                    )}
+                  </div>
+                </PMFormRow>
+              </>
+            ) : (
+              <>
+                <PMFormRow label="PR No(s)" required={!disabled} labelWidth="sm:w-[160px] sm:min-w-[160px]">
+                  <div className="flex items-start gap-1.5 flex-1">
+                    <div className="flex-1 min-h-[28px] flex flex-wrap gap-1 px-2 py-1 border border-gray-200 rounded-sm bg-gray-50 text-[11px]">
+                      {selectedBills.length > 0 ? (
+                        selectedBills.map((b) => (
+                          <span key={b.id ?? b.purchaseBillNo} className="bg-[#dbeafe] text-[#1c3a5e] px-1.5 py-0.5 rounded font-medium">
+                            {b.purchaseBillNo || `#${b.id}`}
+                          </span>
+                        ))
+                      ) : (
+                        <span className="text-gray-400 italic">Click icon to select bill(s)</span>
+                      )}
+                    </div>
+                    {!disabled && (
+                      <button
+                        type="button"
+                        onClick={() => setPickerOpen(true)}
+                        title="Select Purchase Bill(s)"
+                        className="p-1.5 rounded border border-[#3b6ea5] text-[#3b6ea5] hover:bg-[#3b6ea5] hover:text-white transition shrink-0 mt-0.5"
+                      >
+                        <FileText size={14} />
+                      </button>
+                    )}
+                  </div>
+                </PMFormRow>
 
-            <PMFormRow label="BRR Date" labelWidth="sm:w-[160px] sm:min-w-[160px]">
-              <PMInput value={brrDate ? getfmtDisplaydate(brrDate) : ""} disabled readOnly placeholder="[From Purchase Bill]" className="max-w-[200px]" />
-            </PMFormRow>
+                <PMFormRow label="BRR Date" labelWidth="sm:w-[160px] sm:min-w-[160px]">
+                  <PMInput value={brrDate ? getfmtDisplaydate(brrDate) : ""} disabled readOnly placeholder="[From Purchase Bill]" className="max-w-[200px]" />
+                </PMFormRow>
 
-            <PMFormRow label="Vendor Bill No" labelWidth="sm:w-[160px] sm:min-w-[160px]">
-              <PMInput value={vendorBillNo} disabled readOnly placeholder="[From Purchase Bill]" />
-            </PMFormRow>
+                <PMFormRow label="Vendor Bill No" labelWidth="sm:w-[160px] sm:min-w-[160px]">
+                  <PMInput value={vendorBillNo} disabled readOnly placeholder="[From Purchase Bill]" />
+                </PMFormRow>
 
-            <PMFormRow label="Vendor Bill Date" labelWidth="sm:w-[160px] sm:min-w-[160px]">
-              <PMInput value={vendorBillDate ? getfmtDisplaydate(vendorBillDate) : ""} disabled readOnly placeholder="[From Purchase Bill]" className="max-w-[200px]" />
-            </PMFormRow>
+                <PMFormRow label="Vendor Bill Date" labelWidth="sm:w-[160px] sm:min-w-[160px]">
+                  <PMInput value={vendorBillDate ? getfmtDisplaydate(vendorBillDate) : ""} disabled readOnly placeholder="[From Purchase Bill]" className="max-w-[200px]" />
+                </PMFormRow>
+              </>
+            )}
           </PMSection>
 
           <PMSection title="PAYMENT MODE:">
@@ -913,8 +1363,9 @@ export default function PaymentForm({
             emptyText="Select a party and bank/cash account to generate accounting entries"
           />
 
-          {/* Bill-wise Payment Breakdown */}
+          {/* Bill-wise / Voucher-wise Payment Breakdown */}
           <PaymentBreakdownTable
+            paymentType={paymentType}
             itemFields={itemFields}
             gstFields={gstFields}
             watchedItems={watchedItems}
@@ -975,6 +1426,16 @@ export default function PaymentForm({
         projectCode={projectCode}
         vendorId={vendorId}
         currentBillIds={purchaseBillIds}
+      />
+
+      {/* Journal Voucher Picker Modal */}
+      <JournalVoucherPickerModal
+        open={voucherPickerOpen}
+        onClose={() => setVoucherPickerOpen(false)}
+        onConfirm={handleVoucherConfirm}
+        projectCode={projectCode}
+        vendorId={vendorId}
+        currentJeIds={journalEntryIds || []}
       />
     </div>
   );
