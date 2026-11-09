@@ -1,10 +1,11 @@
 "use client";
 
-import { ACC }          from "@/components/finance/account/common/accountTheme";
-import { formatAmount } from "@/helper/numberFormatter";
-import AmountInput      from "@/components/common/AmountInput";
-import { useColumnResize } from "@/hooks/useColumnResize";
-import { Loader2 }      from "lucide-react";
+import { ACC }               from "@/components/finance/account/common/accountTheme";
+import { formatAmount }      from "@/helper/numberFormatter";
+import AmountInput           from "@/components/common/AmountInput";
+import { useColumnResize }   from "@/hooks/useColumnResize";
+import { Loader2 }           from "lucide-react";
+import ExpandableTextCell    from "@/components/project-management/common/ExpandableTextCell";
 
 /**
  * PaymentBreakdownTable
@@ -104,8 +105,7 @@ export default function PaymentBreakdownTable({
                   <th className="border border-[#b0b0b0] px-2 py-1.5 text-left font-semibold w-[85px]">Order No</th>
                 </>
               )}
-              <th className="border border-[#b0b0b0] px-2 py-1.5 text-left font-semibold w-[120px]">CC Name</th>
-              <th className="border border-[#b0b0b0] px-2 py-1.5 text-left font-semibold">Description</th>
+              <th className="border border-[#b0b0b0] px-2 py-1.5 text-left font-semibold">CC Name / Description</th>
               <th className="border border-[#b0b0b0] px-2 py-1.5 text-right font-semibold w-[85px]">Booked</th>
               <th className="border border-[#b0b0b0] px-2 py-1.5 text-right font-semibold w-[85px]">Paid</th>
               <th className="border border-[#b0b0b0] px-2 py-1.5 text-right font-semibold w-[85px]">Balance</th>
@@ -121,13 +121,13 @@ export default function PaymentBreakdownTable({
           <tbody>
             {loading ? (
               <tr>
-                <td colSpan={8} className="border border-gray-200 py-5 text-center text-gray-400">
+                <td colSpan={7} className="border border-gray-200 py-5 text-center text-gray-400">
                   <Loader2 className="animate-spin w-4 h-4 inline mr-1.5" />Loading items…
                 </td>
               </tr>
             ) : annotated.length === 0 ? (
               <tr>
-                <td colSpan={8} className="border border-gray-200 py-6 text-center text-[#bbb] italic text-[11px]">
+                <td colSpan={7} className="border border-gray-200 py-6 text-center text-[#bbb] italic text-[11px]">
                   No payment entries to display
                 </td>
               </tr>
@@ -188,10 +188,16 @@ export default function PaymentBreakdownTable({
                       {!isItemRow && data.percent > 0 && (
                         <span className="ml-1 text-[10px] text-gray-400">({data.percent}%)</span>
                       )}
-                    </td>
-
-                    <td className="border border-[#d0d0d0] px-2 py-[3px] text-[11px] text-gray-500">
-                      {isItemRow ? (data.description || "—") : "—"}
+                      {isItemRow && (
+                        <ExpandableTextCell
+                          value={data.description || ""}
+                          disabled
+                          placeholder="—"
+                          label="Description"
+                          textSize="text-[10px]"
+                          className="text-gray-400 mt-0.5"
+                        />
+                      )}
                     </td>
 
                     <td className="border border-[#d0d0d0] px-2 py-[3px] text-right text-gray-600 whitespace-nowrap">
