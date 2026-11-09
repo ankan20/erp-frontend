@@ -37,64 +37,70 @@ import { useCopySource, forCopy, copyLoadedToast } from "@/lib/copyRecord";
 // ── Schema ────────────────────────────────────────────────────────────────────
 
 const pvItemSchema = z.object({
-  pvItemId:      z.number().nullable().optional(),
-  pbItemId:      z.number().nullable().optional(),
-  slNo:          z.number().default(1),
-  ccCode:        z.string().default(""),
-  ccName:        z.string().default(""),
-  bookedAmount:  z.coerce.number().default(0),
-  paidAmount:    z.coerce.number().default(0),
-  balanceAmount: z.coerce.number().default(0),
-  currentAmount: z.coerce.number().min(0).default(0),
+  pvItemId:        z.number().nullable().optional(),
+  pbItemId:        z.number().nullable().optional(),
+  purchaseBillId:  z.number().nullable().optional(),
+  purchaseBillNo:  z.string().default(""),
+  brrNo:           z.string().default(""),
+  brrDate:         z.string().default(""),
+  orderNo:         z.string().default(""),
+  slNo:            z.number().default(1),
+  ccCode:          z.string().default(""),
+  ccName:          z.string().default(""),
+  bookedAmount:    z.coerce.number().default(0),
+  paidAmount:      z.coerce.number().default(0),
+  balanceAmount:   z.coerce.number().default(0),
+  currentAmount:   z.coerce.number().min(0).default(0),
 });
 
 const pvGstLineSchema = z.object({
-  gstType:       z.string().default(""),
-  ccCode:        z.string().default(""),
-  ccName:        z.string().default(""),
-  percent:       z.coerce.number().default(0),
-  bookedAmount:  z.coerce.number().default(0),
-  paidAmount:    z.coerce.number().default(0),
-  balanceAmount: z.coerce.number().default(0),
-  currentAmount: z.coerce.number().min(0).default(0),
-  isSelected:    z.boolean().default(false),
+  gstType:        z.string().default(""),
+  purchaseBillId: z.number().nullable().optional(),
+  purchaseBillNo: z.string().default(""),
+  ccCode:         z.string().default(""),
+  ccName:         z.string().default(""),
+  percent:        z.coerce.number().default(0),
+  bookedAmount:   z.coerce.number().default(0),
+  paidAmount:     z.coerce.number().default(0),
+  balanceAmount:  z.coerce.number().default(0),
+  currentAmount:  z.coerce.number().min(0).default(0),
+  isSelected:     z.boolean().default(false),
 });
 
 const schema = z.object({
-  paymentDate:    zodDate(z, "paymentDate", true),
-  purchaseBillId: z.coerce.number().nullable().optional(),
-  vendorId:       z.coerce.number().nullable().optional(),
-  paymentMode:    z.enum(["Cash", "Bank"]).default("Bank"),
-  cashAcId:       z.coerce.number().nullable().optional().default(null),
-  bankAcId:       z.coerce.number().nullable().optional().default(null),
-  utrVoucherNo:   z.string().optional().default(""),
-  paymentRemarks: z.string().optional().default(""),
-  discount:       z.coerce.number().min(0).default(0),
-  roundOff:       z.coerce.number().default(0),
-  items:          z.array(pvItemSchema).default([]),
-  gstLines:       z.array(pvGstLineSchema).default([]),
+  paymentDate:     zodDate(z, "paymentDate", true),
+  purchaseBillId:  z.coerce.number().nullable().optional(),
+  purchaseBillIds: z.array(z.number()).default([]),
+  vendorId:        z.coerce.number().nullable().optional(),
+  paymentMode:     z.enum(["Cash", "Bank"]).default("Bank"),
+  cashAcId:        z.coerce.number().nullable().optional().default(null),
+  bankAcId:        z.coerce.number().nullable().optional().default(null),
+  utrVoucherNo:    z.string().optional().default(""),
+  paymentRemarks:  z.string().optional().default(""),
+  discount:        z.coerce.number().min(0).default(0),
+  roundOff:        z.coerce.number().default(0),
+  items:           z.array(pvItemSchema).default([]),
+  gstLines:        z.array(pvGstLineSchema).default([]),
 });
 
 // ── Purchase Bill Picker Modal ─────────────────────────────────────────────────
 
-function PurchaseBillPickerModal({ open, onClose, onConfirm, projectCode, vendorId, currentBillId }) {
+function PurchaseBillPickerModal({ open, onClose, onConfirm, projectCode, vendorId, currentBillIds = [] }) {
   const [bills,       setBills]       = useState([]);
   const [loading,     setLoading]     = useState(false);
-  const [selectedId,  setSelectedId]  = useState(null);
+  const [selectedIds, setSelectedIds] = useState(new Set());
   const [search,      setSearch]      = useState("");
 
   useEffect(() => {
     if (!open || !projectCode) return;
     setLoading(true);
+    setSearch("");
     const url = `${API_ENDPOINTS.FINANCE.BILL_PAYMENT.APPROVED_PURCHASE_BILLS}?projectCode=${projectCode}${vendorId ? `&vendorId=${vendorId}` : ""}`;
     apiRequest({ url, method: "GET" })
       .then((res) => {
         const list = Array.isArray(res.data) ? res.data : [];
         setBills(list);
-        if (currentBillId) {
-          const match = list.find((b) => b.id === currentBillId);
-          if (match) setSelectedId(match.id);
-        }
+        setSelectedIds(new Set(currentBillIds.filter((id) => list.some((b) => b.id === id))));
       })
       .catch(() => toast.error("Failed to load purchase bills"))
       .finally(() => setLoading(false));
@@ -107,23 +113,36 @@ function PurchaseBillPickerModal({ open, onClose, onConfirm, projectCode, vendor
         (b.purchaseBillNo  || "").toLowerCase().includes(search.toLowerCase()) ||
         (b.orderNo         || "").toLowerCase().includes(search.toLowerCase()) ||
         (b.vendorBillNo    || "").toLowerCase().includes(search.toLowerCase()) ||
-        (b.vendorName      || "").toLowerCase().includes(search.toLowerCase())
+        (b.brrNo           || "").toLowerCase().includes(search.toLowerCase())
       )
     : bills;
 
+  const toggle = (id, isDisabled) => {
+    if (isDisabled) return;
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  };
+
   const handleConfirm = () => {
-    const bill = bills.find((b) => b.id === selectedId);
-    if (!bill) { toast.error("Select a purchase bill first"); return; }
-    if (bill.isLocked) { toast.error("This bill already has an active payment in progress"); return; }
-    onConfirm(bill);
+    if (selectedIds.size === 0) { toast.error("Select at least one purchase bill"); return; }
+    const selected = bills.filter((b) => selectedIds.has(b.id));
+    onConfirm(selected);
   };
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
-      <div className="bg-white rounded-sm shadow-xl w-full max-w-3xl mx-3 flex flex-col max-h-[85vh]">
+      <div className="bg-white rounded-sm shadow-xl w-full max-w-5xl mx-3 flex flex-col max-h-[85vh]">
         {/* Header */}
         <div className="flex items-center justify-between px-4 py-3 border-b bg-[#f0f4fa]">
-          <span className="text-[13px] font-semibold text-[#3b6ea5]">Select Purchase Bill</span>
+          <div>
+            <span className="text-[13px] font-semibold text-[#3b6ea5]">Select Purchase Bill(s)</span>
+            {selectedIds.size > 0 && (
+              <span className="ml-2 text-[11px] text-blue-600 font-medium">{selectedIds.size} selected</span>
+            )}
+          </div>
           <button type="button" onClick={onClose} className="p-1 hover:bg-gray-200 rounded">
             <X size={16} />
           </button>
@@ -137,7 +156,7 @@ function PurchaseBillPickerModal({ open, onClose, onConfirm, projectCode, vendor
               type="text"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              placeholder="Search by bill no, order no, vendor bill…"
+              placeholder="Search by PR No, vendor bill, BRR no, order no…"
               className="w-full pl-8 pr-3 py-1.5 text-[12px] border border-gray-300 rounded-sm focus:outline-none focus:border-[#3b6ea5]"
             />
           </div>
@@ -156,35 +175,38 @@ function PurchaseBillPickerModal({ open, onClose, onConfirm, projectCode, vendor
             </div>
           ) : (
             <table className="w-full border-collapse text-[11px]">
-              <thead className="sticky top-0 bg-[#eef4fb]">
+              <thead className="sticky top-0 bg-[#1c3a5e] text-white">
                 <tr>
-                  <th className="border border-[#c0cfe0] px-2 py-1.5 text-left font-semibold w-[32px]"></th>
-                  <th className="border border-[#c0cfe0] px-2 py-1.5 text-left font-semibold w-[110px]">Purchase Bill No</th>
-                  <th className="border border-[#c0cfe0] px-2 py-1.5 text-left font-semibold w-[90px]">Order No</th>
-                  <th className="border border-[#c0cfe0] px-2 py-1.5 text-left font-semibold w-[100px]">Vendor Bill No</th>
-                  <th className="border border-[#c0cfe0] px-2 py-1.5 text-left font-semibold w-[85px]">BVS Date</th>
-                  <th className="border border-[#c0cfe0] px-2 py-1.5 text-right font-semibold w-[85px]">Booked</th>
-                  <th className="border border-[#c0cfe0] px-2 py-1.5 text-right font-semibold w-[85px]">In Progress</th>
-                  <th className="border border-[#c0cfe0] px-2 py-1.5 text-right font-semibold w-[85px]">Balance</th>
-                  <th className="border border-[#c0cfe0] px-2 py-1.5 text-center font-semibold w-[80px]">Status</th>
+                  <th className="border border-[#2a4e7c] px-2 py-1.5 text-left font-semibold w-[32px]"></th>
+                  <th className="border border-[#2a4e7c] px-2 py-1.5 text-left font-semibold w-[100px]">Vendor Bill No</th>
+                  <th className="border border-[#2a4e7c] px-2 py-1.5 text-left font-semibold w-[85px]">Bill Date</th>
+                  <th className="border border-[#2a4e7c] px-2 py-1.5 text-left font-semibold w-[90px]">BRR Number</th>
+                  <th className="border border-[#2a4e7c] px-2 py-1.5 text-left font-semibold w-[85px]">BRR Date</th>
+                  <th className="border border-[#2a4e7c] px-2 py-1.5 text-left font-semibold w-[100px]">PR Number</th>
+                  <th className="border border-[#2a4e7c] px-2 py-1.5 text-left font-semibold w-[85px]">PR Date</th>
+                  <th className="border border-[#2a4e7c] px-2 py-1.5 text-left font-semibold w-[90px]">Order No</th>
+                  <th className="border border-[#2a4e7c] px-2 py-1.5 text-right font-semibold w-[80px]">Booked</th>
+                  <th className="border border-[#2a4e7c] px-2 py-1.5 text-right font-semibold w-[80px]">Paid</th>
+                  <th className="border border-[#2a4e7c] px-2 py-1.5 text-right font-semibold w-[80px]">Balance</th>
+                  <th className="border border-[#2a4e7c] px-2 py-1.5 text-center font-semibold w-[75px]">Status</th>
                 </tr>
               </thead>
               <tbody>
                 {filtered.map((b, i) => {
-                  const sel        = selectedId === b.id;
+                  const sel        = selectedIds.has(b.id);
                   const locked     = !!b.isLocked;
                   const booked     = Number(b.bookedAmount ?? b.totalInvoiceAmount ?? 0);
-                  const inProgress = Number(b.inProgressAmount ?? 0);
+                  const paid       = Number(b.approvedPaidAmount ?? 0);
                   const balance    = Number(b.balanceAmount ?? booked ?? 0);
                   const fullyPaid  = !locked && balance <= 0 && booked > 0;
                   const pStatus    = b.paymentStatus || null;
-                  const disabled = locked || fullyPaid;
+                  const isDisabled = locked || fullyPaid;
                   return (
                     <tr
                       key={b.id}
-                      onClick={() => !disabled && setSelectedId(b.id)}
+                      onClick={() => toggle(b.id, isDisabled)}
                       className={`transition-colors ${
-                        disabled
+                        isDisabled
                           ? "opacity-50 cursor-not-allowed bg-gray-50"
                           : sel
                           ? "bg-[#dbeafe] cursor-pointer"
@@ -194,19 +216,26 @@ function PurchaseBillPickerModal({ open, onClose, onConfirm, projectCode, vendor
                       }`}
                     >
                       <td className="border border-[#dde] px-2 py-1 text-center">
-                        <input type="radio" readOnly checked={sel} disabled={disabled} className="accent-[#3b6ea5]" />
+                        <input type="checkbox" readOnly checked={sel} disabled={isDisabled} className="accent-[#3b6ea5]" />
+                      </td>
+                      <td className="border border-[#dde] px-2 py-1 text-gray-600">{b.vendorBillNo || "—"}</td>
+                      <td className="border border-[#dde] px-2 py-1 text-gray-500 whitespace-nowrap">
+                        {b.vendorBillDate ? getfmtDisplaydate(b.vendorBillDate) : "—"}
+                      </td>
+                      <td className="border border-[#dde] px-2 py-1 font-medium text-[#1c3a5e]">{b.brrNo || "—"}</td>
+                      <td className="border border-[#dde] px-2 py-1 text-gray-500 whitespace-nowrap">
+                        {b.brrDate ? getfmtDisplaydate(b.brrDate) : "—"}
                       </td>
                       <td className="border border-[#dde] px-2 py-1 font-semibold text-[#1c3a5e]">{b.purchaseBillNo || "—"}</td>
-                      <td className="border border-[#dde] px-2 py-1 text-gray-700">{b.orderNo || "—"}</td>
-                      <td className="border border-[#dde] px-2 py-1 text-gray-600">{b.vendorBillNo || "—"}</td>
-                      <td className="border border-[#dde] px-2 py-1 text-gray-600">
-                        {(b.processingDate || b.bvsDate) ? getfmtDisplaydate(b.processingDate || b.bvsDate) : "—"}
+                      <td className="border border-[#dde] px-2 py-1 text-gray-500 whitespace-nowrap">
+                        {b.processingDate ? getfmtDisplaydate(b.processingDate) : "—"}
                       </td>
+                      <td className="border border-[#dde] px-2 py-1 text-gray-700">{b.orderNo || "—"}</td>
                       <td className="border border-[#dde] px-2 py-1 text-right text-gray-700">
                         {booked > 0 ? formatAmount(booked) : "—"}
                       </td>
                       <td className="border border-[#dde] px-2 py-1 text-right text-orange-600 font-medium">
-                        {inProgress > 0 ? formatAmount(inProgress) : "—"}
+                        {paid > 0 ? formatAmount(paid) : "—"}
                       </td>
                       <td className={`border border-[#dde] px-2 py-1 text-right font-semibold ${balance <= 0 ? "text-red-500" : "text-[#2a4a2a]"}`}>
                         {booked > 0 ? formatAmount(balance) : "—"}
@@ -237,22 +266,29 @@ function PurchaseBillPickerModal({ open, onClose, onConfirm, projectCode, vendor
         </div>
 
         {/* Footer */}
-        <div className="flex items-center justify-end gap-2 px-4 py-3 border-t bg-[#f8fafc]">
-          <button
-            type="button"
-            onClick={onClose}
-            className="px-4 py-1.5 text-[12px] border border-gray-300 rounded-sm hover:bg-gray-100 transition"
-          >
-            Cancel
-          </button>
-          <button
-            type="button"
-            onClick={handleConfirm}
-            disabled={!selectedId}
-            className="px-4 py-1.5 text-[12px] bg-[#3b6ea5] text-white rounded-sm hover:bg-[#2f5a8e] disabled:opacity-50 disabled:cursor-not-allowed transition"
-          >
-            Confirm Selection
-          </button>
+        <div className="flex items-center justify-between px-4 py-3 border-t bg-[#f8fafc]">
+          <span className="text-[11px] text-gray-500">
+            {selectedIds.size > 0
+              ? `${selectedIds.size} bill(s) selected`
+              : "Check one or more bills to pay together"}
+          </span>
+          <div className="flex gap-2">
+            <button
+              type="button"
+              onClick={onClose}
+              className="px-4 py-1.5 text-[12px] border border-gray-300 rounded-sm hover:bg-gray-100 transition"
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              onClick={handleConfirm}
+              disabled={selectedIds.size === 0}
+              className="px-4 py-1.5 text-[12px] bg-[#3b6ea5] text-white rounded-sm hover:bg-[#2f5a8e] disabled:opacity-50 disabled:cursor-not-allowed transition"
+            >
+              Confirm Selection
+            </button>
+          </div>
         </div>
       </div>
     </div>
@@ -288,12 +324,11 @@ export default function PaymentForm({
   const [bankCashOpts,       setBankCashOpts]       = useState([]);
   const [vendorList,         setVendorList]         = useState([]);
 
-  // Bill snapshot fields (read-only display)
-  const [purchaseBillNo, setPurchaseBillNo] = useState("");
-  const [bvsDate,        setBvsDate]        = useState("");
+  // Bill snapshot fields (read-only display) — derived from selected bills
+  const [selectedBills,  setSelectedBills]  = useState([]); // array of bill meta objects
+  const [brrDate,        setBrrDate]        = useState("");  // from first selected bill
   const [vendorBillNo,   setVendorBillNo]   = useState("");
   const [vendorBillDate, setVendorBillDate] = useState("");
-  const [orderNo,        setOrderNo]        = useState("");
 
   const skipClearOnVendorChange = useRef(false);
 
@@ -301,29 +336,31 @@ export default function PaymentForm({
     register, control, handleSubmit, reset, setValue, watch,
     formState: { errors, isSubmitting },
   } = useForm({ resolver: zodResolver(schema), defaultValues: {
-    paymentDate:    new Date().toISOString().split("T")[0],
-    purchaseBillId: null,
-    vendorId:       null,
-    paymentMode:    "Bank",
-    cashAcId:       null,
-    bankAcId:       null,
-    utrVoucherNo:   "",
-    paymentRemarks: "",
-    discount:       0,
-    roundOff:       0,
-    items:          [],
-    gstLines:       [],
+    paymentDate:     new Date().toISOString().split("T")[0],
+    purchaseBillId:  null,
+    purchaseBillIds: [],
+    vendorId:        null,
+    paymentMode:     "Bank",
+    cashAcId:        null,
+    bankAcId:        null,
+    utrVoucherNo:    "",
+    paymentRemarks:  "",
+    discount:        0,
+    roundOff:        0,
+    items:           [],
+    gstLines:        [],
   }});
 
   const { fields: itemFields, replace: replaceItems }       = useFieldArray({ control, name: "items" });
   const { fields: gstFields,  replace: replaceGst }         = useFieldArray({ control, name: "gstLines" });
 
-  const disabled    = isViewMode || !isEditing || isSubmitting || isSubmitted;
-  const paymentMode = watch("paymentMode");
-  const watchedItems    = watch("items")    || [];
-  const watchedGst      = watch("gstLines") || [];
-  const purchaseBillId  = watch("purchaseBillId");
-  const vendorId        = watch("vendorId");
+  const disabled       = isViewMode || !isEditing || isSubmitting || isSubmitted;
+  const paymentMode    = watch("paymentMode");
+  const watchedItems   = watch("items")           || [];
+  const watchedGst     = watch("gstLines")        || [];
+  const purchaseBillId = watch("purchaseBillId");
+  const purchaseBillIds = watch("purchaseBillIds") || [];
+  const vendorId       = watch("vendorId");
 
   // Totals
   const basicTotal   = watchedItems.reduce((s, it) => s + Number(it?.currentAmount || 0), 0);
@@ -385,36 +422,91 @@ export default function PaymentForm({
     }
   }, [paymentMode, watch("bankAcId"), watch("cashAcId"), bankCashOpts]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // ── Load items when bill is selected (create mode) ─────────────────
-  const loadBillItems = useCallback(async (billId) => {
-    if (!billId || mode !== "create") return;
+  // ── Load items when bill(s) selected (create mode) ─────────────────
+  const loadBillsItems = useCallback(async (billIds) => {
+    if (!billIds || billIds.length === 0 || mode !== "create") return;
     setItemsLoading(true);
     try {
-      const res = await apiRequest({ url: `${API_ENDPOINTS.FINANCE.BILL_PAYMENT.PURCHASE_BILL_ITEMS}${billId}`, method: "GET" });
-      const d = res.data || {};
-      setBvsDate(d.bvsDate || "");
-      setVendorBillNo(d.vendorBillNo || "");
-      setVendorBillDate(d.vendorBillDate || "");
-      setOrderNo(d.orderNo || "");
-      setPurchaseBillNo(d.purchaseBillNo || "");
-      if (d.vendorName) setVendorName(d.vendorName);
-      if (d.vendorId) {
-        skipClearOnVendorChange.current = true;
-        setValue("vendorId", d.vendorId, { shouldDirty: false });
+      let d;
+      if (billIds.length === 1) {
+        const res = await apiRequest({ url: `${API_ENDPOINTS.FINANCE.BILL_PAYMENT.PURCHASE_BILL_ITEMS}${billIds[0]}`, method: "GET" });
+        const single = res.data || {};
+        // Normalize single-bill response to match multi shape
+        d = {
+          bills: [{
+            id: single.purchaseBillId,
+            purchaseBillNo: single.purchaseBillNo,
+            brrNo: single.brrNo || "",
+            brrDate: single.brrDate || "",
+            vendorBillNo: single.vendorBillNo,
+            vendorBillDate: single.vendorBillDate,
+            orderNo: single.orderNo,
+            vendorId: single.vendorId,
+            vendorName: single.vendorName,
+          }],
+          items: (single.items || []).map((it) => ({
+            ...it,
+            purchaseBillId: single.purchaseBillId,
+            purchaseBillNo: single.purchaseBillNo,
+            brrNo: single.brrNo || "",
+            brrDate: single.brrDate || "",
+            orderNo: single.orderNo || "",
+          })),
+          gstLines: (single.gstLines || []).map((l) => ({
+            ...l,
+            purchaseBillId: single.purchaseBillId,
+            purchaseBillNo: single.purchaseBillNo,
+          })),
+        };
+      } else {
+        const params = billIds.map((id) => `billIds=${id}`).join("&");
+        const res = await apiRequest({ url: `${API_ENDPOINTS.FINANCE.BILL_PAYMENT.PURCHASE_BILL_ITEMS_MULTI}?${params}`, method: "GET" });
+        d = res.data || {};
       }
+
+      const firstBill = (d.bills || [])[0] || {};
+      setSelectedBills(d.bills || []);
+      setBrrDate(firstBill.brrDate || "");
+      setVendorBillNo(firstBill.vendorBillNo || "");
+      setVendorBillDate(firstBill.vendorBillDate || "");
+
+      if (firstBill.vendorName) setVendorName(firstBill.vendorName);
+      if (firstBill.vendorId) {
+        skipClearOnVendorChange.current = true;
+        setValue("vendorId", firstBill.vendorId, { shouldDirty: false });
+      }
+
       replaceItems((d.items || []).map((it, i) => ({
-        pvItemId: null, pbItemId: it.pbItemId ?? null,
-        slNo: i + 1, ccCode: it.ccCode || "", ccName: it.ccName || "",
-        bookedAmount: Number(it.bookedAmount || 0), paidAmount: Number(it.paidAmount || 0),
-        balanceAmount: Number(it.balanceAmount || 0), currentAmount: 0,
+        pvItemId: null,
+        pbItemId: it.pbItemId ?? null,
+        purchaseBillId: it.purchaseBillId ?? null,
+        purchaseBillNo: it.purchaseBillNo || "",
+        brrNo: it.brrNo || "",
+        brrDate: it.brrDate || "",
+        orderNo: it.orderNo || "",
+        slNo: i + 1,
+        ccCode: it.ccCode || "",
+        ccName: it.ccName || "",
+        bookedAmount: Number(it.bookedAmount || 0),
+        paidAmount: Number(it.paidAmount || 0),
+        balanceAmount: Number(it.balanceAmount || 0),
+        currentAmount: 0,
       })));
+
       replaceGst((d.gstLines || []).map((l) => ({
-        gstType: l.gstType || "", ccCode: l.ccCode || "", ccName: l.ccName || "",
+        gstType: l.gstType || "",
+        purchaseBillId: l.purchaseBillId ?? null,
+        purchaseBillNo: l.purchaseBillNo || "",
+        ccCode: l.ccCode || "",
+        ccName: l.ccName || "",
         percent: Number(l.percent || 0),
-        bookedAmount: Number(l.bookedAmount || 0), paidAmount: Number(l.paidAmount || 0),
-        balanceAmount: Number(l.balanceAmount || 0), currentAmount: 0,
+        bookedAmount: Number(l.bookedAmount || 0),
+        paidAmount: Number(l.paidAmount || 0),
+        balanceAmount: Number(l.balanceAmount || 0),
+        currentAmount: 0,
         isSelected: !!l.isSelected,
       })));
+
       setAllowSubmit(false);
     } catch {
       toast.error("Failed to load bill items");
@@ -423,7 +515,7 @@ export default function PaymentForm({
     }
   }, [mode, setValue, replaceItems, replaceGst]);
 
-  useEffect(() => { loadBillItems(purchaseBillId); }, [purchaseBillId]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { loadBillsItems(purchaseBillIds); }, [purchaseBillIds?.join(",")]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── Fetch Detail (edit/view) ─────────────────────────────────────
   useEffect(() => {
@@ -432,11 +524,12 @@ export default function PaymentForm({
     apiRequest({ url: `${API_ENDPOINTS.FINANCE.BILL_PAYMENT.GET_BY_ID}${loadId}`, method: "GET" })
       .then((res) => {
         const d = res.data || {};
-        setBvsDate(d.bvsDate || "");
+        // Populate bill display state
+        const primaryBill = { purchaseBillNo: d.purchaseBillNo, brrNo: d.brrNo, brrDate: d.brrDate };
+        setSelectedBills(d.bills?.length ? d.bills : [primaryBill]);
+        setBrrDate(d.brrDate || "");
         setVendorBillNo(d.vendorBillNo || "");
         setVendorBillDate(d.vendorBillDate || "");
-        setOrderNo(d.orderNo || "");
-        setPurchaseBillNo(d.purchaseBillNo || "");
         setVendorName(d.vendorName || "");
 
         // Build payment account display name
@@ -449,25 +542,39 @@ export default function PaymentForm({
           setPaymentAcName(name); setPaymentAcCode("CASH");
         }
 
+        // Collect unique bill ids from items (multi-bill support)
+        const billIdsFromItems = [...new Set((d.items || []).map((it) => it.purchaseBillId).filter(Boolean))];
+        const resolvedBillIds = billIdsFromItems.length ? billIdsFromItems : (d.purchaseBillId ? [d.purchaseBillId] : []);
+
         reset({
-          paymentDate:    d.paymentDate    || "",
-          purchaseBillId: d.purchaseBillId || null,
-          vendorId:       d.vendorId       || null,
-          paymentMode:    d.paymentMode    || "Bank",
-          cashAcId:       d.cashAcId       || null,
-          bankAcId:       d.bankAcId       || null,
-          utrVoucherNo:   d.utrVoucherNo   || "",
-          paymentRemarks: d.paymentRemarks || "",
-          discount:       Number(d.discount  || 0),
-          roundOff:       Number(d.roundOff  || 0),
+          paymentDate:     d.paymentDate    || "",
+          purchaseBillId:  d.purchaseBillId || null,
+          purchaseBillIds: resolvedBillIds,
+          vendorId:        d.vendorId       || null,
+          paymentMode:     d.paymentMode    || "Bank",
+          cashAcId:        d.cashAcId       || null,
+          bankAcId:        d.bankAcId       || null,
+          utrVoucherNo:    d.utrVoucherNo   || "",
+          paymentRemarks:  d.paymentRemarks || "",
+          discount:        Number(d.discount  || 0),
+          roundOff:        Number(d.roundOff  || 0),
           items: (d.items || []).map((it, i) => ({
-            pvItemId: isCopy ? null : it.id ?? null, pbItemId: it.pbItemId ?? null,
+            pvItemId:       isCopy ? null : it.id ?? null,
+            pbItemId:       it.pbItemId       ?? null,
+            purchaseBillId: it.purchaseBillId ?? null,
+            purchaseBillNo: it.purchaseBillNo || "",
+            brrNo:          it.brrNo          || "",
+            brrDate:        it.brrDate        || "",
+            orderNo:        it.orderNo        || "",
             slNo: i + 1, ccCode: it.ccCode || "", ccName: it.ccName || "",
             bookedAmount: Number(it.bookedAmount || 0), paidAmount: Number(it.paidAmount || 0),
             balanceAmount: Number(it.balanceAmount || 0), currentAmount: Number(it.currentAmount || 0),
           })),
           gstLines: (d.gstLines || []).map((l) => ({
-            gstType: l.gstType || "", ccCode: l.ccCode || "", ccName: l.ccName || "",
+            gstType: l.gstType || "",
+            purchaseBillId: l.purchaseBillId ?? null,
+            purchaseBillNo: l.purchaseBillNo || "",
+            ccCode: l.ccCode || "", ccName: l.ccName || "",
             percent: Number(l.percent || 0),
             bookedAmount: Number(l.bookedAmount || 0), paidAmount: Number(l.paidAmount || 0),
             balanceAmount: Number(l.balanceAmount || 0), currentAmount: Number(l.currentAmount || 0),
@@ -500,8 +607,10 @@ export default function PaymentForm({
   }, [paymentAcName, paymentAcCode, totalInvoice]);
 
   // ── Bill picker confirm ───────────────────────────────────────────
-  const handleBillConfirm = useCallback((bill) => {
-    setValue("purchaseBillId", bill.id, { shouldDirty: true });
+  const handleBillConfirm = useCallback((bills) => {
+    const ids = bills.map((b) => b.id);
+    setValue("purchaseBillIds", ids, { shouldDirty: true });
+    setValue("purchaseBillId", ids[0] ?? null, { shouldDirty: false });
     setPickerOpen(false);
   }, [setValue]);
 
@@ -514,10 +623,11 @@ export default function PaymentForm({
       return;
     }
     if (prevVendorId.current !== vendorId && mode === "create") {
-      setValue("purchaseBillId", null, { shouldDirty: true });
+      setValue("purchaseBillId",  null, { shouldDirty: true });
+      setValue("purchaseBillIds", [],   { shouldDirty: true });
       replaceItems([]);
       replaceGst([]);
-      setBvsDate(""); setVendorBillNo(""); setVendorBillDate(""); setOrderNo(""); setPurchaseBillNo("");
+      setSelectedBills([]); setBrrDate(""); setVendorBillNo(""); setVendorBillDate("");
     }
     prevVendorId.current = vendorId;
   }, [vendorId]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -540,20 +650,23 @@ export default function PaymentForm({
     const url    = mode === "create" ? EP.CREATE : `${EP.EDIT}${paymentId}`;
     const method = mode === "create" ? "POST"    : "PUT";
 
+    const billIds = (v.purchaseBillIds || []).length ? v.purchaseBillIds : (v.purchaseBillId ? [v.purchaseBillId] : []);
     const payload = {
       projectCode,
-      paymentDate:    v.paymentDate,
-      purchaseBillId: v.purchaseBillId || null,
-      vendorId:       v.vendorId       || null,
-      paymentMode:    v.paymentMode,
-      cashAcId:       v.paymentMode === "Cash" ? (v.cashAcId || null) : null,
-      bankAcId:       v.paymentMode === "Bank" ? (v.bankAcId || null) : null,
-      utrVoucherNo:   v.utrVoucherNo  || "",
-      paymentRemarks: v.paymentRemarks || "",
-      discount:       Number(v.discount  || 0),
-      roundOff:       Number(v.roundOff  || 0),
+      paymentDate:     v.paymentDate,
+      purchaseBillId:  billIds[0] || null,
+      purchaseBillIds: billIds,
+      vendorId:        v.vendorId       || null,
+      paymentMode:     v.paymentMode,
+      cashAcId:        v.paymentMode === "Cash" ? (v.cashAcId || null) : null,
+      bankAcId:        v.paymentMode === "Bank" ? (v.bankAcId || null) : null,
+      utrVoucherNo:    v.utrVoucherNo  || "",
+      paymentRemarks:  v.paymentRemarks || "",
+      discount:        Number(v.discount  || 0),
+      roundOff:        Number(v.roundOff  || 0),
       items: v.items.map((it) => ({
-        ...(it.pbItemId  ? { pbItemId:  it.pbItemId  } : {}),
+        ...(it.pbItemId       ? { pbItemId:       it.pbItemId       } : {}),
+        ...(it.purchaseBillId ? { purchaseBillId: it.purchaseBillId } : {}),
         slNo: it.slNo, ccCode: it.ccCode, ccName: it.ccName,
         bookedAmount: Number(it.bookedAmount || 0), currentAmount: Number(it.currentAmount || 0),
       })),
@@ -645,21 +758,25 @@ export default function PaymentForm({
               )} />
             </PMFormRow>
 
-            <PMFormRow label="Purchase Bill" required={!disabled} labelWidth="sm:w-[160px] sm:min-w-[160px]">
-              <div className="flex items-center gap-1.5 flex-1">
-                <PMInput
-                  value={purchaseBillNo || (purchaseBillId ? `Bill #${purchaseBillId}` : "")}
-                  disabled
-                  readOnly
-                  placeholder="Click icon to select a bill"
-                  className="flex-1"
-                />
+            <PMFormRow label="PR No(s)" required={!disabled} labelWidth="sm:w-[160px] sm:min-w-[160px]">
+              <div className="flex items-start gap-1.5 flex-1">
+                <div className="flex-1 min-h-[28px] flex flex-wrap gap-1 px-2 py-1 border border-gray-200 rounded-sm bg-gray-50 text-[11px]">
+                  {selectedBills.length > 0 ? (
+                    selectedBills.map((b) => (
+                      <span key={b.id ?? b.purchaseBillNo} className="bg-[#dbeafe] text-[#1c3a5e] px-1.5 py-0.5 rounded font-medium">
+                        {b.purchaseBillNo || `#${b.id}`}
+                      </span>
+                    ))
+                  ) : (
+                    <span className="text-gray-400 italic">Click icon to select bill(s)</span>
+                  )}
+                </div>
                 {!disabled && (
                   <button
                     type="button"
                     onClick={() => setPickerOpen(true)}
-                    title="Select Purchase Bill"
-                    className="p-1.5 rounded border border-[#3b6ea5] text-[#3b6ea5] hover:bg-[#3b6ea5] hover:text-white transition shrink-0"
+                    title="Select Purchase Bill(s)"
+                    className="p-1.5 rounded border border-[#3b6ea5] text-[#3b6ea5] hover:bg-[#3b6ea5] hover:text-white transition shrink-0 mt-0.5"
                   >
                     <FileText size={14} />
                   </button>
@@ -667,12 +784,8 @@ export default function PaymentForm({
               </div>
             </PMFormRow>
 
-            <PMFormRow label="BVS Date" labelWidth="sm:w-[160px] sm:min-w-[160px]">
-              <PMInput value={bvsDate ? getfmtDisplaydate(bvsDate) : ""} disabled readOnly placeholder="[From Purchase Bill]" className="max-w-[200px]" />
-            </PMFormRow>
-
-            <PMFormRow label="Order No" labelWidth="sm:w-[160px] sm:min-w-[160px]">
-              <PMInput value={orderNo} disabled readOnly placeholder="[From Purchase Bill]" />
+            <PMFormRow label="BRR Date" labelWidth="sm:w-[160px] sm:min-w-[160px]">
+              <PMInput value={brrDate ? getfmtDisplaydate(brrDate) : ""} disabled readOnly placeholder="[From Purchase Bill]" className="max-w-[200px]" />
             </PMFormRow>
 
             <PMFormRow label="Vendor Bill No" labelWidth="sm:w-[160px] sm:min-w-[160px]">
@@ -772,8 +885,6 @@ export default function PaymentForm({
 
           {/* Bill-wise Payment Breakdown */}
           <PaymentBreakdownTable
-            purchaseBillNo={purchaseBillNo}
-            orderNo={orderNo}
             itemFields={itemFields}
             gstFields={gstFields}
             watchedItems={watchedItems}
@@ -833,7 +944,7 @@ export default function PaymentForm({
         onConfirm={handleBillConfirm}
         projectCode={projectCode}
         vendorId={vendorId}
-        currentBillId={purchaseBillId}
+        currentBillIds={purchaseBillIds}
       />
     </div>
   );

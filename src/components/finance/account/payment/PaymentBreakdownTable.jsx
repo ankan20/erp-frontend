@@ -9,27 +9,24 @@ import { Loader2 }      from "lucide-react";
 /**
  * PaymentBreakdownTable
  *
- * Bill-wise payment entry table — mirrors ReceiptBillingBreakdownTable for payments.
- * Columns: Purchase Bill No | Order No | CC Name | Booked | Paid | Balance | Current
+ * Multi-bill payment entry table.
+ * Rows are grouped by purchaseBillNo/orderNo (rowSpan per group).
+ * Each item/gstLine carries its own purchaseBillNo, brrNo, orderNo.
  *
  * Props
- *   purchaseBillNo  string  — bill number for rowSpan header
- *   orderNo         string  — order number for rowSpan header
- *   itemFields      []      — from useFieldArray
- *   gstFields       []      — from useFieldArray
- *   watchedItems    []      — live watched items array
- *   watchedGst      []      — live watched gstLines array
- *   register        fn      — RHF register
- *   disabled        bool
- *   loading         bool
+ *   itemFields    []   — from useFieldArray
+ *   gstFields     []   — from useFieldArray
+ *   watchedItems  []   — live watched items array
+ *   watchedGst    []   — live watched gstLines array
+ *   register      fn   — RHF register
+ *   disabled      bool
+ *   loading       bool
  */
 export default function PaymentBreakdownTable({
-  purchaseBillNo = "",
-  orderNo        = "",
-  itemFields     = [],
-  gstFields      = [],
-  watchedItems   = [],
-  watchedGst     = [],
+  itemFields   = [],
+  gstFields    = [],
+  watchedItems = [],
+  watchedGst   = [],
   register,
   disabled = false,
   loading  = false,
@@ -54,7 +51,38 @@ export default function PaymentBreakdownTable({
     ? allRows.filter((r) => r.type === "item" ? Number(r.data.currentAmount || 0) > 0 : true)
     : allRows.filter((r) => r.type === "item" ? !!r.data.ccCode : true);
 
-  const totalSpan = visibleRows.length || 1;
+  // Group consecutive rows that share the same purchaseBillNo for rowSpan
+  // We annotate each row with { showBillCell, billRowSpan }
+  const annotated = visibleRows.map((row, vi) => {
+    const billNo = row.data.purchaseBillNo || "";
+    const orderNo = row.data.orderNo || "";
+
+    // Find the first row in this group
+    let groupStart = vi;
+    while (
+      groupStart > 0 &&
+      (visibleRows[groupStart - 1].data.purchaseBillNo || "") === billNo &&
+      (visibleRows[groupStart - 1].data.orderNo || "") === orderNo
+    ) {
+      groupStart--;
+    }
+    const isFirstInGroup = groupStart === vi;
+
+    // Calculate span
+    let span = 0;
+    for (let j = vi; j < visibleRows.length; j++) {
+      if (
+        (visibleRows[j].data.purchaseBillNo || "") === billNo &&
+        (visibleRows[j].data.orderNo || "") === orderNo
+      ) {
+        span++;
+      } else {
+        break;
+      }
+    }
+
+    return { ...row, showBillCell: isFirstInGroup, billRowSpan: span };
+  });
 
   return (
     <div className="mb-4">
@@ -63,11 +91,11 @@ export default function PaymentBreakdownTable({
       </div>
 
       <div className="overflow-x-auto max-h-[500px] overflow-y-auto">
-        <table ref={tableRef} className="w-full border-collapse text-[11px] min-w-[760px]">
+        <table ref={tableRef} className="w-full border-collapse text-[11px] min-w-[800px]">
           <thead className="sticky top-0 z-10">
             <tr className={ACC.tableHead}>
-              <th className="border border-[#b0b0b0] px-2 py-1.5 text-left font-semibold w-[100px]">Purchase Bill</th>
-              <th className="border border-[#b0b0b0] px-2 py-1.5 text-left font-semibold w-[90px]">Order No</th>
+              <th className="border border-[#b0b0b0] px-2 py-1.5 text-left font-semibold w-[90px]">PR No</th>
+              <th className="border border-[#b0b0b0] px-2 py-1.5 text-left font-semibold w-[85px]">Order No</th>
               <th className="border border-[#b0b0b0] px-2 py-1.5 text-left font-semibold">CC Name</th>
               <th className="border border-[#b0b0b0] px-2 py-1.5 text-right font-semibold w-[85px]">Booked</th>
               <th className="border border-[#b0b0b0] px-2 py-1.5 text-right font-semibold w-[85px]">Paid</th>
@@ -88,16 +116,15 @@ export default function PaymentBreakdownTable({
                   <Loader2 className="animate-spin w-4 h-4 inline mr-1.5" />Loading items…
                 </td>
               </tr>
-            ) : visibleRows.length === 0 ? (
+            ) : annotated.length === 0 ? (
               <tr>
                 <td colSpan={7} className="border border-gray-200 py-6 text-center text-[#bbb] italic text-[11px]">
                   No payment entries to display
                 </td>
               </tr>
             ) : (
-              visibleRows.map((row, vi) => {
-                const { type, fieldIdx, data } = row;
-                const isFirstRow = vi === 0;
+              annotated.map((row) => {
+                const { type, fieldIdx, data, showBillCell, billRowSpan } = row;
                 const isItemRow  = type === "item";
                 const current    = Number(data.currentAmount || 0);
                 const balDisplay = Number(data.balanceAmount || 0) - current;
@@ -109,19 +136,19 @@ export default function PaymentBreakdownTable({
 
                 return (
                   <tr key={row.id} className={rowBg}>
-                    {isFirstRow && (
+                    {showBillCell && (
                       <>
                         <td
                           className="border border-[#d0d0d0] px-2 py-1 font-semibold text-[#1c3a5e] text-[10px] align-top"
-                          rowSpan={totalSpan}
+                          rowSpan={billRowSpan}
                         >
-                          {purchaseBillNo || "—"}
+                          {data.purchaseBillNo || "—"}
                         </td>
                         <td
                           className="border border-[#d0d0d0] px-2 py-1 text-gray-700 text-[10px] align-top"
-                          rowSpan={totalSpan}
+                          rowSpan={billRowSpan}
                         >
-                          {orderNo || "—"}
+                          {data.orderNo || "—"}
                         </td>
                       </>
                     )}

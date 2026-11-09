@@ -617,8 +617,9 @@ export const API_ENDPOINTS = {
       MY_APPROVAL_STATUS: "/finance/payment-voucher/my-approval-status/",   // /<pvm_id> GET
     },
     BILL_PAYMENT: {
-      APPROVED_PURCHASE_BILLS: "/finance/bill-payment/approved-purchase-bills", // GET ?projectCode&vendorId
-      PURCHASE_BILL_ITEMS:     "/finance/bill-payment/purchase-bill-items/",    // /<bill_id> GET
+      APPROVED_PURCHASE_BILLS:    "/finance/bill-payment/approved-purchase-bills",    // GET ?projectCode&vendorId
+      PURCHASE_BILL_ITEMS:        "/finance/bill-payment/purchase-bill-items/",       // /<bill_id> GET
+      PURCHASE_BILL_ITEMS_MULTI:  "/finance/bill-payment/purchase-bill-items-multi",  // GET ?billIds=1&billIds=2
       CREATE:             "/finance/bill-payment/create",                   // POST JSON
       LIST:               "/finance/bill-payment/list",                     // GET ?projectCode&workflowStatus&vendorId&search
       GET_BY_ID:          "/finance/bill-payment/",                         // /<receipt_id> GET
