@@ -89,7 +89,7 @@ export default function TermsForm({ mode = "create", disabled = false, termId, i
 
   // ── populate from initialData (edit/view)
   useEffect(() => {
-    if ((mode === "edit" || mode === "view") && initialData) {
+    if (initialData /* edit, view or copy */) {
       setModule(initialData.module    || "");
       setSubModule(initialData.subModule || "");
       setTermType(initialData.termType  || "");

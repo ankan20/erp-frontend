@@ -20,6 +20,7 @@ import { getLocalStorage } from "@/lib/localStorage";
 import SRNLeftPanel from "./SRNLeftPanel";
 import SRNItemsTable from "./SRNItemsTable";
 import { zodDate } from "@/lib/dateUtils";
+import { useCopySource, forCopy, copyLoadedToast } from "@/lib/copyRecord";
 
 // ── ZOD SCHEMA ───────────────────────────────────────────────────────────────
 const grnSchema = z.object({
@@ -68,6 +69,10 @@ const defaultValues = {
 
 // ── COMPONENT ─────────────────────────────────────────────────────────────────
 export default function SRNForm({ mode = "create", srnId, onUuid, onAfterSubmit }) {
+  // Copy: /new?copy=<id> pre-fills this create form from that record.
+  const copyFromId = useCopySource();
+  const isCopy = mode === "create" && !!copyFromId;
+
   const isViewMode = mode === "view" || mode === "approver";
   const router = useRouter();
 
@@ -120,13 +125,14 @@ export default function SRNForm({ mode = "create", srnId, onUuid, onAfterSubmit 
 
   // ── LOAD SRN DETAILS (edit / view / approver) ─────────────────────────────
   useEffect(() => {
-    if (mode === "create" || !srnId) return;
+    const loadId = isCopy ? copyFromId : srnId;
+    if ((mode === "create" && !isCopy) || !loadId) return;
 
     const fetchSRN = async () => {
       setIsLoading(true);
       try {
         const res = await apiRequest({
-          url: `${API_ENDPOINTS.RESOURCE.MATERIAL_MANAGEMENT.SRN.GET_SRN_BY_ID}/${srnId}`,
+          url: `${API_ENDPOINTS.RESOURCE.MATERIAL_MANAGEMENT.SRN.GET_SRN_BY_ID}/${loadId}`,
         });
         const d = res.data;
 
@@ -179,6 +185,15 @@ export default function SRNForm({ mode = "create", srnId, onUuid, onAfterSubmit 
         setItems(mappedItems);
         setInitialItems(mappedItems);
 
+        if (isCopy) {
+          reset({ ...formData, srnNo: "" });
+          const fresh = mappedItems.map((it) => ({ ...it, srnl: "", effectiveMax: Number(it.balanceQty ?? 0) }));
+          setItems(fresh);
+          setInitialItems(fresh);
+          copyLoadedToast(d.srnNo);
+          return;
+        }
+
         // File
         const furl = d.attachedDoc || "";
         setExistingFileUrl(furl);
@@ -208,7 +223,7 @@ export default function SRNForm({ mode = "create", srnId, onUuid, onAfterSubmit 
     };
 
     fetchSRN();
-  }, [srnId, mode]);
+  }, [copyFromId, srnId, mode]);
 
   // ── ORDER ITEMS CALLBACK (from SRNLeftPanel when user picks an order) ──────
   const handleOrderItemsFetched = (orderData) => {

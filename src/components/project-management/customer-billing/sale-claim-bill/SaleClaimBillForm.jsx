@@ -31,6 +31,7 @@ import { getLocalStorage }     from "@/lib/localStorage";
 import { getInputClass }       from "@/lib/formStyles";
 import { zodDate }             from "@/lib/dateUtils";
 import { useResizableTable }   from "@/hooks/useResizableTable";
+import { useCopySource, forCopy, copyLoadedToast } from "@/lib/copyRecord";
 
 const BILL_MODE = "sale_claim_bill";
 
@@ -117,6 +118,10 @@ const defaultValues = {
 
 // ── COMPONENT ─────────────────────────────────────────────────────────────────
 export default function SaleClaimBillForm({ mode = "create", billId, onAfterSubmit, onUuid }) {
+  // Copy: /new?copy=<id> pre-fills this create form from that record.
+  const copyFromId = useCopySource();
+  const isCopy = mode === "create" && !!copyFromId;
+
   const isViewMode  = mode === "view" || mode === "approver";
   const router      = useRouter();
   const projectCode = getLocalStorage("projectInfo")?.projectCode || "";
@@ -239,12 +244,13 @@ export default function SaleClaimBillForm({ mode = "create", billId, onAfterSubm
 
   // ── FETCH DETAIL ──────────────────────────────────────────────────────────────
   useEffect(() => {
-    if (mode === "create" || !billId) return;
+    const loadId = isCopy ? copyFromId : billId;
+    if ((mode === "create" && !isCopy) || !loadId) return;
     const fetchDetail = async () => {
       setIsLoading(true);
       try {
         const res = await apiRequest({
-          url:    `${API_ENDPOINTS.PROJECT.SALE_CLAIM_BILL.GET_BY_ID}${billId}`,
+          url:    `${API_ENDPOINTS.PROJECT.SALE_CLAIM_BILL.GET_BY_ID}${loadId}`,
           method: "GET",
         });
         const d = res.data;
@@ -279,6 +285,13 @@ export default function SaleClaimBillForm({ mode = "create", billId, onAfterSubm
         if (!formatted.items.length) formatted.items = [{ ...DEFAULT_ITEM }];
         reset(formatted);
         setInitialData(formatted);
+        if (isCopy) {
+          const copied = { ...formatted, erpNo: "" };
+          reset(copied);
+          setInitialData(copied);
+          copyLoadedToast(d.erpNo);
+          return;
+        }
         setExistingUrl(d.attachment || "");
         setInitialUrl(d.attachment  || "");
         setBillUuid(d.billingUuid || "");
@@ -302,7 +315,7 @@ export default function SaleClaimBillForm({ mode = "create", billId, onAfterSubm
       }
     };
     fetchDetail();
-  }, [billId, mode]);
+  }, [copyFromId, billId, mode]);
 
   // ── EDIT / CANCEL ──────────────────────────────────────────────────────────────
   const handleEdit = () => {

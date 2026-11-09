@@ -37,6 +37,7 @@ import { apiRequest }      from "@/lib/apiClient";
 import { API_ENDPOINTS }   from "@/config/api.config";
 import { getLocalStorage } from "@/lib/localStorage";
 import { zodDate }         from "@/lib/dateUtils";
+import { useCopySource, forCopy, copyLoadedToast } from "@/lib/copyRecord";
 
 // ── Schema ────────────────────────────────────────────────────────────────────
 
@@ -338,10 +339,17 @@ function InvoicePickerModal({ open, onClose, onConfirm, projectCode, currentInvo
 export default function SaleReceiptBillingForm({
   mode = "create",
   billingId,
-  receiptId,
+  receiptId: receiptIdProp,
   onAfterSubmit,
   onUuid,
 }) {
+  // Copy: /new?copy=<id> pre-fills this create form from that record.
+  const copyFromId = useCopySource();
+  const isCopy = mode === "create" && !!copyFromId;
+
+  // A copy belongs to the same receipt as its source.
+  const [copiedReceiptId, setCopiedReceiptId] = useState(null);
+  const receiptId = receiptIdProp || copiedReceiptId;
   const router      = useRouter();
   const isViewMode  = mode === "view" || mode === "approver";
   const projectCode = getLocalStorage("projectInfo")?.projectCode || "";
@@ -474,8 +482,9 @@ export default function SaleReceiptBillingForm({
 
   // ── Fetch Detail (edit/view) ────────────────────────────────────
   useEffect(() => {
-    if (!billingId || mode === "create") return;
-    apiRequest({ url: `${API_ENDPOINTS.FINANCE.SALE_RECEIPT_BILLING.GET_BY_ID}${billingId}`, method: "GET" })
+    const loadId = isCopy ? copyFromId : billingId;
+    if ((mode === "create" && !isCopy) || !loadId) return;
+    apiRequest({ url: `${API_ENDPOINTS.FINANCE.SALE_RECEIPT_BILLING.GET_BY_ID}${loadId}`, method: "GET" })
       .then((res) => {
         const d = res.data || {};
         skipClearOnOrderChange.current = true;
@@ -512,6 +521,11 @@ export default function SaleReceiptBillingForm({
               : { ...def, bookedAmount: 0, receivedAmount: 0, balanceAmount: 0, currentAmount: 0, isSelected: false };
           }),
         });
+        if (isCopy) {
+          if (!receiptIdProp && d.receiptId) setCopiedReceiptId(String(d.receiptId));
+          copyLoadedToast(d.srbNo);
+          return;
+        }
         setSrbNo(d.srbNo || "");
         setDebtorName(d.debtorName || d.clientName || "");
         setPaymentAcName(d.paymentAccountName || "");
@@ -523,7 +537,7 @@ export default function SaleReceiptBillingForm({
         setIsEditing(false);
       })
       .catch(() => toast.error("Failed to load billing details"));
-  }, [billingId, mode]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [copyFromId, billingId, mode]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const totalDr = basicTotal + gstTotal;
 

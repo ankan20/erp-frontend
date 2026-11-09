@@ -28,6 +28,7 @@ import { formatAmount }    from "@/helper/numberFormatter";
 import { useColumnResize } from "@/hooks/useColumnResize";
 import { zodDate }         from "@/lib/dateUtils";
 import { getfmtDisplaydate } from "@/helper/getfmtDisplayDate";
+import { useCopySource, forCopy, copyLoadedToast } from "@/lib/copyRecord";
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -78,6 +79,10 @@ const DEFAULT_VALUES = { entryDate: "", remarks: "", drLines: [{ ...BLANK_DR }],
 // ─── Component ────────────────────────────────────────────────────────────────
 
 export default function JournalEntryForm({ mode = "create", journalId, onAfterSubmit, onUuid }) {
+  // Copy: /new?copy=<id> pre-fills this create form from that record.
+  const copyFromId = useCopySource();
+  const isCopy = mode === "create" && !!copyFromId;
+
   const router      = useRouter();
   const isViewMode   = mode === "view" || mode === "approver";
   const projectCode  = getLocalStorage("projectInfo")?.projectCode || "";
@@ -156,8 +161,9 @@ export default function JournalEntryForm({ mode = "create", journalId, onAfterSu
 
   // Load existing entry
   useEffect(() => {
-    if (!journalId || mode === "create") return;
-    apiRequest({ url: `${API_ENDPOINTS.FINANCE.JOURNAL_ENTRY.GET_BY_ID}${journalId}`, method: "GET" })
+    const loadId = isCopy ? copyFromId : journalId;
+    if ((mode === "create" && !isCopy) || !loadId) return;
+    apiRequest({ url: `${API_ENDPOINTS.FINANCE.JOURNAL_ENTRY.GET_BY_ID}${loadId}`, method: "GET" })
       .then((res) => {
         const d       = res.data || {};
         const sorted  = [...(d.lines || [])].sort((a, b) => a.slNo - b.slNo);
@@ -167,17 +173,21 @@ export default function JournalEntryForm({ mode = "create", journalId, onAfterSu
         const mapDr   = (l) => ({ type: _lineType(l), accountId: l.ccId || l.vendorId || null, customerRef: l.customerRef || "", debitAmount: Number(l.debitAmount || 0) });
         const mapCr   = (l) => ({ type: _lineType(l), accountId: l.ccId || l.vendorId || null, customerRef: l.customerRef || "" });
         reset({ entryDate: d.entryDate || "", remarks: d.remarks || "", drLines: drLines.length ? drLines.map(mapDr) : [{ ...BLANK_DR }], crLine: mapCr(crLine) });
+        setEntryMode(d.entryMode || "new_voucher");
+        if (d.refBillType) { setRefBillType(d.refBillType); setRefBillId(d.refBillId || null); setRefBillDocNo(d.refBillDocNo || ""); }
+        if (isCopy) {
+          copyLoadedToast(d.voucherNo);
+          return;
+        }
         setErpVoucherNo(d.voucherNo || "");
         const locked = d.workflowStatus && !["Draft", "Reback"].includes(d.workflowStatus);
         setIsSubmitted(locked);
         setAllowSubmit(!locked);
         setWorkflowStatus(d.workflowStatus || "");
-        setEntryMode(d.entryMode || "new_voucher");
-        if (d.refBillType) { setRefBillType(d.refBillType); setRefBillId(d.refBillId || null); setRefBillDocNo(d.refBillDocNo || ""); }
         if (d.journalUuid && onUuid) onUuid(d.journalUuid);
       })
       .catch(() => toast.error("Failed to load journal entry"));
-  }, [journalId, mode]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [copyFromId, journalId, mode]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // When docket selection changes → rebuild DR lines from selected dockets
   useEffect(() => {

@@ -60,7 +60,7 @@ export default function ItemForm({
 
   // EDIT MODE DATA SYNC
   useEffect(() => {
-    if ((mode === "edit" || mode==="view") && initialData && categories.length) {
+    if (initialData /* edit, view or copy */ && categories.length) {
       reset({
         ...initialData,
         itemCategoryId: String(initialData.itemCategoryId),

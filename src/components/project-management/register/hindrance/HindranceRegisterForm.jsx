@@ -24,6 +24,7 @@ import { apiRequest }      from "@/lib/apiClient";
 import { API_ENDPOINTS }   from "@/config/api.config";
 import { getLocalStorage } from "@/lib/localStorage";
 import { zodDate } from "@/lib/dateUtils";
+import { useCopySource, forCopy, copyLoadedToast } from "@/lib/copyRecord";
 
 const nonNegativeAmount = z
   .string()
@@ -73,6 +74,10 @@ function ResourceGroup({ title }) {
 }
 
 export default function HindranceRegisterForm({ mode = "create", hindranceId, onAfterSubmit }) {
+  // Copy: /new?copy=<id> pre-fills this create form from that record.
+  const copyFromId = useCopySource();
+  const isCopy = mode === "create" && !!copyFromId;
+
   const isViewMode = mode === "view" || mode === "approver";
 
   const [isEditing,       setIsEditing]      = useState(mode === "create");
@@ -110,13 +115,14 @@ export default function HindranceRegisterForm({ mode = "create", hindranceId, on
 
   // ── Fetch detail ───────────────────────────────────────────────────────────
   useEffect(() => {
-    if (mode === "create" || !hindranceId) return;
+    const loadId = isCopy ? copyFromId : hindranceId;
+    if ((mode === "create" && !isCopy) || !loadId) return;
 
     const fetchDetail = async () => {
       setIsLoading(true);
       try {
         const res = await apiRequest({
-          url:    `${API_ENDPOINTS.PROJECT.REGISTER.HINDRANCE_REGISTER.GET_BY_ID}/${hindranceId}`,
+          url:    `${API_ENDPOINTS.PROJECT.REGISTER.HINDRANCE_REGISTER.GET_BY_ID}/${loadId}`,
           method: "GET",
         });
         const d = res.data;
@@ -136,6 +142,13 @@ export default function HindranceRegisterForm({ mode = "create", hindranceId, on
         };
         reset(formatted);
         setInitialData(formatted);
+        if (isCopy) {
+          const copied = { ...formatted, hindranceNo: "" };
+          reset(copied);
+          setInitialData(copied);
+          copyLoadedToast(d.hindranceNo);
+          return;
+        }
 
         const furl = d.attachment || "";
         setExistingFileUrl(furl);
@@ -162,7 +175,7 @@ export default function HindranceRegisterForm({ mode = "create", hindranceId, on
     };
 
     fetchDetail();
-  }, [hindranceId, mode]);
+  }, [copyFromId, hindranceId, mode]);
 
   // ── Edit / Cancel ──────────────────────────────────────────────────────────
   const handleEdit = () => {

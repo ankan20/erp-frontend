@@ -31,6 +31,7 @@ import { getLocalStorage } from "@/lib/localStorage";
 import { CREDIT_NOTE_OPTIONS, CN_CODE_BY_NAME } from "./creditNoteOptions";
 import { useColumnResize } from "@/hooks/useColumnResize";
 import { zodDate } from "@/lib/dateUtils";
+import { useCopySource, forCopy, copyLoadedToast } from "@/lib/copyRecord";
 
 // ─── helpers ──────────────────────────────────────────────────────────────────
 const fmt = (val) => {
@@ -104,6 +105,10 @@ const DEFAULT_VALUES = {
 
 // ─── Component ────────────────────────────────────────────────────────────────
 export default function CreditNoteForm({ mode = "create", noteId, onAfterSubmit, onUuid }) {
+  // Copy: /new?copy=<id> pre-fills this create form from that record.
+  const copyFromId = useCopySource();
+  const isCopy = mode === "create" && !!copyFromId;
+
   const router      = useRouter();
   const isViewMode  = mode === "view" || mode === "approver";
   const projectCode = getLocalStorage("projectInfo")?.projectCode || "";
@@ -135,8 +140,9 @@ export default function CreditNoteForm({ mode = "create", noteId, onAfterSubmit,
 
   // ── Fetch detail (edit / view) ────────────────────────────────────────────
   useEffect(() => {
-    if (!noteId || mode === "create") return;
-    apiRequest({ url: `${API_ENDPOINTS.FINANCE.CREDIT_NOTE.GET_BY_ID}${noteId}`, method: "GET" })
+    const loadId = isCopy ? copyFromId : noteId;
+    if ((mode === "create" && !isCopy) || !loadId) return;
+    apiRequest({ url: `${API_ENDPOINTS.FINANCE.CREDIT_NOTE.GET_BY_ID}${loadId}`, method: "GET" })
       .then((res) => {
         const d = res.data || {};
         reset({
@@ -170,6 +176,10 @@ export default function CreditNoteForm({ mode = "create", noteId, onAfterSubmit,
               }))
             : DEFAULT_GST_LINES,
         });
+        if (isCopy) {
+          copyLoadedToast(d.creditNoteNo);
+          return;
+        }
         const locked = d.workflowStatus && !["Draft", "Reback"].includes(d.workflowStatus);
         setIsSubmitted(locked);
         setAllowSubmit(!locked);
@@ -177,7 +187,7 @@ export default function CreditNoteForm({ mode = "create", noteId, onAfterSubmit,
         if (d.creditNoteUuid && onUuid) onUuid(d.creditNoteUuid);
       })
       .catch(() => toast.error("Failed to load credit note details"));
-  }, [noteId, mode]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [copyFromId, noteId, mode]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── Save Draft ────────────────────────────────────────────────────────────
   const onSave = async (v) => {

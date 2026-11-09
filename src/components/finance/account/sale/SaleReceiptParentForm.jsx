@@ -24,6 +24,7 @@ import { apiRequest }      from "@/lib/apiClient";
 import { API_ENDPOINTS }   from "@/config/api.config";
 import { getLocalStorage } from "@/lib/localStorage";
 import { getfmtDisplaydate } from "@/helper/getfmtDisplayDate";
+import { useCopySource, forCopy, copyLoadedToast } from "@/lib/copyRecord";
 
 // ── Schema ────────────────────────────────────────────────────────────────────
 
@@ -48,6 +49,10 @@ const DEFAULT_VALUES = {
 // ── Component ─────────────────────────────────────────────────────────────────
 
 export default function SaleReceiptParentForm({ mode = "create", receiptId, onSaved }) {
+  // Copy: /new?copy=<id> pre-fills this create form from that record.
+  const copyFromId = useCopySource();
+  const isCopy = mode === "create" && !!copyFromId;
+
   const router      = useRouter();
   const projectCode = getLocalStorage("projectInfo")?.projectCode || "";
 
@@ -84,9 +89,10 @@ export default function SaleReceiptParentForm({ mode = "create", receiptId, onSa
 
   // ── Fetch parent detail (edit/view) ──────────────────────────────────────
   useEffect(() => {
-    if (mode === "create" || !receiptId) return;
+    const loadId = isCopy ? copyFromId : receiptId;
+    if ((mode === "create" && !isCopy) || !loadId) return;
     setIsLoading(true);
-    apiRequest({ url: `${API_ENDPOINTS.FINANCE.SALE_RECEIPT.GET_BY_ID}${receiptId}`, method: "GET" })
+    apiRequest({ url: `${API_ENDPOINTS.FINANCE.SALE_RECEIPT.GET_BY_ID}${loadId}`, method: "GET" })
       .then((res) => {
         const d = res.data || {};
         const values = {
@@ -99,12 +105,16 @@ export default function SaleReceiptParentForm({ mode = "create", receiptId, onSa
         };
         reset(values);
         setInitialData(values);
+        if (isCopy) {
+          copyLoadedToast(d.receiptNo);
+          return;
+        }
         setReceiptNo(d.receiptNo  || "");
         setEntryDate(d.entryDate  || "");
       })
       .catch(() => toast.error("Failed to load receipt details"))
       .finally(() => setIsLoading(false));
-  }, [receiptId, mode]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [copyFromId, receiptId, mode]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── Save ──────────────────────────────────────────────────────────────────
   const onSubmit = async (v) => {

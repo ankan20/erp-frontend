@@ -214,7 +214,7 @@ export default function BankCashForm({ mode = "create", disabled = false, record
 
   // Load initial data for edit/view
   useEffect(() => {
-    if ((mode === "edit" || mode === "view") && initialData) {
+    if (initialData /* edit, view or copy */) {
       reset({
         type:                 initialData.type               || "BANK",
         bankCode:             initialData.bankCode           || "",

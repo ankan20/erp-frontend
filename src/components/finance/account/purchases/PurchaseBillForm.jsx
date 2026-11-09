@@ -36,6 +36,7 @@ import { API_ENDPOINTS } from "@/config/api.config";
 import AiPanel           from "@/components/ai/AiPanel";
 import { getLocalStorage } from "@/lib/localStorage";
 import { zodDate }       from "@/lib/dateUtils";
+import { useCopySource, forCopy, copyLoadedToast } from "@/lib/copyRecord";
 
 const PURCHASE_BILL_MODES = [
   { label: "Purchases Invoice", value: "purchase_invoice" },
@@ -101,6 +102,10 @@ const DEFAULT_VALUES = {
 // ─── Component ────────────────────────────────────────────────────────────────
 
 export default function PurchaseBillForm({ mode = "create", billId, onAfterSubmit, onUuid }) {
+  // Copy: /new?copy=<id> pre-fills this create form from that record.
+  const copyFromId = useCopySource();
+  const isCopy = mode === "create" && !!copyFromId;
+
   const router      = useRouter();
   const isViewMode  = mode === "view" || mode === "approver";
   const projectCode = getLocalStorage("projectInfo")?.projectCode || "";
@@ -280,8 +285,9 @@ export default function PurchaseBillForm({ mode = "create", billId, onAfterSubmi
 
   // ── Load Detail (edit/view) ──────────────────────────────────────────────────
   useEffect(() => {
-    if (!billId || mode === "create") return;
-    apiRequest({ url: `${API_ENDPOINTS.FINANCE.PURCHASE_BILL.GET_BY_ID}${billId}`, method: "GET" })
+    const loadId = isCopy ? copyFromId : billId;
+    if ((mode === "create" && !isCopy) || !loadId) return;
+    apiRequest({ url: `${API_ENDPOINTS.FINANCE.PURCHASE_BILL.GET_BY_ID}${loadId}`, method: "GET" })
       .then((res) => {
         const d = res.data || {};
 
@@ -318,6 +324,11 @@ export default function PurchaseBillForm({ mode = "create", billId, onAfterSubmi
         const effPct     = igstPct > 0 ? igstPct : pairPct;
         setActualGstTotal(effPct > 0 && savedBasic > 0 ? (savedBasic * effPct) / 100 : null);
 
+        if (isCopy) {
+          copyLoadedToast(d.purchaseBillNo);
+          return;
+        }
+
         const locked = d.workflowStatus && !["Draft", "Reback"].includes(d.workflowStatus);
         setIsSubmitted(locked);
         setAllowSubmit(!locked);
@@ -325,7 +336,7 @@ export default function PurchaseBillForm({ mode = "create", billId, onAfterSubmi
         if (d.purchaseBillUuid && onUuid) onUuid(d.purchaseBillUuid);
       })
       .catch(() => toast.error("Failed to load bill details"));
-  }, [billId, mode]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [copyFromId, billId, mode]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── Save Draft ───────────────────────────────────────────────────────────────
   const onSave = async (v) => {

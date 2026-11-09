@@ -3,6 +3,10 @@ import { goToBackPage } from "@/helper/goToBackPage";
 import { useNavigationHistory } from "@/context/NavigationHistoryContext";
 import Image from "next/image";
 import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
+import { usePathname } from "next/navigation";
+import { CopyPlus } from "lucide-react";
+import { getCopyTarget, getCopyFromBase } from "@/lib/copyRecord";
+import CopyFromButton from "@/components/common/CopyFromButton";
 
 const tip = (btn, label) => (
   <Tooltip>
@@ -24,6 +28,12 @@ export const usePageActions = ({
   isPendingApproval = false,
 }) => {
   const { stack } = useNavigationHistory();
+  const pathname = usePathname();
+  // Detail pages of modules that support it get a "Copy" button:
+  // opens a new entry pre-filled from this one.
+  const copyTarget = getCopyTarget(pathname);
+  // Create pages get "Copy from…": fill the new entry from an earlier one.
+  const copyFromBase = getCopyFromBase(pathname);
 
   const baseBtnClass =
     "transition flex items-center justify-center w-[32px] h-[32px]";
@@ -132,6 +142,34 @@ export const usePageActions = ({
       onPrint ? "Print" : "Print not available"
     ),
   ];
+
+  if (copyFromBase) {
+    actions.push(
+      divider("divider-copy-from"),
+      <CopyFromButton
+        key="copy-from"
+        base={copyFromBase}
+        className={`${getButtonClass(true)} ${iconWrapperClass}`}
+      />
+    );
+  }
+
+  if (copyTarget) {
+    actions.push(
+      divider("divider-copy"),
+      tip(
+        <button
+          type="button"
+          key="copy"
+          className={`${getButtonClass(true)} ${iconWrapperClass}`}
+          onClick={() => router.push(copyTarget.href)}
+        >
+          <CopyPlus size={24} strokeWidth={2.2} className="text-[#2563EB]" />
+        </button>,
+        "Copy — new entry with these details"
+      )
+    );
+  }
 
   return actions;
 };

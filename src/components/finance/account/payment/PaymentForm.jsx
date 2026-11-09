@@ -32,6 +32,7 @@ import { getLocalStorage } from "@/lib/localStorage";
 import { zodDate }         from "@/lib/dateUtils";
 import { getfmtDisplaydate } from "@/helper/getfmtDisplayDate";
 import { formatAmount }    from "@/helper/numberFormatter";
+import { useCopySource, forCopy, copyLoadedToast } from "@/lib/copyRecord";
 
 // ── Schema ────────────────────────────────────────────────────────────────────
 
@@ -266,6 +267,10 @@ export default function PaymentForm({
   onAfterSubmit,
   onUuid,
 }) {
+  // Copy: /new?copy=<id> pre-fills this create form from that record.
+  const copyFromId = useCopySource();
+  const isCopy = mode === "create" && !!copyFromId;
+
   const router      = useRouter();
   const isViewMode  = mode === "view" || mode === "approver";
   const projectCode = getLocalStorage("projectInfo")?.projectCode || "";
@@ -422,8 +427,9 @@ export default function PaymentForm({
 
   // ── Fetch Detail (edit/view) ─────────────────────────────────────
   useEffect(() => {
-    if (!paymentId || mode === "create") return;
-    apiRequest({ url: `${API_ENDPOINTS.FINANCE.BILL_PAYMENT.GET_BY_ID}${paymentId}`, method: "GET" })
+    const loadId = isCopy ? copyFromId : paymentId;
+    if ((mode === "create" && !isCopy) || !loadId) return;
+    apiRequest({ url: `${API_ENDPOINTS.FINANCE.BILL_PAYMENT.GET_BY_ID}${loadId}`, method: "GET" })
       .then((res) => {
         const d = res.data || {};
         setBvsDate(d.bvsDate || "");
@@ -455,7 +461,7 @@ export default function PaymentForm({
           discount:       Number(d.discount  || 0),
           roundOff:       Number(d.roundOff  || 0),
           items: (d.items || []).map((it, i) => ({
-            pvItemId: it.id ?? null, pbItemId: it.pbItemId ?? null,
+            pvItemId: isCopy ? null : it.id ?? null, pbItemId: it.pbItemId ?? null,
             slNo: i + 1, ccCode: it.ccCode || "", ccName: it.ccName || "",
             bookedAmount: Number(it.bookedAmount || 0), paidAmount: Number(it.paidAmount || 0),
             balanceAmount: Number(it.balanceAmount || 0), currentAmount: Number(it.currentAmount || 0),
@@ -469,6 +475,11 @@ export default function PaymentForm({
           })),
         });
 
+        if (isCopy) {
+          copyLoadedToast(d.receiptNo);
+          return;
+        }
+
         const no = d.receiptNo;
         if (no) setErpPaymentNo(no);
         const uuid = d.receiptUuid;
@@ -480,7 +491,7 @@ export default function PaymentForm({
         setIsEditing(false);
       })
       .catch(() => toast.error("Failed to load payment details"));
-  }, [paymentId, mode]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [copyFromId, paymentId, mode]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── Journal entry (CR = bank/cash, DR = vendor) ───────────────────
   const journalEntries = useMemo(() => {

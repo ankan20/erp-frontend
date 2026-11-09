@@ -19,6 +19,7 @@ import { API_ENDPOINTS } from "@/config/api.config";
 import { getInputClass, labelClass as baseLabelClass } from "@/lib/formStyles";
 import { getLocalStorage } from "@/lib/localStorage";
 import { zodDate } from "@/lib/dateUtils";
+import { useCopySource, forCopy, copyLoadedToast } from "@/lib/copyRecord";
 
 const BP = API_ENDPOINTS.RESOURCE.BATCHING_PLANT;
 
@@ -72,6 +73,10 @@ function SectionTitle({ children }) {
 }
 
 export default function BatchingPlantForm({ mode = "create", docketId, onAfterSubmit }) {
+  // Copy: /new?copy=<id> pre-fills this create form from that record.
+  const copyFromId = useCopySource();
+  const isCopy = mode === "create" && !!copyFromId;
+
   const router  = useRouter();
   const isCreate = mode === "create";
 
@@ -106,14 +111,15 @@ export default function BatchingPlantForm({ mode = "create", docketId, onAfterSu
 
   // Load data on edit/view
   useEffect(() => {
-    if (isCreate || !docketId) return;
+    const loadId = isCopy ? copyFromId : docketId;
+    if ((mode === "create" && !isCopy) || !loadId) return;
     const fetch = async () => {
       try {
         setLoading(true);
-        const res = await apiRequest({ url: `${BP.DETAILS}/${docketId}`, method: "GET" });
+        const res = await apiRequest({ url: `${BP.DETAILS}/${loadId}`, method: "GET" });
         const d = res.data;
-        setDespatchNo(d.despatchNo || "");
-        setDocketUuid(d.uuid || "");
+        setDespatchNo(isCopy ? "" : d.despatchNo || "");
+        if (!isCopy) setDocketUuid(d.uuid || "");
         setPwOrderId(d.pwOrderId ? String(d.pwOrderId) : "");
         setVendorId(d.vendorId || null);
         setVendorName(d.vendorName || "");
@@ -141,6 +147,11 @@ export default function BatchingPlantForm({ mode = "create", docketId, onAfterSu
         reset(fd);
         setInitialData({ form: fd, pwOrderId: d.pwOrderId ? String(d.pwOrderId) : "", vendorId: d.vendorId, vendorName: d.vendorName || "" });
 
+        if (isCopy) {
+          copyLoadedToast(d.despatchNo);
+          return;
+        }
+
         const st = (d.workflowStatus || "").toLowerCase();
         if (!["draft", "reback"].includes(st)) {
           setIsSubmitted(true);
@@ -156,7 +167,7 @@ export default function BatchingPlantForm({ mode = "create", docketId, onAfterSu
       }
     };
     fetch();
-  }, [docketId, isCreate, reset]);
+  }, [copyFromId, docketId, isCreate, reset]);
 
   const buildPayload = () => {
     const v = getValues();

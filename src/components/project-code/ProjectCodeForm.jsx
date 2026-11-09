@@ -58,6 +58,11 @@ const projectSchema = z.object({
   shippingAddress2: z.string().optional(),
   shippingAddress3: z.string().optional(),
 
+  // Site location — used to mark Daily Progress Report photos taken off-site
+  siteLatitude: z.union([z.literal(""), z.string().regex(/^-?\d+(\.\d+)?$/, "Invalid number")]).optional(),
+  siteLongitude: z.union([z.literal(""), z.string().regex(/^-?\d+(\.\d+)?$/, "Invalid number")]).optional(),
+  siteRadiusM: z.union([z.literal(""), z.string().regex(/^-?\d+(\.\d+)?$/, "Invalid number")]).optional(),
+
   status: z.string().min(1, "Required"),
 });
 
@@ -99,6 +104,9 @@ export default function ProjectForm({ mode = "create", data, projectId }) {
       shippingAddress: "",
       shippingAddress2: "",
       shippingAddress3: "",
+      siteLatitude: "",
+      siteLongitude: "",
+      siteRadiusM: "500",
       status: "",
     },
   });
@@ -115,6 +123,9 @@ export default function ProjectForm({ mode = "create", data, projectId }) {
         revisedOrderValue: data.revisedOrderValue
           ? String(Number(data.revisedOrderValue) / 1e7)
           : "",
+        siteLatitude: data.siteLatitude != null ? String(data.siteLatitude) : "",
+        siteLongitude: data.siteLongitude != null ? String(data.siteLongitude) : "",
+        siteRadiusM: data.siteRadiusM != null ? String(data.siteRadiusM) : "500",
       });
     }
   }, [data]);
@@ -172,6 +183,9 @@ export default function ProjectForm({ mode = "create", data, projectId }) {
         revisedOrderValue: data.revisedOrderValue
           ? String(Number(data.revisedOrderValue) / 1e7)
           : "",
+        siteLatitude: data.siteLatitude != null ? String(data.siteLatitude) : "",
+        siteLongitude: data.siteLongitude != null ? String(data.siteLongitude) : "",
+        siteRadiusM: data.siteRadiusM != null ? String(data.siteRadiusM) : "500",
       });
     }
     setIsEditing((prev) => !prev);
@@ -634,6 +648,54 @@ export default function ProjectForm({ mode = "create", data, projectId }) {
                     </p> */}
           </div>
         ))}
+      </div>
+
+      {/* SITE LOCATION (Daily Progress Report photo check) */}
+      <div className="flex flex-col mt-2">
+        <div className="flex flex-wrap items-center gap-y-1">
+          <div className={`${labelClass} min-w-[80px] text-center`}>SITE</div>
+          <div className={`${labelClass} min-w-[180px]`}>Site Location (lat, long, radius m)</div>
+          <Input
+            {...register("siteLatitude")}
+            disabled={!isEditing || isSubmitting}
+            className={`w-[130px] ${getInputClass(errors.siteLatitude, !isEditing || isSubmitting)}`}
+            placeholder="Latitude"
+          />
+          <Input
+            {...register("siteLongitude")}
+            disabled={!isEditing || isSubmitting}
+            className={`w-[130px] ${getInputClass(errors.siteLongitude, !isEditing || isSubmitting)}`}
+            placeholder="Longitude"
+          />
+          <Input
+            {...register("siteRadiusM")}
+            disabled={!isEditing || isSubmitting}
+            className={`w-[90px] ${getInputClass(errors.siteRadiusM, !isEditing || isSubmitting)}`}
+            placeholder="500"
+          />
+          <button
+            type="button"
+            disabled={!isEditing || isSubmitting}
+            onClick={() => {
+              if (!navigator.geolocation) return toast.error("This browser can't share its location");
+              navigator.geolocation.getCurrentPosition(
+                (pos) => {
+                  setValue("siteLatitude", pos.coords.latitude.toFixed(6), { shouldDirty: true });
+                  setValue("siteLongitude", pos.coords.longitude.toFixed(6), { shouldDirty: true });
+                },
+                () => toast.error("Could not get your location"),
+                { enableHighAccuracy: true, timeout: 15000 },
+              );
+            }}
+            className="ml-2 text-[12px] text-blue-600 hover:underline disabled:opacity-40 disabled:no-underline"
+          >
+            Use my current location
+          </button>
+        </div>
+        <p className="text-[11px] text-gray-500 mt-1">
+          Stand on site and use your current location, or copy it from Google Maps. Site photos taken farther than the
+          radius are marked &quot;off-site&quot; in the Daily Progress Report.
+        </p>
       </div>
 
       {/* BUTTONS */}

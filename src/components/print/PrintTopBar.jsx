@@ -21,7 +21,7 @@ export default function PrintTopBar({ onDownloadPDF, onDownloadExcel, onDownload
     try { await fn(); } finally { setLoading(null); }
   };
 
-  const btn = (key, label, Icon, fn, colorClass) => (
+  const btn = (key, label, Icon, fn, colorClass) => fn && (
     <button
       onClick={() => run(key, fn)}
       disabled={!!loading}

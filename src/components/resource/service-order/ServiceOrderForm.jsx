@@ -19,6 +19,7 @@ import { apiRequest } from "@/lib/apiClient";
 import { API_ENDPOINTS } from "@/config/api.config";
 import { getLocalStorage } from "@/lib/localStorage";
 import { useRouter } from "next/navigation";
+import { useCopySource, forCopy, copyLoadedToast } from "@/lib/copyRecord";
 
 const PW = API_ENDPOINTS.RESOURCE.PROCUREMENT.ORDER.PROJECT_WORK;
 
@@ -48,6 +49,10 @@ const defaultValues = {
 };
 
 export default function ServiceOrderForm({ mode = "create", serviceOrderId, onUuid, onAfterSubmit }) {
+  // Copy: /new?copy=<id> pre-fills this create form from that record.
+  const copyFromId = useCopySource();
+  const isCopy = mode === "create" && !!copyFromId;
+
   const [activeTab, setActiveTab] = useState("items");
   const [loading, setLoading] = useState(false);
   const [isEditing, setIsEditing] = useState(mode === "create");
@@ -79,18 +84,19 @@ export default function ServiceOrderForm({ mode = "create", serviceOrderId, onUu
 
   // ─── LOAD ORDER 
   useEffect(() => {
-    if (mode === "create" || !serviceOrderId) return;
+    const loadId = isCopy ? copyFromId : serviceOrderId;
+    if ((mode === "create" && !isCopy) || !loadId) return;
 
     const fetchOrder = async () => {
       try {
         setLoading(true);
         const res = await apiRequest({
-          url: `${PW.GET_ORDER_BY_ID}/${serviceOrderId}`,
+          url: `${PW.GET_ORDER_BY_ID}/${loadId}`,
           method: "GET",
         });
         const data = res.data;
 
-        if (data.uuid && onUuid) onUuid(data.uuid);
+        if (data.uuid && onUuid && !isCopy) onUuid(data.uuid);
 
         // Fetch vendor party fields — not in service order API response
         let partyAddress = "";
@@ -131,6 +137,14 @@ export default function ServiceOrderForm({ mode = "create", serviceOrderId, onUu
           gstn,
         };
 
+        if (isCopy) {
+          const copied = forCopy(formattedData, { clear: ["orderNo"] });
+          reset(copied);
+          setInitialData(copied);
+          copyLoadedToast(data.orderNo);
+          return;
+        }
+
         reset(formattedData);
         setInitialData(formattedData);
 
@@ -156,7 +170,7 @@ export default function ServiceOrderForm({ mode = "create", serviceOrderId, onUu
     };
 
     fetchOrder();
-  }, [serviceOrderId, mode, reset]);
+  }, [copyFromId, serviceOrderId, mode, reset]);
 
   // ─── BUILD PAYLOAD — FormData to support file upload like order module ────
   const buildFormData = () => {

@@ -20,6 +20,7 @@ import { getLocalStorage } from "@/lib/localStorage";
 import GINLeftPanel from "./GINLeftPanel";
 import GINItemsTable from "./GINItemsTable";
 import { zodDate } from "@/lib/dateUtils";
+import { useCopySource, forCopy, copyLoadedToast } from "@/lib/copyRecord";
 
 // ── ZOD SCHEMA ────────────────────────────────────────────────────────────────
 const ginSchema = z.object({
@@ -62,6 +63,10 @@ const defaultValues = {
 
 // ── COMPONENT ─────────────────────────────────────────────────────────────────
 export default function GINForm({ mode = "create", ginId, onUuid, onAfterSubmit }) {
+  // Copy: /new?copy=<id> pre-fills this create form from that record.
+  const copyFromId = useCopySource();
+  const isCopy = mode === "create" && !!copyFromId;
+
   const isViewMode = mode === "view" || mode === "approver";
   const router     = useRouter();
 
@@ -109,13 +114,14 @@ export default function GINForm({ mode = "create", ginId, onUuid, onAfterSubmit 
   }, [projectCode]);
 
   useEffect(() => {
-    if (mode === "create" || !ginId) return;
+    const loadId = isCopy ? copyFromId : ginId;
+    if ((mode === "create" && !isCopy) || !loadId) return;
 
     const fetchGIN = async () => {
       setIsLoading(true);
       try {
         const res = await apiRequest({
-          url: `${API_ENDPOINTS.RESOURCE.MATERIAL_MANAGEMENT.GIN.GET_GIN_BY_ID}/${ginId}`,
+          url: `${API_ENDPOINTS.RESOURCE.MATERIAL_MANAGEMENT.GIN.GET_GIN_BY_ID}/${loadId}`,
         });
         const d = res.data;
 
@@ -156,6 +162,15 @@ export default function GINForm({ mode = "create", ginId, onUuid, onAfterSubmit 
         setItems(mappedItems);
         setInitialItems(mappedItems);
 
+        if (isCopy) {
+          reset({ ...formData, ginNo: "" });
+          const fresh = mappedItems.map((it) => ({ ...it, ginl: "" }));
+          setItems(fresh);
+          setInitialItems(fresh);
+          copyLoadedToast(d.ginNo);
+          return;
+        }
+
         // File
         const furl = d.attachedDoc || "";
         setExistingFileUrl(furl);
@@ -185,7 +200,7 @@ export default function GINForm({ mode = "create", ginId, onUuid, onAfterSubmit 
     };
 
     fetchGIN();
-  }, [ginId, mode]);
+  }, [copyFromId, ginId, mode]);
 
   // ── ORDER ITEMS CALLBACK (from GINLeftPanel) ───────────────────────────────
   const handleOrderItemsFetched = (orderData) => {

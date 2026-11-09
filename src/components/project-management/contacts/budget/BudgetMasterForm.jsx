@@ -26,6 +26,7 @@ import AiPanel               from "@/components/ai/AiPanel";
 import { getLocalStorage }   from "@/lib/localStorage";
 import { formatAmount }      from "@/helper/numberFormatter";
 import { zodDate } from "@/lib/dateUtils";
+import { useCopySource, forCopy, copyLoadedToast } from "@/lib/copyRecord";
 
 const BUDGET = API_ENDPOINTS.PROJECT.BUDGET_MASTER;
 
@@ -113,6 +114,10 @@ function alignCcColumns(items) {
 // ─── Component ────────────────────────────────────────────────────────────────
 
 export default function BudgetMasterForm({ mode = "create", budgetId, onAfterSubmit, onUuid }) {
+  // Copy: /new?copy=<id> pre-fills this create form from that record.
+  const copyFromId = useCopySource();
+  const isCopy = mode === "create" && !!copyFromId;
+
   const router      = useRouter();
   const isViewMode  = mode === "view" || mode === "approver";
   const projectCode = getLocalStorage("projectInfo")?.projectCode || "";
@@ -307,11 +312,12 @@ export default function BudgetMasterForm({ mode = "create", budgetId, onAfterSub
 
   // ── Load existing budget ──────────────────────────────────────────────────
   useEffect(() => {
-    if (mode === "create" || !budgetId) return;
+    const loadId = isCopy ? copyFromId : budgetId;
+    if ((mode === "create" && !isCopy) || !loadId) return;
     const load = async () => {
       setIsLoading(true);
       try {
-        const res = await apiRequest({ url: `${BUDGET.GET_BY_ID}${budgetId}`, method: "GET" });
+        const res = await apiRequest({ url: `${BUDGET.GET_BY_ID}${loadId}`, method: "GET" });
         const d   = res.data || {};
 
         const formatted = {
@@ -358,8 +364,12 @@ export default function BudgetMasterForm({ mode = "create", budgetId, onAfterSub
         formatted.items = alignCcColumns(formatted.items);
         reset(formatted);
         setInitialData(formatted);
-        setBudgetNo(d.budgetNo || "");
         setOrderInfo({ no: d.saleOrderNo || "", title: d.saleOrderTitle || "" });
+        if (isCopy) {
+          copyLoadedToast(d.budgetNo);
+          return;
+        }
+        setBudgetNo(d.budgetNo || "");
         if (d.budgetUuid && onUuid) onUuid(d.budgetUuid);
 
         const editable = ["draft", "reback"].includes(String(d.workflowStatus || "").toLowerCase());
@@ -374,7 +384,7 @@ export default function BudgetMasterForm({ mode = "create", budgetId, onAfterSub
       }
     };
     load();
-  }, [budgetId, mode]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [copyFromId, budgetId, mode]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── Payload ───────────────────────────────────────────────────────────────
   const buildPayload = (v) => ({

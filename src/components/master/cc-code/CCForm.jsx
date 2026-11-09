@@ -128,7 +128,7 @@ export default function CCForm({
       const ccOptions = CATEGORY_OPTIONS.ccCategory;
       setGroups(loadedGroups);
       setCategories(ccOptions || []);
-      if (data && (mode === "edit" || mode === "view")) {
+      if (data) { // edit, view or copy
         reset(data);
       }
       setLoading(false);
