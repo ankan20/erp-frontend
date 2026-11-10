@@ -3,33 +3,51 @@
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 
-// Keywords that indicate a field is a date field
 const DATE_KEYWORDS = /date|Date/;
+
+// Recursively collect {field, message} from nested RHF error objects / arrays
+function flattenErrors(node, path = "") {
+  const out = [];
+  if (!node || typeof node !== "object") return out;
+
+  if (Array.isArray(node)) {
+    node.forEach((item, i) => {
+      if (item) out.push(...flattenErrors(item, `${path}[${i}]`));
+    });
+    return out;
+  }
+
+  if (typeof node.message === "string") {
+    out.push({ field: path, message: node.message });
+    return out;
+  }
+
+  for (const [key, val] of Object.entries(node)) {
+    out.push(...flattenErrors(val, path ? `${path}.${key}` : key));
+  }
+  return out;
+}
 
 export function useFormWithToast(options) {
   const form = useForm(options);
 
   const handleSubmit = (onValid, onInvalid) =>
     form.handleSubmit(onValid, (errors) => {
-      const dateErrors = [];
+      const dateErrors    = [];
       const specificErrors = [];
-      const missingFields = [];
+      const missingFields  = [];
 
-      for (const [field, err] of Object.entries(errors)) {
-        const msg = err?.message || "";
+      for (const { field, message } of flattenErrors(errors)) {
         if (DATE_KEYWORDS.test(field)) {
-          // Show each date error as its own toast so the message is readable
-          dateErrors.push(msg);
-        } else if (!msg || msg === "Required") {
-          // Truly blank required field — group by field name
+          dateErrors.push(message);
+        } else if (!message || message === "Required") {
           missingFields.push(field);
         } else {
-          // Has a specific validation message (format error, etc.) — show as-is
-          specificErrors.push(msg);
+          specificErrors.push(message);
         }
       }
 
-      dateErrors.forEach((msg) => toast.error(msg, { duration: 5000 }));
+      dateErrors.forEach((msg)    => toast.error(msg, { duration: 5000 }));
       specificErrors.forEach((msg) => toast.error(msg, { duration: 5000 }));
       if (missingFields.length) {
         toast.error(`Please fill required fields: ${missingFields.join(", ")}`);

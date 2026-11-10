@@ -38,7 +38,7 @@ export default function Page() {
           _id:            r.id,
           creditNoteNo:   r.creditNoteNo   || "—",
           entryDate:      r.entryDate ? getfmtDisplaydate(r.entryDate) : "—",
-          billNumber:     r.billNumber     || "—",
+          billNumber:     r.saleBillNo     || "—",
           vendorName:     r.vendorName     || "—",
           basicAmount:    formatAmount(r.basicAmount),
           gstAmount:      formatAmount(r.gstAmount),

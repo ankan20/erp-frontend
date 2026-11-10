@@ -86,11 +86,11 @@ const itemSchema = z.object({
 });
 
 const gstLineSchema = z.object({
-  gstType:     z.string(),
-  ccCode:      z.string(),
-  ccName:      z.string(),
+  gstType:     z.string().optional().default(""),
+  ccCode:      z.string().optional().default(""),
+  ccName:      z.string().optional().default(""),
   description: z.string().optional().default(""),
-  percent:     z.number(),
+  percent:     z.coerce.number().default(0),
   gstAmount:   z.coerce.number().default(0),
   isSelected:  z.boolean().default(false),
 });
@@ -113,7 +113,7 @@ const schema = z.object({
 });
 
 const DEFAULT_VALUES = {
-  entryDate:      new Date().toISOString().split("T")[0],
+  entryDate:      "",
   vendorId:       null,
   vendorName:     "",
   brrId:          null,
@@ -277,13 +277,7 @@ export default function DebitNoteForm({ mode = "create", noteId, onAfterSubmit, 
       projectCode,
       entryDate:      v.entryDate,
       vendorId:       v.vendorId   || null,
-      vendorName:     v.vendorName || "",
       brrId:          v.brrId       || null,
-      brrNo:          v.brrNo       || "",
-      orderNumber:    v.orderNumber || "",
-      orderDate:      v.orderDate  || "",
-      billNumber:     v.billNumber || "",
-      billDate:       v.billDate   || "",
       creditNoteNo:   v.creditNoteNo   || "",
       creditNoteDate: v.creditNoteDate || "",
       remarks:        v.remarks || "",

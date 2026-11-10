@@ -7,31 +7,42 @@ import { z }              from "zod";
 import { zodResolver }    from "@hookform/resolvers/zod";
 import { toast }          from "sonner";
 import { useRouter }      from "next/navigation";
-import { Loader2, PanelLeftClose, PanelLeftOpen, Plus, Trash2 } from "lucide-react";
+import { List, PanelLeftClose, PanelLeftOpen, Plus, Trash2 } from "lucide-react";
 
-import SaveButton         from "@/components/common/SaveButton";
-import SaveDraftButton    from "@/components/common/SaveDraftButton";
-import EditButton         from "@/components/common/EditButton";
+import SaveButton          from "@/components/common/SaveButton";
+import SaveDraftButton     from "@/components/common/SaveDraftButton";
+import EditButton          from "@/components/common/EditButton";
 import DeleteRequestButton from "@/components/common/DeleteRequestButton";
-import PMSection          from "@/components/project-management/common/PMSection";
-import PMFormRow          from "@/components/project-management/common/PMFormRow";
-import PMDateInput        from "@/components/project-management/common/PMDateInput";
-import PMTextarea         from "@/components/project-management/common/PMTextarea";
-import PMInput            from "@/components/project-management/common/PMInput";
-import AmountInput        from "@/components/common/AmountInput";
-import GstInput           from "@/components/common/GstInput";
-import ExpandableTextCell from "@/components/project-management/common/ExpandableTextCell";
+import SearchableSelect    from "@/components/common/SearchableSelect";
+import PMSection           from "@/components/project-management/common/PMSection";
+import PMFormRow           from "@/components/project-management/common/PMFormRow";
+import PMDateInput         from "@/components/project-management/common/PMDateInput";
+import PMTextarea          from "@/components/project-management/common/PMTextarea";
+import PMInput             from "@/components/project-management/common/PMInput";
+import AmountInput         from "@/components/common/AmountInput";
+import GstInput            from "@/components/common/GstInput";
+import ExpandableTextCell  from "@/components/project-management/common/ExpandableTextCell";
 import AccountGstTable, { DEFAULT_GST_LINES } from "@/components/finance/account/common/AccountGstTable";
-import { ACC }            from "@/components/finance/account/common/accountTheme";
+import AccountingJournalTable from "@/components/finance/account/common/AccountingJournalTable";
+import { ACC }             from "@/components/finance/account/common/accountTheme";
 import { amountToWordsIN } from "@/lib/amountToWords";
-import { formatAmount }   from "@/helper/numberFormatter";
-import { apiRequest }     from "@/lib/apiClient";
-import { API_ENDPOINTS }  from "@/config/api.config";
+import { formatAmount }    from "@/helper/numberFormatter";
+import { apiRequest }      from "@/lib/apiClient";
+import { API_ENDPOINTS }   from "@/config/api.config";
 import { getLocalStorage } from "@/lib/localStorage";
-import { CREDIT_NOTE_OPTIONS, CN_CODE_BY_NAME } from "./creditNoteOptions";
+import { CREDIT_NOTE_OPTIONS } from "./creditNoteOptions";
 import { useColumnResize } from "@/hooks/useColumnResize";
 import { zodDate } from "@/lib/dateUtils";
-import { useCopySource, forCopy, copyLoadedToast } from "@/lib/copyRecord";
+import { useCopySource, copyLoadedToast } from "@/lib/copyRecord";
+import CreditNoteSaleBillPickerModal from "./CreditNoteSaleBillPickerModal";
+
+// CC options formatted for SearchableSelect
+const CC_OPTIONS = CREDIT_NOTE_OPTIONS.map((o) => ({
+  value: o.ccCode,
+  label: o.ccName,
+  ccCode: o.ccCode,
+  ccName: o.ccName,
+}));
 
 // ─── helpers ──────────────────────────────────────────────────────────────────
 const fmt = (val) => {
@@ -64,23 +75,24 @@ const itemSchema = z.object({
 });
 
 const gstLineSchema = z.object({
-  gstType:     z.string(),
-  ccCode:      z.string(),
-  ccName:      z.string(),
+  gstType:     z.string().optional().default(""),
+  ccCode:      z.string().optional().default(""),
+  ccName:      z.string().optional().default(""),
   description: z.string().optional().default(""),
-  percent:     z.number(),
+  percent:     z.coerce.number().default(0),
   gstAmount:   z.coerce.number().default(0),
   isSelected:  z.boolean().default(false),
 });
 
 const schema = z.object({
-  entryDate: zodDate(z, "entryDate", true),
-  billNumber:    z.string().min(1, "Bill Number required"),
-  billDate: zodDate(z, "billDate"),
-  orderNumber:   z.string().optional().default(""),
-  orderDate: zodDate(z, "orderDate"),
+  entryDate:     zodDate(z, "entryDate", true),
+  vendorId:      z.number().nullable().optional(),
   vendorName:    z.string().optional().default(""),
   vendorGstn:    z.string().optional().default(""),
+  saleBillId:    z.number().nullable().optional(),
+  saleBillNo:    z.string().optional().default(""),
+  orderNumber:   z.string().optional().default(""),
+  orderDate:     zodDate(z, "orderDate"),
   debitNoteNo:   z.string().optional().default(""),
   debitNoteDate: zodDate(z, "debitNoteDate"),
   remarks:       z.string().optional().default(""),
@@ -89,13 +101,14 @@ const schema = z.object({
 });
 
 const DEFAULT_VALUES = {
-  entryDate:     new Date().toISOString().split("T")[0],
-  billNumber:    "",
-  billDate:      "",
-  orderNumber:   "",
-  orderDate:     "",
+  entryDate:     "",
+  vendorId:      null,
   vendorName:    "",
   vendorGstn:    "",
+  saleBillId:    null,
+  saleBillNo:    "",
+  orderNumber:   "",
+  orderDate:     "",
   debitNoteNo:   "",
   debitNoteDate: "",
   remarks:       "",
@@ -105,19 +118,21 @@ const DEFAULT_VALUES = {
 
 // ─── Component ────────────────────────────────────────────────────────────────
 export default function CreditNoteForm({ mode = "create", noteId, onAfterSubmit, onUuid }) {
-  // Copy: /new?copy=<id> pre-fills this create form from that record.
   const copyFromId = useCopySource();
-  const isCopy = mode === "create" && !!copyFromId;
+  const isCopy     = mode === "create" && !!copyFromId;
 
   const router      = useRouter();
   const isViewMode  = mode === "view" || mode === "approver";
   const projectCode = getLocalStorage("projectInfo")?.projectCode || "";
 
-  const [isEditing,   setIsEditing]   = useState(mode === "create");
-  const [isSubmitted, setIsSubmitted] = useState(false);
-  const [allowSubmit, setAllowSubmit] = useState(mode === "edit");
-  const [sidebarOpen, setSidebarOpen] = useState(true);
-  const [cnNo,        setCnNo]        = useState("");
+  const [isEditing,       setIsEditing]       = useState(mode === "create");
+  const [isSubmitted,     setIsSubmitted]      = useState(false);
+  const [allowSubmit,     setAllowSubmit]      = useState(mode === "edit");
+  const [sidebarOpen,     setSidebarOpen]      = useState(true);
+  const [cnNo,            setCnNo]             = useState("");
+  const [debtors,         setDebtors]          = useState([]);
+  const [invoicePickerOpen, setInvoicePickerOpen] = useState(false);
+  const [debtorGstinOverride, setDebtorGstinOverride] = useState("");
 
   const {
     register, control, handleSubmit, reset, watch, setValue,
@@ -127,9 +142,16 @@ export default function CreditNoteForm({ mode = "create", noteId, onAfterSubmit,
   const { fields, append, remove } = useFieldArray({ control, name: "items" });
   const { tableRef } = useColumnResize();
 
-  const disabled     = isViewMode || !isEditing || isSubmitting || isSubmitted;
-  const watchedItems = watch("items") || [];
-  const gstLines     = watch("gstLines") || DEFAULT_GST_LINES;
+  const disabled       = isViewMode || !isEditing || isSubmitting || isSubmitted;
+  const watchedItems   = watch("items") || [];
+  const gstLines       = watch("gstLines") || DEFAULT_GST_LINES;
+  const watchVendorId  = watch("vendorId");
+  const watchVendorName = watch("vendorName");
+
+  // Derive GSTIN — vendor list first, fallback to override (from loaded record or invoice)
+  const debtorGstin = watchVendorId
+    ? (debtors.find((d) => d.id === watchVendorId)?.gstin || debtorGstinOverride || "")
+    : "";
 
   const basicTotal    = watchedItems.reduce((s, it) => s + Number(it?.basicAmount || 0), 0);
   const itemsGstTotal = watchedItems.reduce((s, it) => s + Number(it?.basicAmount || 0) * Number(it?.gstPercent || 0) / 100, 0);
@@ -138,7 +160,36 @@ export default function CreditNoteForm({ mode = "create", noteId, onAfterSubmit,
   const gstTotal      = (isIGST || isCGSTSGST) ? itemsGstTotal : 0;
   const totalAmt      = basicTotal + gstTotal;
 
-  // ── Fetch detail (edit / view) ────────────────────────────────────────────
+  // Journal entries: creditorMode = CR first (sundry debtor), DR = CC + GST entries
+  const ccJournalEntries = watchedItems
+    .filter((it) => it?.ccName && Number(it?.basicAmount || 0) > 0)
+    .map((it) => ({ ccCode: it.ccCode || "", ccName: it.ccName || "", amount: Number(it.basicAmount || 0) }));
+
+  const gstJournalEntries = (gstLines || [])
+    .filter((gl) => gl?.isSelected && Number(gl?.gstAmount || 0) > 0)
+    .map((gl) => ({ ccCode: gl.ccCode || gl.gstType || "", ccName: gl.ccName || gl.gstType || "", amount: Number(gl.gstAmount || 0) }));
+
+  const journalEntries   = [...ccJournalEntries, ...gstJournalEntries];
+  const debtorDisplayName = watchVendorName || "— Select Debtor —";
+
+  // ── Load debtor list (sundry debtors) ────────────────────────────────────
+  useEffect(() => {
+    apiRequest({
+      url:    `${API_ENDPOINTS.MASTER.GET_ALL_LEDGER}?type=debtor`,
+      method: "GET",
+    })
+      .then((r) => {
+        const normalized = (r.data || []).map((v) => ({
+          id:         v.ledgerId || v.id,
+          name:       v.ledgerName || v.name || "",
+          gstin:      v.gstin || "",
+        }));
+        setDebtors(normalized);
+      })
+      .catch(() => {});
+  }, []);
+
+  // ── Fetch detail (edit / view / copy) ────────────────────────────────────
   useEffect(() => {
     const loadId = isCopy ? copyFromId : noteId;
     if ((mode === "create" && !isCopy) || !loadId) return;
@@ -147,12 +198,13 @@ export default function CreditNoteForm({ mode = "create", noteId, onAfterSubmit,
         const d = res.data || {};
         reset({
           entryDate:     d.entryDate     || "",
-          billNumber:    d.billNumber    || "",
-          billDate:      d.billDate      || "",
-          orderNumber:   d.orderNumber   || "",
-          orderDate:     d.orderDate     || "",
+          vendorId:      d.vendorId      || null,
           vendorName:    d.vendorName    || "",
           vendorGstn:    d.vendorGstn    || "",
+          saleBillId:    d.saleBillId    || null,
+          saleBillNo:    d.saleBillNo    || "",
+          orderNumber:   d.orderNumber   || "",
+          orderDate:     d.orderDate     || "",
           debitNoteNo:   d.debitNoteNo   || "",
           debitNoteDate: d.debitNoteDate || "",
           remarks:       d.remarks       || "",
@@ -176,10 +228,8 @@ export default function CreditNoteForm({ mode = "create", noteId, onAfterSubmit,
               }))
             : DEFAULT_GST_LINES,
         });
-        if (isCopy) {
-          copyLoadedToast(d.creditNoteNo);
-          return;
-        }
+        if (d.vendorGstn) setDebtorGstinOverride(d.vendorGstn);
+        if (isCopy) { copyLoadedToast(d.creditNoteNo); return; }
         const locked = d.workflowStatus && !["Draft", "Reback"].includes(d.workflowStatus);
         setIsSubmitted(locked);
         setAllowSubmit(!locked);
@@ -188,6 +238,33 @@ export default function CreditNoteForm({ mode = "create", noteId, onAfterSubmit,
       })
       .catch(() => toast.error("Failed to load credit note details"));
   }, [copyFromId, noteId, mode]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // ── Invoice select handler ────────────────────────────────────────────────
+  const handleInvoiceSelect = (inv) => {
+    setValue("saleBillId",  inv.saleBillId,              { shouldDirty: true });
+    setValue("saleBillNo",  inv.saleBillNo || "",        { shouldDirty: true });
+    setValue("orderNumber", inv.saleOrderNo || "",       { shouldDirty: true });
+    setValue("orderDate",   inv.saleOrderDate || "",     { shouldDirty: true });
+    if (inv.debtorId) {
+      setValue("vendorId",   inv.debtorId,   { shouldDirty: true });
+      setValue("vendorName", inv.debtorName, { shouldDirty: true });
+      const d = debtors.find((x) => x.id === inv.debtorId);
+      setDebtorGstinOverride(d?.gstin || inv.debtorGstin || "");
+    }
+  };
+
+  // ── Debtor select handler ─────────────────────────────────────────────────
+  const handleDebtorSelect = (debtorId) => {
+    const d = debtors.find((x) => x.id === debtorId);
+    setValue("vendorId",   debtorId,          { shouldDirty: true });
+    setValue("vendorName", d?.name || "",     { shouldDirty: true });
+    setDebtorGstinOverride(d?.gstin || "");
+    // Clear invoice when debtor changes
+    setValue("saleBillId",  null, { shouldDirty: true });
+    setValue("saleBillNo",  "",   { shouldDirty: true });
+    setValue("orderNumber", "",   { shouldDirty: true });
+    setValue("orderDate",   "",   { shouldDirty: true });
+  };
 
   // ── Save Draft ────────────────────────────────────────────────────────────
   const onSave = async (v) => {
@@ -199,13 +276,9 @@ export default function CreditNoteForm({ mode = "create", noteId, onAfterSubmit,
     const payload = {
       projectCode,
       entryDate:     v.entryDate,
-      billNumber:    v.billNumber,
-      billDate:      v.billDate      || "",
-      orderNumber:   v.orderNumber   || "",
-      orderDate:     v.orderDate     || "",
-      vendorName:    v.vendorName    || "",
-      vendorGstn:    v.vendorGstn    || "",
-      debitNoteNo:   v.debitNoteNo   || "",
+      saleBillId:    v.saleBillId   || null,
+      vendorId:      v.vendorId     || null,
+      debitNoteNo:   v.debitNoteNo  || "",
       debitNoteDate: v.debitNoteDate || "",
       remarks:       v.remarks       || "",
       items:         v.items.map((it, i) => ({ ...it, slNo: i + 1 })),
@@ -274,29 +347,69 @@ export default function CreditNoteForm({ mode = "create", noteId, onAfterSubmit,
             </PMFormRow>
           </PMSection>
 
-          {/* Bill Details */}
-          <PMSection title="Bill Details:">
-            <PMFormRow label="Bill Number" required={!disabled} labelWidth="sm:w-[150px] sm:min-w-[150px]">
-              <PMInput {...register("billNumber")} disabled={disabled} hasError={errors.billNumber} placeholder="Bill Number" fieldLabel="Bill Number" />
+          {/* Debtor (Customer) Details */}
+          <PMSection title="Party (Debtor) Details:">
+            <PMFormRow label="Party (Debtor)" labelWidth="sm:w-[150px] sm:min-w-[150px]">
+              {disabled ? (
+                <PMInput value={watch("vendorName") || "—"} disabled readOnly />
+              ) : (
+                <Controller
+                  name="vendorId"
+                  control={control}
+                  render={({ field }) => (
+                    <SearchableSelect
+                      options={debtors}
+                      value={field.value}
+                      onChange={(v) => handleDebtorSelect(Number(v))}
+                      disabled={disabled}
+                      placeholder="— Select Debtor —"
+                      labelKey="name"
+                      valueKey="id"
+                      searchKeys={["name"]}
+                      className="text-[12px]"
+                    />
+                  )}
+                />
+              )}
             </PMFormRow>
-            <PMFormRow label="Bill Date" labelWidth="sm:w-[150px] sm:min-w-[150px]">
-              <PMDateInput {...register("billDate")} disabled={disabled} className="max-w-[200px]" />
-            </PMFormRow>
-            <PMFormRow label="Order Number" labelWidth="sm:w-[150px] sm:min-w-[150px]">
-              <PMInput {...register("orderNumber")} disabled={disabled} placeholder="Order Number" fieldLabel="Order Number" />
-            </PMFormRow>
-            <PMFormRow label="Order Date" labelWidth="sm:w-[150px] sm:min-w-[150px]">
-              <PMDateInput {...register("orderDate")} disabled={disabled} className="max-w-[200px]" />
+            <PMFormRow label="Debtor GSTIN" labelWidth="sm:w-[150px] sm:min-w-[150px]">
+              <PMInput value={debtorGstin || "—"} disabled readOnly placeholder="Auto from debtor" />
             </PMFormRow>
           </PMSection>
 
-          {/* Vendor Details */}
-          <PMSection title="Vendor Details:">
-            <PMFormRow label="Vendor Name" labelWidth="sm:w-[150px] sm:min-w-[150px]">
-              <PMInput {...register("vendorName")} disabled={disabled} placeholder="Vendor Name" fieldLabel="Vendor Name" />
+          {/* Invoice (Sale Bill) Details */}
+          <PMSection title="Invoice Details:">
+            <PMFormRow label="Invoice No" labelWidth="sm:w-[150px] sm:min-w-[150px]">
+              <div className="flex items-center gap-1 flex-1">
+                <PMInput
+                  value={watch("saleBillNo") || ""}
+                  disabled
+                  readOnly
+                  placeholder="Select invoice from picker →"
+                  className="flex-1"
+                />
+                {!disabled && (
+                  <button
+                    type="button"
+                    onClick={() => setInvoicePickerOpen(true)}
+                    title="Pick Sale Invoice"
+                    className="shrink-0 p-1.5 rounded border border-[#3b6ea5] text-[#3b6ea5] hover:bg-[#e8f0fa] transition"
+                  >
+                    <List size={14} />
+                  </button>
+                )}
+              </div>
             </PMFormRow>
-            <PMFormRow label="Vendor GSTN" labelWidth="sm:w-[150px] sm:min-w-[150px]">
-              <PMInput {...register("vendorGstn")} disabled={disabled} placeholder="GSTIN" fieldLabel="Vendor GSTN" />
+            <PMFormRow label="Sale Order No" labelWidth="sm:w-[150px] sm:min-w-[150px]">
+              <PMInput
+                value={watch("orderNumber") || ""}
+                disabled
+                readOnly
+                placeholder="Auto from invoice"
+              />
+            </PMFormRow>
+            <PMFormRow label="Order Date" labelWidth="sm:w-[150px] sm:min-w-[150px]">
+              <PMDateInput {...register("orderDate")} disabled readOnly className="max-w-[200px]" />
             </PMFormRow>
           </PMSection>
 
@@ -314,6 +427,16 @@ export default function CreditNoteForm({ mode = "create", noteId, onAfterSubmit,
         {/* ── RIGHT PANEL ─────────────────────────────────────────────────── */}
         <div className="flex-1 min-w-0 space-y-2">
 
+          {/* Accounting Journal */}
+          <AccountingJournalTable
+            debtorName={debtorDisplayName}
+            entries={journalEntries}
+            totalDr={totalAmt}
+            totalCr={totalAmt}
+            creditorMode={true}
+            emptyText="Add items below to generate accounting entries"
+          />
+
           {/* BASIC table */}
           <div className="border border-gray-300 rounded-sm overflow-hidden">
             <div className={`${ACC.basicHeader} px-3 py-[5px]`}>
@@ -329,7 +452,7 @@ export default function CreditNoteForm({ mode = "create", noteId, onAfterSubmit,
                     <th className="border border-gray-300 px-2 py-1.5 text-right font-semibold w-[100px]">Basic (₹)</th>
                     <th className="border border-gray-300 px-2 py-1.5 text-center font-semibold w-[76px]">GST %</th>
                     <th className="border border-gray-300 px-2 py-1.5 text-right font-semibold w-[100px]">GST Amt (₹)</th>
-                    <th className="border border-gray-300 px-2 py-1.5 text-right font-semibold w-[100px]">Total Amt (₹)</th>
+                    <th className="border border-gray-300 px-2 py-1.5 text-right font-semibold w-[100px]">Total (₹)</th>
                     {!disabled && <th className="border border-gray-300 px-2 py-1.5 w-[36px]" />}
                   </tr>
                 </thead>
@@ -350,7 +473,6 @@ export default function CreditNoteForm({ mode = "create", noteId, onAfterSubmit,
                         <tr key={field.id} className={idx % 2 === 0 ? "bg-white" : "bg-[#f7f9fc]"}>
                           <td className="border border-gray-200 px-2 py-[3px] text-center align-middle">{idx + 1}</td>
 
-                          {/* CC Code — auto-populated from CC Name select, not user-editable */}
                           <td className="border border-gray-200 p-0.5 align-middle">
                             <input
                               type="text"
@@ -361,29 +483,28 @@ export default function CreditNoteForm({ mode = "create", noteId, onAfterSubmit,
                             />
                           </td>
 
-                          {/* CC Name select + Description */}
-                          <td className="border border-gray-200 p-0 min-w-[160px]">
-                            <select
-                              value={watchedItems[idx]?.ccName ?? ""}
-                              onChange={(e) => {
-                                const name = e.target.value;
-                                setValue(`items.${idx}.ccName`, name, { shouldDirty: true });
-                                setValue(`items.${idx}.ccCode`, CN_CODE_BY_NAME[name] ?? "", { shouldDirty: true });
-                              }}
-                              disabled={disabled}
-                              className={`w-full h-[26px] text-[12px] px-1.5 outline-none rounded-sm border-0 ${
-                                disabled
-                                  ? "bg-[#edf8ed] text-gray-500 cursor-default"
-                                  : "bg-transparent focus:bg-white focus:border focus:border-[#93b5cc] cursor-pointer"
-                              }`}
-                            >
-                              <option value="">— Select Type —</option>
-                              {CREDIT_NOTE_OPTIONS.map((opt) => (
-                                <option key={opt.ccCode} value={opt.ccName}>
-                                  {opt.ccName}
-                                </option>
-                              ))}
-                            </select>
+                          <td className="border border-gray-200 p-0 min-w-[160px] align-top">
+                            <Controller
+                              name={`items.${idx}.ccCode`}
+                              control={control}
+                              render={() => (
+                                <SearchableSelect
+                                  options={CC_OPTIONS}
+                                  value={watchedItems[idx]?.ccCode || ""}
+                                  onChange={(code) => {
+                                    const opt = CC_OPTIONS.find((o) => o.value === code);
+                                    setValue(`items.${idx}.ccCode`, code, { shouldDirty: true });
+                                    setValue(`items.${idx}.ccName`, opt?.ccName || "", { shouldDirty: true });
+                                  }}
+                                  disabled={disabled}
+                                  placeholder="— Select Type —"
+                                  labelKey="label"
+                                  valueKey="value"
+                                  searchKeys={["label", "value"]}
+                                  className="text-[12px] border-0 rounded-none"
+                                />
+                              )}
+                            />
                             <Controller
                               name={`items.${idx}.description`}
                               control={control}
@@ -401,7 +522,6 @@ export default function CreditNoteForm({ mode = "create", noteId, onAfterSubmit,
                             />
                           </td>
 
-                          {/* Basic Amount */}
                           <td className="border border-gray-200 p-0.5 align-middle">
                             <AmountInput
                               {...register(`items.${idx}.basicAmount`)}
@@ -412,7 +532,6 @@ export default function CreditNoteForm({ mode = "create", noteId, onAfterSubmit,
                             />
                           </td>
 
-                          {/* GST % */}
                           <td className="border border-gray-200 p-0.5 align-middle">
                             <GstInput
                               {...register(`items.${idx}.gstPercent`)}
@@ -423,17 +542,14 @@ export default function CreditNoteForm({ mode = "create", noteId, onAfterSubmit,
                             />
                           </td>
 
-                          {/* GST Amount — computed */}
                           <td className="border border-gray-200 px-2 py-[3px] text-right align-middle bg-[#fff8ed] text-gray-700 font-medium">
                             {formatAmount(gstAmt)}
                           </td>
 
-                          {/* Total — computed */}
                           <td className="border border-gray-200 px-2 py-[3px] text-right align-middle bg-[#edf8ed] text-gray-700 font-medium whitespace-nowrap">
                             {formatAmount(rowTotal)}
                           </td>
 
-                          {/* Delete */}
                           {!disabled && (
                             <td className="border border-gray-200 px-1 py-[3px] text-center align-middle">
                               <button
@@ -451,7 +567,6 @@ export default function CreditNoteForm({ mode = "create", noteId, onAfterSubmit,
                     })
                   )}
 
-                  {/* Total row */}
                   <tr className={`${ACC.tableHead} font-semibold`}>
                     <td colSpan={3} className="border border-gray-300 px-2 py-1.5 text-right text-[12px]">TOTAL</td>
                     <td className="border border-gray-300 px-2 py-1.5 text-right text-[12px]">{fmt(basicTotal)}</td>
@@ -468,7 +583,6 @@ export default function CreditNoteForm({ mode = "create", noteId, onAfterSubmit,
               </table>
             </div>
 
-            {/* Add Row */}
             {!disabled && (
               <div className="flex justify-end px-3 py-2 border-t border-gray-200">
                 <button
@@ -560,18 +674,27 @@ export default function CreditNoteForm({ mode = "create", noteId, onAfterSubmit,
                   {isEditing ? "Cancel" : "Edit"}
                 </EditButton>
               )}
-
-
-          {mode === "edit" && !isEditing && (
-            <DeleteRequestButton
-              moduleCode="CREDIT_NOTE"
-              recordId={Number(noteId)}
-              onDeleted={() => router.back()}
-            />
-          )}            </div>
+              {mode === "edit" && !isEditing && (
+                <DeleteRequestButton
+                  moduleCode="CREDIT_NOTE"
+                  recordId={Number(noteId)}
+                  onDeleted={() => router.back()}
+                />
+              )}
+            </div>
           )}
         </div>
       </div>
+
+      {/* Sale Bill Picker Modal */}
+      <CreditNoteSaleBillPickerModal
+        open={invoicePickerOpen}
+        onClose={() => setInvoicePickerOpen(false)}
+        onSelect={handleInvoiceSelect}
+        projectCode={projectCode}
+        debtorId={watchVendorId}
+        selectedSaleBillId={watch("saleBillId")}
+      />
     </div>
   );
 }

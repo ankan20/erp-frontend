@@ -604,6 +604,7 @@ export const API_ENDPOINTS = {
       HISTORY:            "/finance/credit-note/history/",               // /:id GET
       MY_APPROVAL_STATUS: "/finance/credit-note/my-approval-status/",    // /:id GET
       GET_BY_UUID:        "/finance/credit-note/uuid/",                  // /:uuid GET no-auth
+      SALE_BILL_PICKER:   "/finance/credit-note/sale-bill-picker",       // GET ?projectCode&debtorId
     },
     PAYMENT_VOUCHER: {
       CREATE:             "/finance/payment-voucher/create",                // POST JSON
