@@ -590,7 +590,7 @@ export const API_ENDPOINTS = {
       HISTORY:            "/finance/debit-note/history/",               // /:id GET
       MY_APPROVAL_STATUS: "/finance/debit-note/my-approval-status/",    // /:id GET
       GET_BY_UUID:        "/finance/debit-note/uuid/",                  // /:uuid GET no-auth
-      ORDER_PICKER:       "/finance/debit-note/order-picker",            // GET ?projectCode — approved orders w/ BRR
+      BRR_PICKER:         "/finance/debit-note/brr-picker",               // GET ?projectCode&vendorId — approved BRRs
     },
     CREDIT_NOTE: {
       CREATE:             "/finance/credit-note/create",                 // POST JSON

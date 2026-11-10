@@ -99,7 +99,8 @@ const schema = z.object({
   entryDate:      zodDate(z, "entryDate", true),
   vendorId:       z.number().nullable().optional(),
   vendorName:     z.string().optional().default(""),
-  orderId:        z.number().nullable().optional(),
+  brrId:          z.number().nullable().optional(),
+  brrNo:          z.string().optional().default(""),
   orderNumber:    z.string().optional().default(""),
   orderDate:      zodDate(z, "orderDate"),
   billNumber:     z.string().optional().default(""),
@@ -115,7 +116,8 @@ const DEFAULT_VALUES = {
   entryDate:      new Date().toISOString().split("T")[0],
   vendorId:       null,
   vendorName:     "",
-  orderId:        null,
+  brrId:          null,
+  brrNo:          "",
   orderNumber:    "",
   orderDate:      "",
   billNumber:     "",
@@ -144,7 +146,7 @@ export default function DebitNoteForm({ mode = "create", noteId, onAfterSubmit, 
 
   // Pickers / dropdowns state
   const [vendors,       setVendors]       = useState([]);
-  const [vendorGstin,   setVendorGstin]   = useState("");
+  const [vendorGstinOverride, setVendorGstinOverride] = useState("");
   const [orderPickerOpen, setOrderPickerOpen] = useState(false);
 
   const {
@@ -183,10 +185,9 @@ export default function DebitNoteForm({ mode = "create", noteId, onAfterSubmit, 
       .catch(() => {});
   }, []);
 
-  // Clear GSTIN when vendor is deselected
-  useEffect(() => {
-    if (!watchVendorId) setVendorGstin("");
-  }, [watchVendorId]);
+  const vendorGstin = watchVendorId
+    ? (vendors.find((v) => v.id === watchVendorId)?.gstin || vendorGstinOverride || "")
+    : "";
 
   // ── Fetch detail (edit / view) ────────────────────────────────────────────
   useEffect(() => {
@@ -199,7 +200,8 @@ export default function DebitNoteForm({ mode = "create", noteId, onAfterSubmit, 
           entryDate:      d.entryDate      || "",
           vendorId:       d.vendorId       || null,
           vendorName:     d.vendorName     || "",
-          orderId:        d.orderId        || null,
+          brrId:          d.brrId          || null,
+          brrNo:          d.brrNo          || "",
           orderNumber:    d.orderNumber    || "",
           orderDate:      d.orderDate      || "",
           billNumber:     d.billNumber     || "",
@@ -228,7 +230,7 @@ export default function DebitNoteForm({ mode = "create", noteId, onAfterSubmit, 
             : DEBIT_GST_LINES,
         });
         // Restore GSTIN display
-        if (d.vendorGstn) setVendorGstin(d.vendorGstn);
+        if (d.vendorGstn) setVendorGstinOverride(d.vendorGstn);
 
         if (isCopy) { copyLoadedToast(d.debitNoteNo); return; }
         const locked = d.workflowStatus && !["Draft", "Reback"].includes(d.workflowStatus);
@@ -241,19 +243,18 @@ export default function DebitNoteForm({ mode = "create", noteId, onAfterSubmit, 
   }, [copyFromId, noteId, mode]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── Order picker handler ──────────────────────────────────────────────────
-  const handleOrderSelect = (order) => {
-    setValue("orderId",     order.orderId,     { shouldDirty: true });
-    setValue("orderNumber", order.orderNo,     { shouldDirty: true });
-    setValue("orderDate",   order.orderDate || "", { shouldDirty: true });
-    setValue("billNumber",  order.partyBillNo || "", { shouldDirty: true });
-    setValue("billDate",    order.partyDate   || "", { shouldDirty: true });
-    if (order.vendorId) {
-      setValue("vendorId",   order.vendorId,   { shouldDirty: true });
-      setValue("vendorName", order.vendorName, { shouldDirty: true });
-      // GSTIN from the order picker (backend derives it from vendor FK)
-      // Also check the loaded vendors list for consistency
-      const v = vendors.find((x) => x.id === order.vendorId);
-      setVendorGstin(v?.gstin || order.vendorGstin || "");
+  const handleOrderSelect = (brr) => {
+    setValue("brrId",       brr.brrId,          { shouldDirty: true });
+    setValue("brrNo",       brr.brrNo || "",     { shouldDirty: true });
+    setValue("orderNumber", brr.orderNo || "",   { shouldDirty: true });
+    setValue("orderDate",   brr.orderDate || "", { shouldDirty: true });
+    setValue("billNumber",  brr.partyBillNo || "", { shouldDirty: true });
+    setValue("billDate",    brr.partyDate   || "", { shouldDirty: true });
+    if (brr.vendorId) {
+      setValue("vendorId",   brr.vendorId,   { shouldDirty: true });
+      setValue("vendorName", brr.vendorName, { shouldDirty: true });
+      const v = vendors.find((x) => x.id === brr.vendorId);
+      setVendorGstinOverride(v?.gstin || brr.vendorGstin || "");
     }
   };
 
@@ -262,7 +263,7 @@ export default function DebitNoteForm({ mode = "create", noteId, onAfterSubmit, 
     const v = vendors.find((x) => x.id === vendorId);
     setValue("vendorId",   vendorId,           { shouldDirty: true });
     setValue("vendorName", v?.vendorName || "", { shouldDirty: true });
-    setVendorGstin(v?.gstin || "");
+    setVendorGstinOverride(v?.gstin || "");
   };
 
   // ── Save Draft ────────────────────────────────────────────────────────────
@@ -277,7 +278,8 @@ export default function DebitNoteForm({ mode = "create", noteId, onAfterSubmit, 
       entryDate:      v.entryDate,
       vendorId:       v.vendorId   || null,
       vendorName:     v.vendorName || "",
-      orderId:        v.orderId    || null,
+      brrId:          v.brrId       || null,
+      brrNo:          v.brrNo       || "",
       orderNumber:    v.orderNumber || "",
       orderDate:      v.orderDate  || "",
       billNumber:     v.billNumber || "",
@@ -324,14 +326,24 @@ export default function DebitNoteForm({ mode = "create", noteId, onAfterSubmit, 
     else setIsEditing(true);
   };
 
-  // ── Accounting journal entries (derived from items) ──────────────────────
-  const journalEntries = watchedItems
+  // ── Accounting journal entries (derived from items + selected GST lines) ──
+  const ccJournalEntries = watchedItems
     .filter((it) => it?.ccName && Number(it?.basicAmount || 0) > 0)
     .map((it) => ({
-      ccCode:  it.ccCode || "",
-      ccName:  it.ccName || "",
-      amount:  Number(it.basicAmount || 0),
+      ccCode: it.ccCode || "",
+      ccName: it.ccName || "",
+      amount: Number(it.basicAmount || 0),
     }));
+
+  const gstJournalEntries = (gstLines || [])
+    .filter((gl) => gl?.isSelected && Number(gl?.gstAmount || 0) > 0)
+    .map((gl) => ({
+      ccCode: gl.ccCode || gl.gstType || "",
+      ccName: gl.ccName || gl.gstType || "",
+      amount: Number(gl.gstAmount || 0),
+    }));
+
+  const journalEntries = [...ccJournalEntries, ...gstJournalEntries];
 
   const vendorDisplayName = watchVendorName || "— Select Vendor —";
 
@@ -390,29 +402,26 @@ export default function DebitNoteForm({ mode = "create", noteId, onAfterSubmit, 
 
           {/* Bill / Order Details */}
           <PMSection title="Bill Details:">
-            <PMFormRow label="Order Number" labelWidth="sm:w-[150px] sm:min-w-[150px]">
+            <PMFormRow label="BRR No" labelWidth="sm:w-[150px] sm:min-w-[150px]">
               <div className="flex items-center gap-1 flex-1">
                 <PMInput
-                  value={watch("orderNumber") || ""}
+                  value={watch("brrNo") || ""}
                   disabled
                   readOnly
-                  placeholder="Select from picker →"
+                  placeholder="Select bill from picker →"
                   className="flex-1"
                 />
                 {!disabled && (
                   <button
                     type="button"
                     onClick={() => setOrderPickerOpen(true)}
-                    title="Pick Order"
+                    title="Pick Bill (BRR)"
                     className="shrink-0 p-1.5 rounded border border-[#3b6ea5] text-[#3b6ea5] hover:bg-[#e8f0fa] transition"
                   >
                     <List size={14} />
                   </button>
                 )}
               </div>
-            </PMFormRow>
-            <PMFormRow label="Order Date" labelWidth="sm:w-[150px] sm:min-w-[150px]">
-              <PMDateInput {...register("orderDate")} disabled readOnly className="max-w-[200px]" />
             </PMFormRow>
             <PMFormRow label="Bill Number" labelWidth="sm:w-[150px] sm:min-w-[150px]">
               <PMInput
@@ -421,6 +430,18 @@ export default function DebitNoteForm({ mode = "create", noteId, onAfterSubmit, 
                 readOnly
                 placeholder="Auto from BRR"
               />
+            </PMFormRow>
+            <PMFormRow label="Order Number" labelWidth="sm:w-[150px] sm:min-w-[150px]">
+              <PMInput
+                value={watch("orderNumber") || ""}
+                disabled
+                readOnly
+                placeholder="Auto from BRR"
+                className="flex-1"
+              />
+            </PMFormRow>
+            <PMFormRow label="Order Date" labelWidth="sm:w-[150px] sm:min-w-[150px]">
+              <PMDateInput {...register("orderDate")} disabled readOnly className="max-w-[200px]" />
             </PMFormRow>
             <PMFormRow label="Bill Date" labelWidth="sm:w-[150px] sm:min-w-[150px]">
               <PMDateInput {...register("billDate")} disabled readOnly className="max-w-[200px]" />
@@ -443,11 +464,10 @@ export default function DebitNoteForm({ mode = "create", noteId, onAfterSubmit, 
 
           {/* Accounting Journal */}
           <AccountingJournalTable
-            creditorMode
             debtorName={vendorDisplayName}
             entries={journalEntries}
-            totalDr={basicTotal}
-            totalCr={basicTotal}
+            totalDr={totalAmt}
+            totalCr={totalAmt}
             disabled={disabled}
             emptyText="Add items below to generate accounting entries"
           />
@@ -716,6 +736,8 @@ export default function DebitNoteForm({ mode = "create", noteId, onAfterSubmit, 
         onClose={() => setOrderPickerOpen(false)}
         onSelect={handleOrderSelect}
         projectCode={projectCode}
+        vendorId={watchVendorId}
+        selectedOrderId={watch("brrId")}
       />
     </div>
   );
