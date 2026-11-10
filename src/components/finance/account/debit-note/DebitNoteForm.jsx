@@ -168,10 +168,10 @@ export default function DebitNoteForm({ mode = "create", noteId, onAfterSubmit, 
   const gstTotal      = (isIGST || isCGSTSGST) ? itemsGstTotal : 0;
   const totalAmt      = basicTotal + gstTotal;
 
-  // Load creditor vendors using existing /master/ledger/list?ledgerType=creditor
-  // Now includes gstin directly in the list response
+  // Load creditor vendors using existing /master/ledger/list?type=creditor
+  // gstin is now included in the list response
   useEffect(() => {
-    apiRequest({ url: `${API_ENDPOINTS.GET_ALL_LEDGER}?ledgerType=creditor`, method: "GET" })
+    apiRequest({ url: `${API_ENDPOINTS.MASTER.GET_ALL_LEDGER}?type=creditor`, method: "GET" })
       .then((r) => {
         const normalized = (r.data || []).map((v) => ({
           id:         v.ledgerId,
