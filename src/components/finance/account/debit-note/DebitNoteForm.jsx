@@ -168,19 +168,24 @@ export default function DebitNoteForm({ mode = "create", noteId, onAfterSubmit, 
   const gstTotal      = (isIGST || isCGSTSGST) ? itemsGstTotal : 0;
   const totalAmt      = basicTotal + gstTotal;
 
-  // Load creditor vendors on mount
+  // Load creditor vendors using existing /master/ledger/list?ledgerType=creditor
+  // Response key is ledgerId (not id); gstin comes from individual fetch on select
   useEffect(() => {
-    apiRequest({ url: API_ENDPOINTS.FINANCE.DEBIT_NOTE.CREDITOR_VENDORS, method: "GET" })
-      .then((r) => setVendors(r.data || []))
+    apiRequest({ url: `${API_ENDPOINTS.GET_ALL_LEDGER}?ledgerType=creditor`, method: "GET" })
+      .then((r) => {
+        const normalized = (r.data || []).map((v) => ({
+          id:         v.ledgerId,
+          vendorName: v.ledgerName || "",
+        }));
+        setVendors(normalized);
+      })
       .catch(() => {});
   }, []);
 
-  // Keep vendorGstin in sync with selected vendor
+  // Clear GSTIN when vendor is deselected
   useEffect(() => {
-    if (!watchVendorId) { setVendorGstin(""); return; }
-    const v = vendors.find((x) => x.id === watchVendorId);
-    setVendorGstin(v?.gstin || "");
-  }, [watchVendorId, vendors]);
+    if (!watchVendorId) setVendorGstin("");
+  }, [watchVendorId]);
 
   // ── Fetch detail (edit / view) ────────────────────────────────────────────
   useEffect(() => {
@@ -244,16 +249,33 @@ export default function DebitNoteForm({ mode = "create", noteId, onAfterSubmit, 
     if (order.vendorId) {
       setValue("vendorId",   order.vendorId,   { shouldDirty: true });
       setValue("vendorName", order.vendorName, { shouldDirty: true });
+      // vendorGstin comes from order picker (derived from order's vendor)
       setVendorGstin(order.vendorGstin || "");
+      // Also fetch authoritative GSTIN from master in case picker value is stale
+      apiRequest({ url: `${API_ENDPOINTS.GET_LEDGER_BY_ID}/${order.vendorId}`, method: "GET" })
+        .then((r) => {
+          const detail = Array.isArray(r.data) ? r.data[0] : r.data;
+          if (detail?.gstin) setVendorGstin(detail.gstin);
+        })
+        .catch(() => {});
     }
   };
 
   // ── Vendor select handler ─────────────────────────────────────────────────
   const handleVendorSelect = (vendorId) => {
     const v = vendors.find((x) => x.id === vendorId);
-    setValue("vendorId",   vendorId,         { shouldDirty: true });
+    setValue("vendorId",   vendorId,           { shouldDirty: true });
     setValue("vendorName", v?.vendorName || "", { shouldDirty: true });
-    setVendorGstin(v?.gstin || "");
+    setVendorGstin("");
+    // Fetch GSTIN from individual vendor detail
+    if (vendorId) {
+      apiRequest({ url: `${API_ENDPOINTS.GET_LEDGER_BY_ID}/${vendorId}`, method: "GET" })
+        .then((r) => {
+          const detail = Array.isArray(r.data) ? r.data[0] : r.data;
+          setVendorGstin(detail?.gstin || "");
+        })
+        .catch(() => {});
+    }
   };
 
   // ── Save Draft ────────────────────────────────────────────────────────────
