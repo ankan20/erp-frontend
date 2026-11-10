@@ -169,13 +169,14 @@ export default function DebitNoteForm({ mode = "create", noteId, onAfterSubmit, 
   const totalAmt      = basicTotal + gstTotal;
 
   // Load creditor vendors using existing /master/ledger/list?ledgerType=creditor
-  // Response key is ledgerId (not id); gstin comes from individual fetch on select
+  // Now includes gstin directly in the list response
   useEffect(() => {
     apiRequest({ url: `${API_ENDPOINTS.GET_ALL_LEDGER}?ledgerType=creditor`, method: "GET" })
       .then((r) => {
         const normalized = (r.data || []).map((v) => ({
           id:         v.ledgerId,
           vendorName: v.ledgerName || "",
+          gstin:      v.gstin      || "",
         }));
         setVendors(normalized);
       })
@@ -249,15 +250,10 @@ export default function DebitNoteForm({ mode = "create", noteId, onAfterSubmit, 
     if (order.vendorId) {
       setValue("vendorId",   order.vendorId,   { shouldDirty: true });
       setValue("vendorName", order.vendorName, { shouldDirty: true });
-      // vendorGstin comes from order picker (derived from order's vendor)
-      setVendorGstin(order.vendorGstin || "");
-      // Also fetch authoritative GSTIN from master in case picker value is stale
-      apiRequest({ url: `${API_ENDPOINTS.GET_LEDGER_BY_ID}/${order.vendorId}`, method: "GET" })
-        .then((r) => {
-          const detail = Array.isArray(r.data) ? r.data[0] : r.data;
-          if (detail?.gstin) setVendorGstin(detail.gstin);
-        })
-        .catch(() => {});
+      // GSTIN from the order picker (backend derives it from vendor FK)
+      // Also check the loaded vendors list for consistency
+      const v = vendors.find((x) => x.id === order.vendorId);
+      setVendorGstin(v?.gstin || order.vendorGstin || "");
     }
   };
 
@@ -266,16 +262,7 @@ export default function DebitNoteForm({ mode = "create", noteId, onAfterSubmit, 
     const v = vendors.find((x) => x.id === vendorId);
     setValue("vendorId",   vendorId,           { shouldDirty: true });
     setValue("vendorName", v?.vendorName || "", { shouldDirty: true });
-    setVendorGstin("");
-    // Fetch GSTIN from individual vendor detail
-    if (vendorId) {
-      apiRequest({ url: `${API_ENDPOINTS.GET_LEDGER_BY_ID}/${vendorId}`, method: "GET" })
-        .then((r) => {
-          const detail = Array.isArray(r.data) ? r.data[0] : r.data;
-          setVendorGstin(detail?.gstin || "");
-        })
-        .catch(() => {});
-    }
+    setVendorGstin(v?.gstin || "");
   };
 
   // ── Save Draft ────────────────────────────────────────────────────────────
