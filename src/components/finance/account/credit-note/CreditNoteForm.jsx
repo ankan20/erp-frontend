@@ -7,7 +7,7 @@ import { z }              from "zod";
 import { zodResolver }    from "@hookform/resolvers/zod";
 import { toast }          from "sonner";
 import { useRouter }      from "next/navigation";
-import { List, PanelLeftClose, PanelLeftOpen, Plus, Trash2 } from "lucide-react";
+import { List, Loader2, PanelLeftClose, PanelLeftOpen, Plus, Trash2 } from "lucide-react";
 
 import SaveButton          from "@/components/common/SaveButton";
 import SaveDraftButton     from "@/components/common/SaveDraftButton";
@@ -37,6 +37,14 @@ import { useCopySource, copyLoadedToast } from "@/lib/copyRecord";
 import CreditNoteSaleBillPickerModal from "./CreditNoteSaleBillPickerModal";
 
 // CC options formatted for SearchableSelect
+// Strip time component from API date strings (e.g. "2025-10-15 00:00" → "2025-10-15")
+const toDateOnly = (v) => {
+  if (!v) return "";
+  const s = String(v).trim();
+  if (s.length > 10 && (s[10] === " " || s[10] === "T")) return s.slice(0, 10);
+  return s;
+};
+
 const CC_OPTIONS = CREDIT_NOTE_OPTIONS.map((o) => ({
   value: o.ccCode,
   label: o.ccName,
@@ -92,9 +100,9 @@ const schema = z.object({
   saleBillId:    z.number().nullable().optional(),
   saleBillNo:    z.string().optional().default(""),
   orderNumber:   z.string().optional().default(""),
-  orderDate:     zodDate(z, "orderDate"),
+  orderDate:     zodDate(z, "orderDate").default(""),
   debitNoteNo:   z.string().optional().default(""),
-  debitNoteDate: zodDate(z, "debitNoteDate"),
+  debitNoteDate: zodDate(z, "debitNoteDate").default(""),
   remarks:       z.string().optional().default(""),
   items:         z.array(itemSchema).min(1, "At least one item is required"),
   gstLines:      z.array(gstLineSchema).length(3),
@@ -130,6 +138,7 @@ export default function CreditNoteForm({ mode = "create", noteId, onAfterSubmit,
   const [allowSubmit,     setAllowSubmit]      = useState(mode === "edit");
   const [sidebarOpen,     setSidebarOpen]      = useState(true);
   const [cnNo,            setCnNo]             = useState("");
+  const [isLoading,       setIsLoading]        = useState(mode !== "create");
   const [debtors,         setDebtors]          = useState([]);
   const [invoicePickerOpen, setInvoicePickerOpen] = useState(false);
   const [debtorGstinOverride, setDebtorGstinOverride] = useState("");
@@ -193,20 +202,21 @@ export default function CreditNoteForm({ mode = "create", noteId, onAfterSubmit,
   useEffect(() => {
     const loadId = isCopy ? copyFromId : noteId;
     if ((mode === "create" && !isCopy) || !loadId) return;
+    setIsLoading(true);
     apiRequest({ url: `${API_ENDPOINTS.FINANCE.CREDIT_NOTE.GET_BY_ID}${loadId}`, method: "GET" })
       .then((res) => {
         const d = res.data || {};
         reset({
-          entryDate:     d.entryDate     || "",
-          vendorId:      d.vendorId      || null,
-          vendorName:    d.vendorName    || "",
-          vendorGstn:    d.vendorGstn    || "",
-          saleBillId:    d.saleBillId    || null,
-          saleBillNo:    d.saleBillNo    || "",
-          orderNumber:   d.orderNumber   || "",
-          orderDate:     d.orderDate     || "",
-          debitNoteNo:   d.debitNoteNo   || "",
-          debitNoteDate: d.debitNoteDate || "",
+          entryDate:     toDateOnly(d.entryDate),
+          vendorId:      d.vendorId   || null,
+          vendorName:    d.vendorName || "",
+          vendorGstn:    d.vendorGstn || "",
+          saleBillId:    d.saleBillId || null,
+          saleBillNo:    d.saleBillNo || "",
+          orderNumber:   d.orderNumber || "",
+          orderDate:     toDateOnly(d.orderDate),
+          debitNoteNo:   d.debitNoteNo || "",
+          debitNoteDate: toDateOnly(d.debitNoteDate),
           remarks:       d.remarks       || "",
           items: (d.items || []).map((it, i) => ({
             slNo:        i + 1,
@@ -229,14 +239,15 @@ export default function CreditNoteForm({ mode = "create", noteId, onAfterSubmit,
             : DEFAULT_GST_LINES,
         });
         if (d.vendorGstn) setDebtorGstinOverride(d.vendorGstn);
-        if (isCopy) { copyLoadedToast(d.creditNoteNo); return; }
+        if (isCopy) { copyLoadedToast(d.creditNoteNo); setIsLoading(false); return; }
         const locked = d.workflowStatus && !["Draft", "Reback"].includes(d.workflowStatus);
         setIsSubmitted(locked);
         setAllowSubmit(!locked);
         if (d.creditNoteNo)   setCnNo(d.creditNoteNo);
         if (d.creditNoteUuid && onUuid) onUuid(d.creditNoteUuid);
+        setIsLoading(false);
       })
-      .catch(() => toast.error("Failed to load credit note details"));
+      .catch(() => { toast.error("Failed to load credit note details"); setIsLoading(false); });
   }, [copyFromId, noteId, mode]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── Invoice select handler ────────────────────────────────────────────────
@@ -321,6 +332,14 @@ export default function CreditNoteForm({ mode = "create", noteId, onAfterSubmit,
   };
 
   // ── Render ────────────────────────────────────────────────────────────────
+  if (isLoading) {
+    return (
+      <div className="flex justify-center items-center h-[300px]">
+        <Loader2 className="animate-spin w-6 h-6" />
+      </div>
+    );
+  }
+
   return (
     <div className="p-3">
       <button
@@ -343,7 +362,13 @@ export default function CreditNoteForm({ mode = "create", noteId, onAfterSubmit,
               <PMInput value={cnNo || "[Auto]"} disabled readOnly />
             </PMFormRow>
             <PMFormRow label="Entry Date" required={!disabled} labelWidth="sm:w-[150px] sm:min-w-[150px]">
-              <PMDateInput {...register("entryDate")} disabled={disabled} hasError={errors.entryDate} className="max-w-[200px]" />
+              <Controller
+                name="entryDate"
+                control={control}
+                render={({ field }) => (
+                  <PMDateInput {...field} disabled={disabled} hasError={errors.entryDate} className="max-w-[200px]" />
+                )}
+              />
             </PMFormRow>
           </PMSection>
 
@@ -409,17 +434,29 @@ export default function CreditNoteForm({ mode = "create", noteId, onAfterSubmit,
               />
             </PMFormRow>
             <PMFormRow label="Order Date" labelWidth="sm:w-[150px] sm:min-w-[150px]">
-              <PMDateInput {...register("orderDate")} disabled readOnly className="max-w-[200px]" />
+              <PMDateInput value={watch("orderDate") || ""} readOnly disabled className="max-w-[200px]" />
             </PMFormRow>
           </PMSection>
 
           {/* Debit Note Reference */}
           <PMSection title="Debit Note Reference:">
             <PMFormRow label="Debit Note No" labelWidth="sm:w-[150px] sm:min-w-[150px]">
-              <PMInput {...register("debitNoteNo")} disabled={disabled} placeholder="Debit Note No" fieldLabel="Debit Note No" />
+              <Controller
+                name="debitNoteNo"
+                control={control}
+                render={({ field }) => (
+                  <PMInput {...field} disabled={disabled} placeholder="Debit Note No" fieldLabel="Debit Note No" />
+                )}
+              />
             </PMFormRow>
             <PMFormRow label="Debit Note Date" labelWidth="sm:w-[150px] sm:min-w-[150px]">
-              <PMDateInput {...register("debitNoteDate")} disabled={disabled} className="max-w-[200px]" />
+              <Controller
+                name="debitNoteDate"
+                control={control}
+                render={({ field }) => (
+                  <PMDateInput {...field} disabled={disabled} className="max-w-[200px]" />
+                )}
+              />
             </PMFormRow>
           </PMSection>
         </div>
@@ -483,7 +520,7 @@ export default function CreditNoteForm({ mode = "create", noteId, onAfterSubmit,
                             />
                           </td>
 
-                          <td className="border border-gray-200 p-0 min-w-[160px] align-top">
+                          <td className="border border-gray-200 p-0 min-w-[160px] align-top" style={{ maxWidth: "240px" }}>
                             <Controller
                               name={`items.${idx}.ccCode`}
                               control={control}
