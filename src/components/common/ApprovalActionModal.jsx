@@ -208,6 +208,7 @@ export default function ApprovalActionModal({
                   key={action.type}
                   type="button"
                   disabled={isSubmitting || notForMe}
+                  data-shortcut={`approval-${action.type}`}
                   title={notForMe ? "Action not available — approval not pending for you" : undefined}
                   onClick={() => handleActionClick(action)}
                   className={`
@@ -270,7 +271,7 @@ export default function ApprovalActionModal({
               const allOptions = [...suggestions, "Other"];
               return (
                 <div className="mt-3 flex flex-col divide-y divide-gray-100 border border-gray-200 rounded-lg overflow-hidden">
-                  {allOptions.map((s) => {
+                  {allOptions.map((s, optionIndex) => {
                     const key = s === "Other" ? "other" : s;
                     const isSelected = selectedSuggestion === key;
                     return (
@@ -278,6 +279,8 @@ export default function ApprovalActionModal({
                         key={key}
                         type="button"
                         disabled={isSubmitting}
+                        data-shortcut={`option-${optionIndex + 1}`}
+                        title={`Shortcut: ${optionIndex + 1}`}
                         onClick={() => handleSuggestionClick(key)}
                         className={`
                           flex items-center gap-3
@@ -513,6 +516,8 @@ export default function ApprovalActionModal({
             <button
               type="button"
               disabled={isSubmitting || !selectedAction || !pendingInfo?.isPendingForMe}
+              data-shortcut="confirm"
+              title="Shortcut: Ctrl+Enter"
               onClick={() => {
                 if (!confirmOpen) {
                   setConfirmOpen(true);

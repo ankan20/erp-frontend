@@ -10,7 +10,7 @@
  *   3. pending_request exists — shows current pending request status (read-only)
  */
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { X, AlertTriangle, Clock, CheckCircle2, Loader2, Trash2 } from "lucide-react";
 import { apiRequest } from "@/lib/apiClient";
 import { API_ENDPOINTS } from "@/config/api.config";
@@ -144,6 +144,8 @@ export default function DeleteRequestModal({
               type="button"
               onClick={handleConfirmDelete}
               disabled={loading}
+              data-shortcut="confirm"
+              title="Shortcut: Ctrl+Enter"
               className="px-4 py-2 rounded-md bg-red-500 hover:bg-red-600 text-white text-sm font-medium flex items-center gap-2 transition disabled:opacity-60 disabled:cursor-not-allowed"
             >
               {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
@@ -272,6 +274,8 @@ export default function DeleteRequestModal({
             type="button"
             onClick={handleRaiseRequest}
             disabled={loading}
+            data-shortcut="confirm"
+            title="Shortcut: Ctrl+Enter"
             className="px-4 py-2 rounded-md bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium flex items-center gap-2 transition disabled:opacity-60 disabled:cursor-not-allowed"
           >
             {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
@@ -286,8 +290,21 @@ export default function DeleteRequestModal({
 // ── shared layout helpers ──────────────────────────────────────────
 
 function Overlay({ children, onClose }) {
+  // Esc closes the pop-up (same as Cancel)
+  useEffect(() => {
+    const onKeyDown = (e) => {
+      if (e.key === "Escape") onClose();
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [onClose]);
+
   return (
+    // role + data-state let the keyboard shortcuts treat this as the open pop-up
     <div
+      role="dialog"
+      aria-modal="true"
+      data-state="open"
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/40"
       onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
     >

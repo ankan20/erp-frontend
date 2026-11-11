@@ -660,7 +660,7 @@ export default function DebitNoteForm({ mode = "create", noteId, onAfterSubmit, 
             {/* Add Row */}
             {!disabled && (
               <div className="flex justify-end px-3 py-2 border-t border-gray-200">
-                <button
+                <button data-shortcut="add-row" title="Shortcut: Alt+I"
                   type="button"
                   onClick={() => append({ slNo: fields.length + 1, ccCode: "", ccName: "", description: "", basicAmount: 0, gstPercent: 18 })}
                   className="inline-flex items-center gap-1 text-[12px] px-3 py-1 rounded-sm bg-[#3b6ea5] text-white hover:bg-[#2e5a8e] transition"

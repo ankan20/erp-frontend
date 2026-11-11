@@ -2,7 +2,8 @@
 
 import { useState, useEffect, useRef } from "react";
 import { usePathname, useRouter } from "next/navigation";
-import { tcodeConfig } from "@/config/tcode.config";
+import { resolveTcodeForUser } from "@/lib/shortcuts";
+import { useShortcuts } from "@/components/shortcuts/ShortcutProvider";
 import Image from "next/image";
 import { toast } from "sonner";
 import { clearAuthCookies, setCookie } from "@/lib/cookies";
@@ -15,7 +16,7 @@ import {
 import SearchableSelect from "@/components/common/SearchableSelect";
 import { apiRequest } from "@/lib/apiClient";
 import { API_ENDPOINTS } from "@/config/api.config";
-import { User, LogOut, Camera } from "lucide-react";
+import { User, LogOut, Camera, Keyboard, Search } from "lucide-react";
 import ProfilePictureUploadModal from "@/components/common/ProfilePictureUploadModal";
 import AuthImage from "@/components/common/AuthImage";
 import { userFileUrl } from "@/lib/userFiles";
@@ -43,6 +44,7 @@ export default function AppNavbar() {
   const pathname = usePathname();
   const router = useRouter();
   const [tcode, setTcode] = useState("");
+  const { openPalette, openHelp } = useShortcuts();
   // const [showProjectSelect, setShowProjectSelect] = useState(false);
   // const [projectList, setProjectList] = useState([]);
   // const [loadingProjects, setLoadingProjects] = useState(false);
@@ -108,14 +110,17 @@ export default function AppNavbar() {
     return () => document.removeEventListener("mousedown", handleOutsideClick);
   }, [showProfile]);
 
+  // T-code: two-letter page code + 01 (list) or 02 (new entry), e.g. IN01 / IN02.
+  // Codes are in config/tcode.config.js; access follows the user's permissions.
   const handleTCodeNavigate = () => {
-    const route = tcodeConfig[tcode.toLowerCase().trim()];
-    if (route) {
-      router.push(route);
-      setTcode("");
-    } else {
-      toast.error("no match found!");
+    if (!tcode.trim()) return;
+    const result = resolveTcodeForUser(tcode);
+    if (result.error) {
+      toast.error(result.error);
+      return;
     }
+    router.push(result.path);
+    setTcode("");
   };
 
   // const fetchProjects = async () => {
@@ -269,7 +274,15 @@ export default function AppNavbar() {
               <input
                 value={tcode}
                 onChange={(e) => setTcode(e.target.value)}
-                className="h-6 w-25 border border-[#d5b7a2] bg-[#eef0a7] px-2 text-sm outline-none"
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") handleTCodeNavigate();
+                }}
+                data-shortcut-focus="tcode"
+                title="Type a page code and press Enter — e.g. IN01 = Indent list, IN02 = new Indent (Ctrl+/)"
+                maxLength={4}
+                autoComplete="off"
+                spellCheck={false}
+                className="h-6 w-25 border border-[#d5b7a2] bg-[#eef0a7] px-2 text-sm uppercase outline-none"
               />
 
               <button onClick={handleTCodeNavigate} className="cursor-pointer">
@@ -280,6 +293,28 @@ export default function AppNavbar() {
                   height={28}
                 />
               </button>
+
+              {/* search box (Ctrl+K) and shortcut list (?) */}
+              <NavTooltip label="Search pages & documents (Ctrl+K)">
+                <button
+                  type="button"
+                  onClick={openPalette}
+                  aria-label="Search pages and documents"
+                  className="ml-2 flex h-7 w-7 cursor-pointer items-center justify-center rounded-sm border border-[#b8c7da] bg-white text-[#144664] hover:bg-[#eef4fa]"
+                >
+                  <Search size={16} />
+                </button>
+              </NavTooltip>
+              <NavTooltip label="Keyboard shortcuts (?)">
+                <button
+                  type="button"
+                  onClick={openHelp}
+                  aria-label="Keyboard shortcuts"
+                  className="flex h-7 w-7 cursor-pointer items-center justify-center rounded-sm border border-[#b8c7da] bg-white text-[#144664] hover:bg-[#eef4fa]"
+                >
+                  <Keyboard size={16} />
+                </button>
+              </NavTooltip>
             </div>
           </div>
         </div>

@@ -731,7 +731,7 @@ export default function OGSaleOrderForm({ mode = "create", saleOrderId, onAfterS
             </div>
             {!disabled && (
               <div className="mt-2 flex justify-end px-2 pb-2">
-                <button
+                <button data-shortcut="add-row" title="Shortcut: Alt+I"
                   type="button"
                   onClick={addRow}
                   className="px-4 py-1 bg-[#9fc5e8] border border-[#6d9dc5] rounded-sm text-sm font-medium hover:brightness-95 cursor-pointer"

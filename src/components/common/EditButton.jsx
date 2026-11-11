@@ -16,6 +16,8 @@ export default function EditButton({
       type="button"
       onClick={onClick}
       disabled={isDisabled}
+      data-shortcut="edit"
+      title="Shortcut: F2"
       className={`
         h-8.5
         min-w-30

@@ -551,7 +551,7 @@ function CcEntriesModal({ open, onClose, entries, disabled, ccCode, ccName, item
 
         <div className="flex items-center justify-between gap-3 border-t px-5 py-3 bg-slate-50">
           {!disabled ? (
-            <button
+            <button data-shortcut="add-row" title="Shortcut: Alt+I"
               type="button"
               onClick={() => setRows((prev) => [...prev, { slNo: prev.length + 1, description: "", amount: "" }])}
               className="flex items-center gap-1.5 px-3 py-1.5 text-[12px] bg-[#fef3c7] border border-[#d97706] rounded-sm font-medium hover:brightness-95 transition"

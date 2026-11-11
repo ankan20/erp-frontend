@@ -301,7 +301,7 @@ export default function WithoutIndentItemsTable({ form, disabled, itemOptions = 
       {/* ADD ROW */}
       {!disabled && (
         <div className="mt-3 flex justify-end">
-          <button
+          <button data-shortcut="add-row" title="Shortcut: Alt+I"
             type="button"
             onClick={() => {
               append({ ...defaultRow });

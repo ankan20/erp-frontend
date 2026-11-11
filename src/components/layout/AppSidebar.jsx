@@ -466,7 +466,12 @@ export default function AppSidebar({ collapsed, setCollapsed }) {
     >
       {/* TOGGLE BUTTON — unchanged */}
       <div className="flex items-center justify-start px-2 py-2 border-b shrink-0">
-        <button onClick={() => setCollapsed(!collapsed)} className="cursor-pointer">
+        <button
+          onClick={() => setCollapsed(!collapsed)}
+          className="cursor-pointer"
+          data-shortcut="sidebar"
+          title="Open / close menu (Alt+M)"
+        >
           <Menu size={20} />
         </button>
       </div>

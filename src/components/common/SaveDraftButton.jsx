@@ -30,6 +30,8 @@ export default function SaveDraftButton({
     <button
       type="button"
       disabled={isDisabled}
+      data-shortcut="draft"
+      title="Shortcut: Ctrl+S"
       className={`
         min-w-[120px]
         h-[34px]
@@ -72,6 +74,8 @@ export default function SaveDraftButton({
         type="button"
         onClick={onClick}
         disabled={isDisabled}
+        data-shortcut="draft"
+        title="Shortcut: Ctrl+S"
         className={`
           min-w-[120px]
           h-[34px]

@@ -1,9 +1,10 @@
 "use client";
 
-export default function NavigationButton({ children, onClick, className = "" }) {
+export default function NavigationButton({ children, onClick, className = "", ...props }) {
   return (
     <button
       onClick={onClick}
+      {...props}
       className={`
         h-7
         px-5
