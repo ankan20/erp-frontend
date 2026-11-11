@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import { useColumnResize } from "@/hooks/useColumnResize";
 import { ArrowUp, ArrowDown, ArrowUpDown, ChevronDown, Search } from "lucide-react";
 import { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider } from "@/components/ui/tooltip";
+import { isTypingTarget, topDialog } from "@/lib/shortcuts";
 
 function readSession(key) {
   try { return JSON.parse(sessionStorage.getItem(key) || "null"); } catch { return null; }
@@ -271,6 +272,54 @@ export default function DataTable({
   // ─── EXPANDED CELL (existing) 
   const [expandedCell, setExpandedCell] = useState(null);
 
+  // ─── KEYBOARD: ↑ / ↓ move the highlighted row, Enter opens it
+  // (same as clicking the document number in the second column)
+  const [activeRow, setActiveRow] = useState(null);
+  const containerRef = useRef(null);
+  const keyNav = useRef({});
+  const activeIndex = activeRow != null && activeRow < sortedData.length ? activeRow : null;
+
+  useEffect(() => {
+    keyNav.current = { rows: sortedData, onRowClick, activeIndex, filterOpen: !!activeFilterCol };
+  });
+
+  useEffect(() => {
+    const onKeyDown = (e) => {
+      if (e.defaultPrevented || e.ctrlKey || e.metaKey || e.altKey || e.shiftKey) return;
+      if (!["ArrowDown", "ArrowUp", "Enter"].includes(e.key)) return;
+      const box = containerRef.current;
+      const { rows, onRowClick: open, activeIndex: current, filterOpen } = keyNav.current;
+      if (!box || !rows.length || filterOpen || topDialog() || isTypingTarget(e.target)) return;
+      // only the first table on the screen answers (a hidden tab's table does not)
+      const first = Array.from(document.querySelectorAll("[data-key-table]")).find((el) => el.getClientRects().length);
+      if (first !== box) return;
+      // leave open drop-downs and menus alone
+      if (e.target.closest?.('[role="listbox"], [role="menu"], [role="combobox"]')) return;
+
+      if (e.key === "Enter") {
+        // only when the table itself has the focus (set by the arrow keys)
+        if (current == null || !open || !box.contains(document.activeElement)) return;
+        e.preventDefault();
+        open(rows[current]);
+        return;
+      }
+      e.preventDefault();
+      const next =
+        current == null
+          ? e.key === "ArrowDown" ? 0 : rows.length - 1
+          : Math.min(Math.max(current + (e.key === "ArrowDown" ? 1 : -1), 0), rows.length - 1);
+      setActiveRow(next);
+      box.focus({ preventScroll: true });
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, []);
+
+  useEffect(() => {
+    if (activeIndex == null) return;
+    containerRef.current?.querySelector('tr[data-active-row="true"]')?.scrollIntoView({ block: "nearest" });
+  }, [activeIndex]);
+
   const getAlignClass = (align) => {
     if (align === "center") return "text-center";
     if (align === "right") return "text-right";
@@ -379,7 +428,12 @@ export default function DataTable({
   // ─── RENDER
   return (
     <TooltipProvider>
-    <div className="border border-[#9e9e9e] overflow-x-auto">
+    <div
+      ref={containerRef}
+      data-key-table
+      tabIndex={-1}
+      className="border border-[#9e9e9e] overflow-x-auto outline-none"
+    >
       <div className="max-h-[608px] overflow-y-auto">
 
         <table ref={tableRef} className="w-full min-w-max table-fixed border-collapse text-sm">
@@ -522,7 +576,9 @@ export default function DataTable({
                 return (
                 <tr
                   key={rowIndex}
+                  data-active-row={rowIndex === activeIndex}
                   className={`
+                    ${rowIndex === activeIndex ? "outline outline-2 -outline-offset-2 outline-[#2f6f9f] !bg-[#dbeafe]" : ""}
                     ${hasPendingDelete
                       ? "bg-orange-50 hover:bg-orange-100 border-l-2 border-l-orange-400"
                       : rowIndex % 2 === 0 ? "bg-[#f2f2f2] hover:bg-[#e6e6e6]" : "bg-white hover:bg-[#e6e6e6]"}

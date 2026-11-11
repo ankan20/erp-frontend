@@ -1,4 +1,18 @@
 export const routeMetaConfig = [
+  //deep search (360 view of a vendor / ledger / item)
+  {
+    basePath: "/deep-search/vendor/[id]",
+    breadcrumbs: ["Search", "Vendor / Ledger 360"],
+  },
+  {
+    basePath: "/deep-search/item/[id]",
+    breadcrumbs: ["Search", "Item 360"],
+  },
+  //help
+  {
+    basePath: "/shortcuts",
+    breadcrumbs: ["Help", "Keyboard Shortcuts"],
+  },
   //dashboard
   {
     basePath: "/dashboard",

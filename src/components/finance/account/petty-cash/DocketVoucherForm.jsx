@@ -639,7 +639,7 @@ export default function DocketVoucherForm({
                     Cash: only 1 entry allowed
                   </span>
                 )}
-                <button
+                <button data-shortcut="add-row" title="Shortcut: Alt+I"
                   type="button"
                   disabled={isCash}
                   onClick={() => append({ ...defaultItem })}

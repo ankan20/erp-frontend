@@ -38,6 +38,11 @@ export const API_ENDPOINTS = {
       EDIT_USERS: "/setting/edit-users",
     },
   },
+  // Deep search: find a vendor / ledger / item, then its 360 view (read-only)
+  DEEP_SEARCH: {
+    QUICK: "/search/quick",   // GET ?type=vendor|item&q&limit
+    VIEW: "/search/360",      // GET /:kind/:id  |  /:kind/:id/docs?type&limit  |  /vendor/:id/ledger?fromDate&toDate
+  },
   MASTER: {
     // Traceability Workbench (read-only document flow)
     TRACEABILITY: {

@@ -142,7 +142,7 @@ function AlertDialogAction({
 }) {
   return (
     <Button variant={variant} size={size} asChild>
-      <AlertDialogPrimitive.Action data-slot="alert-dialog-action" className={cn(className)} {...props} />
+      <AlertDialogPrimitive.Action data-slot="alert-dialog-action" data-shortcut="confirm" title="Shortcut: Ctrl+Enter" className={cn(className)} {...props} />
     </Button>
   );
 }

@@ -64,12 +64,12 @@ export default function CopyFromButton({ base, className = "" }) {
     <>
       <Tooltip>
         <TooltipTrigger asChild>
-          <button type="button" onClick={openPicker} className={className}>
+          <button type="button" onClick={openPicker} className={className} data-shortcut="copy-from">
             <CopyPlus size={24} strokeWidth={2.2} className="text-[#2563EB]" />
           </button>
         </TooltipTrigger>
         <TooltipContent side="top" variant="icon">
-          Copy from an earlier entry
+          Copy from an earlier entry (Alt+C)
         </TooltipContent>
       </Tooltip>
 

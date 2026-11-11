@@ -16,6 +16,7 @@ import DataSyncBoundary from "@/components/split-view/DataSyncBoundary";
 import { useIsInsidePane } from "@/components/split-view/splitStore";
 import { RecordMetaProvider } from "@/context/RecordMetaContext";
 import RecordMeta from "@/components/common/RecordMeta";
+import ShortcutProvider from "@/components/shortcuts/ShortcutProvider";
 
 export default function ProtectedLayout({ children }) {
   const pathname = usePathname();
@@ -28,6 +29,8 @@ export default function ProtectedLayout({ children }) {
     <RecordMetaProvider>
     <NavigationHistoryProvider>
     <ProtectedLayoutAuth>
+      {/* keyboard shortcuts, Ctrl+K search box, shortcut help (see /shortcuts) */}
+      <ShortcutProvider>
       <>
         <div className="h-screen flex flex-col bg-[#f5f5f5]">
 
@@ -74,6 +77,7 @@ export default function ProtectedLayout({ children }) {
       </>
       {/* audit badge — fixed bottom-right, shows on hover */}
       <RecordMeta />
+      </ShortcutProvider>
     </ProtectedLayoutAuth>
     </NavigationHistoryProvider>
     </RecordMetaProvider>

@@ -100,6 +100,8 @@ export default function DeleteRequestButton({
         type="button"
         onClick={handleClick}
         disabled={loading}
+        data-shortcut="delete"
+        title="Shortcut: Alt+Delete"
         className={`
           h-8.5 min-w-30 px-4 rounded-md border text-md font-medium
           flex items-center justify-center gap-2 transition

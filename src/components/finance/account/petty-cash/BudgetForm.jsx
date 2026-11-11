@@ -602,7 +602,7 @@ export default function BudgetForm({ mode = "create", budgetId, canApprove = fal
 
             {isEditing && (
               <div className="mt-3 flex justify-end">
-                <button
+                <button data-shortcut="add-row" title="Shortcut: Alt+I"
                   type="button"
                   onClick={() => append({ ...defaultItem })}
                   className="px-4 py-1 bg-[#9fc5e8] border border-[#6d9dc5] rounded-sm text-sm font-medium hover:brightness-95 cursor-pointer"

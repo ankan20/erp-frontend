@@ -298,7 +298,7 @@ export default function IndentItemsTable({
       {/* ADD ROW */}
       {isEditing && (
         <div className="mt-5 flex justify-end">
-          <button
+          <button data-shortcut="add-row" title="Shortcut: Alt+I"
             type="button"
             onClick={() => {
               append(defaultItemRow);

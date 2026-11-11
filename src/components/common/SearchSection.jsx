@@ -37,6 +37,11 @@ export default function SearchSection({
 
   const hasAnyValue = search || from || to;
 
+  // the first "+ New …" / "Create …" button answers to Alt+N
+  const createIndex = actions.findIndex(
+    (btn) => typeof btn.label === "string" && /^\s*\+|\b(new|create|add)\b/i.test(btn.label),
+  );
+
   const handleClear = () => {
     setSearch(""); setFrom(""); setTo("");
     writeSession(key, null);
@@ -59,6 +64,8 @@ export default function SearchSection({
               value={search}
               onChange={(e) => { setSearch(e.target.value); persist(e.target.value, from, to); }}
               onKeyDown={(e) => { if (e.key === "Enter") { persist(search, from, to); onSearch({ search, from, to }); } }}
+              data-shortcut-focus="search"
+              title="Shortcut: /"
               className="h-6.5 w-65 sm:w-71 border border-[#8f8f8f] px-2 text-sm outline-none rounded-sm"
             />
           </div>
@@ -124,7 +131,11 @@ export default function SearchSection({
         {/* Action buttons (e.g. + Create BRR) */}
         <div className="flex flex-wrap items-center gap-2">
           {actions.map((btn, i) => (
-            <NavigationButton key={i} onClick={btn.onClick}>
+            <NavigationButton
+              key={i}
+              onClick={btn.onClick}
+              {...(i === createIndex ? { "data-shortcut": "create", title: "Shortcut: Alt+N" } : {})}
+            >
               {btn.label}
             </NavigationButton>
           ))}

@@ -604,7 +604,7 @@ export default function DLRDetailsTable({
                 </button>
               )}
               {showAddRow && (
-                <button
+                <button data-shortcut="add-row" title="Shortcut: Alt+I"
                   type="button"
                   onClick={addRow}
                   className="px-3 h-[28px] text-[12px] bg-[#7fc3d4] border border-[#4a9fb5] rounded-sm text-black hover:bg-[#6ab8cb] transition-colors"
