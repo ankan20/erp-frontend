@@ -1,8 +1,9 @@
 "use client";
 
-// 360 view of a master record (vendor / ledger or item).
+// 360 view of a master record: vendor / ledger, item, asset, project,
+// bank / cash account, cost centre or employee.
 //
-// Opened from the search box: "/v sharma" or "/i cement" → Enter.
+// Opened from the search box: "/v sharma", "/i cement", "/p tower"… → Enter.
 // Shows the record's details and one tab per kind of document that belongs to
 // it. The backend returns only the tabs — and inside them only the projects —
 // this user has permission for (see app/modules/search/deep_service.py).
@@ -11,7 +12,8 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Boxes, Building2, Loader2 } from "lucide-react";
+import { Boxes, Building2, FolderKanban, Landmark, Loader2, Tags, Truck, UserRound } from "lucide-react";
+import { toast } from "sonner";
 import DataTable from "@/components/common/DataTable";
 import { apiRequest } from "@/lib/apiClient";
 import { API_ENDPOINTS } from "@/config/api.config";
@@ -21,11 +23,38 @@ import Kbd from "@/components/shortcuts/Kbd";
 
 const VIEW = API_ENDPOINTS.DEEP_SEARCH.VIEW;
 
-// Detail page of a document row. Debit / credit notes are not part of the
-// traceability workbench, so their routes are added here.
+// The record's own master page (where it is created / edited)
+const MASTER_ROUTES = {
+  vendor: "/master/ledger-code",
+  item: "/master/item-code",
+  asset: "/master/asset-code",
+  bank: "/master/bank-cash",
+  cc: "/master/cc-code",
+  employee: "/hr-management/employee",
+};
+
+const KIND_ICONS = {
+  vendor: Building2,
+  item: Boxes,
+  asset: Truck,
+  project: FolderKanban,
+  bank: Landmark,
+  cc: Tags,
+  employee: UserRound,
+};
+
+// Detail page of a document row. These types are not part of the traceability
+// workbench, so their routes are added here. (Payment vouchers have no detail
+// page yet.)
+const EXTRA_ROUTES = {
+  DEBIT_NOTE: "/finance-management/account/debit-note",
+  CREDIT_NOTE: "/finance-management/account/credit-note",
+  JOURNAL: "/finance-management/account/journal",
+  PETTY_CASH_BUDGET: "/finance-management/account/petty-cash/budget",
+};
+
 function documentRoute(row) {
-  if (row.docType === "DEBIT_NOTE") return `/finance-management/account/debit-note/${row.docId}`;
-  if (row.docType === "CREDIT_NOTE") return `/finance-management/account/credit-note/${row.docId}`;
+  if (EXTRA_ROUTES[row.docType]) return `${EXTRA_ROUTES[row.docType]}/${row.docId}`;
   return docRoute(row.docType, row.docId, row);
 }
 
@@ -47,6 +76,12 @@ const TAB_WORDS = {
   payment: "BILL_PAYMENT", payments: "BILL_PAYMENT",
   "debit note": "DEBIT_NOTE", "credit note": "CREDIT_NOTE",
   indent: "INDENT", indents: "INDENT",
+  journal: "JOURNAL", journals: "JOURNAL", contra: "CONTRA_ENTRY",
+  receipt: "SALE_RECEIPT", receipts: "SALE_RECEIPT", "sale bill": "SALE_BILL", sales: "SALE_BILL",
+  "sale order": "OG_SALE_ORDER", voucher: "PAYMENT_VOUCHER", vouchers: "PAYMENT_VOUCHER",
+  "petty cash": "PETTY_CASH_VOUCHER",
+  payroll: "PAYROLL", salary: "PAYROLL", performance: "PERFORMANCE", appraisal: "PERFORMANCE",
+  discipline: "DISCIPLINE", onboarding: "ONBOARDING",
 };
 
 function pickTab(tabs, wanted) {
@@ -59,6 +94,13 @@ function pickTab(tabs, wanted) {
   }
   // first tab that has something in it
   return (tabs.find((t) => t.kind === "ledger" || t.count > 0) || tabs[0]).key;
+}
+
+// "bank" tab on a payment voucher etc.: say so instead of doing nothing
+function openOrExplain(router, row) {
+  const href = documentRoute(row);
+  if (href) router.push(href);
+  else toast.info(`${row.typeLabel || "This document"} has no detail page to open yet`, { id: "deep-no-page" });
 }
 
 export default function DeepSearchView({ kind, id, initialTab }) {
@@ -110,10 +152,7 @@ export default function DeepSearchView({ kind, id, initialTab }) {
   }
 
   const { profile } = state.data;
-  const openDocument = (row) => {
-    const href = documentRoute(row);
-    if (href) router.push(href);
-  };
+  const openDocument = (row) => openOrExplain(router, row);
 
   return (
     <div className="p-3">
@@ -139,14 +178,14 @@ export default function DeepSearchView({ kind, id, initialTab }) {
                   className={`flex cursor-pointer items-center gap-1.5 rounded-t-md border border-b-0 px-3 py-1 text-[12.5px] font-medium ${
                     selected
                       ? "border-[#144664] bg-[#144664] text-white"
-                      : tab.kind === "documents" && !tab.count
+                      : tab.kind !== "ledger" && !tab.count
                         ? "border-[#d8e1ea] bg-[#f6f8fa] text-gray-400 hover:bg-[#eef4fa]"
                         : "border-[#b5c7d8] bg-white text-[#144664] hover:bg-[#eef4fa]"
                   }`}
                 >
                   {i < 9 && <span className={`font-mono text-[10px] ${selected ? "text-white/70" : "text-gray-400"}`}>{i + 1}</span>}
                   {tab.label}
-                  {tab.kind === "documents" && (
+                  {tab.kind !== "ledger" && (
                     <span
                       className={`rounded-full px-1.5 text-[11px] ${
                         selected ? "bg-white/20 text-white" : "bg-[#e8f2ff] text-[#144664]"
@@ -163,6 +202,8 @@ export default function DeepSearchView({ kind, id, initialTab }) {
           <div className="mt-3">
             {activeTab?.kind === "ledger" ? (
               <LedgerTab key="ledger" vendorId={id} onOpen={openDocument} />
+            ) : activeTab?.kind === "table" ? (
+              <TableTab key={activeTab.key} kind={kind} id={id} tab={activeTab} />
             ) : activeTab ? (
               <DocumentsTab key={activeTab.key} kind={kind} id={id} tab={activeTab} onOpen={openDocument} />
             ) : null}
@@ -183,34 +224,25 @@ export default function DeepSearchView({ kind, id, initialTab }) {
 // ── profile ──────────────────────────────────────────────────────────────────
 
 function Profile({ kind, profile }) {
-  const isVendor = kind === "vendor";
-  const Icon = isVendor ? Building2 : Boxes;
-  const fields = isVendor
-    ? [
-        ["Type", profile.type],
-        ["GSTIN", profile.gstin],
-        ["PAN", profile.pan],
-        ["State", profile.state],
-        ["Contact", [profile.contactPerson, profile.contactNumber].filter(Boolean).join(" · ")],
-        ["Email", profile.email],
-        ["Address", profile.registeredAddress],
-        ["Bank", [profile.bankName, profile.branchName].filter(Boolean).join(", ")],
-        ["Account No", profile.bankAccountNumber],
-        ["IFSC", profile.ifscCode],
-      ]
-    : [
-        ["Unit", profile.unit],
-        ["Category", profile.categoryCode],
-        ["HSN / SAC", profile.hsnSac],
-        ["GST %", profile.gstPercentage != null ? `${profile.gstPercentage}%` : ""],
-        ["Description", profile.description],
-      ];
+  const router = useRouter();
+  const Icon = KIND_ICONS[kind] || Boxes;
+  const fields = profile.fields || [];
 
   return (
     <div className="rounded-md border border-[#c4d1df] bg-white">
       <div className="flex flex-wrap items-center gap-2 border-b border-[#d8e1ea] bg-[#eef4fa] px-3 py-2">
         <Icon className="h-5 w-5 text-[#144664]" />
         <h1 className="text-[16px] font-semibold text-[#144664]">{profile.name}</h1>
+        {profile.typeLabel && <span className="text-[12px] text-gray-500">{profile.typeLabel}</span>}
+        {MASTER_ROUTES[kind] && (
+          <button
+            type="button"
+            onClick={() => router.push(`${MASTER_ROUTES[kind]}/${profile.id}`)}
+            className="order-last ml-auto cursor-pointer rounded-sm border border-[#b5c7d8] bg-white px-2 py-0.5 text-[12px] font-medium text-[#144664] hover:bg-[#f0f6ff]"
+          >
+            Open master record
+          </button>
+        )}
         <span className="rounded-sm border border-[#b5c7d8] bg-white px-1.5 py-0.5 font-mono text-[12px] text-[#b03030]">
           {profile.code}
         </span>
@@ -227,12 +259,10 @@ function Profile({ kind, profile }) {
         )}
       </div>
       <dl className="grid grid-cols-1 gap-x-6 gap-y-1 px-3 py-2 text-[12.5px] sm:grid-cols-2 lg:grid-cols-3">
-        {fields
-          .filter(([, value]) => value !== null && value !== undefined && value !== "")
-          .map(([label, value]) => (
+        {fields.map(([label, value]) => (
             <div key={label} className="flex gap-2">
-              <dt className="w-[82px] shrink-0 text-gray-500">{label}</dt>
-              <dd className="min-w-0 break-words font-medium text-gray-900">{value}</dd>
+              <dt className="w-[112px] shrink-0 text-gray-500">{label}</dt>
+              <dd className="min-w-0 break-words font-medium text-gray-900">{String(value)}</dd>
             </div>
           ))}
       </dl>
@@ -243,7 +273,7 @@ function Profile({ kind, profile }) {
 // ── documents of one tab ─────────────────────────────────────────────────────
 
 function DocumentsTab({ kind, id, tab, onOpen }) {
-  const [state, setState] = useState({ loading: true, error: "", rows: [], hasMore: false });
+  const [state, setState] = useState({ loading: true, error: "", rows: [], hasMore: false, extra: [], lineLabel: "" });
 
   useEffect(() => {
     let cancelled = false;
@@ -257,10 +287,22 @@ function DocumentsTab({ kind, id, tab, onOpen }) {
           amountText: r.amount == null ? "-" : fmtAmt(r.amount),
           qtyText: r.qty == null ? "-" : fmtQty(r.qty),
           rateText: r.rate == null ? "-" : fmtAmt(r.rate),
+          lineAmountText: r.lineAmount == null ? "-" : fmtAmt(r.lineAmount),
         }));
-        setState({ loading: false, error: "", rows, hasMore: !!res?.data?.hasMore });
+        setState({
+          loading: false,
+          error: "",
+          rows,
+          hasMore: !!res?.data?.hasMore,
+          extra: res?.data?.extra || [],
+          lineLabel: res?.data?.lineLabel || "On this record",
+        });
       })
-      .catch((err) => !cancelled && setState({ loading: false, error: err?.message || "Could not load", rows: [], hasMore: false }));
+      .catch(
+        (err) =>
+          !cancelled &&
+          setState({ loading: false, error: err?.message || "Could not load", rows: [], hasMore: false, extra: [], lineLabel: "" }),
+      );
     return () => {
       cancelled = true;
     };
@@ -274,15 +316,17 @@ function DocumentsTab({ kind, id, tab, onOpen }) {
       { header: "Project", accessor: "projectCode" },
       { header: "Status", accessor: "status" },
     ];
-    if (kind === "item") {
-      cols.push({ header: "Qty", accessor: "qtyText", align: "right" });
-      if (state.rows.some((r) => r.rate != null)) cols.push({ header: "Rate", accessor: "rateText", align: "right" });
+    // what this record has on each document (from its lines)
+    if (state.extra.includes("qty")) cols.push({ header: "Qty", accessor: "qtyText", align: "right" });
+    if (state.extra.includes("rate")) cols.push({ header: "Rate", accessor: "rateText", align: "right" });
+    if (state.extra.includes("lineAmount")) {
+      cols.push({ header: state.lineLabel, accessor: "lineAmountText", align: "right" });
     }
     if (state.rows.some((r) => r.amount != null)) {
-      cols.push({ header: kind === "item" ? "Document Amount" : "Amount", accessor: "amountText", align: "right" });
+      cols.push({ header: state.extra.length ? "Doc total" : "Amount", accessor: "amountText", align: "right" });
     }
     return cols;
-  }, [kind, tab.label, state.rows]);
+  }, [tab.label, state.rows, state.extra, state.lineLabel]);
 
   if (state.loading) return <TabLoading />;
   if (state.error) return <TabMessage text={state.error} />;
@@ -302,6 +346,61 @@ function DocumentsTab({ kind, id, tab, onOpen }) {
       )}
     </>
   );
+}
+
+// ── table tab (employee: payroll, performance…) ──────────────────────────────
+// The backend sends the columns and how to show each value.
+
+const formatCell = (value, type) => {
+  if (value === null || value === undefined || value === "") return "-";
+  if (type === "amount") return fmtAmt(value);
+  if (type === "date") return fmtDate(value);
+  return String(value);
+};
+
+function TableTab({ kind, id, tab }) {
+  const [state, setState] = useState({ loading: true, error: "", columns: [], rows: [] });
+
+  useEffect(() => {
+    let cancelled = false;
+    apiRequest({ url: `${VIEW}/${kind}/${id}/table`, params: { key: tab.key } })
+      .then((res) => {
+        if (cancelled) return;
+        const columns = res?.data?.columns || [];
+        const rows = (res?.data?.rows || []).map((r, i) => {
+          const row = { sl: i + 1 };
+          // "status" columns keep their accessor name so the table draws a badge
+          columns.forEach((c) => {
+            row[c.type === "status" ? `${c.accessor}Status` : c.accessor] =
+              c.type === "status" ? r[c.accessor] : formatCell(r[c.accessor], c.type);
+          });
+          return row;
+        });
+        setState({ loading: false, error: "", columns, rows });
+      })
+      .catch((err) => !cancelled && setState({ loading: false, error: err?.message || "Could not load", columns: [], rows: [] }));
+    return () => {
+      cancelled = true;
+    };
+  }, [kind, id, tab.key]);
+
+  const columns = useMemo(
+    () => [
+      { header: "Sl. no", accessor: "sl" },
+      ...state.columns.map((c) => ({
+        header: c.header,
+        accessor: c.type === "status" ? `${c.accessor}Status` : c.accessor,
+        align: c.type === "amount" || c.type === "number" ? "right" : undefined,
+        // the second column is blue (clickable) in other tables; nothing opens here
+        tdClass: "!text-gray-900 !cursor-default",
+      })),
+    ],
+    [state.columns],
+  );
+
+  if (state.loading) return <TabLoading />;
+  if (state.error) return <TabMessage text={state.error} />;
+  return <DataTable columns={columns} data={state.rows} storageKey={`deep-search:${kind}:${tab.key}`} />;
 }
 
 // ── vendor ledger ────────────────────────────────────────────────────────────

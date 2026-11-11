@@ -8,7 +8,8 @@
 //   sharma              → vendors / ledgers, items and documents that match
 //   /v sharma           → only vendors / ledgers   → Enter opens the 360 view
 //   /v sharma > ledger  → …and lands on the Ledger tab
-//   /i cement           → only items
+//   /i cement           → only items        (also /a asset, /p project,
+//                         /b bank, /cc cost centre, /e employee)
 //   /o PO-0042          → only one document type (see DOC_PREFIXES)
 //
 // Pages come from the same permission rules as the sidebar. Masters and
@@ -18,7 +19,22 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
-import { Boxes, Building2, FileText, Hash, Keyboard, LayoutList, Loader2, Plus, Search } from "lucide-react";
+import {
+  Boxes,
+  Building2,
+  FileText,
+  FolderKanban,
+  Hash,
+  Keyboard,
+  Landmark,
+  LayoutList,
+  Loader2,
+  Plus,
+  Search,
+  Tags,
+  Truck,
+  UserRound,
+} from "lucide-react";
 import { apiRequest } from "@/lib/apiClient";
 import { API_ENDPOINTS } from "@/config/api.config";
 import { DOC_PREFIXES, MASTER_PREFIXES, deepSearchRoute } from "@/config/shortcuts.config";
@@ -30,7 +46,8 @@ const MIN_QUERY = 2;
 const NEW_WORDS = ["new", "create", "add"];
 const MAX_PAGE_ROWS = 8;
 const MAX_NEW_ROWS = 5;
-const MASTERS_IN_MIXED_SEARCH = 4; // vendors / items shown when no prefix is typed
+const MASTERS_IN_MIXED_SEARCH = 3; // of each record type, when no prefix is typed
+const MIXED_KINDS = MASTER_PREFIXES.filter((p) => p.mixed).map((p) => p.kind);
 
 // What the typed text means:
 //   "cement"            → { mode: "all",    term }
@@ -106,10 +123,9 @@ function PaletteBody({ onClose, onHelp }) {
           : mode === "doc"
             ? [Promise.resolve([]), searchDocs(term, scope)]
             : [
-                Promise.all([
-                  searchMasters("vendor", term, MASTERS_IN_MIXED_SEARCH),
-                  searchMasters("item", term, MASTERS_IN_MIXED_SEARCH),
-                ]).then((lists) => lists.flat()),
+                Promise.all(MIXED_KINDS.map((kind) => searchMasters(kind, term, MASTERS_IN_MIXED_SEARCH))).then(
+                  (lists) => lists.flat(),
+                ),
                 searchDocs(term),
               ];
       const [masters, docs] = await Promise.allSettled(jobs);
@@ -182,17 +198,11 @@ function PaletteBody({ onClose, onHelp }) {
 
     if (searchKey && found.key === searchKey) {
       for (const r of found.masters) {
-        const isVendor = r.kind === "vendor";
         out.push({
           key: `${r.kind}:${r.id}`,
           kind: r.kind,
           title: r.name,
-          sub: (isVendor
-            ? [r.isDebtor ? "Debtor" : "Vendor / Ledger", r.code, r.gstin]
-            : ["Item", r.code, r.unit]
-          )
-            .filter(Boolean)
-            .join(" · "),
+          sub: [r.code, r.hint].filter(Boolean).join(" · "),
           tag: "360 view",
           href: deepSearchRoute(r.kind, r.id, parsed.tab),
         });
@@ -282,6 +292,7 @@ function PaletteBody({ onClose, onHelp }) {
             <Tip text="IN01" note="T-code: 01 = list, 02 = new entry" />
             <Tip text="/v sharma" note="vendor / ledger → orders, bills, payments, ledger" />
             <Tip text="/i cement" note="item → indents, orders, GRN, issues" />
+            <Tip text="/p tower" note="project → every document of that project" />
             <Tip text="PO-0042" note="find a document by its number" />
             <Tip text="/" note="see every search code" />
           </div>
@@ -387,6 +398,11 @@ function RowIcon({ kind }) {
   if (kind === "doc") return <FileText className={`${cls} text-[#b7791f]`} />;
   if (kind === "vendor") return <Building2 className={`${cls} text-[#7c3aed]`} />;
   if (kind === "item") return <Boxes className={`${cls} text-[#0f766e]`} />;
+  if (kind === "asset") return <Truck className={`${cls} text-[#0f766e]`} />;
+  if (kind === "project") return <FolderKanban className={`${cls} text-[#c2410c]`} />;
+  if (kind === "bank") return <Landmark className={`${cls} text-[#7c3aed]`} />;
+  if (kind === "cc") return <Tags className={`${cls} text-[#7c3aed]`} />;
+  if (kind === "employee") return <UserRound className={`${cls} text-[#be185d]`} />;
   if (kind === "tcode") return <Hash className={`${cls} text-[#2f6f9f]`} />;
   if (kind === "guide") return <Keyboard className={`${cls} text-[#2f6f9f]`} />;
   return <LayoutList className={`${cls} text-[#2f6f9f]`} />;

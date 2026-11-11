@@ -319,8 +319,8 @@ export default function ShortcutsGuidePage() {
 
             <h3 className="mt-3 text-[14px] font-semibold text-[#144664]">Search codes</h3>
             <p className="text-[12px] text-gray-500">
-              Type <b>/</b>, the code, a space, then at least 2 characters. The first three open a 360 view; the rest
-              find a document by its number.
+              Type <b>/</b>, the code, a space, then at least 2 characters. The first {MASTER_PREFIXES.length} open a
+              360 view; the rest find a document by its number.
             </p>
             <div className="mt-1 grid grid-cols-1 gap-x-6 rounded-md border border-[#d8e1ea] bg-white px-3 py-2 sm:grid-cols-2 lg:grid-cols-3">
               {[...MASTER_PREFIXES, ...DOC_PREFIXES].map((p) => (
@@ -339,32 +339,38 @@ export default function ShortcutsGuidePage() {
           {/* ── DEEP SEARCH ────────────────────────────────────────────── */}
           <Section id="deep" title="Deep search — the 360 view">
             <p>
-              Find a vendor, ledger or item once, and see everything about it on one page: its details and one tab for
-              each kind of document.
+              Find a vendor, ledger, item, asset, project, bank / cash account, cost centre or employee once, and see
+              everything about it on one page: its details and one tab for each kind of document.
             </p>
-            <div className="mt-2 grid gap-3 md:grid-cols-2">
-              <div className="rounded-md border border-[#d8e1ea] bg-white p-3">
-                <h3 className="mb-1 text-[13.5px] font-semibold text-[#144664]">
-                  Vendor / ledger — <span className="font-mono text-[#b03030]">/v</span> or{" "}
-                  <span className="font-mono text-[#b03030]">/l</span>
-                </h3>
-                <p className="text-gray-600">Search by name, ledger code, GSTIN, PAN or phone number.</p>
-                <p className="mt-1">
-                  <b>Tabs:</b> Ledger (bills, payments, debit / credit notes with running balance), Material Orders,
-                  Service Orders, GRN, SRN, GIN, Delivery Challan, Bill Receive Register, BRR Billing, Purchase Bills,
-                  Debit Notes, Credit Notes, Bill Payments, Sale Orders.
-                </p>
-              </div>
-              <div className="rounded-md border border-[#d8e1ea] bg-white p-3">
-                <h3 className="mb-1 text-[13.5px] font-semibold text-[#144664]">
-                  Item — <span className="font-mono text-[#b03030]">/i</span>
-                </h3>
-                <p className="text-gray-600">Search by item name, item code or HSN.</p>
-                <p className="mt-1">
-                  <b>Tabs:</b> Indents, Material Orders (with quantity and rate — your rate history), Service Orders,
-                  GRN, SRN, GIN (issues), Delivery Challan. Each row shows the quantity of this item on that document.
-                </p>
-              </div>
+            <div className="mt-3 overflow-x-auto border border-[#9e9e9e]">
+              <table className="w-full min-w-[760px] border-collapse">
+                <thead className="bg-[#144664] text-left text-[12px] text-white">
+                  <tr>
+                    <th className="w-[70px] px-2 py-1 font-semibold">Code</th>
+                    <th className="w-[170px] px-2 py-1 font-semibold">Finds</th>
+                    <th className="w-[230px] px-2 py-1 font-semibold">Search by</th>
+                    <th className="px-2 py-1 font-semibold">Tabs in the 360 view</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {[
+                    ["/v  /l", "Vendor / Ledger", "name, ledger code, GSTIN, PAN, phone", "Ledger, Material Order, Service Order, GRN, SRN, GIN, Delivery Challan, BRR, BRB, Purchase Bill, Debit Note, Credit Note, Bill Payment, Payment Voucher, Journal Entry, Sale Order"],
+                    ["/i", "Item", "name, item code, HSN", "Indent, Material Order, Service Order, GRN, SRN, GIN, Delivery Challan — with quantity and rate"],
+                    ["/a", "Asset", "asset name, asset code", "Indent, Material Order, GRN, GIN, Delivery Challan — with quantity and rate"],
+                    ["/p", "Project", "project name, code, client", "Every kind of document of that project: indents, orders, receipts, bills, payments, sales, journals, petty cash…"],
+                    ["/b", "Bank / Cash account", "bank name, holder, code, account number", "Bill Payment, Payment Voucher, Sale Receipt, Sales Invoice, Contra Entry, Petty Cash Voucher"],
+                    ["/cc", "Cost Centre", "cost centre name, code", "Purchase Bill, Sales Invoice, Debit Note, Credit Note, Journal Entry — with the amount booked on it"],
+                    ["/e", "Employee", "name, employee code, mobile, department", "Payroll, Performance Reviews, Discipline Cases, Onboarding Tasks"],
+                  ].map(([code, finds, by, tabs], i) => (
+                    <tr key={code} className={i % 2 === 0 ? "bg-[#f2f2f2]" : "bg-white"}>
+                      <td className="border border-[#e6e4e4] px-2 py-1.5 align-top font-mono font-bold text-[#b03030]">{code}</td>
+                      <td className="border border-[#e6e4e4] px-2 py-1.5 align-top font-medium">{finds}</td>
+                      <td className="border border-[#e6e4e4] px-2 py-1.5 align-top text-gray-600">{by}</td>
+                      <td className="border border-[#e6e4e4] px-2 py-1.5 align-top">{tabs}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
 
             <div className="mt-3 overflow-x-auto border border-[#9e9e9e]">
@@ -384,6 +390,12 @@ export default function ShortcutsGuidePage() {
                     ["/l sharma", "Same as /v — a vendor is a ledger."],
                     ["/i cement", "List of items with “cement” → Enter opens the item 360 view."],
                     ["/i cement > orders", "The item, directly on Material Orders (rate history)."],
+                    ["/a mixer", "An asset → its indents, orders, GRN and issues."],
+                    ["/p tower", "A project you are assigned to → all its documents, one tab per kind."],
+                    ["/p tower > purchase bill", "The project, directly on Purchase Bills."],
+                    ["/b hdfc", "A bank or cash account → payments, receipts and contra entries through it."],
+                    ["/cc site expenses", "A cost centre → bills, notes and journals booked on it, with the amount."],
+                    ["/e anita > payroll", "An employee, directly on Payroll (needs HR permission)."],
                   ].map(([typed, result], i) => (
                     <tr key={typed} className={i % 2 === 0 ? "bg-[#f2f2f2]" : "bg-white"}>
                       <td className="border border-[#e6e4e4] px-2 py-1.5 font-mono text-[12.5px] text-[#144664]">{typed}</td>
@@ -406,8 +418,10 @@ export default function ShortcutsGuidePage() {
                 </li>
                 <li>
                   <b>Permissions:</b> you get a tab only if you have permission for that page, and inside it only the
-                  documents of your projects. A tab you may not see is not shown at all. Bank details are shown only
-                  to Admin.
+                  documents of your projects. A tab you may not see is not shown at all. You can find only the
+                  projects you are assigned to. Employees need the Employee Master permission, and each employee tab
+                  needs its own (Payroll, Performance Appraisal, Onboarding). Vendor bank details and full bank
+                  account numbers are shown only to Admin.
                 </li>
                 <li>The number on each tab is how many documents you can see there.</li>
               </ul>

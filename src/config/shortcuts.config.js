@@ -329,13 +329,23 @@ export const shortcutHint = (id) => {
 };
 
 // Master search inside the command box: "/v sharma" finds vendors / ledgers,
-// "/i cement" finds items. Enter opens the 360 view of that record.
+// "/i cement" finds items… Enter opens the 360 view of that record.
 // Add "> tab name" to land on a tab: "/v sharma > ledger".
+// `kind` is the record type of the backend (search/deep_service.py SUBJECTS).
+// `mixed: true` = also searched when no prefix is typed.
 export const MASTER_PREFIXES = [
-  { prefix: "v", kind: "vendor", label: "Vendor / Ledger", hint: "name, code, GSTIN, PAN or phone" },
+  { prefix: "v", kind: "vendor", label: "Vendor / Ledger", hint: "name, code, GSTIN, PAN or phone", mixed: true },
   { prefix: "l", kind: "vendor", label: "Ledger (same as /v)", hint: "name, code, GSTIN, PAN or phone" },
-  { prefix: "i", kind: "item", label: "Item", hint: "name, item code or HSN" },
+  { prefix: "i", kind: "item", label: "Item", hint: "name, item code or HSN", mixed: true },
+  { prefix: "a", kind: "asset", label: "Asset", hint: "asset name or code" },
+  { prefix: "p", kind: "project", label: "Project", hint: "project name, code or client", mixed: true },
+  { prefix: "b", kind: "bank", label: "Bank / Cash account", hint: "bank name, holder, code or account number" },
+  { prefix: "cc", kind: "cc", label: "Cost Centre", hint: "cost centre name or code" },
+  { prefix: "e", kind: "employee", label: "Employee", hint: "name, employee code, mobile or department" },
 ];
+
+// Record types that have a 360 view
+export const DEEP_SEARCH_KINDS = [...new Set(MASTER_PREFIXES.map((p) => p.kind))];
 
 // Where the 360 view of a master record lives
 export const deepSearchRoute = (kind, id, tab) =>

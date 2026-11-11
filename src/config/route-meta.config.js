@@ -8,6 +8,26 @@ export const routeMetaConfig = [
     basePath: "/deep-search/item/[id]",
     breadcrumbs: ["Search", "Item 360"],
   },
+  {
+    basePath: "/deep-search/asset/[id]",
+    breadcrumbs: ["Search", "Asset 360"],
+  },
+  {
+    basePath: "/deep-search/project/[id]",
+    breadcrumbs: ["Search", "Project 360"],
+  },
+  {
+    basePath: "/deep-search/bank/[id]",
+    breadcrumbs: ["Search", "Bank / Cash 360"],
+  },
+  {
+    basePath: "/deep-search/cc/[id]",
+    breadcrumbs: ["Search", "Cost Centre 360"],
+  },
+  {
+    basePath: "/deep-search/employee/[id]",
+    breadcrumbs: ["Search", "Employee 360"],
+  },
   //help
   {
     basePath: "/shortcuts",
