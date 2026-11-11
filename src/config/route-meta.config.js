@@ -669,6 +669,83 @@ export const routeMetaConfig = [
     basePath: "/finance-management/report/balance-sheet",
     breadcrumbs: ["Finance Management", "Finance", "Balance Sheet"],
   },
+  // Finance Management — Central Accounting
+  {
+    basePath: "/finance-management/report/accounting",
+    breadcrumbs: ["Finance Management", "Central Accounting", "Dashboard"],
+  },
+  {
+    basePath: "/finance-management/report/accounting/general-ledger",
+    breadcrumbs: ["Finance Management", "Central Accounting", "General Ledger"],
+  },
+  {
+    basePath: "/finance-management/report/accounting/trial-balance",
+    breadcrumbs: ["Finance Management", "Central Accounting", "Trial Balance"],
+  },
+  {
+    basePath: "/finance-management/report/accounting/profit-loss",
+    breadcrumbs: ["Finance Management", "Central Accounting", "Profit & Loss"],
+  },
+  {
+    basePath: "/finance-management/report/accounting/balance-sheet",
+    breadcrumbs: ["Finance Management", "Central Accounting", "Balance Sheet"],
+  },
+  {
+    basePath: "/finance-management/report/accounting/vendor-ledger",
+    breadcrumbs: ["Finance Management", "Central Accounting", "Vendor Ledger"],
+  },
+  {
+    basePath: "/finance-management/report/accounting/customer-ledger",
+    breadcrumbs: ["Finance Management", "Central Accounting", "Customer Ledger"],
+  },
+  {
+    basePath: "/finance-management/report/accounting/bank-ledger",
+    breadcrumbs: ["Finance Management", "Central Accounting", "Bank Ledger"],
+  },
+  {
+    basePath: "/finance-management/report/accounting/cc-ledger",
+    breadcrumbs: ["Finance Management", "Central Accounting", "CC-Code Ledger"],
+  },
+  {
+    basePath: "/finance-management/report/accounting/day-book",
+    breadcrumbs: ["Finance Management", "Central Accounting", "Day Book"],
+  },
+  {
+    basePath: "/finance-management/report/accounting/voucher-register",
+    breadcrumbs: ["Finance Management", "Central Accounting", "Voucher Register"],
+  },
+  {
+    basePath: "/finance-management/report/accounting/outstanding-payables",
+    breadcrumbs: ["Finance Management", "Central Accounting", "Outstanding Payables"],
+  },
+  {
+    basePath: "/finance-management/report/accounting/outstanding-receivables",
+    breadcrumbs: ["Finance Management", "Central Accounting", "Outstanding Receivables"],
+  },
+  {
+    basePath: "/finance-management/report/accounting/gst-summary",
+    breadcrumbs: ["Finance Management", "Central Accounting", "GST Summary"],
+  },
+  {
+    basePath: "/finance-management/report/accounting/project-summary",
+    breadcrumbs: ["Finance Management", "Central Accounting", "Project Summary"],
+  },
+  {
+    basePath: "/finance-management/report/accounting/group-ledger",
+    breadcrumbs: ["Finance Management", "Central Accounting", "Group Ledger"],
+  },
+  {
+    basePath: "/finance-management/report/accounting/financial-year",
+    breadcrumbs: ["Finance Management", "Central Accounting", "Financial Year"],
+  },
+  {
+    basePath: "/finance-management/report/accounting/historical-posting",
+    breadcrumbs: ["Finance Management", "Central Accounting", "Historical Posting"],
+  },
+  {
+    basePath: "/finance-management/report/accounting/opening-balance",
+    breadcrumbs: ["Finance Management", "Central Accounting", "Opening Balance"],
+  },
   // Finance Management — Contra Entry
   {
     basePath: "/finance-management/account/contra",

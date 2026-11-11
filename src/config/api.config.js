@@ -704,6 +704,37 @@ export const API_ENDPOINTS = {
       // Returns { data: { equityAndLiabilities, assets, difference, filters } }
       GET: "/finance/balance-sheet",
     },
+    ACCOUNTING: {
+      LEDGER:                  "/finance/accounting/ledger",
+      TRIAL_BALANCE:           "/finance/accounting/trial-balance",
+      PROFIT_LOSS:             "/finance/accounting/profit-loss",
+      BALANCE_SHEET:           "/finance/accounting/balance-sheet",
+      VENDOR_LEDGER:           "/finance/accounting/vendor-ledger",
+      CUSTOMER_LEDGER:         "/finance/accounting/customer-ledger",
+      BANK_LEDGER:             "/finance/accounting/bank-ledger",
+      CC_LEDGER:               "/finance/accounting/cc-ledger",
+      DAY_BOOK:                "/finance/accounting/day-book",
+      VOUCHER_REGISTER:        "/finance/accounting/voucher-register",
+      OUTSTANDING_PAYABLES:    "/finance/accounting/outstanding-payables",
+      OUTSTANDING_RECEIVABLES: "/finance/accounting/outstanding-receivables",
+      GST_SUMMARY:             "/finance/accounting/gst-summary",
+      PROJECT_SUMMARY:         "/finance/accounting/project-summary",
+      GROUP_LEDGER:            "/finance/accounting/group-ledger",
+      FINANCIAL_YEAR:          "/finance/accounting/financial-year",
+      HISTORICAL_POSTING:      "/finance/accounting/historical-posting",
+      POSTING_STATUS:          "/finance/accounting/posting-status",
+      OPENING_BALANCE:         "/finance/accounting/opening-balance",
+      CANCEL:                  "/finance/accounting/cancel",
+      CANCELLATION_STATUS:     "/finance/accounting/cancellation-status",
+      STOCK_BALANCE:           "/finance/accounting/stock-balance",
+      STOCK_SUMMARY:           "/finance/accounting/stock-summary",
+      EXPORT: {
+        LEDGER:         "/finance/accounting/export/ledger",
+        TRIAL_BALANCE:  "/finance/accounting/export/trial-balance",
+        PROFIT_LOSS:    "/finance/accounting/export/profit-loss",
+        BALANCE_SHEET:  "/finance/accounting/export/balance-sheet",
+      },
+    },
     PETTY_CASH: {
       LEDGER: {
         PROJECT_ACCOUNTS: "/finance/petty-cash/ledger/project-accounts", // GET ?projectCode
