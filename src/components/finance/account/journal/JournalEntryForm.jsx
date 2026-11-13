@@ -178,6 +178,7 @@ export default function JournalEntryForm({ mode = "create", journalId, onAfterSu
   // Load unified ref bills when modal opens
   useEffect(() => {
     if (!refModalOpen || !projectCode) return;
+    // eslint-disable-next-line react-compiler/react-compiler
     setRefBillList([]);
     setRefBillLoading(true);
     apiRequest({ url: `${API_ENDPOINTS.FINANCE.JOURNAL_ENTRY.REF_BILLS}?projectCode=${projectCode}`, method: "GET" })
@@ -514,6 +515,11 @@ export default function JournalEntryForm({ mode = "create", journalId, onAfterSu
                     </td>
                     <td className="py-1 pr-1">
                       <AccountSelect name={`drLines.${idx}.accountId`} lineType={line.type} isDisabled={rowDisabled} />
+                      {isBulkDocket && line.description && (
+                        <div className="text-[10px] text-gray-400 italic px-1 mt-0.5 truncate max-w-[220px]" title={line.description}>
+                          {line.description}
+                        </div>
+                      )}
                     </td>
                     <td className="py-1 pr-1">
                       <AmountInput {...register(`drLines.${idx}.debitAmount`)} value={line.debitAmount}
