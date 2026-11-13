@@ -25,6 +25,12 @@ import {
   mapApiGstLines,
   igstEquivalent,
 } from "@/components/finance/account/common/AccountGstTable";
+
+const INPUT_GST_DEFAULTS = [
+  { ...DEFAULT_GST_LINES[0], ccName: "Input-IGST" },
+  { ...DEFAULT_GST_LINES[1], ccName: "Input-CGST" },
+  { ...DEFAULT_GST_LINES[2], ccName: "Input-SGST" },
+];
 import AccountSummary         from "@/components/finance/account/common/AccountSummary";
 import BrrPickerModal                from "@/components/finance/account/purchases/BrrPickerModal";
 import PurchaseBillBreakdownTable   from "@/components/finance/account/purchases/PurchaseBillBreakdownTable";
@@ -96,7 +102,7 @@ const DEFAULT_VALUES = {
   discount: 0,
   roundOff: 0,
   items: [],
-  gstLines: DEFAULT_GST_LINES,
+  gstLines: INPUT_GST_DEFAULTS,
 };
 
 // ─── Component ────────────────────────────────────────────────────────────────
@@ -133,7 +139,7 @@ export default function PurchaseBillForm({ mode = "create", billId, onAfterSubmi
 
   // ── Journal derivations ──────────────────────────────────────────────────────
   const watchedItems    = watch("items")    || [];
-  const watchedGstLines = watch("gstLines") || DEFAULT_GST_LINES;
+  const watchedGstLines = watch("gstLines") || INPUT_GST_DEFAULTS;
   const watchedDiscount = Number(watch("discount") || 0);
   const watchedRoundOff = Number(watch("roundOff") || 0);
 
@@ -195,7 +201,7 @@ export default function PurchaseBillForm({ mode = "create", billId, onAfterSubmi
   // Also bake in the new gstAmount immediately so the breakdown table doesn't
   // show "—" for one render while the separate useEffect is still pending.
   const handleGstToggle = useCallback((gstType, checked) => {
-    const current = getValues("gstLines") || DEFAULT_GST_LINES;
+    const current = getValues("gstLines") || INPUT_GST_DEFAULTS;
 
     const willIGST     = gstType === "IGST" ? checked : (checked ? false : current[0].isSelected);
     const willCGSTSGST = gstType !== "IGST" ? checked : (checked ? false : current[1].isSelected);
@@ -270,7 +276,7 @@ export default function PurchaseBillForm({ mode = "create", billId, onAfterSubmi
           basicAmount: Number(it.basicAmount || 0),
         }));
         setValue("items", newItems, { shouldDirty: true });
-        setValue("gstLines", mapApiGstLines(d.gstLines), { shouldDirty: true });
+        setValue("gstLines", mapApiGstLines(d.gstLines, { defaults: INPUT_GST_DEFAULTS }), { shouldDirty: true });
         setActualGstTotal(igstEquivalent(d.gstLines));
         setAllowSubmit(false);
       } catch {
@@ -313,8 +319,8 @@ export default function PurchaseBillForm({ mode = "create", billId, onAfterSubmi
             basicAmount: Number(it.basicAmount || 0),
           })),
           gstLines: d.gstLines?.length
-            ? mapApiGstLines(d.gstLines, { keepSelection: true })
-            : DEFAULT_GST_LINES,
+            ? mapApiGstLines(d.gstLines, { keepSelection: true, defaults: INPUT_GST_DEFAULTS })
+            : INPUT_GST_DEFAULTS,
         };
         reset(formatted);
 
@@ -340,13 +346,6 @@ export default function PurchaseBillForm({ mode = "create", billId, onAfterSubmi
 
   // ── Save Draft ───────────────────────────────────────────────────────────────
   const onSave = async (v) => {
-    const igstSelected    = !!v.gstLines?.[0]?.isSelected;
-    const cgstSgstSelected = !!v.gstLines?.[1]?.isSelected;
-    if (!igstSelected && !cgstSgstSelected) {
-      toast.error("Please select a GST type — either IGST or CGST + SGST — before saving.");
-      return;
-    }
-
     const url    = mode === "create"
       ? API_ENDPOINTS.FINANCE.PURCHASE_BILL.CREATE
       : `${API_ENDPOINTS.FINANCE.PURCHASE_BILL.EDIT}${billId}`;

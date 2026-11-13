@@ -98,27 +98,7 @@ export default function AccountingJournalTable({
           <tbody>
             {creditorMode ? (
               <>
-                {/* CR row — creditor/vendor (first, fixed) */}
-                {(totalCr > 0 || entries.length > 0) && (
-                  <tr className="bg-[#f0fbf0]">
-                    <td className="border border-[#d0d0d0] px-2 py-1.5 font-semibold text-[#3a6a2a]">
-                      CR
-                    </td>
-                    <td className="border border-[#d0d0d0] px-2 py-1.5 text-[#3a6a2a] font-medium">
-                      {debtorName || "—"}
-                    </td>
-                    <td className="border border-[#d0d0d0] px-2 py-1.5 text-right text-gray-400">
-                      —
-                    </td>
-                    <td className="border border-[#d0d0d0] px-2 py-1.5 text-right font-semibold text-[#3a6a2a]">
-                      {totalCr > 0 ? formatAmount(totalCr) : "—"}
-                    </td>
-                    {hasBulkToggle && <td className="border border-[#d0d0d0] px-2 py-1.5" />}
-                    {hasToggle     && <td className="border border-[#d0d0d0] px-2 py-1.5" />}
-                  </tr>
-                )}
-
-                {/* DR rows — one per entry (CC codes + GST) */}
+                {/* DR rows — one per entry (CC codes + GST), shown first */}
                 {entries.map((entry, idx) => {
                   const isSelected = entry.isSelected !== false;
                   if (disabled && !isSelected) return null;
@@ -158,6 +138,26 @@ export default function AccountingJournalTable({
                     </tr>
                   );
                 })}
+
+                {/* CR row — creditor/vendor (last) */}
+                {(totalCr > 0 || entries.length > 0) && (
+                  <tr className="bg-[#f0fbf0]">
+                    <td className="border border-[#d0d0d0] px-2 py-1.5 font-semibold text-[#3a6a2a]">
+                      CR
+                    </td>
+                    <td className="border border-[#d0d0d0] px-2 py-1.5 text-[#3a6a2a] font-medium">
+                      {debtorName || "—"}
+                    </td>
+                    <td className="border border-[#d0d0d0] px-2 py-1.5 text-right text-gray-400">
+                      —
+                    </td>
+                    <td className="border border-[#d0d0d0] px-2 py-1.5 text-right font-semibold text-[#3a6a2a]">
+                      {totalCr > 0 ? formatAmount(totalCr) : "—"}
+                    </td>
+                    {hasBulkToggle && <td className="border border-[#d0d0d0] px-2 py-1.5" />}
+                    {hasToggle     && <td className="border border-[#d0d0d0] px-2 py-1.5" />}
+                  </tr>
+                )}
               </>
             ) : (
               <>
