@@ -522,7 +522,11 @@ export default function DocketVoucherForm({
                       // rowAlloc = total allocated for this CC (budgetAmount, not remaining)
                       // rowUsed  = already committed in other vouchers + what user enters here
                       const rowAlloc    = budgetRow ? Number(budgetRow.budgetAmount ?? 0) : 0;
-                      const rowUsed     = inBudget ? Number(budgetRow.usedAmount ?? 0) + getCcUsed(rowCcCode) : 0;
+                      const rowUsed     = inBudget
+                          ? mode === "create"
+                            ? Number(budgetRow.usedAmount ?? 0) + getCcUsed(rowCcCode)
+                            : Number(budgetRow.usedAmount ?? 0)
+                          : 0;
                       const rowRem      = rowAlloc - rowUsed;
                       return (
                       <tr key={field.id} className={`${index % 2 === 0 ? "bg-white" : "bg-[#f7f7f7]"} ${notInBudget ? "bg-orange-50" : ""}`}>
