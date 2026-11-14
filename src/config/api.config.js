@@ -1,5 +1,4 @@
-// Override only for local testing: NEXT_PUBLIC_API_BASE_URL=http://localhost:5099
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || "https://132.154.156.82/api";
+const API_BASE_URL = "https://132.154.156.82/api"; //change here later
 
 export const API_ENDPOINTS = {
   LOGIN: "/auth/login",
@@ -7,8 +6,6 @@ export const API_ENDPOINTS = {
   FORGOT_PASSWORD: "/auth/forgot-password",
   VERIFY_OTP: "/auth/verify-otp",
   RESET_PASSWORD: "/auth/reset-password",
-  UPLOAD_PROFILE_PICTURE: "/auth/profile-picture", // POST multipart "file" — any logged-in user
-  ME: "/auth/me", // GET logged-in user (name, role, profilePicture)
   GET_COMPANIES: "/compny/my-companies", //only for super admin
   GET_PROJECT_PERMISSION: "/project/enter", //projectcode
   SETTINGS: {
@@ -37,11 +34,6 @@ export const API_ENDPOINTS = {
       LIST: "/setting/approval-path/list",
       EDIT_USERS: "/setting/edit-users",
     },
-  },
-  // Deep search: find a vendor / ledger / item, then its 360 view (read-only)
-  DEEP_SEARCH: {
-    QUICK: "/search/quick",   // GET ?type=vendor|item&q&limit
-    VIEW: "/search/360",      // GET /:kind/:id  |  /:kind/:id/docs?type&limit  |  /vendor/:id/ledger?fromDate&toDate
   },
   MASTER: {
     // Traceability Workbench (read-only document flow)
@@ -359,23 +351,6 @@ export const API_ENDPOINTS = {
 
   //project-management/register/concrete
   PROJECT: {
-    // Daily Progress Report — site photos → AI → daily report (module code "daily_progress_report")
-    DPR: {
-      PHOTOS:             "/project-mgmt/dpr/photos",             // POST multipart (projectCode, photos[], meta) · GET ?projectCode&date · PUT/DELETE /:id
-      REANALYSE:          "/project-mgmt/dpr/photos",             // /:id/reanalyse POST
-      LIST:               "/project-mgmt/dpr/list",               // GET ?projectCode — one row per day
-      DAY:                "/project-mgmt/dpr/day",                // GET ?projectCode&date — report + photos + site records
-      DETAILS:            "/project-mgmt/dpr/details",            // /:id GET
-      GENERATE:           "/project-mgmt/dpr/generate",           // POST { projectCode, date }
-      UPDATE:             "/project-mgmt/dpr/edit",               // /:id PUT
-      SUBMIT:             "/project-mgmt/dpr/submit",             // /:id POST
-      APPROVE:            "/project-mgmt/dpr/approve",            // /:id POST
-      REBACK:             "/project-mgmt/dpr/reback",             // /:id POST
-      REJECT:             "/project-mgmt/dpr/reject",             // /:id POST
-      HISTORY:            "/project-mgmt/dpr/history",            // /:id GET
-      MY_APPROVAL_STATUS: "/project-mgmt/dpr/my-approval-status", // /:id GET
-      GET_BY_UUID:        "/project-mgmt/dpr/uuid",               // /:uuid GET no-auth
-    },
     OG_SALE_ORDER: {
       LIST:               "/project-mgmt/og-sale-order/list",                       // GET ?projectCode&workflowStatus&search
       CREATE:             "/project-mgmt/og-sale-order/create",                     // POST multipart/form-data
@@ -545,8 +520,9 @@ export const API_ENDPOINTS = {
       GET_BY_UUID:          "/finance/sale-bill/uuid/",                   // /:uuid GET no-auth
     },
     PURCHASE_BILL: {
-      AVAILABLE_BRRS: "/finance/purchase-bill/available-brrs",           // GET ?vendorId&projectCode
-      BRR_ITEMS:      "/finance/purchase-bill/brr-items",                // GET ?brrId&projectCode
+      VENDOR_ORDERS: "/finance/purchase-bill/vendor-orders",             // GET ?vendorId&projectCode&orderType
+      BRR_LIST:      "/finance/purchase-bill/brr-list",                  // GET ?orderId&orderType&projectCode
+      BRR_ITEMS:     "/finance/purchase-bill/brr-items",                 // GET ?brrId&projectCode
       CREATE:        "/finance/purchase-bill/create",                    // POST JSON
       LIST:          "/finance/purchase-bill/list",                      // GET ?projectCode&mode&workflowStatus&vendorId&search
       GET_BY_ID:     "/finance/purchase-bill/",                          // /:id GET
@@ -559,6 +535,19 @@ export const API_ENDPOINTS = {
       MY_APPROVAL_STATUS: "/finance/purchase-bill/my-approval-status/",  // /:id GET
       GET_BY_UUID:   "/finance/purchase-bill/uuid/",                     // /:uuid GET no-auth
     },
+    PURCHASE_VOUCHER: {
+      CREATE:        "/finance/purchase-voucher/create",                 // POST JSON
+      LIST:          "/finance/purchase-voucher/list",                   // GET ?projectCode&vendorId&workflowStatus&search
+      GET_BY_ID:     "/finance/purchase-voucher/",                       // /:id GET
+      EDIT:          "/finance/purchase-voucher/edit/",                  // /:id PUT JSON
+      SUBMIT:        "/finance/purchase-voucher/submit/",                // /:id POST
+      APPROVE:       "/finance/purchase-voucher/approve/",               // /:id POST
+      REBACK:        "/finance/purchase-voucher/reback/",                // /:id POST
+      REJECT:        "/finance/purchase-voucher/reject/",                // /:id POST
+      HISTORY:       "/finance/purchase-voucher/history/",               // /:id GET
+      MY_APPROVAL_STATUS: "/finance/purchase-voucher/my-approval-status/", // /:id GET
+      GET_BY_UUID:   "/finance/purchase-voucher/uuid/",                  // /:uuid GET no-auth
+    },
     SALE_RECEIPT: {
       OG_SALE_ORDERS: "/finance/sale-receipt/og-sale-orders",            // GET ?projectCode — Approved OG Sale Orders
       CREATE:         "/finance/sale-receipt/create",                    // POST JSON
@@ -568,7 +557,8 @@ export const API_ENDPOINTS = {
       DELETE:         "/finance/sale-receipt/delete/",                   // /:id DELETE (blocked if any child not Rejected)
     },
     SALE_RECEIPT_BILLING: {
-      AVAILABLE_INVOICES: "/finance/sale-receipt-billing/available-invoices",  // GET ?projectCode
+      CERTIFIED_BILLS:    "/finance/sale-receipt-billing/certified-bills",     // GET ?erpDocNumber&projectCode
+      RECEIPT_ITEMS:      "/finance/sale-receipt-billing/receipt-items",       // GET ?certifiedBillId&projectCode
       INVOICE_LOOKUP:     "/finance/sale-receipt-billing/invoice-lookup",      // GET ?invoiceNo&projectCode
       CREATE:             "/finance/sale-receipt-billing/create",              // POST JSON (needs receiptId)
       LIST:               "/finance/sale-receipt-billing/list",                // GET ?receiptId&projectCode&workflowStatus
@@ -595,7 +585,6 @@ export const API_ENDPOINTS = {
       HISTORY:            "/finance/debit-note/history/",               // /:id GET
       MY_APPROVAL_STATUS: "/finance/debit-note/my-approval-status/",    // /:id GET
       GET_BY_UUID:        "/finance/debit-note/uuid/",                  // /:uuid GET no-auth
-      BRR_PICKER:         "/finance/debit-note/brr-picker",               // GET ?projectCode&vendorId — approved BRRs
     },
     CREDIT_NOTE: {
       CREATE:             "/finance/credit-note/create",                 // POST JSON
@@ -609,9 +598,10 @@ export const API_ENDPOINTS = {
       HISTORY:            "/finance/credit-note/history/",               // /:id GET
       MY_APPROVAL_STATUS: "/finance/credit-note/my-approval-status/",    // /:id GET
       GET_BY_UUID:        "/finance/credit-note/uuid/",                  // /:uuid GET no-auth
-      SALE_BILL_PICKER:   "/finance/credit-note/sale-bill-picker",       // GET ?projectCode&debtorId
     },
     PAYMENT_VOUCHER: {
+      APPROVED_PURCHASE_VOUCHERS: "/finance/payment-voucher/approved-purchase-vouchers", // GET ?projectCode
+      PURCHASE_VOUCHER_ITEMS:     "/finance/payment-voucher/purchase-voucher-items/",    // /<pv_id> GET
       CREATE:             "/finance/payment-voucher/create",                // POST JSON
       LIST:               "/finance/payment-voucher/list",                  // GET ?projectCode&workflowStatus&vendorId&search
       GET_BY_ID:          "/finance/payment-voucher/",                      // /<pvm_id> GET
@@ -625,12 +615,8 @@ export const API_ENDPOINTS = {
       MY_APPROVAL_STATUS: "/finance/payment-voucher/my-approval-status/",   // /<pvm_id> GET
     },
     BILL_PAYMENT: {
-      APPROVED_PURCHASE_BILLS:       "/finance/bill-payment/approved-purchase-bills",       // GET ?projectCode&vendorId
-      PURCHASE_BILL_ITEMS:           "/finance/bill-payment/purchase-bill-items/",          // /<bill_id> GET
-      PURCHASE_BILL_ITEMS_MULTI:     "/finance/bill-payment/purchase-bill-items-multi",     // GET ?billIds=1&billIds=2
-      APPROVED_JOURNAL_VOUCHERS:     "/finance/bill-payment/approved-journal-vouchers",     // GET ?projectCode&vendorId
-      JOURNAL_VOUCHER_ITEMS:         "/finance/bill-payment/journal-voucher-items/",        // /<je_id> GET
-      JOURNAL_VOUCHER_ITEMS_MULTI:   "/finance/bill-payment/journal-voucher-items-multi",   // GET ?jeIds=1&jeIds=2
+      APPROVED_PURCHASE_BILLS: "/finance/bill-payment/approved-purchase-bills", // GET ?projectCode&vendorId
+      PURCHASE_BILL_ITEMS:     "/finance/bill-payment/purchase-bill-items/",    // /<bill_id> GET
       CREATE:             "/finance/bill-payment/create",                   // POST JSON
       LIST:               "/finance/bill-payment/list",                     // GET ?projectCode&workflowStatus&vendorId&search
       GET_BY_ID:          "/finance/bill-payment/",                         // /<receipt_id> GET
@@ -708,37 +694,6 @@ export const API_ENDPOINTS = {
       // GET ?projectCode[&fromDate&toDate] (JWT) — view only.
       // Returns { data: { equityAndLiabilities, assets, difference, filters } }
       GET: "/finance/balance-sheet",
-    },
-    ACCOUNTING: {
-      LEDGER:                  "/finance/accounting/ledger",
-      TRIAL_BALANCE:           "/finance/accounting/trial-balance",
-      PROFIT_LOSS:             "/finance/accounting/profit-loss",
-      BALANCE_SHEET:           "/finance/accounting/balance-sheet",
-      VENDOR_LEDGER:           "/finance/accounting/vendor-ledger",
-      CUSTOMER_LEDGER:         "/finance/accounting/customer-ledger",
-      BANK_LEDGER:             "/finance/accounting/bank-ledger",
-      CC_LEDGER:               "/finance/accounting/cc-ledger",
-      DAY_BOOK:                "/finance/accounting/day-book",
-      VOUCHER_REGISTER:        "/finance/accounting/voucher-register",
-      OUTSTANDING_PAYABLES:    "/finance/accounting/outstanding-payables",
-      OUTSTANDING_RECEIVABLES: "/finance/accounting/outstanding-receivables",
-      GST_SUMMARY:             "/finance/accounting/gst-summary",
-      PROJECT_SUMMARY:         "/finance/accounting/project-summary",
-      GROUP_LEDGER:            "/finance/accounting/group-ledger",
-      FINANCIAL_YEAR:          "/finance/accounting/financial-year",
-      HISTORICAL_POSTING:      "/finance/accounting/historical-posting",
-      POSTING_STATUS:          "/finance/accounting/posting-status",
-      OPENING_BALANCE:         "/finance/accounting/opening-balance",
-      CANCEL:                  "/finance/accounting/cancel",
-      CANCELLATION_STATUS:     "/finance/accounting/cancellation-status",
-      STOCK_BALANCE:           "/finance/accounting/stock-balance",
-      STOCK_SUMMARY:           "/finance/accounting/stock-summary",
-      EXPORT: {
-        LEDGER:         "/finance/accounting/export/ledger",
-        TRIAL_BALANCE:  "/finance/accounting/export/trial-balance",
-        PROFIT_LOSS:    "/finance/accounting/export/profit-loss",
-        BALANCE_SHEET:  "/finance/accounting/export/balance-sheet",
-      },
     },
     PETTY_CASH: {
       LEDGER: {

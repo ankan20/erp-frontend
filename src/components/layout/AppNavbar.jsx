@@ -2,8 +2,7 @@
 
 import { useState, useEffect, useRef } from "react";
 import { usePathname, useRouter } from "next/navigation";
-import { resolveTcodeForUser } from "@/lib/shortcuts";
-import { useShortcuts } from "@/components/shortcuts/ShortcutProvider";
+import { tcodeConfig } from "@/config/tcode.config";
 import Image from "next/image";
 import { toast } from "sonner";
 import { clearAuthCookies, setCookie } from "@/lib/cookies";
@@ -16,10 +15,7 @@ import {
 import SearchableSelect from "@/components/common/SearchableSelect";
 import { apiRequest } from "@/lib/apiClient";
 import { API_ENDPOINTS } from "@/config/api.config";
-import { User, LogOut, Camera, Keyboard, Search } from "lucide-react";
-import ProfilePictureUploadModal from "@/components/common/ProfilePictureUploadModal";
-import AuthImage from "@/components/common/AuthImage";
-import { userFileUrl } from "@/lib/userFiles";
+import { User, LogOut } from "lucide-react";
 import { useComm } from "@/context/CommContext";
 import { ROLE, roleMap } from "@/config/role.config";
 
@@ -44,35 +40,12 @@ export default function AppNavbar() {
   const pathname = usePathname();
   const router = useRouter();
   const [tcode, setTcode] = useState("");
-  const { openPalette, openHelp } = useShortcuts();
   // const [showProjectSelect, setShowProjectSelect] = useState(false);
   // const [projectList, setProjectList] = useState([]);
   // const [loadingProjects, setLoadingProjects] = useState(false);
   // const projectRef = useRef(null);
   const profileRef = useRef(null);
   const [showProfile, setShowProfile] = useState(false);
-  const [showPhotoUpload, setShowPhotoUpload] = useState(false);
-  const [profilePic, setProfilePic] = useState("");
-
-  // Logged-in user's profile picture for the avatar; refreshed after uploads
-  useEffect(() => {
-    let alive = true;
-    const loadMe = async () => {
-      try {
-        const res = await apiRequest({ url: API_ENDPOINTS.ME });
-        const me = res?.data?.[0];
-        if (alive) setProfilePic(userFileUrl(me?.id, "profile", me?.profilePicture));
-      } catch {
-        // avatar falls back to the default icon
-      }
-    };
-    loadMe();
-    window.addEventListener("erp:profile-updated", loadMe);
-    return () => {
-      alive = false;
-      window.removeEventListener("erp:profile-updated", loadMe);
-    };
-  }, []);
   // CommProvider is always an ancestor in the protected layout — safe to call here
   const comm = useComm();
 
@@ -110,17 +83,14 @@ export default function AppNavbar() {
     return () => document.removeEventListener("mousedown", handleOutsideClick);
   }, [showProfile]);
 
-  // T-code: two-letter page code + 01 (list) or 02 (new entry), e.g. IN01 / IN02.
-  // Codes are in config/tcode.config.js; access follows the user's permissions.
   const handleTCodeNavigate = () => {
-    if (!tcode.trim()) return;
-    const result = resolveTcodeForUser(tcode);
-    if (result.error) {
-      toast.error(result.error);
-      return;
+    const route = tcodeConfig[tcode.toLowerCase().trim()];
+    if (route) {
+      router.push(route);
+      setTcode("");
+    } else {
+      toast.error("no match found!");
     }
-    router.push(result.path);
-    setTcode("");
   };
 
   // const fetchProjects = async () => {
@@ -274,15 +244,7 @@ export default function AppNavbar() {
               <input
                 value={tcode}
                 onChange={(e) => setTcode(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") handleTCodeNavigate();
-                }}
-                data-shortcut-focus="tcode"
-                title="Type a page code and press Enter — e.g. IN01 = Indent list, IN02 = new Indent (Ctrl+/)"
-                maxLength={4}
-                autoComplete="off"
-                spellCheck={false}
-                className="h-6 w-25 border border-[#d5b7a2] bg-[#eef0a7] px-2 text-sm uppercase outline-none"
+                className="h-6 w-25 border border-[#d5b7a2] bg-[#eef0a7] px-2 text-sm outline-none"
               />
 
               <button onClick={handleTCodeNavigate} className="cursor-pointer">
@@ -293,28 +255,6 @@ export default function AppNavbar() {
                   height={28}
                 />
               </button>
-
-              {/* search box (Ctrl+K) and shortcut list (?) */}
-              <NavTooltip label="Search pages & documents (Ctrl+K)">
-                <button
-                  type="button"
-                  onClick={openPalette}
-                  aria-label="Search pages and documents"
-                  className="ml-2 flex h-7 w-7 cursor-pointer items-center justify-center rounded-sm border border-[#b8c7da] bg-white text-[#144664] hover:bg-[#eef4fa]"
-                >
-                  <Search size={16} />
-                </button>
-              </NavTooltip>
-              <NavTooltip label="Keyboard shortcuts (?)">
-                <button
-                  type="button"
-                  onClick={openHelp}
-                  aria-label="Keyboard shortcuts"
-                  className="flex h-7 w-7 cursor-pointer items-center justify-center rounded-sm border border-[#b8c7da] bg-white text-[#144664] hover:bg-[#eef4fa]"
-                >
-                  <Keyboard size={16} />
-                </button>
-              </NavTooltip>
             </div>
           </div>
         </div>
@@ -386,15 +326,9 @@ export default function AppNavbar() {
         hover:bg-[#c6d9e8]
         transition
         cursor-pointer
-        overflow-hidden
       "
             >
-              <AuthImage
-                src={profilePic}
-                alt={username || "Profile"}
-                className="h-full w-full object-cover"
-                fallback={<User size={20} />}
-              />
+              <User size={20} />
             </button>
             {/* Online indicator */}
             <span className="absolute bottom-0.5 right-0.5 w-3 h-3 bg-emerald-500 rounded-full
@@ -427,20 +361,6 @@ export default function AppNavbar() {
                   </div>
                 </div>
 
-                {/* UPLOAD PROFILE PHOTO */}
-                <button
-                  onClick={() => {
-                    setShowProfile(false);
-                    setShowPhotoUpload(true);
-                  }}
-                  className="w-full flex items-center gap-2 px-4 py-3 text-left border-b hover:bg-gray-50 transition cursor-pointer"
-                >
-                  <Camera size={16} className="text-gray-700" />
-                  <span className="text-[13px] text-gray-700 font-medium">
-                    Upload Photo
-                  </span>
-                </button>
-
                 {/* LOGOUT */}
                 <button
                   onClick={handleLogout}
@@ -466,10 +386,6 @@ export default function AppNavbar() {
                 </button>
               </div>
             )}
-            <ProfilePictureUploadModal
-              open={showPhotoUpload}
-              onOpenChange={setShowPhotoUpload}
-            />
           </div>
         </div>
       </div>
