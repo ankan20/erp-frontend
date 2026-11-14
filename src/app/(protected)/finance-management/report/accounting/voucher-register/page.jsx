@@ -15,7 +15,7 @@ import AccountingFilterBar from "@/components/finance/report/accounting/Accounti
 import AccountingTable from "@/components/finance/report/accounting/AccountingTable";
 import useAccountingFetch from "@/components/finance/report/accounting/useAccountingFetch";
 
-const COLUMNS = [
+const BASE_COLUMNS = [
   { key: "date", label: "Date" },
   { key: "voucherNo", label: "Voucher No" },
   { key: "sourceType", label: "Type" },
@@ -24,6 +24,7 @@ const COLUMNS = [
   { key: "totalCredit", label: "Total Credit", type: "amount", align: "right" },
   { key: "linesCount", label: "Lines", align: "right" },
 ];
+const PROJECT_COL = { key: "projectCode", label: "Project", className: "w-[100px]" };
 
 const SOURCE_TYPES = [
   { value: "", label: "All Types" },
@@ -48,10 +49,17 @@ export default function VoucherRegisterPage() {
     data, loading, fetched, projectList, handleFetch, handleReset,
   } = useAccountingFetch(API_ENDPOINTS.FINANCE.ACCOUNTING.VOUCHER_REGISTER);
 
+  const showProject = !projectCode;
+  const columns = useMemo(
+    () => (showProject ? [PROJECT_COL, ...BASE_COLUMNS] : BASE_COLUMNS),
+    [showProject],
+  );
+
   const rows = useMemo(() => {
     if (!data?.entries) return [];
     return data.entries.map((v, i) => ({
       _key: i,
+      ...(showProject && { projectCode: v.projectCode || "" }),
       date: v.date || "",
       voucherNo: v.voucherNo || "",
       sourceType: v.sourceTypeLabel || (v.sourceType || "").replace(/_/g, " "),
@@ -60,7 +68,7 @@ export default function VoucherRegisterPage() {
       totalCredit: v.totalCredit,
       linesCount: v.isReversal ? "REV" : "",
     }));
-  }, [data]);
+  }, [data, showProject]);
 
   const wrappedFetch = () => handleFetch(sourceType ? { source_type: sourceType } : {});
 
@@ -113,7 +121,7 @@ export default function VoucherRegisterPage() {
             Choose filters and press Fetch to view the Voucher Register
           </div>
         ) : (
-          <AccountingTable columns={COLUMNS} rows={rows} emptyMessage="No vouchers found" />
+          <AccountingTable columns={columns} rows={rows} emptyMessage="No vouchers found" />
         )}
       </div>
     </HeaderWrapper>

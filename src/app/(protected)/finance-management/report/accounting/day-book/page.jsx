@@ -15,7 +15,7 @@ import AccountingFilterBar from "@/components/finance/report/accounting/Accounti
 import AccountingTable from "@/components/finance/report/accounting/AccountingTable";
 import useAccountingFetch from "@/components/finance/report/accounting/useAccountingFetch";
 
-const COLUMNS = [
+const BASE_COLUMNS = [
   { key: "voucherNo", label: "Voucher No" },
   { key: "sourceType", label: "Type" },
   { key: "date", label: "Date" },
@@ -25,6 +25,7 @@ const COLUMNS = [
   { key: "debit", label: "Debit", type: "amount", align: "right" },
   { key: "credit", label: "Credit", type: "amount", align: "right" },
 ];
+const PROJECT_COL = { key: "projectCode", label: "Project", className: "w-[100px]" };
 
 export default function DayBookPage() {
   const access = getPageAccess({ pageCode: "profit_loss", pageType: "LIST" });
@@ -34,6 +35,12 @@ export default function DayBookPage() {
     data, loading, fetched, projectList, handleFetch, handleReset,
   } = useAccountingFetch(API_ENDPOINTS.FINANCE.ACCOUNTING.DAY_BOOK);
 
+  const showProject = !projectCode;
+  const columns = useMemo(
+    () => (showProject ? [PROJECT_COL, ...BASE_COLUMNS] : BASE_COLUMNS),
+    [showProject],
+  );
+
   const rows = useMemo(() => {
     if (!data?.entries) return [];
     const flat = [];
@@ -41,6 +48,7 @@ export default function DayBookPage() {
       (e.lines || []).forEach((line, li) => {
         flat.push({
           _key: `${e.postingId}-${li}`,
+          ...(showProject && { projectCode: li === 0 ? (e.projectCode || "") : "" }),
           voucherNo: li === 0 ? (e.voucherNo || "") : "",
           sourceType: li === 0 ? (e.sourceTypeLabel || e.sourceType || "").replace(/_/g, " ") : "",
           date: li === 0 ? (e.date || "") : "",
@@ -53,7 +61,7 @@ export default function DayBookPage() {
       });
     });
     return flat;
-  }, [data]);
+  }, [data, showProject]);
 
   const actions = usePageActions({ router });
 
@@ -86,7 +94,7 @@ export default function DayBookPage() {
             Choose a date range and press Fetch to view the Day Book
           </div>
         ) : (
-          <AccountingTable columns={COLUMNS} rows={rows} emptyMessage="No entries for this date" />
+          <AccountingTable columns={columns} rows={rows} emptyMessage="No entries for this date" />
         )}
       </div>
     </HeaderWrapper>
