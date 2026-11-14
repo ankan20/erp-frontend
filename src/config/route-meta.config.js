@@ -408,6 +408,19 @@ export const routeMetaConfig = [
     basePath: "/resource-management/sub-contractor-billing/bill-receive-register/[id]",
     breadcrumbs: ["Resources Management", "Sub Contractor Billing", "Bill Receive Register", "Edit"],
   },
+  //payment request (against approved BRR)
+  {
+    basePath: "/resource-management/sub-contractor-billing/payment-request",
+    breadcrumbs: ["Resources Management", "Sub Contractor Billing", "Payment Request", "List"],
+  },
+  {
+    basePath: "/resource-management/sub-contractor-billing/payment-request/new",
+    breadcrumbs: ["Resources Management", "Sub Contractor Billing", "Payment Request", "New"],
+  },
+  {
+    basePath: "/resource-management/sub-contractor-billing/payment-request/[id]",
+    breadcrumbs: ["Resources Management", "Sub Contractor Billing", "Payment Request", "Edit"],
+  },
   //e-reconcile bill (unified grn/srn via [id])
   {
     basePath: "/resource-management/sub-contractor-billing/e-reconcile-bill/new",

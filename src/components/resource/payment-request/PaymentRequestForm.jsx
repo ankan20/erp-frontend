@@ -217,7 +217,14 @@ export default function PaymentRequestForm({ mode = "create", prId, presetBrrId,
   const brrOptions = useMemo(
     () => eligibleBrrs.map((b) => ({
       ...b,
-      label: `${b.brrNo} — ${b.partyName || "-"} (Bal ₹${formatAmount(b.balanceAmount)})`,
+      // BRR No · Party Bill No · BRB No · Party · Balance
+      label: [
+        b.brrNo,
+        `Bill: ${b.partyBillNo || "-"}`,
+        `BRB: ${b.brbNo || "-"}`,
+        b.partyName || "-",
+        `Bal ₹${formatAmount(b.balanceAmount)}`,
+      ].join(" · "),
     })),
     [eligibleBrrs],
   );
@@ -376,7 +383,7 @@ export default function PaymentRequestForm({ mode = "create", prId, presetBrrId,
                       placeholder={brrOptions.length ? "Select Approved BRR" : "No approved BRR with balance"}
                       labelKey="label"
                       valueKey="brrId"
-                      searchKeys={["brrNo", "partyName", "partyBillNo"]}
+                      searchKeys={["brrNo", "partyBillNo", "brbNo", "partyName"]}
                       className={errors.brrId ? "border-red-500" : ""}
                     />
                   )} />
@@ -398,6 +405,11 @@ export default function PaymentRequestForm({ mode = "create", prId, presetBrrId,
               </FieldRow>
               <FieldRow label="Party Bill No">
                 <ReadOnly value={summary?.partyBillNo || ""} />
+              </FieldRow>
+              <FieldRow label="BRB No">
+                <ReadOnly
+                  value={summary ? (summary.brbNo ? `${summary.brbNo} (${(summary.brbStatus || "").replace(/_/g, " ")})` : "Not created") : ""}
+                />
               </FieldRow>
               <FieldRow label="Party Bill Date">
                 <ReadOnly value={summary?.partyDate || ""} />

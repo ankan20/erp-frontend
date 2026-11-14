@@ -49,6 +49,7 @@ export const PAGE_CODES = [
   { code: "BP", path: "/resource-management/services/plant-machinery/batching-plant", create: true },
   { code: "SR", path: "/resource-management/services/srn", create: true },
   { code: "BR", path: "/resource-management/sub-contractor-billing/bill-receive-register", create: true },
+  { code: "PQ", path: "/resource-management/sub-contractor-billing/payment-request", create: true },
   { code: "CM", path: "/resource-management/contact-dairy/materials", create: true },
   { code: "CW", path: "/resource-management/contact-dairy/work-force", create: true },
   { code: "CP", path: "/resource-management/contact-dairy/plant-machinery", create: true },
