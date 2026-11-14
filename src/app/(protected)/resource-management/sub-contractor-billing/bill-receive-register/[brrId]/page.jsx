@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter, useParams } from "next/navigation";
-import { Plug } from "lucide-react";
+import { Plug, IndianRupee } from "lucide-react";
 import HeaderWrapper from "@/components/layout/HeaderWrapper";
 import PageHeader from "@/components/layout/PageHeader";
 import { getPageActions } from "@/components/common/PageActionButtons";
@@ -113,6 +113,22 @@ export default function Page() {
           ) : !isApproved && brrStatus ? (
             <span className="text-xs text-gray-500">Available after BRR approval</span>
           ) : null}
+
+          {/* Payment Request — partial requests allowed against an Approved BRR */}
+          <button
+            type="button"
+            onClick={() => router.push(`/resource-management/sub-contractor-billing/payment-request/new?brrId=${brrId}`)}
+            disabled={!isApproved}
+            title={isApproved ? "Raise a Payment Request against this BRR" : "BRR must be Approved to raise a Payment Request"}
+            className={`ml-auto inline-flex items-center gap-2 px-4 h-[36px] rounded-md border text-[13px] font-semibold transition-all
+              ${isApproved
+                ? "bg-[#7fc3d4] border-[#4a9fb5] text-black hover:bg-[#6ab8cb] cursor-pointer"
+                : "bg-gray-100 border-gray-300 text-gray-400 cursor-not-allowed opacity-60"
+              }`}
+          >
+            <IndianRupee className="w-4 h-4" />
+            Raise Payment Request
+          </button>
         </div>
       </div>
 

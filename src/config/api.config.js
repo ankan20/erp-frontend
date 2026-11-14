@@ -174,6 +174,21 @@ export const API_ENDPOINTS = {
       HISTORY:           "/billing/brr/history",         // /:brrId GET
       MY_APPROVAL_STATUS: "/billing/brr/my-approval-status", // /:id GET
     },
+    PAYMENT_REQUEST: {
+      ELIGIBLE_BRRS:      "/billing/payment-request/eligible-brrs",      // GET ?projectCode&vendorId — approved BRRs with balance
+      BRR_SUMMARY:        "/billing/payment-request/brr-summary",        // /:brrId GET ?excludeId
+      CREATE:             "/billing/payment-request/create",             // POST FormData
+      LIST:               "/billing/payment-request/list",               // GET ?projectCode&brrId&workflowStatus
+      DETAILS:            "/billing/payment-request/details",            // /:id GET
+      GET_BY_UUID:        "/billing/payment-request/uuid",               // /:uuid GET — no auth required
+      EDIT:               "/billing/payment-request/edit",               // /:id PUT FormData
+      SUBMIT:             "/billing/payment-request/submit",             // /:id POST
+      APPROVE:            "/billing/payment-request/approve",            // /:id POST
+      REBACK:             "/billing/payment-request/reback",             // /:id POST
+      REJECT:             "/billing/payment-request/reject",             // /:id POST
+      HISTORY:            "/billing/payment-request/history",            // /:id GET
+      MY_APPROVAL_STATUS: "/billing/payment-request/my-approval-status", // /:id GET
+    },
     BRB: {
       ITEMS_BY_BRR: "/billing/brb/items-by-brr", // /:brrId GET — returns grns[] or srns[] based on billingType
       CREATE:       "/billing/brb/create",         // POST JSON
