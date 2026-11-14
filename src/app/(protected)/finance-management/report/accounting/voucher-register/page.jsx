@@ -22,7 +22,6 @@ const BASE_COLUMNS = [
   { key: "narration", label: "Narration", className: "min-w-[250px]" },
   { key: "totalDebit", label: "Total Debit", type: "amount", align: "right" },
   { key: "totalCredit", label: "Total Credit", type: "amount", align: "right" },
-  { key: "linesCount", label: "Lines", align: "right" },
 ];
 const PROJECT_COL = { key: "projectCode", label: "Project", className: "w-[100px]" };
 
@@ -66,7 +65,6 @@ export default function VoucherRegisterPage() {
       narration: v.remarks || "",
       totalDebit: v.totalDebit,
       totalCredit: v.totalCredit,
-      linesCount: v.isReversal ? "REV" : "",
     }));
   }, [data, showProject]);
 
