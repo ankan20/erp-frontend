@@ -19,7 +19,7 @@ const columns = [
   { header: "Worker Name",    accessor: "fullName" },
   { header: "Category",       accessor: "categoryDisplay" },
   { header: "Vendor Name",    accessor: "vendorName" },
-  { header: "Rate / Manday",  accessor: "ratePerMandayDisplay" },
+  { header: "Rate / Hr",      accessor: "ratePerHrDisplay" },
   { header: "Date of Joining", accessor: "dateOfJoining" },
   { header: "Status",         accessor: "status" },
 ];
@@ -40,7 +40,7 @@ export default function ManpowerListPage({ canAdd = false }) {
         const formatted = list.map((w, i) => ({
           ...w,
           sl: i + 1,
-          ratePerMandayDisplay: w.ratePerManday != null ? `₹ ${Number(w.ratePerManday).toLocaleString("en-IN")}` : "—",
+          ratePerHrDisplay: w.ratePerHr != null ? `₹ ${Number(w.ratePerHr).toLocaleString("en-IN")}` : "—",
           vendorName: w.vendorName || "—",
           categoryDisplay: w.categoryDisplay || w.category || "—",
           dateOfJoining: w.dateOfJoining || "—",

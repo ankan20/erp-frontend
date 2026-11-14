@@ -196,7 +196,7 @@ export default function DLRForm({
         const formData = {
           dlrNo:      d.dlrNo      || "",
           dlrDate:    d.dlrDate    || "",
-          vendorId:   d.vendorId   ? String(d.vendorId) : "",
+          vendorId:   d.supplierId ? String(d.supplierId) : (d.vendorId ? String(d.vendorId) : ""),
           orderId:    d.orderId    ? String(d.orderId)  : "",
           reportBy:   d.reportBy   || "",
           verifiedBy: d.verifiedBy || "",
@@ -606,11 +606,11 @@ export default function DLRForm({
           )}
 
           {/* Submit */}
-          {dlrId && isDraftOrReback && !isEditing && (
+          {dlrId && !isEditing && (
             <SaveButton
               onClick={handleSubmitDLR}
               loading={submitting}
-              disabled={submitting || saving || isLocked}
+              disabled={!isDraftOrReback || submitting || saving}
               requireConfirmation
               confirmationTitle="Submit DLR?"
               confirmationMessage="Once submitted, this DLR will go for approval."

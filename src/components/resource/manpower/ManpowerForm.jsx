@@ -28,7 +28,7 @@ const schema = z.object({
   nominee:           z.string().optional(),
   address:           z.string().optional(),
   category:          z.string().optional(),
-  ratePerManday:     z.string().optional(),
+  ratePerHr:         z.string().optional(),
   dateOfJoining:     z.string().optional(),
   aadharNumber:      z.string().optional(),
   pan:               z.string().optional(),
@@ -42,7 +42,7 @@ const schema = z.object({
 
 const defaultValues = {
   fullName: "", vendorId: "", fatherName: "", nominee: "", address: "",
-  category: "", ratePerManday: "", dateOfJoining: "", aadharNumber: "",
+  category: "", ratePerHr: "", dateOfJoining: "", aadharNumber: "",
   pan: "", uan: "", esic: "", bankAccountNumber: "", bankName: "",
   branchName: "", ifscCode: "",
 };
@@ -134,7 +134,7 @@ export default function ManpowerForm({
   } = useForm({ resolver: zodResolver(schema), defaultValues });
 
   useEffect(() => {
-    apiRequest({ url: API_ENDPOINTS.RESOURCE.MANPOWER.VENDOR_DROPDOWN, method: "GET" })
+    apiRequest({ url: `${API_ENDPOINTS.RESOURCE.MANPOWER.VENDOR_DROPDOWN}?type=creditor`, method: "GET" })
       .then((res) => setVendorList(Array.isArray(res?.data) ? res.data : []))
       .catch(() => {});
   }, []);
@@ -149,7 +149,7 @@ export default function ManpowerForm({
       nominee:           d.nominee           || "",
       address:           d.address           || "",
       category:          d.category          || "",
-      ratePerManday:     d.ratePerManday     != null ? String(d.ratePerManday) : "",
+      ratePerHr:         d.ratePerHr         != null ? String(d.ratePerHr)     : "",
       dateOfJoining:     d.dateOfJoining     || "",
       aadharNumber:      d.aadharNumber      || "",
       pan:               d.pan               || "",
@@ -187,7 +187,7 @@ export default function ManpowerForm({
     add("nominee",           values.nominee);
     add("address",           values.address);
     add("category",          values.category);
-    add("ratePerManday",     values.ratePerManday);
+    add("ratePerHr",         values.ratePerHr);
     add("dateOfJoining",     values.dateOfJoining);
     add("aadharNumber",      values.aadharNumber);
     add("pan",               values.pan);
@@ -375,8 +375,8 @@ export default function ManpowerForm({
           </div>
         </FieldRow>
 
-        <FieldRow label="Rate / Manday">
-          <Input {...register("ratePerManday")} type="number" min="0" step="0.01"
+        <FieldRow label="Rate / Hr">
+          <Input {...register("ratePerHr")} type="number" min="0" step="0.01"
             disabled={fieldDisabled}
             className={`${getInputClass(false, fieldDisabled)} w-[160px]`} />
         </FieldRow>

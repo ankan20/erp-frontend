@@ -59,7 +59,6 @@ export default function DLRSummaryTab({ items = [], serverData = null, loading =
   }, [serverData, items]);
 
   const catTotalWH  = categoryRows.reduce((s, r) => s + r.totalWorkingHr, 0);
-  const catTotalMd  = categoryRows.reduce((s, r) => s + r.manday,         0);
   const catTotalAmt = categoryRows.reduce((s, r) => s + r.amount,         0);
 
   if (loading) {
@@ -75,7 +74,7 @@ export default function DLRSummaryTab({ items = [], serverData = null, loading =
       {/* Mandays Summary */}
       <div className="flex-1 min-w-0 overflow-x-auto">
         <div className={`${HEADER_BG} border border-gray-300 px-3 py-1 mb-0`}>
-          <span className="text-[13px] font-semibold text-[#1a3a5c]">Mandays Summary</span>
+          <span className="text-[13px] font-semibold text-[#1a3a5c]">Summary</span>
         </div>
         <table ref={tableRef} className="min-w-full border-collapse border border-gray-300">
           <thead>
@@ -83,15 +82,14 @@ export default function DLRSummaryTab({ items = [], serverData = null, loading =
               <th className={th}>Sl No</th>
               <th className={th}>Category</th>
               <th className={th}>Total Working Hr.</th>
-              <th className={th}>Manday</th>
-              <th className={th}>Rate</th>
+              <th className={th}>Rate / Hr</th>
               <th className={th}>Amount</th>
             </tr>
           </thead>
           <tbody>
             {categoryRows.length === 0 ? (
               <tr>
-                <td colSpan={6} className={`${td} text-center text-gray-400 py-4`}>No data</td>
+                <td colSpan={5} className={`${td} text-center text-gray-400 py-4`}>No data</td>
               </tr>
             ) : (
               categoryRows.map((row, idx) => (
@@ -99,7 +97,6 @@ export default function DLRSummaryTab({ items = [], serverData = null, loading =
                   <td className={td}>{row.sl}</td>
                   <td className={td}>{row.category}</td>
                   <td className={td}>{parseFloat(row.totalWorkingHr.toFixed(2))}</td>
-                  <td className={td}>{parseFloat(row.manday.toFixed(2))}</td>
                   <td className={td}>{parseFloat(row.rate.toFixed(2))}</td>
                   <td className={td}>{parseFloat(row.amount.toFixed(2))}</td>
                 </tr>
@@ -110,7 +107,6 @@ export default function DLRSummaryTab({ items = [], serverData = null, loading =
             <tr>
               <td className={tft} colSpan={2}>TOTAL</td>
               <td className={tft}>{parseFloat(catTotalWH.toFixed(2))}</td>
-              <td className={tft}>{parseFloat(catTotalMd.toFixed(2))}</td>
               <td className={tft}>—</td>
               <td className={tft}>{parseFloat(catTotalAmt.toFixed(2))}</td>
             </tr>
