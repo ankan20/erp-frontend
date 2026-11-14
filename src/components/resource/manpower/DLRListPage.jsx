@@ -87,11 +87,12 @@ export default function DLRListPage({ canAdd = false }) {
       <SearchSection
         onSearch={handleSearch}
         showDateRange
-        actions={
-          canAdd
+        actions={[
+          ...(canAdd
             ? [{ label: "+ Add DLR", onClick: () => router.push("/resource-management/services/manpower/dlr/new") }]
-            : []
-        }
+            : []),
+          { label: "Report", onClick: () => router.push("/resource-management/services/manpower/dlr/report") },
+        ]}
       />
       <DataTable
         columns={columns}

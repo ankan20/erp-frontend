@@ -43,6 +43,7 @@ export const PAGE_CODES = [
   { code: "GI", path: "/resource-management/material/gin", create: true },
   { code: "ST", path: "/resource-management/material/stock-report" },
   { code: "DL", path: "/resource-management/services/manpower/dlr", create: true },
+  { code: "DR", path: "/resource-management/services/manpower/dlr/report" },
   { code: "LI", path: "/resource-management/services/manpower/labour-id", create: true },
   { code: "PI", path: "/resource-management/services/plant-machinery/pm-inventory" },
   { code: "LS", path: "/resource-management/services/plant-machinery/log-sheet" },

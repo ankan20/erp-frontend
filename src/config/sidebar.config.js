@@ -209,6 +209,12 @@ export const sidebarConfig = [
                 permissionKey: "dlr",
               },
               {
+                title: "DLR Report",
+                path: "/resource-management/services/manpower/dlr/report",
+                activePaths: ["/resource-management/services/manpower/dlr/report"],
+                permissionKey: "dlr",
+              },
+              {
                 title: "Labour ID",
                 path: "/resource-management/services/manpower/labour-id",
                 activePaths: ["/resource-management/services/manpower/labour-id"],

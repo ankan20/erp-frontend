@@ -342,6 +342,7 @@ export const API_ENDPOINTS = {
         SUMMARY:            "/resource/dlr/summary",
         LABOUR_BY_SUPPLIER: "/resource/dlr/labour-by-supplier",
         VENDOR_ORDERS:      "/resource/dlr/pw-orders-by-supplier",
+        REPORT:             "/resource/dlr/report",
       },
     },
   },

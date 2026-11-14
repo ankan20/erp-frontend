@@ -394,6 +394,10 @@ export const routeMetaConfig = [
     basePath: "/resource-management/services/manpower/dlr/[dlrId]",
     breadcrumbs: ["Resources Management", "Services", "Manpower", "DLR", "Edit"],
   },
+  {
+    basePath: "/resource-management/services/manpower/dlr/report",
+    breadcrumbs: ["Resources Management", "Services", "Manpower", "DLR", "Report"],
+  },
 
   //bill receive register
   {
