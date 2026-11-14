@@ -32,6 +32,7 @@ const MODULE_LABELS = {
   BRG:               "BRR Billing GRN",
   BRS:               "BRR Billing SRN",
   BRB:               "BRR Billing",
+  PAYMENT_REQUEST:   "Payment Request",
   PURCHASE_BILL:     "Purchase Bill",
   BILL_PAYMENT:      "Bill Payment",
   PAYMENT_VOUCHER:   "Payment Voucher",

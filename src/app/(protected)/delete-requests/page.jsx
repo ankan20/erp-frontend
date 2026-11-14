@@ -30,6 +30,7 @@ const MODULE_LABELS = {
   BVS: "Vendor Billing GRN", BSS: "Vendor Billing SRN",
   BRR: "Bill Receive Register", BRG: "BRR Billing GRN",
   BRS: "BRR Billing SRN", BRB: "BRR Billing",
+  PAYMENT_REQUEST: "Payment Request",
   PURCHASE_BILL: "Purchase Bill", BILL_PAYMENT: "Bill Payment",
   PAYMENT_VOUCHER: "Payment Voucher",
   SALE_BILL: "Sale Bill", SALE_RECEIPT_BILLING: "Sale Receipt Billing",
