@@ -899,6 +899,13 @@ export const sidebarConfig = [
         activePaths: ["/task-management/todo"],
         permissionKey: "to_do_list",
       },
+      // Permission-only (not a menu item): VIEW = see every project member's
+      // self tasks, EDIT = also edit / assign / delete them.
+      {
+        title: "Self Task – View/Edit All Users",
+        permissionKey: "self_task_all",
+        permissionOnly: true,
+      },
       {
         title: "Schedule Compliance",
         path: "/task-management/schedule-compliance",
