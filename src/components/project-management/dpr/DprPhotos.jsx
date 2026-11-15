@@ -212,6 +212,7 @@ export function PhotoViewer({ photo, canEdit, locations, onClose, onChanged }) {
   };
 
   return (
+    <>
     <Dialog open onOpenChange={(o) => !o && onClose()}>
       <DialogContent className="sm:max-w-4xl p-0 overflow-hidden" showCloseButton={false}>
         <div className="grid md:grid-cols-[minmax(0,3fr)_minmax(0,2fr)] max-h-[90vh]">
@@ -337,5 +338,6 @@ export function PhotoViewer({ photo, canEdit, locations, onClose, onChanged }) {
       </DialogContent>
     </Dialog>
     <ConfirmDialog state={confirm} onClose={() => setConfirm(null)} />
+    </>
   );
 }
