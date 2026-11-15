@@ -7,13 +7,13 @@ import SearchableSelect from "@/components/common/SearchableSelect";
 import { apiRequest } from "@/lib/apiClient";
 import { API_ENDPOINTS } from "@/config/api.config";
 import {
-  misTaskApi, TASK_PRIORITIES, TASK_STATUSES, currentProject,
+  misTaskApi, TASK_PRIORITIES, currentProject,
 } from "@/lib/misTasks";
 
 const EMPTY = {
-  title: "", description: "", priority: "Medium", status: "To Do",
-  projectCode: "", ownerUserId: "", startDate: "", dueDate: "",
-  estimatedHours: "", actualHours: "", tags: "",
+  title: "", description: "", priority: "Medium",
+  projectCode: "", ownerUserId: "", startDate: "", startTime: "", dueDate: "", dueTime: "",
+  estimatedHours: "", tags: "",
 };
 
 const inputCls =
@@ -55,13 +55,13 @@ export default function TaskFormDialog({ open, onClose, task = null, access = {}
         title: task.title || "",
         description: task.description || "",
         priority: task.priority || "Medium",
-        status: task.status || "To Do",
         projectCode: task.projectCode || "",
         ownerUserId: task.ownerUserId ? String(task.ownerUserId) : "",
         startDate: task.startDate || "",
+        startTime: task.startTime || "",
         dueDate: task.dueDate || "",
+        dueTime: task.dueTime || "",
         estimatedHours: task.estimatedHours ?? "",
-        actualHours: task.actualHours ?? "",
         tags: (task.tags || []).join(", "),
       });
     } else {
@@ -108,10 +108,14 @@ export default function TaskFormDialog({ open, onClose, task = null, access = {}
 
   const set = (k) => (e) => setForm((f) => ({ ...f, [k]: e?.target ? e.target.value : e }));
 
-  const dateError = useMemo(
-    () => form.startDate && form.dueDate && form.dueDate < form.startDate ? "Due date is before start date" : "",
-    [form.startDate, form.dueDate],
-  );
+  const dateError = useMemo(() => {
+    if (form.startTime && !form.startDate) return "Pick a start date for the start time";
+    if (form.dueTime && !form.dueDate) return "Pick a due date for the due time";
+    if (form.startDate && form.dueDate && form.dueDate < form.startDate) return "Due date is before start date";
+    if (form.startDate && form.startDate === form.dueDate && form.startTime && form.dueTime && form.dueTime <= form.startTime)
+      return "Due time must be after start time";
+    return "";
+  }, [form.startDate, form.startTime, form.dueDate, form.dueTime]);
 
   const submit = async (e) => {
     e?.preventDefault();
@@ -123,15 +127,13 @@ export default function TaskFormDialog({ open, onClose, task = null, access = {}
       priority: form.priority,
       projectCode: form.projectCode || null,
       startDate: form.startDate || null,
+      startTime: form.startTime || null,
       dueDate: form.dueDate || null,
+      dueTime: form.dueTime || null,
       estimatedHours: form.estimatedHours === "" ? null : Number(form.estimatedHours),
       tags: form.tags.split(",").map((t) => t.trim()).filter(Boolean),
     };
     if (canAssign && form.ownerUserId) payload.ownerUserId = Number(form.ownerUserId);
-    if (isEdit) {
-      payload.status = form.status;
-      payload.actualHours = form.actualHours === "" ? null : Number(form.actualHours);
-    }
     setSaving(true);
     try {
       const r = isEdit ? await misTaskApi.update(task.id, payload) : await misTaskApi.create(payload);
@@ -182,13 +184,10 @@ export default function TaskFormDialog({ open, onClose, task = null, access = {}
               {TASK_PRIORITIES.map((p) => <option key={p}>{p}</option>)}
             </select>
           </Field>
-          {isEdit ? (
-            <Field label="Status">
-              <select value={form.status} onChange={set("status")} className={inputCls}>
-                {TASK_STATUSES.map((s) => <option key={s}>{s}</option>)}
-              </select>
-            </Field>
-          ) : <div className="hidden sm:block" />}
+          <Field label="Estimated hours">
+            <input type="number" min="0" step="0.25" value={form.estimatedHours} onChange={set("estimatedHours")} className={inputCls}
+              placeholder="e.g. 3 — work time is compared to this" />
+          </Field>
 
           <Field label="Project">
             <SearchableSelect options={projects} value={form.projectCode}
@@ -201,22 +200,20 @@ export default function TaskFormDialog({ open, onClose, task = null, access = {}
             </Field>
           ) : <div className="hidden sm:block" />}
 
-          <Field label="Start date">
-            <input type="date" value={form.startDate} onChange={set("startDate")} className={inputCls} />
+          <Field label="Start date & time">
+            <div className="flex gap-2">
+              <input type="date" value={form.startDate} onChange={set("startDate")} className={inputCls} aria-label="Start date" />
+              <input type="time" value={form.startTime} onChange={set("startTime")} className={`${inputCls} w-32`} aria-label="Start time (optional)" />
+            </div>
           </Field>
-          <Field label="Due date">
-            <input type="date" value={form.dueDate} onChange={set("dueDate")} className={inputCls} />
-            {dateError && <span className="text-[11px] text-red-600">{dateError}</span>}
+          <Field label="Due date & time">
+            <div className="flex gap-2">
+              <input type="date" value={form.dueDate} onChange={set("dueDate")} className={inputCls} aria-label="Due date" />
+              <input type="time" value={form.dueTime} onChange={set("dueTime")} className={`${inputCls} w-32`} aria-label="Due time (optional)" />
+            </div>
+            {dateError ? <span className="text-[11px] text-red-600">{dateError}</span>
+              : <span className="text-[11px] text-gray-400">Time is optional — no time = end of the day</span>}
           </Field>
-
-          <Field label="Estimated hours">
-            <input type="number" min="0" step="0.25" value={form.estimatedHours} onChange={set("estimatedHours")} className={inputCls} />
-          </Field>
-          {isEdit ? (
-            <Field label="Actual hours">
-              <input type="number" min="0" step="0.25" value={form.actualHours} onChange={set("actualHours")} className={inputCls} />
-            </Field>
-          ) : <div className="hidden sm:block" />}
 
           <Field label="Tags (comma separated)" className="sm:col-span-2">
             <input value={form.tags} onChange={set("tags")} className={inputCls} placeholder="e.g. billing, site visit" />

@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import {
-  Plus, LayoutGrid, List as ListIcon, Loader2, Search, RefreshCw, ChevronLeft, ChevronRight,
+  Plus, LayoutGrid, List as ListIcon, Loader2, Search, RefreshCw, ChevronLeft, ChevronRight, Play, Check, Lock, Hourglass,
 } from "lucide-react";
 import { toast } from "sonner";
 import { getCookie } from "@/lib/cookies";
@@ -11,9 +11,11 @@ import SearchableSelect from "@/components/common/SearchableSelect";
 import TaskBoard from "./TaskBoard";
 import TaskFormDialog from "./TaskFormDialog";
 import TaskDetailSheet from "./TaskDetailSheet";
+import TaskTimer, { useTick } from "./TaskTimer";
+import ReopenRequestsDialog from "./ReopenRequestsDialog";
 import {
   misTaskApi, TASK_STATUSES, TASK_PRIORITIES, STATUS_STYLE, PRIORITY_STYLE, TASKS_CHANGED,
-  currentProject, fmtDate,
+  currentProject, fmtDateTimeParts, stampFetched,
 } from "@/lib/misTasks";
 
 const PER_PAGE = 50;
@@ -22,6 +24,7 @@ const BOARD_LIMIT = 200;
 const SCOPES = [
   { id: "mine", label: "My Tasks" },
   { id: "assigned_by_me", label: "Assigned by Me" },
+  { id: "my_all", label: "All Tasks" },               // my tasks + tasks I gave to others
   { id: "team", label: "Team Tasks", needsView: true },
 ];
 
@@ -104,7 +107,8 @@ export default function SelfTaskView({ lockScope = null, compact = false }) {
         misTaskApi.list(query),
         compact ? Promise.resolve(null) : misTaskApi.stats({ scope: apiScope, projectCode: filters.projectCode }),
       ]);
-      setData(l?.data || { items: [], total: 0 });
+      const d = l?.data || { items: [], total: 0 };
+      setData({ ...d, items: stampFetched(d.items || []) });
       if (s?.data) setStats(s.data);
     } catch (e) {
       setData({ items: [], total: 0 });
@@ -127,16 +131,22 @@ export default function SelfTaskView({ lockScope = null, compact = false }) {
   );
 
   const moveTask = async (task, status) => {
+    if (status === "Done" && !window.confirm(`Mark ${task.taskCode} Done?\n\nThe clock stops and the task is locked.`)) return;
     // optimistic: move the card now, undo on error
     setData((d) => ({ ...d, items: d.items.map((x) => (x.id === task.id ? { ...x, status } : x)) }));
     try {
-      await misTaskApi.setStatus(task.id, status);
-      toast.success(`${task.taskCode} → ${status}`);
+      if (status === "In Progress") await misTaskApi.start(task.id);
+      else await misTaskApi.setStatus(task.id, status);
+      toast.success(status === "In Progress" ? `${task.taskCode} started — time is being measured` : `${task.taskCode} → ${status}`);
     } catch (e) {
       toast.error(e?.message || "Could not move task");
       load();
     }
   };
+
+  // live timers + reopen requests waiting for me
+  const now = useTick(data.items.some((t) => t.isRunning));
+  const [reqOpen, setReqOpen] = useState(false);
 
   const openCreate = () => { setEditing(null); setFormOpen(true); };
   const openEdit = (t) => { setOpenId(null); setEditing(t); setFormOpen(true); };
@@ -156,6 +166,15 @@ export default function SelfTaskView({ lockScope = null, compact = false }) {
 
   return (
     <div className="space-y-4">
+      {/* reopen requests waiting for me (higher level) */}
+      {stats?.reopenToDecide > 0 && (
+        <button onClick={() => setReqOpen(true)}
+          className="w-full flex items-center gap-2 rounded-xl border border-amber-200 bg-amber-50 px-4 py-2.5 text-left text-sm text-amber-900 hover:bg-amber-100">
+          <Hourglass size={15} /> <b>{stats.reopenToDecide}</b> reopen request{stats.reopenToDecide > 1 ? "s" : ""} waiting for your decision
+          <span className="ml-auto text-xs font-semibold underline">Review</span>
+        </button>
+      )}
+
       {/* KPI cards */}
       {!compact && (
         <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
@@ -257,7 +276,7 @@ export default function SelfTaskView({ lockScope = null, compact = false }) {
         </div>
       ) : view === "board" ? (
         <>
-          <TaskBoard tasks={data.items} onOpen={(t) => setOpenId(t.id)} onMove={moveTask} canMove={canEditTask} showOwner={showOwner} />
+          <TaskBoard tasks={data.items} onOpen={(t) => setOpenId(t.id)} onMove={moveTask} canMove={(t) => !t.isLocked && canEditTask(t)} showOwner={showOwner} now={now} />
           {data.total > BOARD_LIMIT && (
             <p className="text-xs text-gray-500">Showing the first {BOARD_LIMIT} of {data.total} tasks. Use filters to narrow down.</p>
           )}
@@ -268,7 +287,7 @@ export default function SelfTaskView({ lockScope = null, compact = false }) {
             <table className="w-full text-sm">
               <thead className="bg-gray-50 border-b border-gray-200">
                 <tr>
-                  {["Code", "Title", showOwner && "Assigned to", "Project", "Priority", "Due", "Status"].filter(Boolean).map((h) => (
+                  {["Code", "Title", showOwner && "Assigned to", "Project", "Priority", "Due", "Time", "Status"].filter(Boolean).map((h) => (
                     <th key={h} className="px-4 py-2.5 text-left text-[11px] font-semibold text-gray-500 uppercase tracking-wide whitespace-nowrap">{h}</th>
                   ))}
                   <th className="px-4 py-2.5 w-10" />
@@ -287,13 +306,21 @@ export default function SelfTaskView({ lockScope = null, compact = false }) {
                     {showOwner && <td className="px-4 py-2.5 text-gray-700 whitespace-nowrap">{t.ownerName}</td>}
                     <td className="px-4 py-2.5 text-gray-600 whitespace-nowrap">{t.projectCode || "Company"}</td>
                     <td className="px-4 py-2.5"><span className={`text-[11px] px-2 py-0.5 rounded border font-medium ${PRIORITY_STYLE[t.priority]}`}>{t.priority}</span></td>
-                    <td className={`px-4 py-2.5 whitespace-nowrap ${t.isOverdue ? "text-red-600 font-semibold" : "text-gray-600"}`}>{fmtDate(t.dueDate)}</td>
+                    <td className={`px-4 py-2.5 whitespace-nowrap ${t.isOverdue ? "text-red-600 font-semibold" : "text-gray-600"}`}>{fmtDateTimeParts(t.dueDate, t.dueTime)}</td>
+                    <td className="px-4 py-2.5"><TaskTimer task={t} now={now} compact /></td>
                     <td className="px-4 py-2.5"><span className={`text-[11px] px-2.5 py-0.5 rounded-full border font-medium whitespace-nowrap ${STATUS_STYLE[t.status]}`}>{t.status}</span></td>
                     <td className="px-2 py-2.5" onClick={(e) => e.stopPropagation()}>
-                      {canEditTask(t) && t.status !== "Done" && (
-                        <button title="Mark done" aria-label={`Mark ${t.taskCode} done`} onClick={() => moveTask(t, "Done")}
-                          className="w-6 h-6 rounded-full border border-gray-300 text-transparent hover:text-emerald-600 hover:border-emerald-500 flex items-center justify-center text-xs">✓</button>
-                      )}
+                      {t.isLocked ? (
+                        <span title={t.reopenPending ? "Locked — reopen requested" : "Done — locked"} className="w-7 h-7 flex items-center justify-center text-gray-400">
+                          {t.reopenPending ? <Hourglass size={14} className="text-amber-600" /> : <Lock size={14} />}
+                        </span>
+                      ) : canEditTask(t) && t.status === "To Do" ? (
+                        <button title="Start — begins measuring work time" aria-label={`Start ${t.taskCode}`} onClick={() => moveTask(t, "In Progress")}
+                          className="w-7 h-7 rounded-full border border-blue-300 text-blue-600 hover:bg-blue-50 flex items-center justify-center"><Play size={13} /></button>
+                      ) : canEditTask(t) && (t.status === "In Progress" || t.status === "On Hold") ? (
+                        <button title="Done — stops the clock and locks the task" aria-label={`Mark ${t.taskCode} done`} onClick={() => moveTask(t, "Done")}
+                          className="w-7 h-7 rounded-full border border-gray-300 text-gray-400 hover:text-emerald-600 hover:border-emerald-500 flex items-center justify-center"><Check size={14} /></button>
+                      ) : null}
                     </td>
                   </tr>
                 ))}
@@ -314,6 +341,7 @@ export default function SelfTaskView({ lockScope = null, compact = false }) {
         </div>
       )}
 
+      <ReopenRequestsDialog open={reqOpen} onClose={() => setReqOpen(false)} onOpenTask={(id) => { setReqOpen(false); setOpenId(id); }} onChanged={load} />
       <TaskFormDialog open={formOpen} onClose={() => setFormOpen(false)} task={editing} access={access} onSaved={load} />
       <TaskDetailSheet
         open={!!openId}

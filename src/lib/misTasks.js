@@ -88,4 +88,38 @@ export const misTaskApi = {
     mutate({ url: `${T.ONE}${id}/status`, method: "PATCH", data: clean({ status, comment }) }),
   comment: (id, comment) => apiRequest({ url: `${T.ONE}${id}/comments`, method: "POST", data: { comment } }),
   remove: (id) => mutate({ url: `${T.ONE}${id}`, method: "DELETE" }),
+  // work timer + lock
+  start: (id) => mutate({ url: `${T.ONE}${id}/start`, method: "POST" }),
+  requestReopen: (id, reason) => mutate({ url: `${T.ONE}${id}/reopen-request`, method: "POST", data: { reason } }),
+  reopen: (id, note) => mutate({ url: `${T.ONE}${id}/reopen`, method: "POST", data: clean({ note }) }),
+  reopenRequests: (scope = "decide") => apiRequest({ url: `${T.LIST}/reopen-requests`, params: { scope } }),
+  decideReopen: (rid, approve, note) =>
+    mutate({ url: `${T.LIST}/reopen-requests/${rid}/decide`, method: "POST", data: clean({ approve, note }) }),
 };
+
+// ── work timer helpers ──
+/** Seconds worked, ticking live while the clock runs (pass `now` from a ticking state). */
+export const liveSeconds = (t, now = Date.now()) => {
+  const base = Number(t?.workedSeconds) || 0;
+  if (!t?.isRunning || !t?.runStartedAt) return base;
+  // workedSeconds from the API already includes the running part up to the response time
+  const fetched = t._fetchedAt || now;
+  return base + Math.max(0, Math.floor((now - fetched) / 1000));
+};
+
+/** 5400 → "1h 30m", 45 → "0m", 90061 → "25h 1m" */
+export const fmtDuration = (sec) => {
+  const s = Math.max(0, Math.floor(Number(sec) || 0));
+  const h = Math.floor(s / 3600);
+  const m = Math.floor((s % 3600) / 60);
+  return h ? `${h}h ${m}m` : `${m}m`;
+};
+
+/** Stamp list/detail rows with the time they were fetched, so live timers count from there. */
+export const stampFetched = (rows) => {
+  const at = Date.now();
+  return Array.isArray(rows) ? rows.map((r) => ({ ...r, _fetchedAt: at })) : rows ? { ...rows, _fetchedAt: at } : rows;
+};
+
+/** "2026-12-01" + "17:45" → "01-12-2026 17:45" */
+export const fmtDateTimeParts = (d, t) => (d ? `${fmtDate(d)}${t ? ` ${t}` : ""}` : "—");

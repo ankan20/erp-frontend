@@ -91,11 +91,16 @@ export default function QuickTaskFab() {
     }
   };
 
+  // To Do → Start (clock on) · In Progress / On Hold → Done (clock stops, task locks)
   const markDone = async (t) => {
-    setUpcoming((u) => u.filter((x) => x.id !== t.id));
+    const starting = t.status === "To Do";
+    if (!starting && !window.confirm(`Mark ${t.taskCode} Done? It will be locked.`)) return;
+    if (!starting) setUpcoming((u) => u.filter((x) => x.id !== t.id));
     try {
-      await misTaskApi.setStatus(t.id, "Done");
-      toast.success(`${t.taskCode} done`);
+      if (starting) await misTaskApi.start(t.id);
+      else await misTaskApi.setStatus(t.id, "Done");
+      toast.success(starting ? `${t.taskCode} started — time is being measured` : `${t.taskCode} done`);
+      if (starting) loadUpcoming();
     } catch (err) {
       toast.error(err?.message || "Could not update task");
       loadUpcoming();
@@ -148,8 +153,12 @@ export default function QuickTaskFab() {
               <ul className="divide-y divide-gray-100">
                 {upcoming.map((t) => (
                   <li key={t.id} className={`flex items-start gap-2 px-3 py-2 border-l-4 ${PRIORITY_STRIPE[t.priority]} hover:bg-gray-50`}>
-                    <button onClick={() => markDone(t)} title="Mark done" aria-label={`Mark ${t.taskCode} done`}
-                      className="mt-0.5 w-4 h-4 rounded-full border border-gray-400 hover:border-emerald-500 hover:bg-emerald-50 shrink-0" />
+                    <button onClick={() => markDone(t)} title={t.status === "To Do" ? "Start" : "Mark done"}
+                      aria-label={t.status === "To Do" ? `Start ${t.taskCode}` : `Mark ${t.taskCode} done`}
+                      className={`mt-0.5 w-5 h-5 rounded-full border shrink-0 flex items-center justify-center text-[9px]
+                        ${t.status === "To Do" ? "border-blue-400 text-blue-600 hover:bg-blue-50" : "border-gray-400 text-transparent hover:text-emerald-600 hover:border-emerald-500"}`}>
+                      {t.status === "To Do" ? "▶" : "✓"}
+                    </button>
                     <button onClick={() => router.push(`${TASK_PAGE}?task=${t.uuid}`)} className="min-w-0 flex-1 text-left">
                       <p className="text-sm text-gray-800 leading-snug truncate">{t.title}</p>
                       <p className={`text-[10px] inline-flex items-center gap-1 ${t.isOverdue ? "text-red-600 font-semibold" : "text-gray-500"}`}>

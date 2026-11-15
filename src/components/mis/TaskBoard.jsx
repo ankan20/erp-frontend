@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { Calendar, GripVertical, User } from "lucide-react";
+import TaskTimer from "./TaskTimer";
 import {
   BOARD_COLUMNS, STATUS_DOT, PRIORITY_STYLE, PRIORITY_STRIPE, fmtDate,
 } from "@/lib/misTasks";
@@ -11,7 +12,7 @@ import {
  *   canMove(task) — false = card is not draggable (no edit right)
  *   onMove(task, status)
  */
-export default function TaskBoard({ tasks = [], onOpen, onMove, canMove = () => true, showOwner = false }) {
+export default function TaskBoard({ tasks = [], onOpen, onMove, canMove = () => true, showOwner = false, now }) {
   const [dragId, setDragId] = useState(null);
   const [overCol, setOverCol] = useState(null);
 
@@ -84,6 +85,7 @@ export default function TaskBoard({ tasks = [], onOpen, onMove, canMove = () => 
                     {t.projectCode && (
                       <span className="text-[10px] px-1.5 py-0.5 rounded border bg-indigo-50 text-indigo-700 border-indigo-100">{t.projectCode}</span>
                     )}
+                    {(t.startedAt || t.estimatedHours != null) && <TaskTimer task={t} now={now} compact />}
                   </div>
                   {showOwner && (
                     <p className="mt-1.5 text-[11px] text-gray-500 inline-flex items-center gap-1"><User size={11} /> {t.ownerName}</p>
