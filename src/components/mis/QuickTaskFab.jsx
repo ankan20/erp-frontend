@@ -2,13 +2,15 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter, usePathname } from "next/navigation";
-import { ListTodo, X, Plus, ArrowRight, Loader2, Calendar } from "lucide-react";
+import { ListTodo, X, Plus, ArrowRight, Loader2, Calendar, ArrowRightLeft } from "lucide-react";
 import { toast } from "sonner";
 import {
   misTaskApi, TASK_PRIORITIES, TASKS_CHANGED, PRIORITY_STRIPE, currentProject, fmtDate, todayISO,
 } from "@/lib/misTasks";
+import { followupApi } from "@/lib/misFollowups";
 
 const TASK_PAGE = "/task-management/todo";
+const BOARD_PAGE = "/task-management/task-tracker";
 const REFRESH_MS = 2 * 60 * 1000;
 
 /**
@@ -21,6 +23,7 @@ export default function QuickTaskFab() {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
   const [stats, setStats] = useState(null);
+  const [fu, setFu] = useState(null);       // follow-ups waiting on me / to review
   const [upcoming, setUpcoming] = useState([]);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -30,6 +33,7 @@ export default function QuickTaskFab() {
 
   const refreshStats = useCallback(() => {
     misTaskApi.stats({ scope: "mine" }).then((r) => r?.data && setStats(r.data)).catch(() => {});
+    followupApi.stats().then((r) => r?.data && setFu(r.data)).catch(() => {});
   }, []);
 
   const loadUpcoming = useCallback(async () => {
@@ -98,8 +102,9 @@ export default function QuickTaskFab() {
     }
   };
 
-  const openCount = stats?.open ?? 0;
-  const overdue = stats?.overdue ?? 0;
+  const fuWaiting = (fu?.waitingOnMe ?? 0) + (fu?.toReview ?? 0);
+  const openCount = (stats?.open ?? 0) + fuWaiting;       // badge = tasks + follow-ups waiting on me
+  const overdue = (stats?.overdue ?? 0) + (fu?.waitingOnMeOverdue ?? 0);
   const today = todayISO();
 
   return (
@@ -156,6 +161,17 @@ export default function QuickTaskFab() {
               </ul>
             )}
           </div>
+
+          {fuWaiting > 0 && (
+            <button onClick={() => router.push(`${BOARD_PAGE}?tab=mine`)}
+              className="w-full flex items-center gap-2 px-3 py-2 text-left text-xs border-t border-gray-100 hover:bg-violet-50">
+              <ArrowRightLeft size={13} className="text-violet-600 shrink-0" />
+              <span className="flex-1 text-gray-700">
+                Follow-ups: <b>{fu.waitingOnMe}</b> waiting on you{fu.toReview > 0 && <> · <b>{fu.toReview}</b> to review</>}
+              </span>
+              <ArrowRight size={13} className="text-gray-400" />
+            </button>
+          )}
 
           <button onClick={() => router.push(TASK_PAGE)}
             className="w-full flex items-center justify-center gap-1.5 px-3 py-2 text-xs font-medium text-blue-700 bg-blue-50 hover:bg-blue-100 border-t border-blue-100">
