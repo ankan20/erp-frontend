@@ -44,7 +44,6 @@ function buildAllRows() {
       const rowId = currentPath.join("-");
       const serialNo = currentSerial.join(".");
 
-      if (item.permissionOnly) return;
       if (item.children?.length > 0) {
         if (item.showChildrenInPermission === false) {
           const key =

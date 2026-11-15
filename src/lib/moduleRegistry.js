@@ -19,6 +19,7 @@ export const MODULES = {
   drawing_register:      { label: "Drawing Register",       base: "/project-management/register/drawing" },
   bill_receive_register: { label: "Bill Receive Register",  base: "/resource-management/sub-contractor-billing/bill-receive-register" },
   payment_request:       { label: "Payment Request",        base: "/resource-management/sub-contractor-billing/payment-request" },
+  payment_request_journal: { label: "Payment Request (Journal)", base: "/resource-management/sub-contractor-billing/payment-request" },
   log_sheet:             { label: "Log Sheet",              base: "/resource-management/services/plant-machinery/log-sheet/log-book" },
 };
 

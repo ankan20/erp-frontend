@@ -23,7 +23,13 @@ const BASE_PATH = "/resource-management/sub-contractor-billing/payment-request";
 
 export default function Page() {
   const router = useRouter();
-  const access = getPageAccess({ pageCode: "payment_request", pageType: "LIST" });
+  const brrAccess     = getPageAccess({ pageCode: "payment_request",         pageType: "LIST" });
+  const journalAccess = getPageAccess({ pageCode: "payment_request_journal", pageType: "LIST" });
+  // Either permission opens the list; journal rows come back only for journal holders
+  const access = {
+    ...(brrAccess.allowed ? brrAccess : journalAccess),
+    canAdd: !!(brrAccess.canAdd || journalAccess.canAdd),
+  };
 
   const [data,         setData]         = useState([]);
   const [filteredData, setFilteredData] = useState([]);

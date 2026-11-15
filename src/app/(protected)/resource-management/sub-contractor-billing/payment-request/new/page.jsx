@@ -12,7 +12,9 @@ import PaymentRequestForm from "@/components/resource/payment-request/PaymentReq
 function NewPaymentRequest() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const access = getPageAccess({ pageCode: "payment_request", pageType: "ADD" });
+  const brrAccess     = getPageAccess({ pageCode: "payment_request",         pageType: "ADD" });
+  const journalAccess = getPageAccess({ pageCode: "payment_request_journal", pageType: "ADD" });
+  const access = brrAccess.allowed ? brrAccess : journalAccess;
 
   if (!access.allowed) return <PageNotAvailable />;
 

@@ -278,7 +278,8 @@ export const sidebarConfig = [
           },
           // Permission-only (no menu item): who may see / raise Payment Requests
           // against a Journal entry. Granted by super admin in
-          // Settings › Roles & User Assignment. Uses the payment_request approval path.
+          // Settings › Roles & User Assignment. Has its OWN approval path row
+          // (creators = Add/Edit holders, approvers picked per level).
           {
             title: "Payment Request – Journal",
             permissionKey: "payment_request_journal",

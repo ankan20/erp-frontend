@@ -110,6 +110,8 @@ export default function PaymentRequestForm({
   // Restricted: only payment_request_journal holders see / raise journal requests
   const journalAccess = getPageAccess({ pageCode: "payment_request_journal", pageType: "LIST" });
   const canRaiseJournal = !!(journalAccess.allowed && journalAccess.canAdd);
+  const brrAccess = getPageAccess({ pageCode: "payment_request", pageType: "LIST" });
+  const canRaiseBrr = !!(brrAccess.allowed && brrAccess.canAdd);
 
   const [loading, setLoading]         = useState(false);
   const [isEditing, setIsEditing]     = useState(mode === "create");
@@ -158,10 +160,10 @@ export default function PaymentRequestForm({
       .catch(() => toast.error("Failed to load vendor list"));
   }, []);
 
-  // Opened from a journal (?journalId=) → start in Journal mode
+  // Opened from a journal (?journalId=), or user may only raise journal requests → Journal mode
   useEffect(() => {
-    if (mode === "create" && presetJournalId && canRaiseJournal) setValue("sourceType", "JOURNAL");
-  }, [mode, presetJournalId, canRaiseJournal, setValue]);
+    if (mode === "create" && canRaiseJournal && (presetJournalId || !canRaiseBrr)) setValue("sourceType", "JOURNAL");
+  }, [mode, presetJournalId, canRaiseJournal, canRaiseBrr, setValue]);
 
   // Load eligible journals (create mode, journal source) — approved, one row per journal + vendor
   useEffect(() => {
@@ -444,7 +446,9 @@ export default function PaymentRequestForm({
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="BRR">BRR (Bill Receive Register)</SelectItem>
+                      {(canRaiseBrr || !isJournal || mode !== "create") && (
+                        <SelectItem value="BRR">BRR (Bill Receive Register)</SelectItem>
+                      )}
                       <SelectItem value="JOURNAL">Journal Entry</SelectItem>
                     </SelectContent>
                   </Select>

@@ -23,11 +23,16 @@ export default function Page() {
   const [openTimeline, setOpenTimeline] = useState(false);
   const [uuid, setUuid] = useState("");
 
-  const access = getPageAccess({ pageCode: "payment_request", pageType: "EDIT" });
+  const brrAccess = getPageAccess({ pageCode: "payment_request", pageType: "EDIT" });
+  // Journal requests have their own creators / approvers (payment_request_journal.*)
+  const journalAccess = getPageAccess({ pageCode: "payment_request_journal", pageType: "EDIT" });
+  // Either permission opens the page; the backend decides per record (403 for journal without permission)
+  const access = brrAccess.allowed ? brrAccess : journalAccess;
+  const canApprove = !!(brrAccess.canApprove || journalAccess.canApprove);
   const { isPendingForMe, myLevel, refresh, dismiss } = useMyApprovalStatus(
     EP.MY_APPROVAL_STATUS,
     prId,
-    access.canApprove,
+    canApprove,
   );
   const { isPendingDeletion, pendingInfo, dismissDeletion } = useDeletePending("PAYMENT_REQUEST", prId, access.allowed);
 
@@ -36,7 +41,7 @@ export default function Page() {
   const actions = getPageActions({
     router,
     onTimeLine: () => setOpenTimeline(true),
-    onApprove: access.canApprove ? () => setOpenApproval(true) : undefined,
+    onApprove: canApprove ? () => setOpenApproval(true) : undefined,
     isPendingApproval: isPendingForMe,
     onDownload: uuid ? () => window.open(`/print/payment-request/${uuid}`, "_blank") : undefined,
   });
