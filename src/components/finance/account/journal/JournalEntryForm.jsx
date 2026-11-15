@@ -80,7 +80,7 @@ const DEFAULT_VALUES = { entryDate: "", remarks: "", drLines: [{ ...BLANK_DR }],
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
-export default function JournalEntryForm({ mode = "create", journalId, onAfterSubmit, onUuid }) {
+export default function JournalEntryForm({ mode = "create", journalId, onAfterSubmit, onUuid, onStatus }) {
   // Copy: /new?copy=<id> pre-fills this create form from that record.
   const copyFromId = useCopySource();
   const isCopy = mode === "create" && !!copyFromId;
@@ -219,6 +219,7 @@ export default function JournalEntryForm({ mode = "create", journalId, onAfterSu
         setIsSubmitted(locked);
         setAllowSubmit(!locked);
         setWorkflowStatus(d.workflowStatus || "");
+        onStatus?.(d.workflowStatus || "");
         if (d.journalUuid && onUuid) onUuid(d.journalUuid);
       })
       .catch(() => toast.error("Failed to load journal entry"));

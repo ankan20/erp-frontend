@@ -177,6 +177,8 @@ export const API_ENDPOINTS = {
     PAYMENT_REQUEST: {
       ELIGIBLE_BRRS:      "/billing/payment-request/eligible-brrs",      // GET ?projectCode&vendorId — approved BRRs with balance
       BRR_SUMMARY:        "/billing/payment-request/brr-summary",        // /:brrId GET ?excludeId
+      ELIGIBLE_JOURNALS:  "/billing/payment-request/eligible-journals",  // GET ?projectCode&vendorId — restricted (payment_request_journal.EDIT)
+      JOURNAL_SUMMARY:    "/billing/payment-request/journal-summary",    // /:journalId GET ?vendorId&excludeId
       CREATE:             "/billing/payment-request/create",             // POST FormData
       LIST:               "/billing/payment-request/list",               // GET ?projectCode&brrId&workflowStatus
       DETAILS:            "/billing/payment-request/details",            // /:id GET

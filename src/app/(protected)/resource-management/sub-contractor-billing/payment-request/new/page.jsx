@@ -20,7 +20,12 @@ function NewPaymentRequest() {
 
   return (
     <HeaderWrapper header={<PageHeader actions={actions} />}>
-      <PaymentRequestForm mode={access.mode} presetBrrId={searchParams.get("brrId")} />
+      <PaymentRequestForm
+        mode={access.mode}
+        presetBrrId={searchParams.get("brrId")}
+        presetJournalId={searchParams.get("journalId")}
+        presetVendorId={searchParams.get("vendorId")}
+      />
     </HeaderWrapper>
   );
 }

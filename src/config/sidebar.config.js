@@ -276,6 +276,14 @@ export const sidebarConfig = [
             activePaths: ["/resource-management/sub-contractor-billing/payment-request"],
             permissionKey: "payment_request",
           },
+          // Permission-only (no menu item): who may see / raise Payment Requests
+          // against a Journal entry. Granted by super admin in
+          // Settings › Roles & User Assignment. Uses the payment_request approval path.
+          {
+            title: "Payment Request – Journal",
+            permissionKey: "payment_request_journal",
+            permissionOnly: true,
+          },
         ],
       },
       {

@@ -26,6 +26,7 @@ import { apiRequest } from "@/lib/apiClient";
 import { API_ENDPOINTS } from "@/config/api.config";
 import { getLocalStorage } from "@/lib/localStorage";
 import { getInputClass, labelClass } from "@/lib/formStyles";
+import { getPageAccess } from "@/helper/getPageAccess";
 import { zodDate } from "@/lib/dateUtils";
 
 const EP = API_ENDPOINTS.RESOURCE.PAYMENT_REQUEST;
@@ -49,7 +50,9 @@ const schema = z
     prNo:             z.string().optional(),
     prDate:           z.string().optional(),
     vendorId:         z.string().optional(),
-    brrId:            z.string().min(1, "BRR No is required"),
+    sourceType:       z.enum(["BRR", "JOURNAL"]),
+    brrId:            z.string().optional(),
+    journalKey:       z.string().optional(),   // "<journalId>:<vendorId>"
     requestedAmount:  amount(true).refine((n) => n > 0, "Requested amount must be greater than 0"),
     deductionAmount:  amount(false),
     deductionRemarks: z.string().optional(),
@@ -60,13 +63,17 @@ const schema = z
   .refine((v) => v.deductionAmount <= v.requestedAmount, {
     message: "Deduction cannot exceed requested amount",
     path: ["deductionAmount"],
-  });
+  })
+  .refine((v) => v.sourceType !== "BRR" || !!v.brrId, { message: "BRR No is required", path: ["brrId"] })
+  .refine((v) => v.sourceType !== "JOURNAL" || !!v.journalKey, { message: "Journal is required", path: ["journalKey"] });
 
 const defaultValues = {
   prNo:             "",
   prDate:           "",
   vendorId:         "",
+  sourceType:       "BRR",
   brrId:            "",
+  journalKey:       "",
   requestedAmount:  "",
   deductionAmount:  0,
   deductionRemarks: "",
@@ -95,8 +102,14 @@ function ReadOnly({ value, className = "" }) {
 }
 
 /* ─── PaymentRequestForm ────────────────────────────────────── */
-export default function PaymentRequestForm({ mode = "create", prId, presetBrrId, onDataLoaded, onAfterSubmit }) {
+export default function PaymentRequestForm({
+  mode = "create", prId, presetBrrId, presetJournalId, presetVendorId, onDataLoaded, onAfterSubmit,
+}) {
   const router = useRouter();
+
+  // Restricted: only payment_request_journal holders see / raise journal requests
+  const journalAccess = getPageAccess({ pageCode: "payment_request_journal", pageType: "LIST" });
+  const canRaiseJournal = !!(journalAccess.allowed && journalAccess.canAdd);
 
   const [loading, setLoading]         = useState(false);
   const [isEditing, setIsEditing]     = useState(mode === "create");
@@ -105,9 +118,10 @@ export default function PaymentRequestForm({ mode = "create", prId, presetBrrId,
   const [initialData, setInitialData] = useState(null);
 
   const [ledgerList, setLedgerList]     = useState([]);
-  const [eligibleBrrs, setEligibleBrrs] = useState([]);
-  const [summary, setSummary]           = useState(null);   // selected BRR: bill / requested / balance
-  const [siblings, setSiblings]         = useState([]);     // other requests on same BRR
+  const [eligibleBrrs, setEligibleBrrs]         = useState([]);
+  const [eligibleJournals, setEligibleJournals] = useState([]);
+  const [summary, setSummary]   = useState(null);   // selected source: bill / requested / balance
+  const [siblings, setSiblings] = useState([]);     // other requests on same source
 
   const [attachedFile, setAttachedFile]       = useState(null);
   const [existingFileUrl, setExistingFileUrl] = useState("");
@@ -121,9 +135,11 @@ export default function PaymentRequestForm({ mode = "create", prId, presetBrrId,
     formState: { errors, isSubmitting } } = form;
 
   const disabled = mode === "view" || mode === "approver" || !isEditing || isSubmitted || isSubmitting;
-  // BRR is fixed once the request is saved
+  // Source (BRR / Journal + vendor) is fixed once the request is saved
   const brrLocked = disabled || mode !== "create";
 
+  const sourceType      = watch("sourceType");
+  const isJournal       = sourceType === "JOURNAL";
   const vendorId        = watch("vendorId");
   const brrId           = watch("brrId");
   const requestedAmount = watch("requestedAmount");
@@ -142,9 +158,42 @@ export default function PaymentRequestForm({ mode = "create", prId, presetBrrId,
       .catch(() => toast.error("Failed to load vendor list"));
   }, []);
 
+  // Opened from a journal (?journalId=) → start in Journal mode
+  useEffect(() => {
+    if (mode === "create" && presetJournalId && canRaiseJournal) setValue("sourceType", "JOURNAL");
+  }, [mode, presetJournalId, canRaiseJournal, setValue]);
+
+  // Load eligible journals (create mode, journal source) — approved, one row per journal + vendor
+  useEffect(() => {
+    if (mode !== "create" || !projectCode || !isJournal || !canRaiseJournal) return;
+    const params = new URLSearchParams({ projectCode });
+    if (vendorId) params.set("vendorId", vendorId);
+    apiRequest({ url: `${EP.ELIGIBLE_JOURNALS}?${params}`, method: "GET" })
+      .then((res) => {
+        const list = res.data || [];
+        setEligibleJournals(list);
+        if (presetJournalId && !getValues("journalKey")) {
+          const hits = list.filter((j) => String(j.journalId) === String(presetJournalId));
+          const hit = presetVendorId
+            ? hits.find((j) => String(j.vendorId) === String(presetVendorId))
+            : hits.length === 1 ? hits[0] : null;
+          if (hit) {
+            setValue("journalKey", `${hit.journalId}:${hit.vendorId}`, { shouldValidate: true });
+            setValue("vendorId", String(hit.vendorId));
+            setSummary(hit);
+          } else if (!hits.length) {
+            toast.error("This journal is not approved or has no vendor balance left for payment request");
+          } else {
+            toast.info("This journal has more than one vendor — select the vendor's line");
+          }
+        }
+      })
+      .catch((err) => toast.error(err.message || "Failed to load journal list"));
+  }, [mode, projectCode, isJournal, canRaiseJournal, vendorId]);
+
   // Load eligible BRRs (create mode only) — approved BRRs with balance > 0
   useEffect(() => {
-    if (mode !== "create" || !projectCode) return;
+    if (mode !== "create" || !projectCode || isJournal) return;
     const params = new URLSearchParams({ projectCode });
     if (vendorId) params.set("vendorId", vendorId);
     apiRequest({ url: `${EP.ELIGIBLE_BRRS}?${params}`, method: "GET" })
@@ -164,7 +213,7 @@ export default function PaymentRequestForm({ mode = "create", prId, presetBrrId,
         }
       })
       .catch(() => toast.error("Failed to load BRR list"));
-  }, [mode, projectCode, vendorId]);
+  }, [mode, projectCode, vendorId, isJournal]);
 
   // Load existing request in edit / view / approver mode
   useEffect(() => {
@@ -178,7 +227,9 @@ export default function PaymentRequestForm({ mode = "create", prId, presetBrrId,
           prNo:             d.prNo || "",
           prDate:           d.prDate || "",
           vendorId:         d.vendorId ? String(d.vendorId) : "",
+          sourceType:       d.sourceType || "BRR",
           brrId:            d.brrId ? String(d.brrId) : "",
+          journalKey:       d.journalId ? `${d.journalId}:${d.vendorId}` : "",
           requestedAmount:  Number(d.requestedAmount || 0),
           deductionAmount:  Number(d.deductionAmount || 0),
           deductionRemarks: d.deductionRemarks || "",
@@ -188,7 +239,7 @@ export default function PaymentRequestForm({ mode = "create", prId, presetBrrId,
         };
         reset(data);
         setInitialData(data);
-        setSummary(d.brrSummary || null);
+        setSummary(d.sourceSummary || d.brrSummary || null);
         setSiblings(d.siblingRequests || []);
         if (d.attachedDoc) {
           setExistingFileUrl(d.attachedDoc);
@@ -229,6 +280,35 @@ export default function PaymentRequestForm({ mode = "create", prId, presetBrrId,
     [eligibleBrrs],
   );
 
+  const journalOptions = useMemo(
+    () => eligibleJournals.map((j) => ({
+      ...j,
+      key: `${j.journalId}:${j.vendorId}`,
+      // Voucher No · Date · Vendor · Remarks · Balance
+      label: [
+        j.voucherNo,
+        j.entryDate || "-",
+        j.partyName || "-",
+        j.journalRemarks ? j.journalRemarks.slice(0, 40) : null,
+        `Bal ₹${formatAmount(j.balanceAmount)}`,
+      ].filter(Boolean).join(" · "),
+    })),
+    [eligibleJournals],
+  );
+
+  const handleJournalChange = (key) => {
+    const hit = journalOptions.find((j) => j.key === key);
+    setSummary(hit || null);
+    if (hit?.vendorId) setValue("vendorId", String(hit.vendorId));
+  };
+
+  const handleSourceChange = (val) => {
+    setValue("sourceType", val, { shouldValidate: true });
+    setValue("brrId", "");
+    setValue("journalKey", "");
+    setSummary(null);
+  };
+
   const handleBrrChange = (val) => {
     const hit = eligibleBrrs.find((b) => String(b.brrId) === String(val));
     setSummary(hit || null);
@@ -240,7 +320,14 @@ export default function PaymentRequestForm({ mode = "create", prId, presetBrrId,
     const v = getValues();
     const fd = new FormData();
     fd.append("projectCode", projectCode);
-    fd.append("brrId", v.brrId);
+    fd.append("sourceType", v.sourceType);
+    if (v.sourceType === "JOURNAL") {
+      const [journalId, jVendorId] = (v.journalKey || "").split(":");
+      fd.append("journalId", journalId);
+      fd.append("vendorId", jVendorId);
+    } else {
+      fd.append("brrId", v.brrId);
+    }
     // getValues() is raw form state (AmountInput keeps the typed string) — coerce here
     fd.append("requestedAmount", String(Number(v.requestedAmount) || 0));
     fd.append("deductionAmount", String(Number(v.deductionAmount) || 0));
@@ -257,7 +344,7 @@ export default function PaymentRequestForm({ mode = "create", prId, presetBrrId,
   const handleSaveDraft = async () => {
     if (exceedsBalance) {
       toast.error(
-        `Requested ₹${formatAmount(requested)} exceeds BRR balance ₹${formatAmount(balance)}. Please reduce the amount.`
+        `Requested ₹${formatAmount(requested)} exceeds ${isJournal ? "journal" : "BRR"} balance ₹${formatAmount(balance)}. Please reduce the amount.`
       );
       return;
     }
@@ -348,8 +435,21 @@ export default function PaymentRequestForm({ mode = "create", prId, presetBrrId,
               </FieldRow>
             </div>
 
-            {/* BRR selection */}
+            {/* Source selection */}
             <div className="flex flex-col gap-[2px] mb-3">
+              {(canRaiseJournal || isJournal) && (
+                <FieldRow label="Request Against" required>
+                  <Select value={sourceType} onValueChange={handleSourceChange} disabled={brrLocked}>
+                    <SelectTrigger className={`${getInputClass(false, brrLocked)} w-full h-[36px]`}>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="BRR">BRR (Bill Receive Register)</SelectItem>
+                      <SelectItem value="JOURNAL">Journal Entry</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </FieldRow>
+              )}
               <FieldRow label="Party Name">
                 <Controller control={control} name="vendorId" render={({ field }) => (
                   <SearchableSelect
@@ -357,18 +457,58 @@ export default function PaymentRequestForm({ mode = "create", prId, presetBrrId,
                     value={field.value ? String(field.value) : ""}
                     onChange={(val) => {
                       field.onChange(val ? String(val) : "");
-                      // vendor filter changed → clear BRR selection
+                      // vendor filter changed → clear source selection
                       setValue("brrId", "");
+                      setValue("journalKey", "");
                       setSummary(null);
                     }}
                     disabled={brrLocked}
-                    placeholder="Filter BRR by Vendor (optional)"
+                    placeholder={`Filter ${isJournal ? "Journal" : "BRR"} by Vendor (optional)`}
                     labelKey="ledgerName"
                     valueKey="ledgerId"
                     searchKeys={["ledgerName"]}
                   />
                 )} />
               </FieldRow>
+              {isJournal ? (
+                <>
+                  <FieldRow label="Journal Voucher No" required>
+                    {mode === "create" ? (
+                      <Controller control={control} name="journalKey" render={({ field }) => (
+                        <SearchableSelect
+                          options={journalOptions}
+                          value={field.value || ""}
+                          onChange={(val) => {
+                            field.onChange(val || "");
+                            handleJournalChange(val);
+                          }}
+                          disabled={brrLocked}
+                          placeholder={journalOptions.length ? "Select Approved Journal (vendor line)" : "No approved journal with balance"}
+                          labelKey="label"
+                          valueKey="key"
+                          searchKeys={["voucherNo", "partyName", "journalRemarks"]}
+                          className={errors.journalKey ? "border-red-500" : ""}
+                        />
+                      )} />
+                    ) : (
+                      <ReadOnly value={summary?.voucherNo || ""} />
+                    )}
+                  </FieldRow>
+                  <FieldRow label="Journal Date">
+                    <ReadOnly value={summary?.entryDate || ""} />
+                  </FieldRow>
+                  <FieldRow label="Vendor (Cr line)">
+                    <ReadOnly value={summary?.partyName || ""} />
+                  </FieldRow>
+                  <FieldRow label="Entry Mode">
+                    <ReadOnly value={summary?.entryMode ? summary.entryMode.replace(/_/g, " ") : ""} />
+                  </FieldRow>
+                  <FieldRow label="Journal Remarks">
+                    <ReadOnly value={summary?.journalRemarks || ""} />
+                  </FieldRow>
+                </>
+              ) : (
+              <>
               <FieldRow label="BRR No" required>
                 {mode === "create" ? (
                   <Controller control={control} name="brrId" render={({ field }) => (
@@ -414,6 +554,8 @@ export default function PaymentRequestForm({ mode = "create", prId, presetBrrId,
               <FieldRow label="Party Bill Date">
                 <ReadOnly value={summary?.partyDate || ""} />
               </FieldRow>
+              </>
+              )}
             </div>
 
             {/* Payment info */}
@@ -455,7 +597,7 @@ export default function PaymentRequestForm({ mode = "create", prId, presetBrrId,
 
             {/* BRR balance */}
             <div className="flex flex-col gap-[2px] mb-3">
-              <FieldRow label={`Bill Amount${summary?.billSource === "BRB" ? " (BRB)" : ""}`}>
+              <FieldRow label={`Bill Amount${summary?.billSource === "BRB" ? " (BRB)" : summary?.billSource === "JOURNAL" ? " (Journal Cr)" : ""}`}>
                 <ReadOnly value={summary ? formatAmount(summary.billAmount) : ""} />
               </FieldRow>
               <FieldRow label="Already Requested">
@@ -529,7 +671,7 @@ export default function PaymentRequestForm({ mode = "create", prId, presetBrrId,
         {mode !== "create" && siblings.length > 0 && (
           <div className="mt-4">
             <div className="text-[12px] font-semibold text-gray-700 mb-1">
-              Other Payment Requests on BRR {summary?.brrNo}
+              Other Payment Requests on {isJournal ? `Journal ${summary?.voucherNo || ""} (${summary?.partyName || "-"})` : `BRR ${summary?.brrNo || ""}`}
             </div>
             <div className="overflow-x-auto">
               <table className="w-full border-collapse text-[11px]">

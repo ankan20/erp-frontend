@@ -4,8 +4,28 @@ import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import Image from "next/image";
 import { QRCodeSVG } from "qrcode.react";
-import { publicRequest } from "@/lib/publicRequest";
-import { API_ENDPOINTS } from "@/config/api.config";
+import API_BASE_URL, { API_ENDPOINTS } from "@/config/api.config";
+import { getLocalStorage } from "@/lib/localStorage";
+
+// BRR requests print publicly by uuid; journal requests are restricted, so the
+// logged-in user's token (if any) is sent and the backend checks the permission.
+async function fetchPrint(uuid) {
+  let token = null;
+  try { token = getLocalStorage("token"); } catch { token = null; }
+  const res = await fetch(`${API_BASE_URL}${API_ENDPOINTS.RESOURCE.PAYMENT_REQUEST.GET_BY_UUID}/${uuid}`, {
+    headers: {
+      "Content-Type": "application/json",
+      ...(token && { Authorization: `Bearer ${token}` }),
+    },
+  });
+  const json = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    const err = new Error(json.msg || json.message || `Error ${res.status}`);
+    err.status = res.status;
+    throw err;
+  }
+  return json;
+}
 import PrintTopBar from "@/components/print/PrintTopBar";
 import PrintErrorPage from "@/components/print/PrintErrorPage";
 import { SIZE, WEIGHT, COLOR, fmt } from "@/components/print/printStyles";
@@ -40,12 +60,12 @@ function fmtAmt(n) {
 /* ─── Excel download ───────────────────────────────────────── */
 function downloadExcel(d) {
   const XLSX = require("xlsx");
-  const s = d.brrSummary || {};
+  const s = d.sourceSummary || d.brrSummary || {};
   const rows = [
     ["PAYMENT REQUEST"],
     [],
     ["PR No",            d.prNo,               "", "PR Date",          fmt.date(d.prDate)],
-    ["Project Code",     d.projectCode,        "", "BRR No",           d.brrNo || "-"],
+    ["Project Code",     d.projectCode,        "", d.sourceType === "JOURNAL" ? "Journal No" : "BRR No", (d.sourceType === "JOURNAL" ? d.journalVoucherNo : d.brrNo) || "-"],
     ["Party Name",       d.partyName || "-",   "", "Party GSTIN",      d.partyGstn || "-"],
     ["Party Bill No",    d.partyBillNo || "-", "", "Party Bill Date",  fmt.date(d.partyDate)],
     ["Payment Mode",     d.paymentMode || "-", "", "Required By",      fmt.date(d.requiredByDate)],
@@ -55,7 +75,7 @@ function downloadExcel(d) {
     ["Requested Amount",     d.requestedAmount],
     ["Deduction Amount",     d.deductionAmount, "", "Deduction Remarks", d.deductionRemarks || "-"],
     ["Net Payable",          d.netPayable],
-    ["BRR Balance (now)",    s.balanceAmount ?? "-"],
+    ["Balance (now)",        s.balanceAmount ?? "-"],
     [],
     ["Remarks",          d.remarks || "-"],
     ["Workflow Status",  d.workflowStatus],
@@ -79,7 +99,7 @@ export default function PaymentRequestPrintPage() {
 
   useEffect(() => {
     if (!uuid) return;
-    publicRequest({ url: `${API_ENDPOINTS.RESOURCE.PAYMENT_REQUEST.GET_BY_UUID}/${uuid}` })
+    fetchPrint(uuid)
       .then((res) => setData(res?.data ?? null))
       .catch((err) => setError({ status: err.status, message: err.message }))
       .finally(() => setLoading(false));
@@ -151,9 +171,18 @@ export default function PaymentRequestPrintPage() {
               <InfoRow label="PR No"        value={data.prNo} />
               <InfoRow label="PR Date"      value={fmt.date(data.prDate)} />
               <InfoRow label="Project Code" value={data.projectCode} />
-              <InfoRow label="BRR No"       value={data.brrNo} />
-              <InfoRow label="BRR Date"     value={fmt.date(data.brrSummary?.brrDate)} />
-              <InfoRow label="Order No"     value={data.brrSummary?.orderNo} />
+              {data.sourceType === "JOURNAL" ? (
+                <>
+                  <InfoRow label="Journal No"   value={data.journalVoucherNo} />
+                  <InfoRow label="Journal Date" value={fmt.date(data.journalDate)} />
+                </>
+              ) : (
+                <>
+                  <InfoRow label="BRR No"       value={data.brrNo} />
+                  <InfoRow label="BRR Date"     value={fmt.date(data.brrSummary?.brrDate)} />
+                  <InfoRow label="Order No"     value={data.brrSummary?.orderNo} />
+                </>
+              )}
               <InfoRow label="Status"       value={data.workflowStatus} />
             </div>
           </div>

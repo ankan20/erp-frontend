@@ -81,7 +81,14 @@ export default function AppSidebar({ collapsed, setCollapsed }) {
 
   // Role-based sidebar filtering
   const role = getCookie("role"); // raw cookie value e.g. "super_admin"
-  const visibleConfig = sidebarConfig.filter((item) => {
+  // Permission-only entries (permissionOnly: true) exist just for the
+  // permission grid — never render them as menu items.
+  const stripPermissionOnly = (items) =>
+    (items || [])
+      .filter((it) => it && !it.permissionOnly)
+      .map((it) => (it.children ? { ...it, children: stripPermissionOnly(it.children) } : it));
+
+  const visibleConfig = stripPermissionOnly(sidebarConfig).filter((item) => {
     if (role === ROLE.SUPER_ADMIN) {
       if (item.title === "Settings") return true;
       if (item.title === "Master") return pathname.startsWith("/master");
