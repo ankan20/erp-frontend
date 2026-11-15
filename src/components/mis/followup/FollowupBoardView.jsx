@@ -461,6 +461,7 @@ export default function FollowupBoardView() {
         onClose={() => { setOpenId(null); if (searchParams?.get("agenda")) router.replace(window.location.pathname); }}
         onEdit={(f) => { setOpenId(null); setAgendaForm({ open: true, agenda: f }); }}
         onChanged={() => { loadItems(); loadSprints(); }} />
+      <ConfirmDialog state={confirm} onClose={() => setConfirm(null)} />
     </div>
   );
 }
@@ -512,7 +513,6 @@ export function ListTable({ rows, loading, onOpen, myId, empty = "Nothing here."
           </tbody>
         </table>
       </div>
-      <ConfirmDialog state={confirm} onClose={() => setConfirm(null)} />
     </div>
   );
 }
