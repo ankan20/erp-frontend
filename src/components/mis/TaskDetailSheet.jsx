@@ -8,6 +8,7 @@ import { toast } from "sonner";
 import {
   misTaskApi, TASK_STATUSES, STATUS_STYLE, PRIORITY_STYLE, fmtDate, fmtDateTime,
 } from "@/lib/misTasks";
+import ConfirmDialog from "@/components/common/ConfirmDialog";
 
 const ACTION_TEXT = {
   CREATED: "created the task",
@@ -43,6 +44,7 @@ export default function TaskDetailSheet({ taskId, open, onClose, onEdit, onChang
   const [loading, setLoading] = useState(false);
   const [busy, setBusy] = useState(false);
   const [comment, setComment] = useState("");
+  const [confirm, setConfirm] = useState(null);
 
   const closeRef = useRef(onClose);
   useEffect(() => { closeRef.current = onClose; }, [onClose]);
@@ -102,20 +104,25 @@ export default function TaskDetailSheet({ taskId, open, onClose, onEdit, onChang
     }
   };
 
-  const remove = async () => {
-    if (!window.confirm(`Delete task ${task.taskCode}? It will be removed from all lists.`)) return;
-    setBusy(true);
-    try {
-      await misTaskApi.remove(task.id);
-      toast.success("Task deleted");
-      onChanged?.();
-      onClose?.();
-    } catch (e) {
-      toast.error(e?.message || "Could not delete task");
-    } finally {
-      setBusy(false);
-    }
-  };
+  const remove = () => setConfirm({
+    title: `Delete task ${task?.taskCode}?`,
+    description: "It will be removed from all lists.",
+    confirmLabel: "Delete",
+    variant: "destructive",
+    onConfirm: async () => {
+      setBusy(true);
+      try {
+        await misTaskApi.remove(task.id);
+        toast.success("Task deleted");
+        onChanged?.();
+        onClose?.();
+      } catch (e) {
+        toast.error(e?.message || "Could not delete task");
+      } finally {
+        setBusy(false);
+      }
+    },
+  });
 
   if (!open) return null;
   const canEdit = !!task?.canEdit;
@@ -229,6 +236,7 @@ export default function TaskDetailSheet({ taskId, open, onClose, onEdit, onChang
           </div>
         )}
       </aside>
+      <ConfirmDialog state={confirm} onClose={() => setConfirm(null)} />
     </div>
   );
 }

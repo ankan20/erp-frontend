@@ -4,6 +4,7 @@
 // with what the AI saw, location/time checks and edit/delete.
 
 import { useRef, useState } from "react";
+import ConfirmDialog from "@/components/common/ConfirmDialog";
 import { toast } from "sonner";
 import {
   AlertTriangle, Camera, CheckCircle2, Clock, ImagePlus, Loader2, MapPin, RefreshCw, ShieldAlert, Trash2, Upload, X,
@@ -191,6 +192,7 @@ export function PhotoViewer({ photo, canEdit, locations, onClose, onChanged }) {
   const [caption, setCaption] = useState(photo?.caption || "");
   const [subLocation, setSubLocation] = useState(photo?.subLocation || "");
   const [busy, setBusy] = useState(null);
+  const [confirm, setConfirm] = useState(null);
   if (!photo) return null;
   const ai = photo.ai || {};
   const dirty = caption !== (photo.caption || "") || subLocation !== (photo.subLocation || "");
@@ -317,10 +319,13 @@ export function PhotoViewer({ photo, canEdit, locations, onClose, onChanged }) {
                 <button
                   type="button"
                   disabled={!!busy}
-                  onClick={() => {
-                    if (window.confirm("Delete this photo?"))
-                      call("del", { url: `${DPR.PHOTOS}/${photo.id}`, method: "DELETE" }, onClose);
-                  }}
+                  onClick={() => setConfirm({
+                    title: "Delete this photo?",
+                    description: "This cannot be undone.",
+                    confirmLabel: "Delete",
+                    variant: "destructive",
+                    onConfirm: () => call("del", { url: `${DPR.PHOTOS}/${photo.id}`, method: "DELETE" }, onClose),
+                  })}
                   className="inline-flex items-center gap-1 rounded-md border border-red-200 text-red-600 px-3 h-8 text-[12.5px] disabled:opacity-50"
                 >
                   {busy === "del" ? <Loader2 size={13} className="animate-spin" /> : <Trash2 size={13} />} Delete
@@ -331,5 +336,6 @@ export function PhotoViewer({ photo, canEdit, locations, onClose, onChanged }) {
         </div>
       </DialogContent>
     </Dialog>
+    <ConfirmDialog state={confirm} onClose={() => setConfirm(null)} />
   );
 }

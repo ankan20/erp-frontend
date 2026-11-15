@@ -3,6 +3,7 @@
 // The day's report: write it with AI, edit it, submit it for approval.
 
 import { useMemo, useState } from "react";
+import ConfirmDialog from "@/components/common/ConfirmDialog";
 import { toast } from "sonner";
 import { Loader2, Plus, Send, Sparkles, Trash2, Save } from "lucide-react";
 import { apiRequest } from "@/lib/apiClient";
@@ -36,6 +37,7 @@ const toDraft = (r) => ({
 export default function DprReport({ projectCode, date, report, photos, canEdit, onChanged, onOpenPhoto }) {
   const [draft, setDraft] = useState(() => toDraft(report));
   const [busy, setBusy] = useState(null);
+  const [confirm, setConfirm] = useState(null);
 
   const editable = canEdit && report && ["Draft", "Reback"].includes(report.workflowStatus);
   const canGenerate = canEdit && (!report || ["Draft", "Reback", "Rejected"].includes(report.workflowStatus));
@@ -45,8 +47,20 @@ export default function DprReport({ projectCode, date, report, photos, canEdit, 
 
   const set = (k, v) => setDraft((d) => ({ ...d, [k]: v }));
 
-  const generate = async () => {
-    if (report?.edited && !window.confirm("Write the report again with AI? Your edits will be replaced.")) return;
+  const generate = () => {
+    if (report?.edited) {
+      setConfirm({
+        title: "Re-generate with AI?",
+        description: "Your edits will be replaced.",
+        confirmLabel: "Re-generate",
+        onConfirm: doGenerate,
+      });
+      return;
+    }
+    doGenerate();
+  };
+
+  const doGenerate = async () => {
     setBusy("gen");
     const id = toast.loading("AI is writing the report…");
     try {
@@ -90,7 +104,15 @@ export default function DprReport({ projectCode, date, report, photos, canEdit, 
 
   const submit = async () => {
     if (dirty && !(await save(true))) return;
-    if (!window.confirm("Submit this report for approval? It can't be changed after that.")) return;
+    setConfirm({
+      title: "Submit for approval?",
+      description: "The report can't be changed after that.",
+      confirmLabel: "Submit",
+      onConfirm: doSubmit,
+    });
+  };
+
+  const doSubmit = async () => {
     setBusy("submit");
     try {
       const res = await apiRequest({ url: `${DPR.SUBMIT}/${report.id}`, method: "POST" });
@@ -321,6 +343,7 @@ export default function DprReport({ projectCode, date, report, photos, canEdit, 
         Written by AI ({report.generatedBy === "auto" ? "evening auto-draft" : "on request"}) from the day&apos;s photos and site
         records — check it before submitting.
       </p>
+      <ConfirmDialog state={confirm} onClose={() => setConfirm(null)} />
     </div>
   );
 }

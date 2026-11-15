@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import ConfirmDialog from "@/components/common/ConfirmDialog";
 import { useRouter } from "next/navigation";
 import { Loader2, Plus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
@@ -38,6 +39,7 @@ export default function OpeningBalancePage() {
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(null);
+  const [confirm, setConfirm] = useState(null);
 
   useEffect(() => {
     Promise.all([
@@ -124,21 +126,28 @@ export default function OpeningBalancePage() {
     }
   };
 
-  const handleDelete = async (id) => {
-    if (!confirm("Delete this opening balance entry?")) return;
-    setDeleting(id);
-    try {
-      await apiRequest({
-        url: `${API_ENDPOINTS.FINANCE.ACCOUNTING.OPENING_BALANCE}/${id}`,
-        method: "DELETE",
-      });
-      toast.success("Opening balance deleted");
-      fetchEntries();
-    } catch (err) {
-      toast.error(err?.message || "Failed to delete");
-    } finally {
-      setDeleting(null);
-    }
+  const handleDelete = (id) => {
+    setConfirm({
+      title: "Delete this opening balance entry?",
+      description: "This cannot be undone.",
+      confirmLabel: "Delete",
+      variant: "destructive",
+      onConfirm: async () => {
+        setDeleting(id);
+        try {
+          await apiRequest({
+            url: `${API_ENDPOINTS.FINANCE.ACCOUNTING.OPENING_BALANCE}/${id}`,
+            method: "DELETE",
+          });
+          toast.success("Opening balance deleted");
+          fetchEntries();
+        } catch (err) {
+          toast.error(err?.message || "Failed to delete");
+        } finally {
+          setDeleting(null);
+        }
+      },
+    });
   };
 
   const fyOptions = fyList.map((f) => ({
@@ -335,6 +344,7 @@ export default function OpeningBalancePage() {
           </div>
         )}
       </div>
+      <ConfirmDialog state={confirm} onClose={() => setConfirm(null)} />
     </HeaderWrapper>
   );
 }

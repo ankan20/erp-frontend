@@ -3,6 +3,8 @@
 import { useState, useMemo, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { Loader2 } from "lucide-react";
+import { toast } from "sonner";
+import ConfirmDialog from "@/components/common/ConfirmDialog";
 import HeaderWrapper from "@/components/layout/HeaderWrapper";
 import PageHeader from "@/components/layout/PageHeader";
 import { getPageActions } from "@/components/common/PageActionButtons";
@@ -105,6 +107,7 @@ export default function GangTrackerPage() {
 
   const [detailModal, setDetailModal] = useState(false);
   const [detailId, setDetailId]       = useState(null);
+  const [confirm, setConfirm]         = useState(null);
   const [followupNote, setFollowupNote]     = useState("");
   const [followupStatus, setFollowupStatus] = useState("");
   const [followupDate, setFollowupDate]     = useState("");
@@ -158,7 +161,7 @@ export default function GangTrackerPage() {
   }
 
   async function saveMember() {
-    if (!form.name.trim() || !form.mobile.trim()) return alert("Name and Mobile are required.");
+    if (!form.name.trim() || !form.mobile.trim()) return toast.error("Name and Mobile are required.");
     setSaving(true);
     if (editId) {
       await apiRequest({ url: API_ENDPOINTS.HR.GANG_TRACKER.UPDATE + editId, method: "PUT", data: form });
@@ -170,10 +173,17 @@ export default function GangTrackerPage() {
     fetchMembers();
   }
 
-  async function deleteMember(id, name) {
-    if (!confirm(`Delete ${name}? This cannot be undone.`)) return;
-    await apiRequest({ url: API_ENDPOINTS.HR.GANG_TRACKER.DELETE + id, method: "DELETE" });
-    fetchMembers();
+  function deleteMember(id, name) {
+    setConfirm({
+      title: `Delete ${name}?`,
+      description: "This cannot be undone.",
+      confirmLabel: "Delete",
+      variant: "destructive",
+      onConfirm: async () => {
+        await apiRequest({ url: API_ENDPOINTS.HR.GANG_TRACKER.DELETE + id, method: "DELETE" });
+        fetchMembers();
+      },
+    });
   }
 
   // ── detail / follow-up ─────────────────────────────────────────────────────
@@ -183,7 +193,7 @@ export default function GangTrackerPage() {
   }
 
   async function saveFollowup() {
-    if (!followupNote && !followupStatus && !followupDate) return alert("Enter a note, status, or date.");
+    if (!followupNote && !followupStatus && !followupDate) return toast.error("Enter a note, status, or date.");
     setSaving(true);
     await apiRequest({
       url: API_ENDPOINTS.HR.GANG_TRACKER.FOLLOWUP + detailId + "/followup",
@@ -486,6 +496,7 @@ export default function GangTrackerPage() {
           </div>
         </Modal>
       )}
+      <ConfirmDialog state={confirm} onClose={() => setConfirm(null)} />
     </HeaderWrapper>
   );
 }

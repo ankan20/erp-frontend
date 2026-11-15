@@ -9,6 +9,7 @@ import { toast } from "sonner";
 import SearchableSelect from "@/components/common/SearchableSelect";
 import { Field, inputCls, btnPrimary, btnSecondary, UserAvatar } from "@/components/mis/MisModal";
 import { followupApi, BOARD_STYLE, STEP_STYLE } from "@/lib/misFollowups";
+import ConfirmDialog from "@/components/common/ConfirmDialog";
 import { PRIORITY_STYLE, fmtDate, fmtDateTime } from "@/lib/misTasks";
 
 const ACT = {
@@ -44,6 +45,7 @@ export default function AgendaDetailSheet({ agendaId, open, onClose, onEdit, onC
   const [mode, setMode] = useState(null);     // handoff | return | assign | close | reject
   const [form, setForm] = useState({ to: "", instruction: "", dueDate: "", note: "" });
   const [comment, setComment] = useState("");
+  const [confirm, setConfirm] = useState(null);
   const closeRef = useRef(onClose);
   useEffect(() => { closeRef.current = onClose; }, [onClose]);
 
@@ -137,20 +139,25 @@ export default function AgendaDetailSheet({ agendaId, open, onClose, onEdit, onC
     }
   };
 
-  const remove = async () => {
-    if (!window.confirm(`Delete ${f.fuCode}? It will be removed from the board.`)) return;
-    setBusy(true);
-    try {
-      await followupApi.remove(f.id);
-      toast.success("Deleted");
-      onChanged?.();
-      onClose?.();
-    } catch (e) {
-      toast.error(e?.message || "Could not delete");
-    } finally {
-      setBusy(false);
-    }
-  };
+  const remove = () => setConfirm({
+    title: `Delete ${f?.fuCode}?`,
+    description: "It will be removed from the board.",
+    confirmLabel: "Delete",
+    variant: "destructive",
+    onConfirm: async () => {
+      setBusy(true);
+      try {
+        await followupApi.remove(f.id);
+        toast.success("Deleted");
+        onChanged?.();
+        onClose?.();
+      } catch (e) {
+        toast.error(e?.message || "Could not delete");
+      } finally {
+        setBusy(false);
+      }
+    },
+  });
 
   const moveSprint = (sid) => run(() => followupApi.moveSprint(f.id, sid ? Number(sid) : null), "Moved");
 
@@ -368,6 +375,7 @@ export default function AgendaDetailSheet({ agendaId, open, onClose, onEdit, onC
           </div>
         )}
       </aside>
+      <ConfirmDialog state={confirm} onClose={() => setConfirm(null)} />
     </div>
   );
 }

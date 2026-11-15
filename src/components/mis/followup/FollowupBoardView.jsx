@@ -10,6 +10,7 @@ import { getCookie } from "@/lib/cookies";
 import { apiRequest } from "@/lib/apiClient";
 import { API_ENDPOINTS } from "@/config/api.config";
 import SearchableSelect from "@/components/common/SearchableSelect";
+import ConfirmDialog from "@/components/common/ConfirmDialog";
 import { UserAvatar, btnPrimary, btnSecondary } from "@/components/mis/MisModal";
 import AgendaFormDialog from "./AgendaFormDialog";
 import AgendaDetailSheet from "./AgendaDetailSheet";
@@ -97,6 +98,7 @@ export default function FollowupBoardView() {
   const [loading, setLoading] = useState(true);
   const [dragging, setDragging] = useState(null);
   const [overCol, setOverCol] = useState(null);
+  const [confirm, setConfirm] = useState(null);
   const [overUser, setOverUser] = useState(null);
 
   const [agendaForm, setAgendaForm] = useState({ open: false, agenda: null });
@@ -208,7 +210,15 @@ export default function FollowupBoardView() {
     const f = items.find((x) => x.id === id);
     if (!f || f.boardStatus === col) return;
     try {
-      if (col === "Done" && !window.confirm(`Close ${f.fuCode}?`)) return;
+      if (col === "Done") {
+        setConfirm({
+          title: `Close ${f.fuCode}?`,
+          description: "This will mark the follow-up as Done.",
+          confirmLabel: "Close",
+          onConfirm: async () => { await followupApi.setBoardStatus(id, col); toast.success(`${f.fuCode} → ${col}`); },
+        });
+        return;
+      }
       await followupApi.setBoardStatus(id, col);
       toast.success(`${f.fuCode} → ${col}`);
     } catch (err) {
@@ -502,6 +512,7 @@ function ListTable({ rows, loading, onOpen, myId, empty = "Nothing here.", showP
           </tbody>
         </table>
       </div>
+      <ConfirmDialog state={confirm} onClose={() => setConfirm(null)} />
     </div>
   );
 }
