@@ -29,8 +29,8 @@ export const useAuthGuard = () => {
       return;
     }
 
-    // Consent gate: redirect to consent screen if not yet accepted this session
-    if (typeof window !== "undefined" && getLocalStorage("consent_accepted") !== "true" && pathname !== "/consent") {
+    // Consent gate: only redirect when LoginForm explicitly marked consent as pending
+    if (typeof window !== "undefined" && getLocalStorage("consent_accepted") === "false" && pathname !== "/consent") {
       router.replace("/consent");
       return;
     }

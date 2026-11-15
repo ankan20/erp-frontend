@@ -114,6 +114,10 @@ useEffect(()=>{
     const role = getCookie("role");
 
     if (token) {
+    // User already has a session — mark consent as accepted so the guard doesn't block them
+    if (getLocalStorage("consent_accepted") !== "false") {
+      setLocalStorage("consent_accepted", "true");
+    }
     if (role === ROLE.SUPER_ADMIN) {
       router.replace("/settings/company-details");
     } else if (role === ROLE.ADMIN) {
