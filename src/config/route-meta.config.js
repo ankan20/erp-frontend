@@ -921,10 +921,19 @@ export const routeMetaConfig = [
     breadcrumbs: ["HR Management", "Reports", "Performance & Discipline"],
   },
 
+  // My Profile (own data only)
+  {
+    basePath: "/my-profile",
+    breadcrumbs: ["My Profile"],
+  },
   // MIS
   {
     basePath: "/task-management/todo",
     breadcrumbs: ["MIS", "Self Task"],
+  },
+  {
+    basePath: "/task-management/schedule-compliance",
+    breadcrumbs: ["MIS", "Schedule Compliance"],
   },
   {
     basePath: "/task-management/task-tracker",

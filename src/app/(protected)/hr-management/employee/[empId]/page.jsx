@@ -8,6 +8,7 @@ import { apiRequest } from "@/lib/apiClient";
 import { API_ENDPOINTS } from "@/config/api.config";
 import { getPageActions } from "@/components/common/PageActionButtons";
 import { toast } from "sonner";
+import ScoreCard from "@/components/hr/performance/ScoreCard";
 
 const TABS = [
   "Personal",
@@ -147,6 +148,7 @@ export default function EmployeeDetailPage() {
   const [reviews, setReviews] = useState([]);
   const [disciplines, setDisciplines] = useState([]);
   const [loadingPerf, setLoadingPerf] = useState(false);
+  const [perfScore, setPerfScore] = useState(null);
   const [showReviewModal, setShowReviewModal] = useState(false);
   const [showDisciplineModal, setShowDisciplineModal] = useState(false);
   const [savingPerf, setSavingPerf] = useState(false);
@@ -186,6 +188,9 @@ export default function EmployeeDetailPage() {
   const loadPerformance = useCallback(async () => {
     if (!empId) return;
     setLoadingPerf(true);
+    // auto score loads on its own so a failure there never blocks reviews / cases
+    apiRequest({ url: `${API_ENDPOINTS.HR.PERFORMANCE.SCORE_SUBJECT}e${empId}`, params: { period: "month" } })
+      .then((r) => setPerfScore(r?.data || null)).catch(() => setPerfScore(null));
     const [rv, dc] = await Promise.all([
       apiRequest({ url: API_ENDPOINTS.HR.PERFORMANCE.REVIEWS_LIST, method: "GET", params: { employee_id: empId } }),
       apiRequest({ url: API_ENDPOINTS.HR.PERFORMANCE.DISCIPLINE_LIST, method: "GET", params: { employee_id: empId } }),
@@ -599,6 +604,9 @@ export default function EmployeeDetailPage() {
                   <div className="py-12 text-center text-gray-400">Loading performance data...</div>
                 ) : (
                   <>
+                    {/* auto performance score (MIS work + appraisal + discipline) */}
+                    {perfScore && <ScoreCard row={perfScore} title="Performance score (this month)" />}
+
                     {/* KPI row */}
                     {(() => {
                       const avgRating = reviews.length
