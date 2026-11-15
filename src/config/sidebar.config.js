@@ -888,7 +888,7 @@ export const sidebarConfig = [
     basePath: "/task-management",
     children: [
       {
-        title: "Task Tracker",
+        title: "Follow-up Board",
         path: "/task-management/task-tracker",
         activePaths: ["/task-management/task-tracker"],
         permissionKey: "task_tracker",

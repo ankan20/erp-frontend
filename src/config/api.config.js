@@ -880,6 +880,18 @@ export const API_ENDPOINTS = {
       BY_UUID:    "/mis/tasks/uuid/",            // /:uuid GET
       ONE:        "/mis/tasks/",                 // /:id GET | PUT | DELETE · /:id/status PATCH · /:id/comments POST
     },
+    SPRINTS: {
+      LIST:   "/mis/sprints",                    // GET ?projectCode=<code>|company &status &sprintType · POST create
+      ONE:    "/mis/sprints/",                   // /:id GET | PUT | DELETE · /:id/start · /:id/close · /:id/report
+    },
+    FOLLOWUPS: {
+      LIST:       "/mis/followups",              // GET ?scope=board|mine|supervised|involved &projectCode &sprintId|backlog=1 … · POST create
+      STATS:      "/mis/followups/stats",
+      ACCESS:     "/mis/followups/access",
+      ASSIGNABLE: "/mis/followups/assignable-users", // ?projectCode
+      BY_UUID:    "/mis/followups/uuid/",
+      ONE:        "/mis/followups/",             // /:id GET|PUT|DELETE · board-status · move-sprint · comments · assign · start · handoff · return · close · reject
+    },
   },
 
   DELETE_MANAGER: {

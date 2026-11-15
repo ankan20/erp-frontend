@@ -926,6 +926,10 @@ export const routeMetaConfig = [
     basePath: "/task-management/todo",
     breadcrumbs: ["MIS", "Self Task"],
   },
+  {
+    basePath: "/task-management/task-tracker",
+    breadcrumbs: ["MIS", "Follow-up Board"],
+  },
 
   {
     basePath: "/hr-management/contact-dairy",
