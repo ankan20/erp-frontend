@@ -21,6 +21,10 @@ export const useAuthGuard = () => {
   // Redirect logic (side effect only)
   useEffect(() => {
     if (!token) {
+      // Save current path so we can return after login + project select (user role only)
+      if (typeof window !== "undefined" && pathname && pathname !== "/" && pathname !== "/login") {
+        sessionStorage.setItem("returnTo", pathname);
+      }
       router.replace("/login");
       return;
     }

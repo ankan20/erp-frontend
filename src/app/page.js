@@ -76,19 +76,43 @@ export default function HomePage() {
     }
   };
 
-  const handleProjectSuccess = (
-    permissions
-  ) => {
+  // Returns true if 'path' matches a sidebar item the user has at least VIEW/EDIT/APPROVER on.
+  // Handles both exact matches (list pages) and prefix matches (detail pages like /grn/123).
+  const isPathAllowed = (path, permissions) => {
+    const check = (items) => {
+      for (const item of items) {
+        if (item.permissionKey && item.path) {
+          const canAccess =
+            permissions[`${item.permissionKey}.VIEW`] ||
+            permissions[`${item.permissionKey}.EDIT`] ||
+            permissions[`${item.permissionKey}.APPROVER`];
+          if (canAccess && (path === item.path || path.startsWith(item.path + "/"))) {
+            return true;
+          }
+        }
+        if (item.children && check(item.children)) return true;
+      }
+      return false;
+    };
+    return check(sidebarConfig);
+  };
 
-    const firstPage =
-      getFirstAllowedPage(
-        sidebarConfig,
-        permissions
-      );
+  const handleProjectSuccess = (permissions) => {
+    const firstPage = getFirstAllowedPage(sidebarConfig, permissions);
 
     if (!firstPage) {
       router.replace("/no-access");
       return;
+    }
+
+    // Restore saved path if it's accessible with the new permissions
+    const returnTo = typeof window !== "undefined" ? sessionStorage.getItem("returnTo") : null;
+    if (returnTo) {
+      sessionStorage.removeItem("returnTo");
+      if (isPathAllowed(returnTo, permissions)) {
+        router.replace(returnTo);
+        return;
+      }
     }
 
     router.replace(firstPage);

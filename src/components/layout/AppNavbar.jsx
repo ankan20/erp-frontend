@@ -157,6 +157,10 @@ export default function AppNavbar() {
   // };
 
   const handleLogout = async () => {
+    // Save current path so user role can return after re-login + project select
+    if (role === roleMap.user && pathname && pathname !== "/" && pathname !== "/login") {
+      sessionStorage.setItem("returnTo", pathname);
+    }
     try {
       await apiRequest({
         url: API_ENDPOINTS.LOGOUT,
@@ -253,6 +257,9 @@ export default function AppNavbar() {
                   className="cursor-pointer flex items-center justify-center h-[32px]"
                   onClick={() => {
                     if (role === roleMap.user) {
+                      if (pathname && pathname !== "/" && pathname !== "/login") {
+                        sessionStorage.setItem("returnTo", pathname);
+                      }
                       router.push("/");
                     }
                   }}
