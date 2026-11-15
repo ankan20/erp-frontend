@@ -29,6 +29,12 @@ export const useAuthGuard = () => {
       return;
     }
 
+    // Consent gate: redirect to consent screen if not yet accepted this session
+    if (typeof window !== "undefined" && getLocalStorage("consent_accepted") !== "true" && pathname !== "/consent") {
+      router.replace("/consent");
+      return;
+    }
+
     if (pathname === "/login") {
       if (role === "super_admin") {
         router.replace("/settings/company-details");

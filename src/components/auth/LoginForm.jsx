@@ -76,7 +76,7 @@ const LoginForm = () => {
     if(user.role ===ROLE.SUPER_ADMIN){
       let resp = await apiRequest({
       url: API_ENDPOINTS.GET_COMPANIES,
-      method: "GET", 
+      method: "GET",
     });
       setCookie("companyId",resp?.data?.[0]?.companyId);
     }
@@ -86,12 +86,18 @@ const LoginForm = () => {
     const role = getCookie("role");
 
     if (token) {
-    if (role === ROLE.SUPER_ADMIN) {
-      router.replace("/settings/company-details");
-    } else if (role === ROLE.ADMIN) {
-      router.replace("/master/ledger-code");
+    if (user.consent_required === true) {
+      setLocalStorage("consent_accepted", "false");
+      router.replace("/consent");
     } else {
-      router.replace("/");
+      setLocalStorage("consent_accepted", "true");
+      if (role === ROLE.SUPER_ADMIN) {
+        router.replace("/settings/company-details");
+      } else if (role === ROLE.ADMIN) {
+        router.replace("/master/ledger-code");
+      } else {
+        router.replace("/");
+      }
     }
   }
 

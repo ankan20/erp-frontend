@@ -902,6 +902,11 @@ export const API_ENDPOINTS = {
     },
   },
 
+  CONSENT: {
+    STATUS: "/auth/consent/status", // GET — { consent_required: bool, document_version: string }
+    ACCEPT: "/auth/consent/accept", // POST — { acknowledgements: {...}, final_consent: bool }
+  },
+
   DELETE_MANAGER: {
     CHECK:          "/delete-manager/check",       // GET  /<module_code>/<record_id>
     RAISE_REQUEST:  "/delete-manager/request",     // POST /<module_code>/<record_id>  body: { reason }
