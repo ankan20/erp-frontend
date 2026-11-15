@@ -869,6 +869,19 @@ export const API_ENDPOINTS = {
     CHAT:                  "/ai/chat",                  // POST { query, module? }
   },
 
+  MIS: {
+    TASKS: {
+      LIST:       "/mis/tasks",                  // GET ?scope=mine|assigned_by_me|team|all &status &priority &ownerUserId &projectCode &fromDate &toDate &overdue &search &page &perPage
+      CREATE:     "/mis/tasks",                  // POST
+      STATS:      "/mis/tasks/stats",            // GET ?scope &projectCode
+      ACCESS:     "/mis/tasks/access",           // GET → { isSuperAdmin, canViewOthers, canEditOthers }
+      ASSIGNABLE: "/mis/tasks/assignable-users", // GET ?projectCode
+      OWNERS:     "/mis/tasks/owners",           // GET
+      BY_UUID:    "/mis/tasks/uuid/",            // /:uuid GET
+      ONE:        "/mis/tasks/",                 // /:id GET | PUT | DELETE · /:id/status PATCH · /:id/comments POST
+    },
+  },
+
   DELETE_MANAGER: {
     CHECK:          "/delete-manager/check",       // GET  /<module_code>/<record_id>
     RAISE_REQUEST:  "/delete-manager/request",     // POST /<module_code>/<record_id>  body: { reason }

@@ -82,6 +82,15 @@ export const SHORTCUTS = [
     description: "Expands or collapses the left menu.",
     example: "Alt+M → menu opens. Alt+M again → menu closes.",
   },
+  {
+    id: "quick-task",
+    group: "global",
+    keys: ["Alt+Q"],
+    target: ["quick-task"],
+    label: "My tasks (quick add)",
+    description: "Opens the round task button at the bottom right: add a task, tick tasks done, open the full list.",
+    example: "Alt+Q, type “Call vendor”, press Enter → task added.",
+  },
 
   // ── List pages ────────────────────────────────────────────────────────────
   {

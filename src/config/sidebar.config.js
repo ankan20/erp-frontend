@@ -894,7 +894,7 @@ export const sidebarConfig = [
         permissionKey: "task_tracker",
       },
       {
-        title: "Self To do List",
+        title: "Self Task",
         path: "/task-management/todo",
         activePaths: ["/task-management/todo"],
         permissionKey: "to_do_list",

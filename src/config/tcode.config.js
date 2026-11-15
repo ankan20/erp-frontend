@@ -102,6 +102,9 @@ export const PAGE_CODES = [
   { code: "PA", path: "/hr-management/admin/payroll" },
   { code: "AP", path: "/hr-management/reports/performance-appraisal" },
   { code: "GT", path: "/hr-management/contact-dairy" },
+
+  // MIS
+  { code: "TK", path: "/task-management/todo" },
 ];
 
 const byCode = Object.fromEntries(PAGE_CODES.map((p) => [p.code, p]));

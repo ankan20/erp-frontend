@@ -7,6 +7,7 @@ import AppSidebar from "@/components/layout/AppSidebar";
 import { NavigationHistoryProvider } from "@/context/NavigationHistoryContext";
 import CommFab from "@/components/communication/CommFab";
 import ChatFloat from "@/components/communication/ChatFloat";
+import QuickTaskFab from "@/components/mis/QuickTaskFab";
 // CommProvider + CallPopup live in the root layout (CommRoot) so calls survive navigation
 import { usePathname } from "next/navigation";
 import { Suspense, useState } from "react";
@@ -69,6 +70,8 @@ export default function ProtectedLayout({ children }) {
         {/* ── Communication overlays (global, always on top) ── */}
         {!inPane && <CommFab />}
         {!inPane && <ChatFloat />}
+        {/* MIS quick tasks — bottom-right, above the audit badge */}
+        {!inPane && <QuickTaskFab />}
         {inPane && (
           <Suspense fallback={null}>
             <PaneBridge />

@@ -91,6 +91,7 @@ export default function AppSidebar({ collapsed, setCollapsed }) {
   const visibleConfig = stripPermissionOnly(sidebarConfig).filter((item) => {
     if (role === ROLE.SUPER_ADMIN) {
       if (item.title === "Settings") return true;
+      if (item.title === "MIS") return true; // super admin sees / edits everyone's tasks
       if (item.title === "Master") return pathname.startsWith("/master");
       return false;
     }
