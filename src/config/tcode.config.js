@@ -106,6 +106,7 @@ export const PAGE_CODES = [
   // MIS
   { code: "TK", path: "/task-management/todo" },
   { code: "FB", path: "/task-management/task-tracker" },
+  { code: "SC", path: "/task-management/schedule-compliance" },
 ];
 
 const byCode = Object.fromEntries(PAGE_CODES.map((p) => [p.code, p]));

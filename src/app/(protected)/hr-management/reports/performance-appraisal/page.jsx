@@ -8,6 +8,7 @@ import { apiRequest } from "@/lib/apiClient";
 import { API_ENDPOINTS } from "@/config/api.config";
 import { getPageActions } from "@/components/common/PageActionButtons";
 import { toast } from "sonner";
+import PerformanceScoreTab from "@/components/hr/performance/PerformanceScoreTab";
 
 const REVIEW_COLS = [
   { key: "emp_code", label: "Emp Code" },
@@ -45,7 +46,7 @@ function StarRating({ value }) {
 }
 
 export default function PerformancePage() {
-  const [tab, setTab] = useState(0); // 0=Reviews, 1=Discipline, 2=PIP
+  const [tab, setTab] = useState(0); // 0=Reviews, 1=Discipline, 2=PIP, 3=Performance Score (auto)
   const [reviews, setReviews] = useState([]);
   const [discipline, setDiscipline] = useState([]);
   const [reviewStats, setReviewStats] = useState({});
@@ -65,12 +66,14 @@ export default function PerformancePage() {
 
   const fetchData = useCallback(async () => {
     setLoading(true);
-    const [rv, dc, rs, ds] = await Promise.all([
+    // allSettled: one failed call (e.g. 403 without Employee Master permission) must not leave the page spinning
+    const settled = await Promise.allSettled([
       apiRequest({ url: API_ENDPOINTS.HR.PERFORMANCE.REVIEWS_LIST, method: "GET", params: { search: reviewSearch, status: reviewStatus } }),
       apiRequest({ url: API_ENDPOINTS.HR.PERFORMANCE.DISCIPLINE_LIST, method: "GET", params: { search: discSearch, severity: discSeverity, status: discStatus } }),
       apiRequest({ url: API_ENDPOINTS.HR.PERFORMANCE.REVIEWS_STATS, method: "GET" }),
       apiRequest({ url: API_ENDPOINTS.HR.PERFORMANCE.DISCIPLINE_STATS, method: "GET" }),
     ]);
+    const [rv, dc, rs, ds] = settled.map((x) => (x.status === "fulfilled" ? x.value : null));
     if (rv?.data) setReviews(rv.data);
     if (dc?.data) setDiscipline(dc.data);
     if (rs?.data) setReviewStats(rs.data);
@@ -148,7 +151,7 @@ export default function PerformancePage() {
 
         {/* Tabs */}
         <div className="flex gap-0 border-b border-gray-200">
-          {["Performance Reviews", "Discipline Cases", "PIP Tracker"].map((t, i) => (
+          {["Performance Reviews", "Discipline Cases", "PIP Tracker", "Performance Score"].map((t, i) => (
             <button
               key={t}
               onClick={() => setTab(i)}
@@ -159,7 +162,10 @@ export default function PerformancePage() {
           ))}
         </div>
 
-        {loading ? (
+        {/* Performance Score loads its own data — not tied to the reviews loader below */}
+        {tab === 3 && <PerformanceScoreTab />}
+
+        {tab === 3 ? null : loading ? (
           <div className="flex items-center justify-center py-16 text-gray-500">Loading...</div>
         ) : (
           <>
@@ -233,6 +239,7 @@ export default function PerformancePage() {
               </div>
             )}
 
+            {/* Performance Score (auto, from MIS + appraisal + discipline) */}
             {/* PIP Tracker */}
             {tab === 2 && (
               <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">

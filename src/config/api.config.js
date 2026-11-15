@@ -806,6 +806,7 @@ export const API_ENDPOINTS = {
       UPDATE:      "/hr/employee/",        // /:id PUT
       UPLOAD_DOC:  "/hr/employee/",        // /:id/upload-doc POST multipart
       DEPARTMENTS: "/hr/employee/departments", // GET
+      ME:          "/hr/employee/me",          // GET own profile (safe fields, no HR permission)
     },
     RECRUITMENT: {
       JOBS_LIST:   "/hr/recruitment/jobs",           // GET ?search&status&department
@@ -838,6 +839,12 @@ export const API_ENDPOINTS = {
       DISCIPLINE_CREATE: "/hr/performance/discipline",        // POST
       DISCIPLINE_UPDATE: "/hr/performance/discipline/",       // /:id PUT
       DISCIPLINE_STATS:  "/hr/performance/discipline/stats",  // GET
+      // auto performance score (MIS tasks + follow-ups + appraisal + discipline)
+      SCORE_LIST:        "/hr/performance/score",             // GET ?period=month|week &date &department &search &grade (HR)
+      SCORE_ME:          "/hr/performance/score/me",          // GET ?period &date — own score + trend
+      SCORE_SUBJECT:     "/hr/performance/score/subject/",    // /:e<empId>|u<userId> GET ?period &date
+      SCORE_RECOMPUTE:   "/hr/performance/score/recompute",   // POST ?period &date (HR edit)
+      SCORE_CONFIG:      "/hr/performance/score/config",      // GET weights / grade bands
     },
     OFFER_LETTER: {
       GET_CANDIDATE_DATA: "/hr/recruitment/offer-letter/",   // /:candidateId GET
@@ -884,6 +891,7 @@ export const API_ENDPOINTS = {
       LIST:   "/mis/sprints",                    // GET ?projectCode=<code>|company &status &sprintType · POST create
       ONE:    "/mis/sprints/",                   // /:id GET | PUT | DELETE · /:id/start · /:id/close · /:id/report
     },
+    COMPLIANCE: "/mis/compliance",              // GET ?period=month|week &date &projectCode &department
     FOLLOWUPS: {
       LIST:       "/mis/followups",              // GET ?scope=board|mine|supervised|involved &projectCode &sprintId|backlog=1 … · POST create
       STATS:      "/mis/followups/stats",

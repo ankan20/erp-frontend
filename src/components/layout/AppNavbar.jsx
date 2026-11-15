@@ -16,7 +16,7 @@ import {
 import SearchableSelect from "@/components/common/SearchableSelect";
 import { apiRequest } from "@/lib/apiClient";
 import { API_ENDPOINTS } from "@/config/api.config";
-import { User, LogOut, Camera, Keyboard, Search } from "lucide-react";
+import { User, LogOut, Camera, Keyboard, Search, UserCircle } from "lucide-react";
 import ProfilePictureUploadModal from "@/components/common/ProfilePictureUploadModal";
 import AuthImage from "@/components/common/AuthImage";
 import { userFileUrl } from "@/lib/userFiles";
@@ -426,6 +426,20 @@ export default function AppNavbar() {
                     {role || "-"}
                   </div>
                 </div>
+
+                {/* MY PROFILE — own details, tasks, follow-ups, performance */}
+                <button
+                  onClick={() => {
+                    setShowProfile(false);
+                    router.push("/my-profile");
+                  }}
+                  className="w-full flex items-center gap-2 px-4 py-3 text-left border-b hover:bg-gray-50 transition cursor-pointer"
+                >
+                  <UserCircle size={16} className="text-gray-700" />
+                  <span className="text-[13px] text-gray-700 font-medium">
+                    My Profile
+                  </span>
+                </button>
 
                 {/* UPLOAD PROFILE PHOTO */}
                 <button

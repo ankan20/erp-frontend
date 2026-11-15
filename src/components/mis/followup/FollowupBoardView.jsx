@@ -465,7 +465,7 @@ export default function FollowupBoardView() {
   );
 }
 
-function ListTable({ rows, loading, onOpen, myId, empty = "Nothing here.", showProject = false, draggable = false, setDragging, action = null }) {
+export function ListTable({ rows, loading, onOpen, myId, empty = "Nothing here.", showProject = false, draggable = false, setDragging, action = null }) {
   if (loading && rows.length === 0) return <div className="py-10 flex justify-center text-gray-500 gap-2 text-sm"><Loader2 size={16} className="animate-spin" /> Loading…</div>;
   if (rows.length === 0) return <p className="bg-white rounded-xl border border-dashed border-gray-300 py-10 text-center text-sm text-gray-500">{empty}</p>;
   return (
