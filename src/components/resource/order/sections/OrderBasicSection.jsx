@@ -504,6 +504,7 @@ export default function OrderBasicSection({
           required={mode === "create"}
           accept={ACCEPT_PDF}
           allowedTypes={TYPES_PDF}
+          showImagePreview
         />
 
       </div>

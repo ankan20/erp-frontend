@@ -10,6 +10,8 @@ import {
   ImageIcon,
   CheckCircle2,
   Paperclip,
+  Eye,
+  ExternalLink,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -44,6 +46,10 @@ function mimeFromUrl(url) {
 function nameFromUrl(url) {
   if (!url) return "";
   return decodeURIComponent(url.split("?")[0].split("/").pop() ?? "");
+}
+
+function isPreviewable(mimeType) {
+  return !!mimeType && (mimeType.startsWith("image/") || mimeType === "application/pdf");
 }
 
 function resolveFileMeta(mimeType) {
@@ -144,8 +150,13 @@ export default function FileUpload({
   const [prevResetKey, setPrevResetKey] = useState(resetKey);
   const [previewUrl,   setPreviewUrl]   = useState("");
   const [isDragging,   setIsDragging]   = useState(false);
+  const [modal,        setModal]        = useState(null); // { url, name, mimeType }
 
   const heading = title ?? label;
+
+  // ── modal helpers ────────────────────────────────────────────────────────
+  const openModal  = (url, name, mimeType) => setModal({ url, name, mimeType });
+  const closeModal = () => setModal(null);
 
   // ── derived-state reset when parent increments resetKey ─────────────────
   if (prevResetKey !== resetKey) {
@@ -178,7 +189,7 @@ export default function FileUpload({
 
     const oldPreview = previewUrl;
     let   newPreview = "";
-    if (showImagePreview && file.type.startsWith("image/")) {
+    if (showImagePreview && isPreviewable(file.type)) {
       newPreview = URL.createObjectURL(file);
     }
     if (oldPreview) URL.revokeObjectURL(oldPreview);
@@ -236,6 +247,7 @@ export default function FileUpload({
   const zoneHint   = [formatHint, sizeHint].filter(Boolean).join(" • ");
 
   return (
+    <>
     <div className={`w-full rounded-xl border border-gray-200 bg-white shadow-sm overflow-hidden ${className}`}>
 
       {/* ── Card header — shown by default; set showLabel={false} if the page supplies its own heading */}
@@ -314,6 +326,8 @@ export default function FileUpload({
             maxSize={maxSize}
             status="ready"
             onRemove={!disabled ? handleRemoveNew : null}
+            thumbnailUrl={showImagePreview && selectedFile.type.startsWith("image/") && previewUrl ? previewUrl : null}
+            onPreview={showImagePreview && previewUrl ? () => openModal(previewUrl, selectedFile.name, selectedFile.type) : null}
           />
         )}
 
@@ -325,22 +339,8 @@ export default function FileUpload({
             status="saved"
             downloadUrl={existingUrl}
             onRemove={!disabled ? () => onClearExisting?.() : null}
-          />
-        )}
-
-        {/* Image previews */}
-        {showImagePreview && showNew && previewUrl && (
-          <img
-            src={previewUrl}
-            alt="preview"
-            className="max-h-[160px] max-w-full rounded-lg border border-gray-200 object-contain"
-          />
-        )}
-        {showImagePreview && showExisting && existingIsImage && (
-          <img
-            src={existingUrl}
-            alt="saved"
-            className="max-h-[160px] max-w-full rounded-lg border border-gray-200 object-contain"
+            thumbnailUrl={showImagePreview && existingIsImage ? existingUrl : null}
+            onPreview={isPreviewable(existingMime) ? () => openModal(existingUrl, existingName || "Saved file", existingMime) : null}
           />
         )}
 
@@ -354,48 +354,63 @@ export default function FileUpload({
 
       </div>
     </div>
+
+    {/* Preview modal */}
+    {modal && (
+      <FilePreviewModal
+        url={modal.url}
+        name={modal.name}
+        mimeType={modal.mimeType}
+        onClose={closeModal}
+      />
+    )}
+    </>
   );
 }
 
 // ─── FileCard ─────────────────────────────────────────────────────────────────
 
-function FileCard({ meta, name, size, maxSize, status, downloadUrl, onRemove }) {
+function FileCard({ meta, name, size, maxSize, status, downloadUrl, onRemove, thumbnailUrl, onPreview }) {
   const isSaved = status === "saved";
 
   return (
     <div className={[
       "flex items-center gap-2.5 p-2 rounded-xl border transition-colors",
-      isSaved
-        ? "border-blue-100 bg-blue-50/40"
-        : "border-gray-200 bg-white shadow-sm",
+      isSaved ? "border-blue-100 bg-blue-50/40" : "border-gray-200 bg-white shadow-sm",
     ].join(" ")}>
 
-      {/* File type badge block */}
-      <div className="shrink-0 flex flex-col items-center justify-center w-9 h-[44px] rounded-lg bg-white border border-gray-100 shadow-sm overflow-hidden gap-0.5 py-1">
-        <meta.Icon className={`w-4 h-4 ${meta.iconClass}`} />
-        <span className={`px-1 py-0.5 rounded text-[8px] font-bold text-white leading-none ${meta.badgeClass}`}>
-          {meta.badge}
-        </span>
-      </div>
+      {/* Thumbnail (images) or icon+badge block */}
+      {thumbnailUrl ? (
+        <button
+          type="button"
+          onClick={onPreview}
+          title="Preview image"
+          className="shrink-0 relative group w-9 h-[44px] rounded-lg border border-gray-200 overflow-hidden bg-gray-50 shadow-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-violet-400"
+        >
+          <img src={thumbnailUrl} alt="preview" className="w-full h-full object-cover transition-opacity group-hover:opacity-60" />
+          <span className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+            <Eye className="w-3.5 h-3.5 text-white drop-shadow" />
+          </span>
+        </button>
+      ) : (
+        <div className="shrink-0 flex flex-col items-center justify-center w-9 h-[44px] rounded-lg bg-white border border-gray-100 shadow-sm overflow-hidden gap-0.5 py-1">
+          <meta.Icon className={`w-4 h-4 ${meta.iconClass}`} />
+          <span className={`px-1 py-0.5 rounded text-[8px] font-bold text-white leading-none ${meta.badgeClass}`}>
+            {meta.badge}
+          </span>
+        </div>
+      )}
 
       {/* Name + size / status */}
       <div className="flex flex-col min-w-0 flex-1 gap-0.5">
-        <span
-          className="text-[13px] font-medium text-gray-800 leading-snug truncate"
-          title={name}
-        >
+        <span className="text-[13px] font-medium text-gray-800 leading-snug truncate" title={name}>
           {name}
         </span>
         <div className="flex items-center gap-1.5 text-[11px] text-gray-400 flex-wrap">
           {size != null && (
             <>
               <span>{formatBytes(size)}</span>
-              {maxSize && (
-                <>
-                  <span className="text-gray-300">of</span>
-                  <span>{formatBytes(maxSize)}</span>
-                </>
-              )}
+              {maxSize && <><span className="text-gray-300">of</span><span>{formatBytes(maxSize)}</span></>}
               <span className="text-gray-200">•</span>
             </>
           )}
@@ -412,8 +427,21 @@ function FileCard({ meta, name, size, maxSize, status, downloadUrl, onRemove }) 
       </div>
 
       {/* Actions */}
-      <div className="shrink-0 flex items-center">
-        {downloadUrl && (
+      <div className="shrink-0 flex items-center gap-0.5">
+        {/* Preview button — for previewable types (image / PDF) */}
+        {onPreview && !thumbnailUrl && (
+          <button
+            type="button"
+            onClick={onPreview}
+            className="p-1.5 rounded-lg text-violet-400 hover:text-violet-600 hover:bg-violet-50 transition-colors"
+            title="Preview file"
+            aria-label="Preview file"
+          >
+            <Eye className="w-4 h-4" />
+          </button>
+        )}
+        {/* Direct download for non-previewable saved files */}
+        {downloadUrl && !onPreview && (
           <a
             href={downloadUrl}
             target="_blank"
@@ -436,6 +464,105 @@ function FileCard({ meta, name, size, maxSize, status, downloadUrl, onRemove }) 
             <X className="w-4 h-4" />
           </button>
         )}
+      </div>
+    </div>
+  );
+}
+
+// ─── FilePreviewModal ─────────────────────────────────────────────────────────
+
+function FilePreviewModal({ url, name, mimeType, onClose }) {
+  const isImage = mimeType?.startsWith("image/");
+  const isPdf   = mimeType === "application/pdf";
+
+  useEffect(() => {
+    const onKey = (e) => { if (e.key === "Escape") onClose(); };
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [onClose]);
+
+  return (
+    <div
+      className="fixed inset-0 z-[9999] flex items-center justify-center p-3 sm:p-6 bg-black/70 backdrop-blur-sm"
+      onClick={onClose}
+    >
+      <div
+        className="relative flex flex-col bg-white rounded-2xl shadow-2xl w-full max-w-3xl max-h-[92vh] overflow-hidden"
+        onClick={(e) => e.stopPropagation()}
+      >
+        {/* ── Header ── */}
+        <div className="flex items-center gap-2 px-4 py-3 border-b border-gray-100 bg-gray-50 shrink-0">
+          <div className="flex items-center justify-center w-6 h-6 rounded-md bg-violet-100 shrink-0">
+            {isImage ? <ImageIcon className="w-3.5 h-3.5 text-violet-600" /> : <FileText className="w-3.5 h-3.5 text-violet-600" />}
+          </div>
+          <span className="flex-1 text-[13px] font-semibold text-gray-700 truncate min-w-0" title={name}>
+            {name}
+          </span>
+          <div className="flex items-center gap-1 shrink-0">
+            <a
+              href={url}
+              download={name}
+              onClick={(e) => e.stopPropagation()}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-gray-200 bg-white text-[12px] font-medium text-gray-600 hover:bg-gray-50 hover:border-gray-300 transition-colors shadow-sm"
+              title="Download"
+            >
+              <Download className="w-3.5 h-3.5" />
+              <span className="hidden sm:inline">Download</span>
+            </a>
+            <a
+              href={url}
+              target="_blank"
+              rel="noopener noreferrer"
+              onClick={(e) => e.stopPropagation()}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-gray-200 bg-white text-[12px] font-medium text-gray-600 hover:bg-gray-50 hover:border-gray-300 transition-colors shadow-sm"
+              title="Open in new tab"
+            >
+              <ExternalLink className="w-3.5 h-3.5" />
+              <span className="hidden sm:inline">New Tab</span>
+            </a>
+            <button
+              type="button"
+              onClick={onClose}
+              className="ml-1 p-1.5 rounded-lg text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors"
+              aria-label="Close preview"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+        </div>
+
+        {/* ── Content ── */}
+        <div className="flex-1 overflow-auto min-h-0 bg-gray-100">
+          {isImage && (
+            <div className="flex items-center justify-center min-h-[300px] p-4">
+              <img
+                src={url}
+                alt={name}
+                className="max-w-full max-h-[75vh] object-contain rounded-lg shadow-sm"
+              />
+            </div>
+          )}
+          {isPdf && (
+            <iframe
+              src={url}
+              title={name}
+              className="w-full h-[75vh] border-0"
+            />
+          )}
+          {!isImage && !isPdf && (
+            <div className="flex flex-col items-center justify-center min-h-[200px] gap-3 text-gray-400 p-8">
+              <FileText className="w-10 h-10 text-gray-300" />
+              <p className="text-[13px]">Preview not available for this file type.</p>
+              <a
+                href={url}
+                download={name}
+                className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-blue-50 border border-blue-200 text-[13px] font-medium text-blue-600 hover:bg-blue-100 transition-colors"
+              >
+                <Download className="w-4 h-4" /> Download file
+              </a>
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );

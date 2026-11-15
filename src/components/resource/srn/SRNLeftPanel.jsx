@@ -633,6 +633,7 @@ export default function SRNLeftPanel({
           required={mode === "create"}
           accept={ACCEPT_DOC}
           allowedTypes={TYPES_DOC}
+          showImagePreview
         />
       </div>
 

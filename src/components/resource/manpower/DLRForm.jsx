@@ -527,6 +527,7 @@ export default function DLRForm({
               resetKey={scanResetKey}
               accept={ACCEPT_DOC}
               allowedTypes={TYPES_DOC}
+              showImagePreview
             />
 
           </div>
