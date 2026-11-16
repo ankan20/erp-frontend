@@ -7,6 +7,7 @@ import { API_ENDPOINTS } from "@/config/api.config";
 import SearchableSelect from "@/components/common/SearchableSelect";
 import { ScoreBar, Trend } from "@/components/hr/performance/ScoreCard";
 import { currentProject } from "@/lib/misTasks";
+import { GuideHelpButton, GuideTour } from "@/components/mis/guide/Guide";
 
 const iso = (d) => new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 10);
 const parse = (s) => { const [y, m, d] = s.split("-").map(Number); return new Date(y, m - 1, d); };
@@ -77,6 +78,7 @@ export default function ScheduleComplianceView() {
 
   return (
     <div className="space-y-4">
+      <GuideTour screen="compliance" />
       {/* filters — one row */}
       <div className="flex flex-wrap items-center gap-2">
         <div className="flex rounded-md border border-gray-300 overflow-hidden" role="radiogroup" aria-label="Period">
@@ -92,6 +94,7 @@ export default function ScheduleComplianceView() {
         </div>
         <div className="w-56"><SearchableSelect options={projectOptions} value={project} onChange={(v) => setProject(v || "all")} /></div>
         <div className="w-52"><SearchableSelect options={deptOptions} value={dept} onChange={(v) => setDept(v || "")} placeholder="All departments" /></div>
+        <GuideHelpButton screen="compliance" className="ml-auto" />
       </div>
 
       {!d ? (

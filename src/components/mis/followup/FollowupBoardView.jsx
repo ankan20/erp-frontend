@@ -20,6 +20,8 @@ import {
   followupApi, sprintApi, BOARD_COLUMNS, BOARD_DOT, BOARD_STYLE, SPRINT_STYLE, SPRINT_TYPES, canSuperviseIn,
 } from "@/lib/misFollowups";
 import { PRIORITY_STYLE, PRIORITY_STRIPE, TASKS_CHANGED, currentProject, fmtDate } from "@/lib/misTasks";
+import { GuideHelpButton, GuideTour } from "@/components/mis/guide/Guide";
+import { HINTS } from "@/config/guideContent";
 
 const TABS = [
   { id: "board", label: "Board" },
@@ -264,6 +266,7 @@ export default function FollowupBoardView() {
 
   return (
     <div className="space-y-4">
+      <GuideTour screen="followups" />
       {/* ── context row: project · sprint type · sprint ── */}
       <div className="flex flex-wrap items-end gap-3">
         <div className="w-60">
@@ -292,6 +295,7 @@ export default function FollowupBoardView() {
           <button onClick={() => { loadItems(); loadSprints(); }} title="Refresh" aria-label="Refresh" className="p-2 rounded-md border border-gray-300 bg-white text-gray-600 hover:bg-gray-50">
             <RefreshCw size={15} className={loading ? "animate-spin" : ""} />
           </button>
+          <GuideHelpButton screen="followups" />
           {canSup && (
             <>
               <button onClick={() => setSprintForm({ open: true, sprint: null })} className={btnSecondary}><CalendarRange size={15} /> New Sprint</button>
@@ -435,7 +439,7 @@ export default function FollowupBoardView() {
         <div className="space-y-5">
           <section>
             <h3 className="text-sm font-semibold text-gray-800 mb-2 flex items-center gap-2"><Inbox size={15} /> With me now <span className="text-gray-400 font-normal">({items.length})</span></h3>
-            <ListTable rows={items} loading={loading} onOpen={openAgenda} myId={myId} empty="Nothing is waiting on you. 🎉" showProject />
+            <ListTable rows={items} loading={loading} onOpen={openAgenda} myId={myId} empty={HINTS.emptyWaiting} showProject />
           </section>
           {review.length > 0 && (
             <section>

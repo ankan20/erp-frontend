@@ -11,6 +11,8 @@ import {
 } from "@/lib/misTasks";
 import ConfirmDialog from "@/components/common/ConfirmDialog";
 import TaskTimer, { useTick } from "./TaskTimer";
+import { GuideHint } from "@/components/mis/guide/Guide";
+import { HINTS } from "@/config/guideContent";
 
 const ACTION_TEXT = {
   CREATED: "created the task",
@@ -246,7 +248,9 @@ export default function TaskDetailSheet({ taskId, open, onClose, onEdit, onChang
                     )}
                   </div>
                 )}
-                {task.status === "To Do" && <p className="text-[11px] text-gray-500">Press Start when work begins — the time from Start to Done is measured (paused while On Hold).</p>}
+                {task.status === "To Do" && <GuideHint>{task.canStart ? HINTS.startFirst : HINTS.cannotStart}</GuideHint>}
+                {!locked && task.status !== "To Do" && !canEdit && <GuideHint>{HINTS.cannotEdit}</GuideHint>}
+                {!locked && canEdit && task.estimatedHours == null && <GuideHint>{HINTS.noEstimate}</GuideHint>}
               </div>
 
               {/* ── locked: reopen request / decision ── */}

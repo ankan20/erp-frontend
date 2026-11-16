@@ -13,6 +13,8 @@ import TaskFormDialog from "./TaskFormDialog";
 import TaskDetailSheet from "./TaskDetailSheet";
 import TaskTimer, { useTick } from "./TaskTimer";
 import ReopenRequestsDialog from "./ReopenRequestsDialog";
+import { GuideHelpButton, GuideTour } from "@/components/mis/guide/Guide";
+import { HINTS } from "@/config/guideContent";
 import {
   misTaskApi, TASK_STATUSES, TASK_PRIORITIES, STATUS_STYLE, PRIORITY_STYLE, TASKS_CHANGED,
   currentProject, fmtDateTimeParts, stampFetched,
@@ -166,6 +168,7 @@ export default function SelfTaskView({ lockScope = null, compact = false }) {
 
   return (
     <div className="space-y-4">
+      {!compact && <GuideTour screen="tasks" />}
       {/* reopen requests waiting for me (higher level) */}
       {stats?.reopenToDecide > 0 && (
         <button onClick={() => setReqOpen(true)}
@@ -221,6 +224,7 @@ export default function SelfTaskView({ lockScope = null, compact = false }) {
             className="p-2 rounded-md border border-gray-300 bg-white text-gray-600 hover:bg-gray-50">
             <RefreshCw size={15} className={loading ? "animate-spin" : ""} />
           </button>
+          <GuideHelpButton screen="tasks" />
           <button data-shortcut="create" onClick={openCreate}
             className="inline-flex items-center gap-1.5 px-3.5 py-2 text-sm font-medium rounded-md bg-blue-600 text-white hover:bg-blue-700">
             <Plus size={15} /> New Task
@@ -271,7 +275,7 @@ export default function SelfTaskView({ lockScope = null, compact = false }) {
         <div className="flex items-center justify-center py-16 text-gray-500 gap-2 text-sm"><Loader2 size={16} className="animate-spin" /> Loading…</div>
       ) : data.items.length === 0 ? (
         <div className="bg-white rounded-xl border border-dashed border-gray-300 py-14 text-center">
-          <p className="text-sm text-gray-600">No tasks here yet.</p>
+          <p className="text-sm text-gray-600">{HINTS.emptyTasks}</p>
           <button onClick={openCreate} className="mt-3 text-sm text-blue-600 hover:underline">+ Create a task</button>
         </div>
       ) : view === "board" ? (

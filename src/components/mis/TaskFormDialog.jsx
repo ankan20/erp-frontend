@@ -9,6 +9,8 @@ import { API_ENDPOINTS } from "@/config/api.config";
 import {
   misTaskApi, TASK_PRIORITIES, currentProject,
 } from "@/lib/misTasks";
+import { GuideHint } from "@/components/mis/guide/Guide";
+import { HINTS } from "@/config/guideContent";
 
 const EMPTY = {
   title: "", description: "", priority: "Medium",
@@ -187,6 +189,7 @@ export default function TaskFormDialog({ open, onClose, task = null, access = {}
           <Field label="Estimated hours">
             <input type="number" min="0" step="0.25" value={form.estimatedHours} onChange={set("estimatedHours")} className={inputCls}
               placeholder="e.g. 3 — work time is compared to this" />
+            {form.estimatedHours === "" && <GuideHint>{HINTS.noEstimate}</GuideHint>}
           </Field>
 
           <Field label="Project">
@@ -213,6 +216,7 @@ export default function TaskFormDialog({ open, onClose, task = null, access = {}
             </div>
             {dateError ? <span className="text-[11px] text-red-600">{dateError}</span>
               : <span className="text-[11px] text-gray-400">Time is optional — no time = end of the day</span>}
+            {!form.dueDate && !dateError && <GuideHint>{HINTS.noDueDate}</GuideHint>}
           </Field>
 
           <Field label="Tags (comma separated)" className="sm:col-span-2">

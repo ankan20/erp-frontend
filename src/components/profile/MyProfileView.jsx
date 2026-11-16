@@ -17,6 +17,7 @@ import { userFileUrl } from "@/lib/userFiles";
 import { getCookie } from "@/lib/cookies";
 import { followupApi } from "@/lib/misFollowups";
 import { TASKS_CHANGED, fmtDate } from "@/lib/misTasks";
+import { GuideHelpButton, GuideTour } from "@/components/mis/guide/Guide";
 
 const TABS = [
   { id: "overview", label: "Overview" },
@@ -186,11 +187,15 @@ function MyPerformance() {
 
   return (
     <div className="space-y-4">
-      <div className="flex rounded-md border border-gray-300 overflow-hidden w-fit" role="radiogroup" aria-label="Period">
-        {[["month", "This month"], ["week", "This week"]].map(([v, l]) => (
-          <button key={v} role="radio" aria-checked={period === v} onClick={() => setPeriod(v)}
-            className={`px-3 py-2 text-sm ${period === v ? "bg-blue-600 text-white" : "bg-white text-gray-700 hover:bg-gray-50"}`}>{l}</button>
-        ))}
+      <GuideTour screen="performance" />
+      <div className="flex items-center gap-2">
+        <div className="flex rounded-md border border-gray-300 overflow-hidden w-fit" role="radiogroup" aria-label="Period">
+          {[["month", "This month"], ["week", "This week"]].map(([v, l]) => (
+            <button key={v} role="radio" aria-checked={period === v} onClick={() => setPeriod(v)}
+              className={`px-3 py-2 text-sm ${period === v ? "bg-blue-600 text-white" : "bg-white text-gray-700 hover:bg-gray-50"}`}>{l}</button>
+          ))}
+        </div>
+        <GuideHelpButton screen="performance" />
       </div>
       {loading && !row ? (
         <div className="py-16 flex justify-center gap-2 text-sm text-gray-500"><Loader2 size={16} className="animate-spin" /> Working it out…</div>
