@@ -23,7 +23,7 @@ const COLUMNS = [
 ];
 
 export default function OutstandingReceivablesPage() {
-  const access = getPageAccess({ pageCode: "profit_loss", pageType: "LIST" });
+  const access = getPageAccess({ pageCode: "accounting_outstanding_receivables", pageType: "LIST" });
   const router = useRouter();
   const {
     projectCode, setProjectCode, fromDate, setFromDate, toDate, setToDate,

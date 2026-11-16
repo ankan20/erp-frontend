@@ -38,7 +38,7 @@ function Section({ title, items, total, bgHeader, bgTotal }) {
 }
 
 export default function AccountingBalanceSheetPage() {
-  const access = getPageAccess({ pageCode: "profit_loss", pageType: "LIST" });
+  const access = getPageAccess({ pageCode: "accounting_balance_sheet", pageType: "LIST" });
   const router = useRouter();
   const {
     projectCode, setProjectCode, fromDate, setFromDate, toDate, setToDate,

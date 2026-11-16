@@ -32,7 +32,7 @@ const COLUMNS = [
 ];
 
 export default function GeneralLedgerPage() {
-  const access = getPageAccess({ pageCode: "profit_loss", pageType: "LIST" });
+  const access = getPageAccess({ pageCode: "accounting_ledger", pageType: "LIST" });
   const router  = useRouter();
   const actions = usePageActions({ router });
 

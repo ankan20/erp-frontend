@@ -16,7 +16,7 @@ import AccountingFilterBar from "@/components/finance/report/accounting/Accounti
 import useAccountingFetch from "@/components/finance/report/accounting/useAccountingFetch";
 
 export default function AccountingProfitLossPage() {
-  const access = getPageAccess({ pageCode: "profit_loss", pageType: "LIST" });
+  const access = getPageAccess({ pageCode: "accounting_profit_loss", pageType: "LIST" });
   const router = useRouter();
   const {
     projectCode, setProjectCode, fromDate, setFromDate, toDate, setToDate,

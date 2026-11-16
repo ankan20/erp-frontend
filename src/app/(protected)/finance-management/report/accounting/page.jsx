@@ -61,7 +61,7 @@ const SECTIONS = [
 ];
 
 export default function AccountingDashboardPage() {
-  const access = getPageAccess({ pageCode: "profit_loss", pageType: "LIST" });
+  const access = getPageAccess({ pageCode: "accounting_dashboard", pageType: "LIST" });
   const router = useRouter();
 
   if (!access.allowed) return <PageNotAvailable />;

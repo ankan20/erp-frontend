@@ -25,7 +25,7 @@ const COLUMNS = [
 ];
 
 export default function TrialBalancePage() {
-  const access = getPageAccess({ pageCode: "profit_loss", pageType: "LIST" });
+  const access = getPageAccess({ pageCode: "accounting_trial_balance", pageType: "LIST" });
   const router = useRouter();
   const {
     projectCode, setProjectCode, fromDate, setFromDate, toDate, setToDate,

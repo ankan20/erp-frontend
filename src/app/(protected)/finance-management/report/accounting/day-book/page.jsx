@@ -28,7 +28,7 @@ const BASE_COLUMNS = [
 const PROJECT_COL = { key: "projectCode", label: "Project", className: "w-[100px]" };
 
 export default function DayBookPage() {
-  const access = getPageAccess({ pageCode: "profit_loss", pageType: "LIST" });
+  const access = getPageAccess({ pageCode: "accounting_day_book", pageType: "LIST" });
   const router = useRouter();
   const {
     projectCode, setProjectCode, fromDate, setFromDate, toDate, setToDate,

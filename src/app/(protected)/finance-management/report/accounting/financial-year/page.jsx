@@ -14,7 +14,7 @@ import { apiRequest } from "@/lib/apiClient";
 import { API_ENDPOINTS } from "@/config/api.config";
 
 export default function FinancialYearPage() {
-  const access = getPageAccess({ pageCode: "profit_loss", pageType: "LIST" });
+  const access = getPageAccess({ pageCode: "accounting_financial_year", pageType: "LIST" });
   const router = useRouter();
   const [years, setYears] = useState([]);
   const [loading, setLoading] = useState(true);

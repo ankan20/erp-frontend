@@ -27,7 +27,7 @@ const SOURCE_LABELS = {
 };
 
 export default function PostingStatusPage() {
-  const access = getPageAccess({ pageCode: "profit_loss", pageType: "LIST" });
+  const access = getPageAccess({ pageCode: "accounting_posting_status", pageType: "LIST" });
   const router = useRouter();
   const [status, setStatus] = useState(null);
   const [loading, setLoading] = useState(true);

@@ -26,7 +26,7 @@ const COLUMNS = [
 ];
 
 export default function GroupLedgerPage() {
-  const access = getPageAccess({ pageCode: "profit_loss", pageType: "LIST" });
+  const access = getPageAccess({ pageCode: "accounting_group_ledger", pageType: "LIST" });
   const router  = useRouter();
   const actions = usePageActions({ router });
 

@@ -18,7 +18,7 @@ import { formatAmount } from "@/helper/numberFormatter";
 import { fmtDate } from "@/components/finance/report/accounting/shared";
 
 export default function OpeningBalancePage() {
-  const access = getPageAccess({ pageCode: "profit_loss", pageType: "LIST" });
+  const access = getPageAccess({ pageCode: "accounting_opening_balance", pageType: "LIST" });
   const router = useRouter();
   const actions = usePageActions({ router });
 

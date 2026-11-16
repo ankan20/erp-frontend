@@ -72,50 +72,6 @@ function collectKeys(items = []) {
     return keys;
 }
 
-const renderPermissionTree = (items = [], serial = "", permissions, handleCheckbox) => {
-    return items.map((item, index) => {
-        const currentSerial = serial ? `${serial}.${index + 1}` : `${index + 1}`;
-
-        if (item.children?.length > 0) {
-            if (item.showChildrenInPermission === false) {
-                const accessKey =
-                    item.permissionKey ||
-                    item.children?.find((child) => child.permissionKey)?.permissionKey;
-
-                return (
-                    <PermissionRow
-                        key={`${item.title}-${currentSerial}`}
-                        title={item.title}
-                        permissionKey={accessKey}
-                        serialNo={currentSerial}
-                        permissions={permissions}
-                        handleCheckbox={handleCheckbox}
-                    />
-                );
-            }
-
-            return (
-                <div key={`${item.title}-${currentSerial}`}>
-                    <div className="border-b border-[#cfcfcf] bg-[#d7ebcd] px-2 py-1 text-[12px] font-semibold">
-                        {currentSerial} {item.title}
-                    </div>
-                    {renderPermissionTree(item.children, currentSerial, permissions, handleCheckbox)}
-                </div>
-            );
-        }
-
-        return (
-            <PermissionRow
-                key={`${item.title}-${currentSerial}`}
-                title={item.title}
-                permissionKey={item.permissionKey}
-                serialNo={currentSerial}
-                permissions={permissions}
-                handleCheckbox={handleCheckbox}
-            />
-        );
-    });
-};
 
 export default function MapUserModal({
                                          open,
@@ -178,6 +134,84 @@ export default function MapUserModal({
     const handleModuleToggle = (moduleKeys) => {
         if (isAllSelected(moduleKeys)) deselectKeys(moduleKeys);
         else selectKeys(moduleKeys);
+    };
+
+    const renderPermissionTree = (items = [], serial = "") => {
+        return items.map((item, index) => {
+            const currentSerial = serial ? `${serial}.${index + 1}` : `${index + 1}`;
+
+            if (item.children?.length > 0) {
+                if (item.showChildrenInPermission === false) {
+                    const accessKey =
+                        item.permissionKey ||
+                        item.children?.find((child) => child.permissionKey)?.permissionKey;
+
+                    return (
+                        <div key={`${item.title}-${currentSerial}`} className="grid grid-cols-[1fr_70px_90px] border-b border-[#cfcfcf] bg-[#d7ebcd] text-[12px] font-semibold">
+                            <div className="border-r border-[#cfcfcf] px-2 py-1">
+                                {currentSerial} {item.title}
+                            </div>
+                            <div className="flex items-center justify-center border-r border-[#cfcfcf]">
+                                <input
+                                    type="checkbox"
+                                    checked={permissions?.[accessKey]?.view || false}
+                                    disabled={permissions?.[accessKey]?.edit || false}
+                                    onChange={(e) => handleCheckbox(accessKey, "view", e.target.checked)}
+                                    className="h-3.5 w-3.5 cursor-pointer"
+                                />
+                            </div>
+                            <div className="flex items-center justify-center">
+                                <input
+                                    type="checkbox"
+                                    checked={permissions?.[accessKey]?.edit || false}
+                                    onChange={(e) => handleCheckbox(accessKey, "edit", e.target.checked)}
+                                    className="h-3.5 w-3.5 cursor-pointer"
+                                />
+                            </div>
+                        </div>
+                    );
+                }
+
+                const sectionKeys = collectKeys(item.children);
+                const sectionSelected = isAllSelected(sectionKeys);
+
+                return (
+                    <div key={`${item.title}-${currentSerial}`}>
+                        <div className="border-b border-[#cfcfcf] bg-[#d7ebcd] px-2 py-1 text-[12px] font-semibold flex items-center justify-between">
+                            <span>{currentSerial} {item.title}</span>
+                            {sectionKeys.length > 0 && (
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        if (sectionSelected) deselectKeys(sectionKeys);
+                                        else selectKeys(sectionKeys);
+                                    }}
+                                    className={`px-2 py-0.5 text-[10px] font-semibold border rounded-sm transition ${
+                                        sectionSelected
+                                            ? "bg-red-100 border-red-400 text-red-700 hover:bg-red-200"
+                                            : "bg-white border-[#5b6b8c] text-[#5b6b8c] hover:bg-blue-50"
+                                    }`}
+                                >
+                                    {sectionSelected ? "Deselect All" : "Select All"}
+                                </button>
+                            )}
+                        </div>
+                        {renderPermissionTree(item.children, currentSerial)}
+                    </div>
+                );
+            }
+
+            return (
+                <PermissionRow
+                    key={`${item.title}-${currentSerial}`}
+                    title={item.title}
+                    permissionKey={item.permissionKey}
+                    serialNo={currentSerial}
+                    permissions={permissions}
+                    handleCheckbox={handleCheckbox}
+                />
+            );
+        });
     };
 
     return (
@@ -251,9 +285,7 @@ export default function MapUserModal({
 
                                     {renderPermissionTree(
                                         module.children || [],
-                                        `${moduleIndex + 1}`,
-                                        permissions,
-                                        handleCheckbox
+                                        `${moduleIndex + 1}`
                                     )}
                                 </div>
                             );

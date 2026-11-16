@@ -40,7 +40,7 @@ const SOURCE_TYPES = [
 ];
 
 export default function VoucherRegisterPage() {
-  const access = getPageAccess({ pageCode: "profit_loss", pageType: "LIST" });
+  const access = getPageAccess({ pageCode: "accounting_voucher_register", pageType: "LIST" });
   const router = useRouter();
   const [sourceType, setSourceType] = useState("");
   const {
