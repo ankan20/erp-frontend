@@ -183,17 +183,14 @@ export default function AppNavbar() {
         <div className="flex flex-col">
           {/* Branding */}
           <div className="leading-tight">
-            <div className="flex items-end gap-1">
-              <span className="text-[22px] lg:text-[24px] font-extrabold text-[#003b8e]">
-                PRAX
-              </span>
-              <span className="text-[13px] lg:text-[14px] font-bold">
-                CONSTRUCTION
-              </span>
-              <span className="text-[13px] lg:text-[14px] font-bold text-red-600">
-                ERP
-              </span>
-            </div>
+            <Image
+              src="/assets/brand/edox-wordmark.png"
+              alt="Edox"
+              width={1136}
+              height={344}
+              priority
+              className="h-[30px] lg:h-[32px] w-auto"
+            />
 
             <div className="mt-0.5 text-[15px] lg:text-[18px] font-bold">
               Company: Dishaan Hi-tech (India) Pvt. Ltd.

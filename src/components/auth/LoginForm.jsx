@@ -138,16 +138,16 @@ useEffect(()=>{
               <p className="text-[#0c3472] text-[28px] font-medium ">Welcome to</p>
 
             <div className="leading-none">
-              <h1 className="text-[50px] font-black tracking-tight text-[#002b6f]">
-                PRAX
+              <h1>
+                <Image
+                  src="/assets/brand/edox-logo.png"
+                  alt="Edox – Record | Manage | Reconcile"
+                  width={1377}
+                  height={419}
+                  priority
+                  className="w-[260px] sm:w-[340px] h-auto"
+                />
               </h1>
-
-              <div className="flex items-end gap-3 flex-wrap">
-                <p className="text-[25px] font-black tracking-tight text-black">
-                  CONSTRUCTION
-                </p>
-                <p className="text-[25px] font-black text-red-600">ERP</p>
-              </div>
               <p className="text-[22px] text-black pt-2">
               Company Name:{" "}
               <span className="font-semibold">

@@ -4,8 +4,8 @@ import CommRoot from "@/components/communication/CommRoot";
 import "./globals.css";
 
 export const metadata = {
-  title: "Prax Construction ERP",
-  description: "ERP System",
+  title: "Edox",
+  description: "Edox — Record | Manage | Reconcile",
 };
 
 export default function RootLayout({ children }) {
