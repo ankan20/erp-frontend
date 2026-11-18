@@ -835,6 +835,9 @@ export const API_ENDPOINTS = {
         HISTORY:            "/finance/petty-cash/docket-voucher/history/",            // /:id GET
         MY_APPROVAL_STATUS: "/finance/petty-cash/docket-voucher/my-approval-status/", // /:id GET
         BUDGET_ROWS:        "/finance/petty-cash/docket-voucher/budget-rows/",        // /:budgetId GET — pre-fill helper
+        BULK_REFERENCE:     "/finance/petty-cash/docket-voucher/bulk/reference",      // GET ?projectCode — approved budgets (per-CC balance) + accounts
+        BULK_VALIDATE:      "/finance/petty-cash/docket-voucher/bulk/validate",       // POST { projectCode, rows[] } — dry run
+        BULK_IMPORT:        "/finance/petty-cash/docket-voucher/bulk/import",         // POST { projectCode, rows[] } — creates valid dockets as Draft
       },
     },
   },

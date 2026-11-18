@@ -124,7 +124,10 @@ export default function DocketVoucherListPage() {
           showDateRange
           actions={
             access.canAdd
-              ? [{ label: "+ Expenses Docket", onClick: () => router.push("/finance-management/account/petty-cash/expenses-docket/new") }]
+              ? [
+                  { label: "+ Expenses Docket", onClick: () => router.push("/finance-management/account/petty-cash/expenses-docket/new") },
+                  { label: "Bulk Upload",       onClick: () => router.push("/finance-management/account/petty-cash/expenses-docket/bulk-upload") },
+                ]
               : []
           }
         />
