@@ -112,6 +112,7 @@ export default function Page() {
           showDateRange
           actions={[
             { label: "Bulk Docket", onClick: () => router.push("/finance-management/account/journal/vouchering") },
+            ...(access.canAdd ? [{ label: "Bulk Upload", onClick: () => router.push("/finance-management/account/journal/bulk-upload") }] : []),
             ...(access.canAdd ? [{ label: "+ Journal Voucher", onClick: () => router.push("/finance-management/account/journal/new") }] : []),
           ]}
         />

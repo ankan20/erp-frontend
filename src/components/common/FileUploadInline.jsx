@@ -3,6 +3,7 @@
 import { useRef, useState } from "react";
 import { Download, X, FileText, FileSpreadsheet, ImageIcon, Paperclip } from "lucide-react";
 import { toast } from "sonner";
+import { FromDriveButton, SaveToDriveButton } from "@/components/edox-drive/DriveButtons";
 
 // ─── helpers ─────────────────────────────────────────────────────────────────
 
@@ -112,6 +113,11 @@ export default function FileUploadInline({
   const handleChange = (e) => {
     const file = e.target.files?.[0];
     if (fileRef.current) fileRef.current.value = "";
+    takeFile(file);
+  };
+
+  // a file from the computer or from Edox Drive
+  const takeFile = (file) => {
     if (!file) return;
 
     if (allowedTypes.length > 0 && !allowedTypes.includes(file.type)) {
@@ -171,6 +177,7 @@ export default function FileUploadInline({
           <Paperclip className="w-3.5 h-3.5 text-[#7a5800]" />
         </button>
       )}
+      <FromDriveButton compact accept={accept} onFile={takeFile} disabled={disabled} />
 
       {/* Hidden input */}
       <input
@@ -226,6 +233,7 @@ export default function FileUploadInline({
             <span className="truncate">{existingName || "Download"}</span>
             <Download className="w-3 h-3 shrink-0 ml-0.5 text-blue-500" />
           </a>
+          <SaveToDriveButton compact url={existingUrl} name={existingName} />
           {!disabled && (
             <button
               type="button"

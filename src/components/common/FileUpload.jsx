@@ -14,6 +14,7 @@ import {
   ExternalLink,
 } from "lucide-react";
 import { toast } from "sonner";
+import { FromDriveButton, SaveToDriveButton } from "@/components/edox-drive/DriveButtons";
 
 // ─── helpers ────────────────────────────────────────────────────────────────
 
@@ -303,6 +304,7 @@ export default function FileUpload({
               >
                 Browse File
               </button>
+              <FromDriveButton accept={accept} onFile={processFile} />
             </div>
           </div>
         )}
@@ -342,6 +344,11 @@ export default function FileUpload({
             thumbnailUrl={showImagePreview && existingIsImage ? existingUrl : null}
             onPreview={isPreviewable(existingMime) ? () => openModal(existingUrl, existingName || "Saved file", existingMime) : null}
           />
+        )}
+
+        {/* Save the saved file to Edox Drive (shown only when Drive is set up) */}
+        {showExisting && (
+          <div className="px-1"><SaveToDriveButton url={existingUrl} name={existingName} /></div>
         )}
 
         {/* No file — view-only with nothing attached */}

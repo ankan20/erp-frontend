@@ -816,6 +816,10 @@ export const routeMetaConfig = [
     breadcrumbs: ["Finance Management", "Accounts", "Journal", "List"],
   },
   {
+    basePath: "/finance-management/account/journal/bulk-upload",
+    breadcrumbs: ["Finance Management", "Accounts", "Journal", "Bulk Upload"],
+  },
+  {
     basePath: "/finance-management/account/journal/new",
     breadcrumbs: ["Finance Management", "Accounts", "Journal", "Journal Adjustment", "New"],
   },

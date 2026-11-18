@@ -6,6 +6,7 @@ import {
   User, Camera, Briefcase, Phone, Mail, MapPin, Calendar, Users, FolderKanban, HeartPulse, Loader2, Lightbulb,
 } from "lucide-react";
 import AuthImage from "@/components/common/AuthImage";
+import DriveConnectCard from "@/components/edox-drive/DriveConnectCard";
 import ProfilePictureUploadModal from "@/components/common/ProfilePictureUploadModal";
 import SelfTaskView from "@/components/mis/SelfTaskView";
 import AgendaDetailSheet from "@/components/mis/followup/AgendaDetailSheet";
@@ -295,6 +296,7 @@ export default function MyProfileView() {
         ))}
       </div>
 
+      {tab === "overview" && <DriveConnectCard />}
       {tab === "overview" && <Overview me={me} />}
       {tab === "tasks" && <SelfTaskView lockScope="mine" />}
       {tab === "followups" && <MyFollowups />}

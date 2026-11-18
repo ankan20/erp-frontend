@@ -3,6 +3,7 @@
 import { useRef, useState } from "react";
 import { Paperclip, Download, X } from "lucide-react";
 import { toast } from "sonner";
+import { FromDriveButton, SaveToDriveButton } from "@/components/edox-drive/DriveButtons";
 
 const DEFAULT_ALLOWED_TYPES = [
   "application/pdf",
@@ -68,16 +69,20 @@ export default function FileUploadInput({
   const handleChange = (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
+    if (!takeFile(file) && fileRef.current) fileRef.current.value = "";
+  };
 
+  // a file from the computer or from Edox Drive; false if not allowed
+  const takeFile = (file) => {
     if (!allowedTypes.includes(file.type)) {
       toast.error("Only PDF, Excel, JPG or PNG files are allowed");
-      if (fileRef.current) fileRef.current.value = "";
-      return;
+      return false;
     }
 
     setSelectedFile(file);
     onFileChange?.(file);
     onClearExisting?.();
+    return true;
   };
 
   const handleRemoveSelected = () => {
@@ -110,6 +115,8 @@ export default function FileUploadInput({
       >
         @
       </button>
+
+      <FromDriveButton compact accept={accept} onFile={takeFile} disabled={disabled} />
 
       {/* Hidden file input */}
       <input
@@ -150,6 +157,7 @@ export default function FileUploadInput({
             <Download className="w-3.5 h-3.5 shrink-0" />
             <span>Download Attachment</span>
           </a>
+          <SaveToDriveButton compact url={existingFileUrl} />
           {!disabled && (
             <button
               type="button"
