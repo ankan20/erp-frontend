@@ -34,6 +34,9 @@ const mapHeader = (h) => {
   const n = norm(h);
   if (!n) return null;
   for (const [key, list] of Object.entries(HEADER_ALIASES)) if (list.includes(n)) return key;
+  // looser matches for headers like "Balance Amt", "Closing Bal.", "Narration / Description"
+  if (n.includes("balance") || /^(closing|running|avail)?bal/.test(n)) return "balance";
+  if (n.includes("narration") || n.includes("description") || n.includes("particular")) return "desc";
   return null;
 };
 
@@ -167,5 +170,9 @@ export async function parseStatementFile(file) {
     rows.push(r);
   }
   if (!rows.length) throw new Error("No data rows found in the file.");
-  return { rows, sheetName };
+  const warnings = [];
+  if (colMap.balance === undefined) warnings.push("No BALANCE column found in the file, so balance will be empty for every line. Name the column BALANCE.");
+  else if (rows.every((r) => r.balance === "")) warnings.push("The BALANCE column is empty in every row.");
+  if (colMap.site === undefined) warnings.push("No SITE column found. Lines can be given a site later from the Transactions tab (edit button).");
+  return { rows, sheetName, warnings };
 }

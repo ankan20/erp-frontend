@@ -4,7 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import {
   Upload, FileSpreadsheet, FileText, Download, CheckCircle2, Loader2,
-  RefreshCw, Undo2, ExternalLink, History,
+  RefreshCw, Undo2, ExternalLink, History, Pencil, AlertTriangle, X,
 } from "lucide-react";
 
 import { apiRequest }    from "@/lib/apiClient";
@@ -88,7 +88,7 @@ export default function BankStatementImport({ canImport = false }) {
       </div>
 
       {tab === "upload" && <UploadTab account={account} canImport={canImport && !!account?.canImport} />}
-      {tab === "transactions" && <TransactionsTab account={account} />}
+      {tab === "transactions" && <TransactionsTab account={account} canEdit={canImport && !!account?.canImport} />}
       {tab === "history" && <HistoryTab account={account} canImport={canImport} />}
     </div>
   );
@@ -104,9 +104,10 @@ function UploadTab({ account, canImport }) {
   const [done,     setDone]     = useState(null);   // import result summary
   const [filter,   setFilter]   = useState("all");
   const [dragOver, setDragOver] = useState(false);
+  const [warnings, setWarnings] = useState([]);
   const fileRef = useRef(null);
 
-  useEffect(() => { setRows(null); setResult(null); setDone(null); setFileName(""); }, [account?.id]);
+  useEffect(() => { setRows(null); setResult(null); setDone(null); setFileName(""); setWarnings([]); }, [account?.id]);
 
   const handleFile = async (file) => {
     if (!file) return;
@@ -117,6 +118,7 @@ function UploadTab({ account, canImport }) {
       setBusy("validating");
       const r = await apiRequest({ url: EP.VALIDATE, method: "POST", data: { bankAccountId: account.id, rows: parsed.rows } });
       setRows(parsed.rows);
+      setWarnings(parsed.warnings || []);
       setResult(r.data);
       setDone(null);
       setFileName(file.name);
@@ -254,6 +256,12 @@ function UploadTab({ account, canImport }) {
         </div>
       </div>
 
+      {warnings.length > 0 && (
+        <div className="rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-[12.5px] text-amber-800 space-y-0.5">
+          {warnings.map((w, i) => <div key={i} className="flex items-start gap-1.5"><AlertTriangle className="w-4 h-4 shrink-0 mt-px" />{w}</div>)}
+        </div>
+      )}
+
       {done && (
         <div className="rounded-md border border-green-200 bg-green-50 px-3 py-2 text-[12.5px] text-green-800 flex items-center gap-2">
           <CheckCircle2 className="w-4 h-4" />
@@ -315,12 +323,14 @@ function UploadTab({ account, canImport }) {
 
 // ── TRANSACTIONS ─────────────────────────────────────────────────────────────
 
-function TransactionsTab({ account }) {
+function TransactionsTab({ account, canEdit }) {
   const [f, setF] = useState({ site: "", type: "", status: "", fromDate: "", toDate: "", search: "" });
   const [page, setPage] = useState(1);
   const [reload, setReload] = useState(0);
   const [res, setRes] = useState({ key: null, list: [], total: 0 });   // key = query that produced it
   const [hist, setHist] = useState(null);
+  const [openDesc, setOpenDesc] = useState(null);   // row id whose full description is shown
+  const [edit, setEdit] = useState(null);           // { txn, site, saving }
   const size = 50;
 
   const query = useMemo(() => {
@@ -348,6 +358,16 @@ function TransactionsTab({ account }) {
       .then((r) => setHist(r.data)).catch((e) => toast.error(e?.message || "Could not load history"));
 
   if (!account) return <div className="text-[12.5px] text-gray-500 py-8 text-center">Select a bank account above.</div>;
+  const saveSite = () => {
+    setEdit((e) => ({ ...e, saving: true }));
+    apiRequest({ url: `${EP.TXN_HISTORY}${edit.txn.id}/site`, method: "PUT", data: { site: edit.site } })
+      .then((r) => {
+        toast.success(r?.message || "Site updated");
+        setRes((p) => ({ ...p, list: p.list.map((x) => (x.id === edit.txn.id ? { ...x, ...r.data } : x)) }));
+        setEdit(null);
+      })
+      .catch((e) => { toast.error(e?.message || "Could not update site"); setEdit((x) => x && { ...x, saving: false }); });
+  };
   const set = (k, v) => { setPage(1); setF((p) => ({ ...p, [k]: v })); };
   const inp = "h-8 text-[12.5px] px-2 border border-gray-300 rounded bg-white";
   const pages = Math.max(1, Math.ceil((data.total || 0) / size));
@@ -394,10 +414,21 @@ function TransactionsTab({ account }) {
                   <td className="px-2 py-1 text-right tabular-nums text-red-700">{amt(t.dr)}</td>
                   <td className="px-2 py-1 text-right tabular-nums text-green-700">{amt(t.cr)}</td>
                   <td className="px-2 py-1 text-right tabular-nums">{t.balance != null ? formatAmount(t.balance) : ""}</td>
-                  <td className="px-2 py-1 max-w-[220px] truncate" title={t.desc || ""}>
+                  <td className={`px-2 py-1 max-w-[260px] cursor-pointer ${openDesc === t.id ? "whitespace-normal break-all" : "truncate"}`}
+                    title={openDesc === t.id ? "Click to collapse" : `${t.desc || ""}\n(click to show full text)`}
+                    onClick={() => setOpenDesc((id) => (id === t.id ? null : t.id))}>
                     {t.isUpi && <span className="mr-1 text-[10.5px] text-purple-700">UPI</span>}{t.desc}
+                    {openDesc === t.id && t.refNo ? <div className="text-gray-500">Ref {t.refNo}</div> : null}
                   </td>
-                  <td className="px-2 py-1">{t.site || <span className="text-gray-300">—</span>}</td>
+                  <td className="px-2 py-1 whitespace-nowrap">
+                    {t.site || <span className="text-amber-600" title="No site: this line is not offered to petty cash dockets">—</span>}
+                    {canEdit && !t.linkedDocketId && t.status !== "Reconciled" && (
+                      <button type="button" onClick={() => setEdit({ txn: t, site: t.site || "", saving: false })}
+                        className="ml-1.5 align-middle text-gray-400 hover:text-blue-600" title="Edit site">
+                        <Pencil className="w-3.5 h-3.5" />
+                      </button>
+                    )}
+                  </td>
                   <td className="px-2 py-1"><Badge s={st} /></td>
                   <td className="px-2 py-1 whitespace-nowrap">
                     {t.linkedDocketId ? (
@@ -426,11 +457,41 @@ function TransactionsTab({ account }) {
         </div>
       )}
 
+      {edit && (
+        <div className="fixed inset-0 z-50 bg-black/30 flex items-center justify-center p-4" onClick={() => !edit.saving && setEdit(null)}>
+          <div className="bg-white rounded-lg shadow-xl w-full max-w-md p-4 space-y-3" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center">
+              <div className="text-[14px] font-semibold text-gray-800">Edit site</div>
+              <button type="button" onClick={() => setEdit(null)} className="ml-auto text-gray-400 hover:text-gray-700"><X className="w-4 h-4" /></button>
+            </div>
+            <div className="text-[12px] text-gray-600 space-y-0.5">
+              <div><b>{dmy(edit.txn.date)}</b> · {edit.txn.type} {formatAmount(edit.txn.amount)} · {edit.txn.byDr || "—"} → {edit.txn.toCr || "—"}</div>
+              <div className="break-all text-gray-500">{edit.txn.desc}</div>
+            </div>
+            <label className="block text-[12px] text-gray-700">
+              Site (project linked to {account.bankCode})
+              <select className={`${inp} w-full mt-1`} value={edit.site} onChange={(e) => setEdit((x) => ({ ...x, site: e.target.value }))}>
+                <option value="">(No site: not used for petty cash)</option>
+                {account.sites.map((s) => <option key={s} value={s}>{s}</option>)}
+              </select>
+            </label>
+            <div className="text-[11.5px] text-gray-500">The change is recorded in the audit trail. Only DR lines with a site can be picked in a petty cash docket.</div>
+            <div className="flex justify-end gap-2">
+              <button type="button" onClick={() => setEdit(null)} disabled={edit.saving} className="h-8 px-3 rounded-md border text-[12.5px]">Cancel</button>
+              <button type="button" onClick={saveSite} disabled={edit.saving || (edit.site || "") === (edit.txn.site || "")}
+                className="inline-flex items-center gap-1.5 h-8 px-3.5 rounded-md bg-blue-600 text-white text-[12.5px] font-medium hover:bg-blue-700 disabled:opacity-40">
+                {edit.saving && <Loader2 className="w-4 h-4 animate-spin" />} Save
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {hist && (
         <div className="fixed inset-0 z-50 bg-black/30 flex items-center justify-center p-4" onClick={() => setHist(null)}>
           <div className="bg-white rounded-lg shadow-xl w-full max-w-lg p-4 space-y-2" onClick={(e) => e.stopPropagation()}>
             <div className="text-[14px] font-semibold text-gray-800">Audit trail</div>
-            <div className="text-[12px] text-gray-600">
+            <div className="text-[12px] text-gray-600 break-all">
               {dmy(hist.transaction.date)} · {hist.transaction.type} {formatAmount(hist.transaction.amount)} · {hist.transaction.desc}
             </div>
             <div className="text-[12px] text-gray-500">Imported by {hist.importedBy || "—"} on {hist.importedAt}</div>
