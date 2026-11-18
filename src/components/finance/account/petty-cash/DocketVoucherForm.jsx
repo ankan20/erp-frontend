@@ -32,11 +32,17 @@ import { formatAmount }    from "@/helper/numberFormatter";
 import { useColumnResize } from "@/hooks/useColumnResize";
 import { zodDate } from "@/lib/dateUtils";
 import { useCopySource, forCopy, copyLoadedToast } from "@/lib/copyRecord";
+import BankTxnPicker, { BankTxnChip } from "./BankTxnPicker";
 
 const PAYMENT_MODE_OPTIONS = [
-  { value: "Cash",     label: "Cash"     },
-  { value: "Bank/UPI", label: "Bank/UPI" },
+  { value: "Cash", label: "Cash" },
+  { value: "Bank", label: "Bank" },
+  { value: "UPI",  label: "UPI"  },
 ];
+// dockets saved before Bank / UPI were split keep showing their old value
+const LEGACY_MODE = { value: "Bank/UPI", label: "Bank/UPI" };
+// which imported bank lines to offer per payment mode
+const TXN_KIND = { Bank: "bank", UPI: "upi", "Bank/UPI": "all" };
 
 const BC = API_ENDPOINTS.MASTER.BANK_CASH;
 
@@ -106,6 +112,10 @@ export default function DocketVoucherForm({
   const [bankCashId,           setBankCashId]           = useState("");
   const [initialBankCashId,    setInitialBankCashId]    = useState("");
   const [bankCashLoading,      setBankCashLoading]      = useState(false);
+  // imported bank statement line linked to this docket (Bank / UPI only)
+  const [linkedTxn,            setLinkedTxn]            = useState(null);
+  const [initialLinkedTxn,     setInitialLinkedTxn]     = useState(null);
+  const [pickerOpen,           setPickerOpen]           = useState(false);
 
   const router      = useRouter();
   const projectInfo = getLocalStorage("projectInfo") || {};
@@ -239,6 +249,10 @@ export default function DocketVoucherForm({
         const loadedBcId = d.bankCashId ? String(d.bankCashId) : "";
         setBankCashId(loadedBcId);
         setInitialBankCashId(loadedBcId);
+        if (!isCopy) {
+          setLinkedTxn(d.bankTransaction || null);
+          setInitialLinkedTxn(d.bankTransaction || null);
+        }
         if (isCopy) {
           copyLoadedToast(d.voucherNo);
           return;
@@ -275,6 +289,8 @@ export default function DocketVoucherForm({
     formData.append("modeOfPayment", v.modeOfPayment);
     if (bankCashId) formData.append("bankCashId", bankCashId);
     formData.append("paymentRefId",  v.paymentRefId || "");
+    // always sent: "" clears an existing link on edit
+    formData.append("bankTxnId", linkedTxn && v.modeOfPayment !== "Cash" ? String(linkedTxn.id) : "");
     formData.append("details", JSON.stringify(
       v.items.map((it, i) => ({
         slNo:             i + 1,
@@ -291,6 +307,10 @@ export default function DocketVoucherForm({
 
   const handleSaveDraft = async () => {
     if (!projectCode) { toast.error("No project selected"); return; }
+    if (linkedTxn && Math.round(totalAmount * 100) !== Math.round(Number(linkedTxn.amount) * 100)) {
+      toast.error(`Docket total ${formatAmount(totalAmount)} must equal the linked bank DR amount ${formatAmount(linkedTxn.amount)}`);
+      return;
+    }
     let tid;
     try {
       tid = toast.loading("Saving draft…");
@@ -310,6 +330,7 @@ export default function DocketVoucherForm({
         setFileResetKey((k) => k + 1);
       }
       setInitialData(getValues());
+      setInitialLinkedTxn(linkedTxn);
       setIsEditing(false);
       setAllowSubmit(true);
       toast.success("Draft saved", { id: tid });
@@ -346,6 +367,7 @@ export default function DocketVoucherForm({
         reset(initialData);
         setBankCashId(initialBankCashId);
       }
+      setLinkedTxn(initialLinkedTxn);
       setAttachedFile(null);
       setExistingFileUrl(initialFileUrl);
       setFileResetKey((k) => k + 1);
@@ -360,6 +382,24 @@ export default function DocketVoucherForm({
 
   const watchedItems   = watch("items") || [];
   const totalAmount    = watchedItems.reduce((s, it) => s + Number(it.amount || 0), 0);
+
+  const clearLink = () => setLinkedTxn(null);
+
+  // selected bank line → auto-fill date, amount, reference, description
+  const applyTxn = (t) => {
+    setLinkedTxn(t);
+    setPickerOpen(false);
+    setValue("voucherDate", t.date, { shouldValidate: true });
+    if (!getValues("paymentRefId")) setValue("paymentRefId", (t.refNo || t.desc || "").slice(0, 100));
+    const items = getValues("items") || [];
+    if (items.length <= 1) {
+      const it = items[0] || defaultItem;
+      setValue("items", [{ ...it, amount: t.amount, description: it.description || t.desc || "" }], { shouldValidate: true });
+      toast.success(`Filled from bank line: ${formatAmount(t.amount)} on ${String(t.date).split("-").reverse().join("-")}`);
+    } else {
+      toast.info(`Linked. Split ${formatAmount(t.amount)} across the CC rows — the total must match.`);
+    }
+  };
 
   // Per-CC budget helpers
   const budgetCcCodes = new Set(budgetRows.map((r) => r.ccCode));
@@ -437,8 +477,8 @@ export default function DocketVoucherForm({
                       hasError={errors.modeOfPayment}
                       disabled={disabled}
                       placeholder="Select…"
-                      options={PAYMENT_MODE_OPTIONS}
-                      onChange={(e) => { field.onChange(e); setBankCashId(""); }}
+                      options={field.value === LEGACY_MODE.value ? [...PAYMENT_MODE_OPTIONS, LEGACY_MODE] : PAYMENT_MODE_OPTIONS}
+                      onChange={(e) => { field.onChange(e); setBankCashId(""); clearLink(); }}
                     />
                   )}
                 />
@@ -463,7 +503,7 @@ export default function DocketVoucherForm({
                     }))}
                     value={bankCashId}
                     disabled={disabled}
-                    onChange={(val) => setBankCashId(val || "")}
+                    onChange={(val) => { if (String(val || "") !== String(bankCashId)) clearLink(); setBankCashId(val || ""); }}
                     placeholder={`Select ${isCash ? "cash" : "bank"} account…`}
                     labelKey="_displayLabel"
                     valueKey="id"
@@ -480,6 +520,36 @@ export default function DocketVoucherForm({
                 />
               </PMFormRow>
             </PMSection>
+
+            {modeOfPayment && !isCash && (
+              <PMSection title="Bank Statement Transaction">
+                <PMFormRow label="Site" labelWidth={LABEL_W}>
+                  <PMInput value={projectCode} disabled title="Only bank lines of this site are offered" />
+                </PMFormRow>
+                <div className="px-2 py-1.5 space-y-1.5">
+                  {linkedTxn ? (
+                    <BankTxnChip
+                      txn={linkedTxn}
+                      total={totalAmount}
+                      onRemove={!disabled ? () => { clearLink(); toast.info("Bank transaction unlinked"); } : undefined}
+                    />
+                  ) : (
+                    <div className="text-[11.5px] text-gray-500">
+                      Optional: pick the imported bank line this expense was paid with. It fills the date, amount and reference, and is reconciled when the docket is approved.
+                    </div>
+                  )}
+                  {!disabled && (
+                    <button type="button" onClick={() => {
+                        if (!bankCashId) { toast.error("Select the bank account (Fund Source) first"); return; }
+                        setPickerOpen(true);
+                      }}
+                      className="h-7 px-3 rounded-sm border border-[#6d9dc5] bg-[#9fc5e8] text-[12px] font-medium hover:brightness-95">
+                      {linkedTxn ? "Change Transaction" : "Fetch Bank Transactions"}
+                    </button>
+                  )}
+                </div>
+              </PMSection>
+            )}
 
             <div className="pt-1">
               <FileUpload
@@ -628,6 +698,9 @@ export default function DocketVoucherForm({
                       <td colSpan={3} className="border border-[#b5b5b5] px-2 py-1 text-right text-sm">TOTAL=</td>
                       <td className="border border-[#b5b5b5] px-2 py-1 text-right text-sm font-bold">
                         {totalAmount > 0 ? formatAmount(totalAmount) : "—"}
+                        {linkedTxn && Math.round(totalAmount * 100) !== Math.round(Number(linkedTxn.amount) * 100) && (
+                          <div className="text-[10.5px] font-normal text-red-600">must be {formatAmount(linkedTxn.amount)}</div>
+                        )}
                       </td>
                       {isEditing && <td className="border border-[#b5b5b5]" />}
                     </tr>
@@ -696,6 +769,18 @@ export default function DocketVoucherForm({
         )}
       </div>
 
+      {pickerOpen && (
+        <BankTxnPicker
+          projectCode={projectCode}
+          bankCashId={bankCashId}
+          bankLabel={bankCashOptions.find((a) => String(a.id) === String(bankCashId))?.bankCode || ""}
+          kind={TXN_KIND[modeOfPayment] || "all"}
+          docketId={mode === "create" ? null : voucherId}
+          selectedId={linkedTxn?.id}
+          onClose={() => setPickerOpen(false)}
+          onSelect={applyTxn}
+        />
+      )}
     </>
   );
 }
