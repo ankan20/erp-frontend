@@ -1,168 +1,158 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
 
-import SearchSection from "@/components/common/SearchSection";
-import DataTable from "@/components/common/DataTable";
+import SearchSection        from "@/components/common/SearchSection";
+import DataTable            from "@/components/common/DataTable";
+import HeaderWrapper        from "@/components/layout/HeaderWrapper";
+import PageHeader           from "@/components/layout/PageHeader";
+import PageNotAvailable     from "@/components/common/PageNotAvailable";
+import { getPageActions }   from "@/components/common/PageActionButtons";
+import { getPageAccess }    from "@/helper/getPageAccess";
+import { apiRequest }       from "@/lib/apiClient";
+import { API_ENDPOINTS }    from "@/config/api.config";
+import { getLocalStorage }  from "@/lib/localStorage";
+import { getfmtDisplaydate } from "@/helper/getfmtDisplayDate";
 import { useDeletePendingIds } from "@/hooks/useDeletePendingIds";
-import PageHeader from "@/components/layout/PageHeader";
-import HeaderWrapper from "@/components/layout/HeaderWrapper";
-import PageNotAvailable from "@/components/common/PageNotAvailable";
-import { getPageActions } from "@/components/common/PageActionButtons";
-import { getPageAccess } from "@/helper/getPageAccess";
-import { apiRequest } from "@/lib/apiClient";
-import { API_ENDPOINTS } from "@/config/api.config";
-import { getLocalStorage } from "@/lib/localStorage";
-import { getFormatCategoryName } from "@/helper/getFormatCategoryName";
+
+const DC = API_ENDPOINTS.RESOURCE.MATERIAL_MANAGEMENT.LOGISTICS.DC;
+
+const STATUS_FILTERS = ["All", "Draft", "Pending", "Approved", "Rejected"];
 
 export default function Page() {
   const router = useRouter();
-  const access = getPageAccess({ pageCode: "delivery_challan", pageType: "LIST" });
+  const access = getPageAccess({ pageCode: "delivery_challan", pageType: "LIST", defaultToAllowed: true });
 
   const [data,         setData]         = useState([]);
   const [filteredData, setFilteredData] = useState([]);
   const [loading,      setLoading]      = useState(true);
   const [projectCode,  setProjectCode]  = useState("");
+  const [statusFilter, setStatusFilter] = useState("All");
 
   useEffect(() => {
-    const projectInfo = getLocalStorage("projectInfo") || {};
-    setProjectCode(projectInfo?.projectCode || "");
+    const info = getLocalStorage("projectInfo") || {};
+    setProjectCode(info?.projectCode || "");
   }, []);
 
   useEffect(() => {
     if (!projectCode || !access.allowed) return;
-
-    const fetchList = async () => {
-      try {
-        const res = await apiRequest({
-          url: `${API_ENDPOINTS.RESOURCE.MATERIAL_MANAGEMENT.LOGISTICS.DC.LIST}?projectCode=${projectCode}`,
-          method: "GET",
-        });
-
-        const list = res.data || [];
-
-        const formatted = list.map((r, index) => ({
-          id:                 r.id,
-          sl:                 index + 1,
-          dcNo:               r.dcNo               || "",
-          challanDate:        r.challanDate         || "",
-          orderType:          getFormatCategoryName(r.orderType) || "",
-          orderNo:            r.orderNo             || "",
-          fromName:           r.fromName            || "",
-          toProjectCode:      r.toProjectCode       || "",
-          toProjectName:      r.toProjectName       || "",
-          purposeForDelivery: getFormatCategoryName(r.purposeForDelivery) || "",
-          noOfItems:          r.noOfItems           ?? "",
-          ewayBillNumber:     r.ewayBillNumber      || "",
-          workflowStatus:     r.workflowStatus      || "",
+    setLoading(true);
+    apiRequest({ url: `${DC.LIST}?projectCode=${projectCode}` })
+      .then((res) => {
+        const list = (res.data || []).map((r, i) => ({
+          id:              r.id,
+          sl:              i + 1,
+          dcNo:            r.dcNo            || "",
+          challanDate:     getfmtDisplaydate(r.challanDate),
+          _rawDate:        r.challanDate     || "",
+          toProjectName:   r.toProjectName   || "",
+          transporterName: r.transporterName || "",
+          vehicleNo:       r.vehicleNo       || "",
+          noOfItems:       r.noOfItems       ?? "",
+          workflowStatus:  r.workflowStatus  || "",
         }));
-
-        setData(formatted);
-        setFilteredData(formatted);
-      } catch {
-        toast.error("Failed to fetch Delivery Challan list");
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchList();
+        setData(list);
+        setFilteredData(list);
+      })
+      .catch(() => toast.error("Failed to load Delivery Challan list"))
+      .finally(() => setLoading(false));
   }, [projectCode]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  const counts = useMemo(() => {
+    const c = { Draft: 0, Pending: 0, Approved: 0, Rejected: 0 };
+    data.forEach((r) => { if (r.workflowStatus in c) c[r.workflowStatus]++; });
+    return c;
+  }, [data]);
+
   const handleSearch = ({ search, from, to }) => {
-    let filtered = [...data];
-
+    let out = applyStatusFilter(data, statusFilter);
     if (search) {
-      filtered = filtered.filter((item) =>
-        Object.values(item).some((val) =>
-          String(val).toLowerCase().includes(search.toLowerCase()),
-        ),
-      );
+      const q = search.toLowerCase();
+      out = out.filter((r) => Object.values(r).some((v) => String(v).toLowerCase().includes(q)));
     }
-
     if (from || to) {
-      filtered = filtered.filter((item) => {
-        if (!item.challanDate) return false;
-        const d = new Date(item.challanDate);
-        d.setHours(0, 0, 0, 0);
-        if (from) {
-          const f = new Date(from);
-          f.setHours(0, 0, 0, 0);
-          if (d < f) return false;
-        }
-        if (to) {
-          const t = new Date(to);
-          t.setHours(0, 0, 0, 0);
-          if (d > t) return false;
-        }
+      out = out.filter((r) => {
+        if (!r._rawDate) return false;
+        const d = new Date(r._rawDate); d.setHours(0, 0, 0, 0);
+        if (from) { const f = new Date(from); f.setHours(0, 0, 0, 0); if (d < f) return false; }
+        if (to)   { const t = new Date(to);   t.setHours(0, 0, 0, 0); if (d > t) return false; }
         return true;
       });
     }
+    setFilteredData(out);
+  };
 
-    setFilteredData(filtered);
+  const applyStatusFilter = (list, filter) =>
+    filter === "All" ? list : list.filter((r) => r.workflowStatus === filter);
+
+  const handleStatusChip = (s) => {
+    setStatusFilter(s);
+    setFilteredData(applyStatusFilter(data, s));
   };
 
   const columns = [
-    { header: "Sl. No",             accessor: "sl"                 },
-    { header: "DC No",              accessor: "dcNo"               },
-    { header: "Challan Date",       accessor: "challanDate"        },
-    { header: "Order Type",         accessor: "orderType"          },
-    { header: "Order No",           accessor: "orderNo"            },
-    { header: "From",               accessor: "fromName"           },
-    { header: "To Project Code",    accessor: "toProjectCode"      },
-    { header: "To Project Name",    accessor: "toProjectName"      },
-    { header: "Purpose",            accessor: "purposeForDelivery" },
-    { header: "No. of Items",       accessor: "noOfItems"          },
-    { header: "Eway Bill No",       accessor: "ewayBillNumber"     },
-    { header: "Status",             accessor: "workflowStatus"     },
+    { header: "Sl. No",      accessor: "sl"              },
+    { header: "DC No",       accessor: "dcNo"            },
+    { header: "Date",        accessor: "challanDate"     },
+    { header: "To Project",  accessor: "toProjectName"   },
+    { header: "Transporter", accessor: "transporterName" },
+    { header: "Vehicle No",  accessor: "vehicleNo"       },
+    { header: "Items",       accessor: "noOfItems",   align: "center" },
+    { header: "Status",      accessor: "workflowStatus"  },
   ];
 
   const actions = getPageActions({ router });
-
   const pendingDeleteIds = useDeletePendingIds("DC", access.allowed);
 
   if (!access.allowed) return <PageNotAvailable />;
-
-  if (loading) {
-    return (
-      <div className="flex justify-center items-center h-[300px]">
-        <Loader2 className="animate-spin w-6 h-6" />
-      </div>
-    );
-  }
 
   return (
     <HeaderWrapper header={<PageHeader actions={actions} />}>
       <div className="p-3">
         <SearchSection
           onSearch={handleSearch}
-          showDateRange={true}
+          showDateRange
           actions={
             access.canAdd
-              ? [
-                  {
-                    label: "+ New DC",
-                    onClick: () =>
-                      router.push("/logistics/delivery-challan/new"),
-                  },
-                ]
+              ? [{ label: "+ New DC", onClick: () => router.push("/logistics/delivery-challan/new") }]
               : []
           }
         />
 
-        <DataTable
-          columns={columns}
-          data={filteredData}
-          onRowClick={(row) => {
-            if (access.canOpenDetails) {
-              router.push(`/logistics/delivery-challan/${row.id}`);
-            }
-          }}
-        pendingDeleteIds={pendingDeleteIds}
-        />
+        {/* Status chips */}
+        <div className="flex items-center gap-2 mb-3 flex-wrap">
+          {STATUS_FILTERS.map((s) => {
+            const count = s === "All" ? data.length : counts[s] ?? 0;
+            const active = statusFilter === s;
+            return (
+              <button
+                key={s}
+                type="button"
+                onClick={() => handleStatusChip(s)}
+                className={`px-2.5 py-0.5 text-[12px] rounded-sm border transition-colors ${
+                  active
+                    ? "bg-[#144664] text-white border-[#144664]"
+                    : "bg-white text-gray-600 border-gray-300 hover:border-[#144664] hover:text-[#144664]"
+                }`}
+              >
+                {s}: {count}
+              </button>
+            );
+          })}
+        </div>
+
+        {loading ? (
+          <div className="flex justify-center items-center h-40 text-sm text-gray-400">Loading…</div>
+        ) : (
+          <DataTable
+            columns={columns}
+            data={filteredData}
+            onRowClick={(row) => access.canOpenDetails && router.push(`/logistics/delivery-challan/${row.id}`)}
+            pendingDeleteIds={pendingDeleteIds}
+          />
+        )}
       </div>
     </HeaderWrapper>
   );

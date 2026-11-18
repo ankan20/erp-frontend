@@ -314,6 +314,44 @@ export const API_ENDPOINTS = {
           REJECT:              "/resource/dc/reject",          // /:dcId POST
           HISTORY:             "/resource/dc/history",         // /:dcId GET
           MY_APPROVAL_STATUS:  "/resource/dc/my-approval-status", // /:id GET
+          DELETE:              "/resource/dc",                 // /:dcId DELETE
+          PRINT:               "/resource/dc/print",           // /:dcUuid GET
+          UPDATE_TRANSIT_STATUS:"/resource/dc/update-transit-status", // /:dcId POST
+          UPLOAD_POD:          "/resource/dc/upload-pod",      // /:dcId POST multipart
+          VERIFY_POD:          "/resource/dc/verify-pod",      // /:dcId POST
+        },
+        TRANSIT_REQUEST: {
+          GET_APPROVED_ORDERS: "/logistics/transit-request/approved-orders", // GET ?projectCode&orderType
+          GET_ORDER_ITEMS:     "/logistics/transit-request/order-items",     // /:orderId GET
+          GET_APPROVED_FOR_DC: "/logistics/transit-request/approved-for-dc", // GET ?projectCode&orderId
+          CREATE:              "/logistics/transit-request/create",          // POST multipart/form-data
+          LIST:                "/logistics/transit-request/list",            // GET ?projectCode
+          GET_BY_ID:           "/logistics/transit-request/detail",          // /:trId GET
+          UPDATE:              "/logistics/transit-request/edit",            // /:trId PUT
+          SUBMIT:              "/logistics/transit-request/submit",          // /:trId POST
+          APPROVE:             "/logistics/transit-request/approve",         // /:trId POST
+          REBACK:              "/logistics/transit-request/reback",          // /:trId POST
+          REJECT:              "/logistics/transit-request/reject",          // /:trId POST
+          HISTORY:             "/logistics/transit-request/history",         // /:trId GET
+          MY_APPROVAL_STATUS:  "/logistics/transit-request/my-approval-status", // /:id GET
+          DELETE:              "/logistics/transit-request",                 // /:trId DELETE
+          PRINT:               "/logistics/transit-request/print",           // /:trUuid GET
+          UPDATE_TRANSIT_STATUS: "/logistics/transit-request/update-transit-status", // /:trId POST
+        },
+        BILL_REGISTER: {
+          ELIGIBLE_DCS:        "/logistics/bill-register/eligible-dcs",      // GET ?projectCode
+          CREATE:              "/logistics/bill-register/create",             // POST multipart/form-data
+          LIST:                "/logistics/bill-register/list",               // GET ?projectCode
+          GET_BY_ID:           "/logistics/bill-register/detail",             // /:lbId GET
+          UPDATE:              "/logistics/bill-register/edit",               // /:lbId PUT
+          SUBMIT:              "/logistics/bill-register/submit",             // /:lbId POST
+          APPROVE:             "/logistics/bill-register/approve",            // /:lbId POST
+          REBACK:              "/logistics/bill-register/reback",             // /:lbId POST
+          REJECT:              "/logistics/bill-register/reject",             // /:lbId POST
+          HISTORY:             "/logistics/bill-register/history",            // /:lbId GET
+          MY_APPROVAL_STATUS:  "/logistics/bill-register/my-approval-status", // /:id GET
+          DELETE:              "/logistics/bill-register",                    // /:lbId DELETE
+          PRINT:               "/logistics/bill-register/print",              // /:lbUuid GET
         },
       },
       STOCK: {

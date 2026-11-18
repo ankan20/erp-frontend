@@ -108,6 +108,12 @@ export default function ExpandableTextField({
             className="
               text-sm
               text-gray-400
+              pr-7
+              overflow-hidden
+              text-ellipsis
+              whitespace-nowrap
+              block
+              w-full
             "
           >
             {placeholder}

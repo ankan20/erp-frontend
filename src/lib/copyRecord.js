@@ -46,7 +46,9 @@ export const COPYABLE = {
   "/finance-management/account/receipt-billing": page("receipt"),
   "/finance-management/account/sale": page("sale"),
 
-  "/logistics/delivery-challan": page("delivery_challan"),
+  "/logistics/delivery-challan":  page("delivery_challan"),
+  "/logistics/transit-request":  page("transit_request"),
+  "/logistics/bill-register":    page("logistics_bill"),
 
   "/project-management/contacts/budget": page("budget_master"),
   "/project-management/contacts/extra-work": page("extra_work"),

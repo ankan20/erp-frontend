@@ -77,7 +77,9 @@ export const PAGE_CODES = [
   { code: "DI", path: "/asset-management/daily-issue-return", create: true },
 
   // Logistics
-  { code: "DC", path: "/logistics/delivery-challan", create: true },
+  { code: "DC", path: "/logistics/delivery-challan",   create: true },
+  { code: "TN", path: "/logistics/transit-request",    create: true },
+  { code: "LB", path: "/logistics/bill-register",      create: true },
 
   // Finance Management
   { code: "SL", path: "/finance-management/account/sale", create: true },

@@ -452,6 +452,32 @@ export const routeMetaConfig = [
     basePath: "/logistics/delivery-challan/[id]",
     breadcrumbs: ["Logistics","Delivery Challan","Edit"],
   },
+  //logistics/transit-request
+  {
+    basePath: "/logistics/transit-request",
+    breadcrumbs: ["Logistics","Transit Request","List"],
+  },
+  {
+    basePath: "/logistics/transit-request/new",
+    breadcrumbs: ["Logistics","Transit Request","New"],
+  },
+  {
+    basePath: "/logistics/transit-request/[id]",
+    breadcrumbs: ["Logistics","Transit Request","Edit"],
+  },
+  //logistics/bill-register
+  {
+    basePath: "/logistics/bill-register",
+    breadcrumbs: ["Logistics","Bill Register","List"],
+  },
+  {
+    basePath: "/logistics/bill-register/new",
+    breadcrumbs: ["Logistics","Bill Register","New"],
+  },
+  {
+    basePath: "/logistics/bill-register/[id]",
+    breadcrumbs: ["Logistics","Bill Register","Edit"],
+  },
   //contact dairy
   {
     basePath: "/resource-management/contact-dairy/materials",
