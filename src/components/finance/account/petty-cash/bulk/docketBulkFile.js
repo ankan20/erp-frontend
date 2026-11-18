@@ -73,8 +73,8 @@ const INSTRUCTIONS = [
   ["1. Fill the 'Expense Dockets' sheet. ONE ROW = ONE CC expense line."],
   ["2. Rows with the same 'Docket Ref' become ONE docket (e.g. 1,1,1 then 2). Use any number or text."],
   ["3. Docket-level columns (Date, Budget No, Expenses By, Payment Mode, Account Code, Transaction ID) must be the same on every row of a docket."],
-  ["4. Every docket must reference an APPROVED petty cash budget, and each CC must be a line of that budget (see 'Budget Balance' sheet)."],
-  ["5. A CC's amount cannot be more than the balance left in the budget. Earlier dockets in the same file are counted too."],
+  ["4. Every docket must reference an APPROVED petty cash budget (see 'Budget Balance' sheet)."],
+  ["5. Any CC code can be used (see 'CC Codes' sheet), even one that is not in the budget. For CCs that ARE in the budget, the amount cannot be more than the balance left. Earlier dockets in the same file are counted too."],
   ["6. Rows whose Docket Ref starts with 'EXAMPLE' are ignored — delete or overwrite them."],
   [""],
   ["COLUMN", "REQUIRED", "WHAT TO ENTER"],
@@ -85,7 +85,7 @@ const INSTRUCTIONS = [
   ["Payment Mode",   "Yes", "Cash  |  Bank/UPI.   A Cash docket can have only ONE line."],
   ["Account Code",   "Yes*","Cash / Bank account code linked to the project (see 'Accounts' sheet). Must match the payment mode. *Can be left blank if the project has only one account of that type."],
   ["Transaction ID", "No",  "UTR / UPI ref / cheque no. for Bank/UPI payments."],
-  ["CC Code",        "Yes", "CC code from the selected budget."],
+  ["CC Code",        "Yes", "Any CC code (see 'CC Codes' sheet). CCs of the selected budget are checked against their balance; other CCs are allowed."],
   ["Description",    "No",  "Short description of the expense (max 255 characters)."],
   ["Amount",         "Yes", "Greater than 0. Numbers only. Commas are fine."],
   [""],
@@ -95,7 +95,7 @@ const INSTRUCTIONS = [
   ["• Drafts go through the normal Submit → Approval flow. Bills/attachments can be added later by opening a docket. Max 5000 rows per file."],
 ];
 
-export async function downloadDocketTemplate({ format = "xlsx", budgets = [], accounts = [], projectCode = "" }) {
+export async function downloadDocketTemplate({ format = "xlsx", budgets = [], accounts = [], ccList = [], projectCode = "" }) {
   const XLSX = await import("xlsx");
   const headers = COLUMNS.map((c) => c.header);
   const examples = exampleRows(budgets, accounts);
@@ -147,6 +147,13 @@ export async function downloadDocketTemplate({ format = "xlsx", budgets = [], ac
   wsA["!cols"] = [{ wch: 16 }, { wch: 8 }, { wch: 36 }, { wch: 22 }];
   XLSX.utils.book_append_sheet(wb, wsA, "Accounts");
 
+  const wsC = XLSX.utils.aoa_to_sheet([
+    ["CC Code", "CC Name", "Group"],
+    ...ccList.map((c) => [c.ccCode, c.ccName, c.ccGroupName || ""]),
+  ]);
+  wsC["!cols"] = [{ wch: 14 }, { wch: 45 }, { wch: 28 }];
+  XLSX.utils.book_append_sheet(wb, wsC, "CC Codes");
+
   XLSX.writeFile(wb, `${fname}.xlsx`);
 }
 
@@ -193,7 +200,7 @@ export async function parseDocketFile(file) {
 
   const sheetName =
     wb.SheetNames.find((n) => norm(n) === "expensedockets") ||
-    wb.SheetNames.find((n) => !["instructions", "budgetbalance", "accounts"].includes(norm(n))) ||
+    wb.SheetNames.find((n) => !["instructions", "budgetbalance", "accounts", "cccodes"].includes(norm(n))) ||
     wb.SheetNames[0];
   const ws = wb.Sheets[sheetName];
   if (!ws) throw new Error("The file has no sheets");

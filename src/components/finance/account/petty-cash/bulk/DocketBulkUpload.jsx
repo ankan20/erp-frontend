@@ -57,6 +57,7 @@ export default function DocketBulkUpload() {
   const [open,     setOpen]     = useState({});
   const [dragOver, setDragOver] = useState(false);
   const [ref,      setRef]      = useState({ budgets: [], accounts: [] });
+  const [ccList,   setCcList]   = useState([]);         // all CC codes (non-budget CCs are allowed)
   const fileRef = useRef(null);
 
   // ── reference data: approved budgets (per-CC balance) + project accounts ──
@@ -69,6 +70,12 @@ export default function DocketBulkUpload() {
 
   useEffect(() => { loadReference(); }, [loadReference]);
 
+  useEffect(() => {
+    if (!projectCode) return;
+    apiRequest({ url: `${API_ENDPOINTS.MASTER.GET_ALL_CC_CODE}?projectCode=${projectCode}`, method: "GET" })
+      .then((r) => setCcList(Array.isArray(r?.data) ? r.data : [])).catch(() => {});
+  }, [projectCode]);
+
   // warn before leaving with un-imported rows
   useEffect(() => {
     if (!dockets.length) return;
@@ -80,6 +87,11 @@ export default function DocketBulkUpload() {
   const budgetByNo = useMemo(
     () => Object.fromEntries(ref.budgets.map((b) => [String(b.budgetNo).toUpperCase(), b])),
     [ref.budgets],
+  );
+
+  const ccByCode = useMemo(
+    () => Object.fromEntries(ccList.map((c) => [String(c.ccCode).toUpperCase(), c.ccName])),
+    [ccList],
   );
 
   const fixList   = useMemo(() => dockets.filter((d) => !d.valid), [dockets]);
@@ -247,7 +259,7 @@ export default function DocketBulkUpload() {
   const getTemplate = async (format) => {
     try {
       setBusy("template");
-      await downloadDocketTemplate({ format, budgets: ref.budgets, accounts: ref.accounts, projectCode });
+      await downloadDocketTemplate({ format, budgets: ref.budgets, accounts: ref.accounts, ccList, projectCode });
     } catch { toast.error("Could not create template"); }
     finally { setBusy(""); }
   };
@@ -261,11 +273,18 @@ export default function DocketBulkUpload() {
       <datalist id="db-budget">{ref.budgets.map((b) => <option key={b.id} value={b.budgetNo}>{`${b.fromDate || ""} → ${b.toDate || ""}`}</option>)}</datalist>
       <datalist id="db-acc-cash">{ref.accounts.filter((a) => a.type === "CASH").map((a) => <option key={a.id} value={a.bankCode}>{a.name}</option>)}</datalist>
       <datalist id="db-acc-bank">{ref.accounts.filter((a) => a.type === "BANK").map((a) => <option key={a.id} value={a.bankCode}>{a.name}</option>)}</datalist>
-      {ref.budgets.map((b) => (
-        <datalist key={b.id} id={`db-cc-${b.id}`}>
-          {(b.rows || []).map((r) => <option key={r.ccCode} value={r.ccCode}>{`${r.ccName || ""} · bal ${formatAmount(r.remaining)}`}</option>)}
-        </datalist>
-      ))}
+      {/* budget CCs first (with balance), then every other CC — non-budget CCs are allowed */}
+      <datalist id="db-cc-all">{ccList.map((c) => <option key={c.ccCode} value={c.ccCode}>{c.ccName}</option>)}</datalist>
+      {ref.budgets.map((b) => {
+        const inB = new Set((b.rows || []).map((r) => String(r.ccCode).toUpperCase()));
+        return (
+          <datalist key={b.id} id={`db-cc-${b.id}`}>
+            {(b.rows || []).map((r) => <option key={r.ccCode} value={r.ccCode}>{`${r.ccName || ""} · bal ${formatAmount(r.remaining)}`}</option>)}
+            {ccList.filter((c) => !inB.has(String(c.ccCode).toUpperCase()))
+              .map((c) => <option key={c.ccCode} value={c.ccCode}>{`${c.ccName || ""} · not in budget`}</option>)}
+          </datalist>
+        );
+      })}
     </>
   );
 
@@ -285,7 +304,7 @@ export default function DocketBulkUpload() {
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
           {[
             ["1", "Download template", "It includes this project's approved budgets with balance per CC, and cash/bank accounts"],
-            ["2", "Fill one row per CC expense", "Same Docket Ref = one docket. CC must be in the budget and within balance"],
+            ["2", "Fill one row per CC expense", "Same Docket Ref = one docket. Budget CCs must stay within balance; other CCs are allowed"],
             ["3", "Upload & review", "Ready dockets save as Draft. Fix the rest right here"],
           ].map(([n, t, d]) => (
             <div key={n} className="flex gap-2.5 rounded-lg border bg-white p-3">
@@ -365,7 +384,7 @@ export default function DocketBulkUpload() {
             </table>
           </div>
           <div className="px-3 py-2 border-t text-[11.5px] text-gray-500 space-y-0.5">
-            <div>• <b>Budget No</b> must be an Approved budget of this project. Every CC must be a line of that budget, and the amount must fit its balance.</div>
+            <div>• <b>Budget No</b> must be an Approved budget of this project. Any CC code can be used: CCs in the budget must fit their balance, CCs not in the budget are allowed.</div>
             <div>• <b>Payment Mode</b>: Cash (one line per docket, cash account) or Bank/UPI (bank account). Account Code can be blank if the project has only one account of that type.</div>
             <div>• Date, Budget No, Expenses By, Payment Mode, Account Code and Transaction ID are the same on every row of a docket.</div>
           </div>
@@ -456,6 +475,7 @@ export default function DocketBulkUpload() {
             {list.map((d) => (
               <DocketCard
                 key={d._key} d={d} expanded={!!open[d._key]} busy={busyKey === d._key} disabled={!!busy || (busyKey && busyKey !== d._key)}
+                ccName={(code) => ccByCode[String(code || "").toUpperCase()]}
                 budget={budgetByNo[String(d._hdr?.budgetNo ?? d.rows[0]?.budgetNo ?? d.budgetNo ?? "").toUpperCase()]}
                 onToggle={() => setOpen((p) => ({ ...p, [d._key]: !p[d._key] }))}
                 onCell={(i, f, val) => setCell(d._key, i, f, val)}
@@ -569,7 +589,7 @@ const HEADER_INPUTS = [
   { key: "transactionId", label: "Transaction ID",    w: "w-36" },
 ];
 
-function DocketCard({ d, expanded, busy, disabled, budget, onToggle, onCell, onHeader, onAddRow, onDelRow, onRecheck, onImport, onDiscard }) {
+function DocketCard({ d, expanded, busy, disabled, budget, ccName, onToggle, onCell, onHeader, onAddRow, onDelRow, onRecheck, onImport, onDiscard }) {
   const rowErrCount = d.rows.filter((r) => r.errors?.length).length;
   const errCount = rowErrCount + (d.errors?.length || 0);
   const total = d.rows.reduce((s, r) => s + (Number(String(r.amount).replace(/,/g, "")) || 0), 0);
@@ -691,11 +711,11 @@ function DocketCard({ d, expanded, busy, disabled, budget, onToggle, onCell, onH
                       <td className="px-1 py-0.5 text-gray-400 tabular-nums" title="Row number in your file">{r.rowNo}</td>
                       <td className="px-1 py-0.5">
                         <input className={`${cell} ${ef.has("ccCode") ? bad : ok}`} value={r.ccCode ?? ""} placeholder="CC code"
-                          list={budget ? `db-cc-${budget.id}` : undefined}
+                          list={budget ? `db-cc-${budget.id}` : "db-cc-all"}
                           onChange={(e) => onCell(i, "ccCode", e.target.value)} />
                       </td>
                       <td className="px-1 py-0.5 text-gray-600 truncate max-w-[220px]" title={r.ccName || bl?.ccName || ""}>
-                        {r.ccName || bl?.ccName || <span className="text-gray-300">—</span>}
+                        {r.ccName || bl?.ccName || ccName(r.ccCode) || <span className="text-gray-300">—</span>}
                       </td>
                       <td className="px-1 py-0.5 text-[11.5px] tabular-nums whitespace-nowrap">
                         {bl ? (
@@ -704,7 +724,7 @@ function DocketCard({ d, expanded, busy, disabled, budget, onToggle, onCell, onH
                             <span className={bl.remaining <= 0 ? "text-red-600" : "text-green-700"}>bal {formatAmount(bl.remaining)}</span>
                           </span>
                         ) : budget && r.ccCode ? (
-                          <span className="text-orange-600">Not in budget</span>
+                          <span className="text-orange-600" title="Allowed — this CC is not part of the budget, so no balance check">Not in budget (allowed)</span>
                         ) : <span className="text-gray-300">—</span>}
                       </td>
                       <td className="px-1 py-0.5">
