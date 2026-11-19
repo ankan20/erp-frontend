@@ -798,6 +798,16 @@ export const API_ENDPOINTS = {
         BALANCE_SHEET:  "/finance/accounting/export/balance-sheet",
       },
     },
+    BANK_STATEMENT: {
+      ACCOUNTS:      "/finance/bank-statement/accounts",             // GET — BANK accounts the user may use (+ linked sites)
+      VALIDATE:      "/finance/bank-statement/validate",             // POST { bankAccountId, rows[] } — preview, no writes
+      IMPORT:        "/finance/bank-statement/import",               // POST { bankAccountId, fileName, rows[] }
+      BATCHES:       "/finance/bank-statement/batches",              // GET ?bankAccountId — import history
+      REVERT:        "/finance/bank-statement/batches/",             // /:id/revert POST
+      TRANSACTIONS:  "/finance/bank-statement/transactions",         // GET ?bankAccountId&site&type&status&fromDate&toDate&search&page&pageSize
+      TXN_HISTORY:   "/finance/bank-statement/transactions/",        // /:id/history GET
+      AVAILABLE:     "/finance/bank-statement/available-for-docket", // GET ?projectCode&bankCashId&kind=bank|upi|all&docketId
+    },
     PETTY_CASH: {
       LEDGER: {
         PROJECT_ACCOUNTS: "/finance/petty-cash/ledger/project-accounts", // GET ?projectCode

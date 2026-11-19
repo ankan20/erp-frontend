@@ -583,6 +583,12 @@ export const sidebarConfig = [
             permissionKey: "petty_cash",
           },
           {
+            title: "Bank Statements",
+            path: "/finance-management/account/bank-statement",
+            activePaths: ["/finance-management/account/bank-statement"],
+            permissionKey: "bank_statement",
+          },
+          {
             title: "Ledger View",
             path: "/finance-management/account/ledger",
             activePaths: ["/finance-management/account/ledger"],

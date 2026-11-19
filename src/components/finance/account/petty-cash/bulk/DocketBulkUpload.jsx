@@ -35,8 +35,8 @@ const lineErrorFields = (errs = []) => {
   const f = new Set();
   errs.forEach((e) => {
     const s = e.toLowerCase();
-    if (s.includes("cc") && !s.includes("exceeds")) f.add("ccCode");
-    if (s.includes("amount") || s.includes("exceeds")) f.add("amount");
+    if (s.includes("cc")) f.add("ccCode");
+    if (s.includes("amount")) f.add("amount");
     if (s.includes("description")) f.add("description");
   });
   return f;
@@ -601,7 +601,9 @@ function DocketCard({ d, expanded, busy, disabled, budget, ccName, onToggle, onC
   const badge = d._dirty
     ? <span className="text-[11px] px-1.5 py-0.5 rounded bg-amber-100 text-amber-800 inline-flex items-center gap-1"><Pencil className="w-3 h-3" />Edited, re-check</span>
     : d.valid
-      ? <span className="text-[11px] px-1.5 py-0.5 rounded bg-green-50 text-green-700 inline-flex items-center gap-1"><CheckCircle2 className="w-3 h-3" />Ready</span>
+      ? (d.warnings?.length
+        ? <span className="text-[11px] px-1.5 py-0.5 rounded bg-orange-50 text-orange-700 inline-flex items-center gap-1" title={d.warnings.join("\n")}><CheckCircle2 className="w-3 h-3" />Ready · over budget</span>
+        : <span className="text-[11px] px-1.5 py-0.5 rounded bg-green-50 text-green-700 inline-flex items-center gap-1"><CheckCircle2 className="w-3 h-3" />Ready</span>)
       : <span className="text-[11px] px-1.5 py-0.5 rounded bg-red-50 text-red-700 inline-flex items-center gap-1"><AlertCircle className="w-3 h-3" />{errCount} issue{errCount === 1 ? "" : "s"}</span>;
 
   const cell = "h-[28px] w-full text-[12.5px] px-1.5 border rounded outline-none focus:ring-1 focus:ring-blue-300 bg-white";
@@ -745,6 +747,12 @@ function DocketCard({ d, expanded, busy, disabled, budget, ccName, onToggle, onC
                       <tr key={`e${i}`}>
                         <td />
                         <td colSpan={6} className="px-1 pb-1.5 text-[11.5px] text-red-600">{r.errors.join(" · ")}</td>
+                      </tr>
+                    ) : null,
+                    !d._dirty && r.warnings?.length ? (
+                      <tr key={`w${i}`}>
+                        <td />
+                        <td colSpan={6} className="px-1 pb-1.5 text-[11.5px] text-orange-600">{r.warnings.join(" · ")} (allowed)</td>
                       </tr>
                     ) : null,
                   ];

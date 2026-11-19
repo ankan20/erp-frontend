@@ -411,6 +411,21 @@ export default function Page() {
     { header: "Branch Manager",   accessor: "branchManagerName" },
     { header: "Manager Contact",  accessor: "branchManagerContact" },
     { header: "Status",           accessor: "status" },
+    {
+      header: "Statements",
+      accessor: "statements",
+      render: (row) =>
+        String(row.type || "").toUpperCase() === "BANK" ? (
+          <button
+            type="button"
+            onClick={(e) => { e.stopPropagation(); router.push(`/finance-management/account/bank-statement?account=${row.id}`); }}
+            className="text-[12px] text-blue-600 hover:underline"
+            title="Upload / view bank statements of this account (Finance > Bank Statements)"
+          >
+            Statements
+          </button>
+        ) : null,
+    },
   ];
 
   if (loading) {

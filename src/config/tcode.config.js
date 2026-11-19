@@ -91,6 +91,7 @@ export const PAGE_CODES = [
   { code: "CN", path: "/finance-management/account/credit-note", create: true },
   { code: "JE", path: "/finance-management/account/journal", create: true },
   { code: "PT", path: "/finance-management/account/petty-cash" },
+  { code: "BT", path: "/finance-management/account/bank-statement" },
   { code: "LV", path: "/finance-management/account/ledger" },
   { code: "PL", path: "/finance-management/report/pnl" },
   { code: "BS", path: "/finance-management/report/balance-sheet" },
