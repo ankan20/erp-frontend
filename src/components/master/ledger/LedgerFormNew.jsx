@@ -6,6 +6,7 @@ import { Controller } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
+import { useRouter } from "next/navigation";
 import { Check, ChevronDown, Loader2, Search, X } from "lucide-react";
 
 import SaveButton from "@/components/common/SaveButton";
@@ -270,6 +271,7 @@ export default function LedgerFormNew({
   initialData,
   categories = [],
 }) {
+  const router = useRouter();
   const [isEditing, setIsEditing] = useState(mode === "create");
   const [pageLoading, setPageLoading] = useState(mode !== "create");
 
@@ -549,6 +551,9 @@ export default function LedgerFormNew({
       setFiles({}); setFileNames({});
       setIsEditing(false);
       toast.success(mode === "create" ? "Created" : "Updated", { id: toastId });
+      if (mode === "create" && d?.ledgerId) {
+        router.push(`/master/ledger-code/${d.ledgerId}`);
+      }
     } catch (err) {
       toast.error(err?.message || "Failed", { id: toastId });
     }
