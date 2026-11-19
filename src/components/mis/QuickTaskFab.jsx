@@ -12,10 +12,27 @@ import { followupApi } from "@/lib/misFollowups";
 const TASK_PAGE = "/task-management/todo";
 const BOARD_PAGE = "/task-management/task-tracker";
 const REFRESH_MS = 2 * 60 * 1000;
+const POS_KEY = "quickTaskFab:pos";   // { x, y } — top-left of the button, in px
+const BTN = 36;                        // button size (matches the chat button)
+const EDGE = 4;                        // keep this far from the window edge
+const DRAG_THRESHOLD = 4;              // px moved before a press counts as a drag
+
+const clampPos = ({ x, y }) => ({
+  x: Math.min(Math.max(x, EDGE), window.innerWidth - BTN - EDGE),
+  y: Math.min(Math.max(y, EDGE), window.innerHeight - BTN - EDGE),
+});
+const readPos = () => {
+  try {
+    const p = JSON.parse(localStorage.getItem(POS_KEY) || "null");
+    return p && Number.isFinite(p.x) && Number.isFinite(p.y) ? clampPos(p) : null;
+  } catch { return null; }
+};
 
 /**
- * Global floating button (bottom-right): open/overdue badge, quick add,
- * the next few due tasks with one-click "done", and a link to the full page.
+ * Global floating button: open/overdue badge, quick add, the next few due
+ * tasks with one-click "done", and a link to the full page.
+ * Sits in the left sidebar just above the chat button by default; drag it
+ * anywhere (position is remembered per browser). Double-click puts it back.
  * Alt+Q opens it (see shortcuts.config.js → "quick-task").
  */
 export default function QuickTaskFab() {
@@ -30,6 +47,49 @@ export default function QuickTaskFab() {
   const [form, setForm] = useState({ title: "", dueDate: "", priority: "Medium" });
   const wrapRef = useRef(null);
   const inputRef = useRef(null);
+
+  // ─── position: null = default spot (left sidebar, above the chat button)
+  const [pos, setPos] = useState(null);
+  const drag = useRef(null);       // { startX, startY, origX, origY, moved }
+  const justDragged = useRef(false);
+
+  useEffect(() => {
+    setPos(readPos()); // localStorage is client-only, so read it after mount
+    const onResize = () => setPos((p) => (p ? clampPos(p) : p));
+    window.addEventListener("resize", onResize);
+    return () => window.removeEventListener("resize", onResize);
+  }, []);
+
+  const onPointerDown = (e) => {
+    if (e.button !== 0) return;
+    const r = wrapRef.current.querySelector("[data-qt-btn]").getBoundingClientRect();
+    drag.current = { startX: e.clientX, startY: e.clientY, origX: r.left, origY: r.top, moved: false };
+    e.currentTarget.setPointerCapture(e.pointerId);
+  };
+  const onPointerMove = (e) => {
+    const d = drag.current;
+    if (!d) return;
+    const dx = e.clientX - d.startX;
+    const dy = e.clientY - d.startY;
+    if (!d.moved && Math.hypot(dx, dy) < DRAG_THRESHOLD) return;
+    d.moved = true;
+    setPos(clampPos({ x: d.origX + dx, y: d.origY + dy }));
+  };
+  const onPointerUp = (e) => {
+    const d = drag.current;
+    drag.current = null;
+    if (e.currentTarget.hasPointerCapture?.(e.pointerId)) e.currentTarget.releasePointerCapture(e.pointerId);
+    if (!d?.moved) return;
+    justDragged.current = true; // swallow the click that follows a drag
+    setPos((p) => {
+      try { localStorage.setItem(POS_KEY, JSON.stringify(p)); } catch {}
+      return p;
+    });
+  };
+  const resetPos = () => {
+    try { localStorage.removeItem(POS_KEY); } catch {}
+    setPos(null);
+  };
 
   const refreshStats = useCallback(() => {
     misTaskApi.stats({ scope: "mine" }).then((r) => r?.data && setStats(r.data)).catch(() => {});
@@ -112,10 +172,19 @@ export default function QuickTaskFab() {
   const overdue = (stats?.overdue ?? 0) + (fu?.waitingOnMeOverdue ?? 0);
   const today = todayISO();
 
+  // which way the panel opens (default spot = bottom-left → up and to the right)
+  const panelBelow = !!pos && typeof window !== "undefined" && pos.y < window.innerHeight / 2;
+  const panelLeft = !!pos && typeof window !== "undefined" && pos.x > window.innerWidth / 2;
+
   return (
-    <div ref={wrapRef} className="fixed bottom-14 right-4 z-[9980] flex flex-col items-end gap-2 print:hidden">
+    <div ref={wrapRef}
+      style={pos ? { left: pos.x, top: pos.y } : undefined}
+      className={`fixed z-[9980] w-9 h-9 print:hidden ${pos ? "" : "bottom-[60px] left-[7px]"}`}>
       {open && (
-        <div className="w-[320px] max-w-[calc(100vw-2rem)] bg-white border border-gray-200 rounded-xl shadow-2xl overflow-hidden animate-in fade-in slide-in-from-bottom-2 duration-150"
+        <div
+          // open toward the middle of the screen from wherever the button sits
+          className={`absolute w-[320px] max-w-[calc(100vw-2rem)] bg-white border border-gray-200 rounded-xl shadow-2xl overflow-hidden animate-in fade-in duration-150
+            ${panelBelow ? "top-full mt-2" : "bottom-full mb-2"} ${panelLeft ? "right-0" : "left-0"}`}
           role="dialog" aria-label="Quick tasks">
           <div className="flex items-center justify-between px-3 py-2 border-b border-[#c4d1df] bg-gradient-to-b from-[#f4f4f4] to-[#e3e3e3]">
             <span className="text-[13px] font-semibold text-gray-800">My Tasks</span>
@@ -191,16 +260,25 @@ export default function QuickTaskFab() {
 
       <button
         type="button"
+        data-qt-btn
         data-shortcut="quick-task"
-        onClick={() => setOpen((o) => !o)}
+        onPointerDown={onPointerDown}
+        onPointerMove={onPointerMove}
+        onPointerUp={onPointerUp}
+        onPointerCancel={onPointerUp}
+        onClick={() => {
+          if (justDragged.current) { justDragged.current = false; return; }
+          setOpen((o) => !o);
+        }}
+        onDoubleClick={resetPos}
         aria-label={open ? "Close quick tasks" : `My tasks: ${openCount} open, ${overdue} overdue`}
         aria-expanded={open}
-        title="My Tasks (Alt+Q)"
-        className="relative w-12 h-12 rounded-full bg-blue-600 text-white shadow-lg hover:bg-blue-700 hover:scale-105 transition flex items-center justify-center ring-4 ring-white"
+        title="My Tasks (Alt+Q) — drag to move, double-click to reset"
+        className="relative w-9 h-9 rounded-full bg-blue-600 text-white shadow-lg hover:bg-blue-700 transition-colors flex items-center justify-center touch-none select-none cursor-grab active:cursor-grabbing"
       >
-        {open ? <X size={20} /> : <ListTodo size={20} />}
+        {open ? <X size={17} /> : <ListTodo size={17} />}
         {!open && openCount > 0 && (
-          <span className={`absolute -top-1 -right-1 min-w-[20px] h-5 px-1 rounded-full text-[11px] font-bold flex items-center justify-center border-2 border-white
+          <span className={`absolute -top-1 -right-1 min-w-[16px] h-[16px] px-1 rounded-full text-[9px] font-bold flex items-center justify-center border border-white
             ${overdue > 0 ? "bg-red-600" : "bg-amber-500"} text-white`}>
             {openCount > 99 ? "99+" : openCount}
           </span>
