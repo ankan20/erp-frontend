@@ -10,6 +10,89 @@ import { API_ENDPOINTS } from "@/config/api.config";
 import { formatAmount } from "@/helper/numberFormatter";
 import { getfmtDisplaydate } from "@/helper/getfmtDisplayDate";
 
+const NARRATION_HINTS = {
+  "PB expense":          "Purchase Bill — expense line item",
+  "PV expense":          "Payment Voucher — expense line item",
+  "PV payment":          "Payment Voucher — bank/cash payment",
+  "PCDV expense":        "Petty Cash Docket Voucher — expense line item",
+  "PCDV payment":        "Petty Cash Docket Voucher — cash paid out",
+  "BPR bill payment":    "Bill Payment Receipt — payment against bill",
+  "BPR payment":         "Bill Payment Receipt — bank/cash side",
+  "SB revenue":          "Sale Bill — revenue line item",
+  "SRB receipt":         "Sale Receipt Billing — money received",
+  "JE":                  "Journal Entry — manual entry",
+  "JE customer":         "Journal Entry — customer line",
+  "CE transfer":         "Contra Entry — bank/cash transfer",
+  "DN vendor adjustment":"Debit Note — vendor claim back",
+  "DN expense reversal": "Debit Note — expense reversal",
+  "DN GST reversal":     "Debit Note — GST reversal",
+  "CN revenue reversal": "Credit Note — revenue reversal",
+  "CN customer adjustment":"Credit Note — customer credit",
+  "CN GST reversal":     "Credit Note — GST reversal",
+  "GST Input":           "Auto GST — input tax on purchases",
+  "GST Output":          "Auto GST — output tax on sales",
+  "Vendor payable":      "Purchase Bill — vendor credit (payable)",
+  "Customer receivable": "Sale Bill — customer debit (receivable)",
+  "Customer receipt":    "Sale Receipt — customer credit (settled)",
+  "Claim bill WIP":      "Claim Bill — unbilled WIP (UWIP)",
+  "Claim bill provisional":"Claim Bill — provisional customer entry",
+  "Certified bill reduces WIP":"Certified Bill — reverses UWIP",
+  "Certified receivable":"Certified Bill — certified customer receivable",
+  "US reclassify from UWIP":"Uncertified Statement — reclassify UWIP to hold CC",
+  "US reclassify to hold":"Uncertified Statement — credit UWIP for hold CCs",
+  "GRN inventory":       "Goods Received Note — inventory received",
+  "GIN issue":           "Goods Issue Note — material issued to project",
+};
+
+function getNarrationHint(narration) {
+  if (!narration) return null;
+  for (const [prefix, hint] of Object.entries(NARRATION_HINTS)) {
+    if (narration.startsWith(prefix)) return hint;
+  }
+  return null;
+}
+
+function NarrationCell({ narration }) {
+  const [show, setShow] = useState(false);
+  const hint = getNarrationHint(narration);
+
+  return (
+    <td className="px-2 py-[3px] text-[#4b5563] max-w-[220px]">
+      <div
+        className="relative inline-block max-w-full"
+        onMouseEnter={() => hint && setShow(true)}
+        onMouseLeave={() => setShow(false)}
+      >
+        <span
+          className={`block truncate ${
+            hint
+              ? "border-b border-dashed border-[#9ca3af] cursor-help"
+              : ""
+          }`}
+        >
+          {narration || "—"}
+        </span>
+
+        {show && hint && (
+          <div className="absolute left-0 bottom-full mb-[9px] z-[100] pointer-events-none">
+            {/* Tooltip bubble */}
+            <div className="relative">
+              <div className="bg-[#203746] text-white text-[11px] font-medium leading-[16px] px-3 py-[7px] rounded-md shadow-[0_4px_12px_rgba(15,23,42,0.18)] border border-[#344b5b] whitespace-normal w-max max-w-[280px]">
+                {hint}
+              </div>
+
+              {/* Connected arrow */}
+              <div className="absolute left-4 top-full -mt-px">
+                <div className="w-0 h-0 border-l-[6px] border-r-[6px] border-t-[6px] border-l-transparent border-r-transparent border-t-[#203746]" />
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+    </td>
+  );
+}
+
 function SourceGroup({ group, showProject, searchTerm }) {
   const [open, setOpen] = useState(true);
   const Icon = open ? ChevronDown : ChevronRight;
@@ -74,9 +157,7 @@ function SourceGroup({ group, showProject, searchTerm }) {
                 {showProject && (
                   <td className="px-2 py-[3px] text-[10.5px] text-[#6b7280]">{e.projectCode || "—"}</td>
                 )}
-                <td className="px-2 py-[3px] text-[#4b5563] max-w-[220px] truncate" title={e.narration}>
-                  {e.narration || "—"}
-                </td>
+                <NarrationCell narration={e.narration} />
                 <td className="px-2 py-[3px] text-right tabular-nums text-[#166534]">
                   {e.debit ? formatAmount(e.debit) : "—"}
                 </td>
