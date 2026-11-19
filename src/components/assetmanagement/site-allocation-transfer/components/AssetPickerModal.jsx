@@ -58,8 +58,8 @@ export default function AssetPickerModal({ open, onClose, onSelect, excludeStatu
             <AssetPickerRow
               key={a.id}
               asset={a}
-              selected={selected?.id === a.id}
-              onClick={() => setSelected(a)}
+              isSelected={selected?.id === a.id}
+              onSelect={() => setSelected(a)}
             />
           ))}
         </div>

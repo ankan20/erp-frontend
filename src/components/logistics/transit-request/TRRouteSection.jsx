@@ -91,7 +91,7 @@ export default function TRRouteSection({
     if (!val) { onOrderItemsFetched?.(null); return; }
     try {
       const r = await apiRequest({ url: `${TR.GET_ORDER_ITEMS}/${val}` });
-      onOrderItemsFetched?.(r.data || []);
+      onOrderItemsFetched?.(r.data?.items || r.data || []);
     } catch {
       toast.error("Failed to load order items");
       onOrderItemsFetched?.(null);

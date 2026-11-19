@@ -10,7 +10,6 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
-import ExpandableTextField from "@/components/common/ExpandableTextField";
 
 import {
   LogisticsField,
@@ -92,7 +91,7 @@ export default function DCBasicSection({ form, disabled, mode, onOrderItemsFetch
     if (!val) { onOrderItemsFetched?.(null); return; }
     try {
       const r = await apiRequest({ url: `${DC.GET_ORDER_ITEMS}/${val}` });
-      onOrderItemsFetched?.(r.data || []);
+      onOrderItemsFetched?.(r.data?.items || r.data || []);
     } catch { toast.error("Failed to load items"); onOrderItemsFetched?.(null); }
   };
 
@@ -169,7 +168,7 @@ export default function DCBasicSection({ form, disabled, mode, onOrderItemsFetch
               </SelectTrigger>
               <SelectContent>
                 {orders.map((o) => (
-                  <SelectItem key={o.id} value={String(o.id)}>{o.orderNo}</SelectItem>
+                  <SelectItem key={o.orderId ?? o.id} value={String(o.orderId ?? o.id)}>{o.orderNo}</SelectItem>
                 ))}
               </SelectContent>
             </Select>

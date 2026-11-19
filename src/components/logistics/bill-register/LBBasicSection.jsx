@@ -9,7 +9,7 @@ import {
 import { Input } from "@/components/ui/input";
 import SearchableSelect from "@/components/common/SearchableSelect";
 import FileUpload, { ACCEPT_ALL, TYPES_ALL } from "@/components/common/FileUpload";
-import ExpandableTextField from "@/components/common/ExpandableTextField";
+import ExpandableTextArea from "@/components/common/ExpandableTextArea";
 
 import {
   LogisticsField,
@@ -113,15 +113,18 @@ export default function LBBasicSection({
       </LogisticsField>
 
       <LogisticsField label="Remarks">
-        <ExpandableTextField
-          value={watch("remarks")}
-          onChange={(val) => setValue("remarks", val)}
-          disabled={disabled}
-          title="Remarks"
-          placeholder="Additional notes"
-          minHeight="min-h-[32px]"
-          modalHeight="min-h-[200px]"
-        />
+        <div className="flex-1 min-w-0">
+          <ExpandableTextArea
+            value={watch("remarks") ?? ""}
+            onChange={(v) => setValue("remarks", v)}
+            disabled={disabled}
+            title="Remarks"
+            placeholder="Additional notes"
+            rows={1}
+            maxInlineRows={3}
+            modalRows={8}
+          />
+        </div>
       </LogisticsField>
 
       <LogisticsField label="Attachment">

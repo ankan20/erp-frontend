@@ -6,7 +6,7 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
-import ExpandableTextField from "@/components/common/ExpandableTextField";
+import ExpandableTextArea from "@/components/common/ExpandableTextArea";
 
 import {
   LogisticsField,
@@ -108,15 +108,18 @@ export default function TRBasicSection({ form, disabled, mode, seq = 1 }) {
       </LogisticsField>
 
       <LogisticsField label="Remarks">
-        <ExpandableTextField
-          value={watch("remarks")}
-          onChange={(val) => setValue("remarks", val)}
-          disabled={disabled}
-          title="Remarks"
-          placeholder="Additional remarks"
-          minHeight="min-h-[32px]"
-          modalHeight="min-h-[200px]"
-        />
+        <div className="flex-1 min-w-0">
+          <ExpandableTextArea
+            value={watch("remarks") ?? ""}
+            onChange={(v) => setValue("remarks", v)}
+            disabled={disabled}
+            title="Remarks"
+            placeholder="Additional remarks"
+            rows={1}
+            maxInlineRows={3}
+            modalRows={8}
+          />
+        </div>
       </LogisticsField>
     </LogisticsSection>
   );

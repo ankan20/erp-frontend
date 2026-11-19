@@ -83,6 +83,8 @@ export default function ExpandableTextField({
 
           flex
           items-center
+          min-w-0
+          overflow-hidden
 
           cursor-pointer
         `}

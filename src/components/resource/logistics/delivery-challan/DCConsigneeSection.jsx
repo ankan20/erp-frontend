@@ -2,7 +2,7 @@
 
 import { Building2 } from "lucide-react";
 import { Input } from "@/components/ui/input";
-import ExpandableTextField from "@/components/common/ExpandableTextField";
+import ExpandableTextArea from "@/components/common/ExpandableTextArea";
 
 import {
   LogisticsField,
@@ -39,27 +39,33 @@ export default function DCConsigneeSection({ form, disabled, seq = 2 }) {
       </LogisticsField>
 
       <LogisticsField label="Address">
-        <ExpandableTextField
-          value={watch("consigneeAddress")}
-          onChange={(val) => setValue("consigneeAddress", val)}
-          disabled={disabled}
-          title="Consignee Address"
-          placeholder="Full ship-to address"
-          minHeight="min-h-[32px]"
-          modalHeight="min-h-[200px]"
-        />
+        <div className="flex-1 min-w-0">
+          <ExpandableTextArea
+            value={watch("consigneeAddress") ?? ""}
+            onChange={(v) => setValue("consigneeAddress", v)}
+            disabled={disabled}
+            title="Consignee Address"
+            placeholder="Full ship-to address"
+            rows={1}
+            maxInlineRows={3}
+            modalRows={8}
+          />
+        </div>
       </LogisticsField>
 
       <LogisticsField label="Ship-To Address">
-        <ExpandableTextField
-          value={watch("shippingToAddress")}
-          onChange={(val) => setValue("shippingToAddress", val)}
-          disabled={disabled}
-          title="Shipping Address"
-          placeholder="If different from above"
-          minHeight="min-h-[32px]"
-          modalHeight="min-h-[200px]"
-        />
+        <div className="flex-1 min-w-0">
+          <ExpandableTextArea
+            value={watch("shippingToAddress") ?? ""}
+            onChange={(v) => setValue("shippingToAddress", v)}
+            disabled={disabled}
+            title="Shipping Address"
+            placeholder="If different from above"
+            rows={1}
+            maxInlineRows={3}
+            modalRows={8}
+          />
+        </div>
       </LogisticsField>
     </LogisticsSection>
   );

@@ -104,7 +104,7 @@ export default function ExpandableTextArea({
   return (
     <>
       {/* ── INLINE WRAPPER ── */}
-      <div className={`relative group ${className}`}>
+      <div className={`relative group w-full ${className}`}>
         <textarea
           ref={inlineRef}
           value={value}
@@ -122,7 +122,7 @@ export default function ExpandableTextArea({
             outline-none transition-shadow
             ${borderCls} ${textCls}
           `}
-          style={{ overflow: "hidden" }}
+          style={{ overflow: "hidden", paddingRight: "1.75rem" }}
           onInput={(e) => {
             // auto-grow up to effectiveMaxRows then lock and show zoom
             const lineH = parseInt(getComputedStyle(e.target).lineHeight) || 20;
