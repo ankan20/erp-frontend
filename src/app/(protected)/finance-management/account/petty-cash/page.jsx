@@ -11,6 +11,7 @@ import HeaderWrapper      from "@/components/layout/HeaderWrapper";
 import PageHeader         from "@/components/layout/PageHeader";
 import PageNotAvailable   from "@/components/common/PageNotAvailable";
 import NavigationButton   from "@/components/common/NavigationButton";
+import Pagination         from "@/components/common/Pagination";
 import { getPageActions } from "@/components/common/PageActionButtons";
 import { getPageAccess }  from "@/helper/getPageAccess";
 import { apiRequest }     from "@/lib/apiClient";
@@ -353,41 +354,6 @@ function LedgerTable({ entries }) {
   );
 }
 
-// ─── Paginator ────────────────────────────────────────────────────────────────
-function Paginator({ page, totalPages, total, onPage, loading }) {
-  if (totalPages <= 1) return null;
-  const pages = Array.from({ length: totalPages }, (_, i) => i + 1)
-    .filter((p) => p === 1 || p === totalPages || Math.abs(p - page) <= 1)
-    .reduce((acc, p, i, arr) => {
-      if (i > 0 && p - arr[i - 1] > 1) acc.push("…");
-      acc.push(p);
-      return acc;
-    }, []);
-  return (
-    <div className="flex items-center justify-between px-3 py-1.5 border border-[#c4d1df] rounded-sm bg-[#f7fbff] text-[11.5px] text-gray-600 mt-1">
-      <span>Page {page} of {totalPages} · {total} entr{total !== 1 ? "ies" : "y"}</span>
-      <div className="flex items-center gap-1">
-        <button disabled={page === 1 || loading} onClick={() => onPage(page - 1)}
-          className="px-2 py-0.5 border border-[#9e9e9e] rounded disabled:opacity-40 hover:bg-[#e6e6e6] transition">
-          ‹ Prev
-        </button>
-        {pages.map((p, i) =>
-          p === "…" ? <span key={`e${i}`} className="px-1">…</span> : (
-            <button key={p} disabled={loading} onClick={() => onPage(p)}
-              className={`px-2 py-0.5 border rounded transition ${p === page ? "bg-[#144664] border-[#144664] text-white font-semibold" : "border-[#9e9e9e] hover:bg-[#e6e6e6]"}`}>
-              {p}
-            </button>
-          )
-        )}
-        <button disabled={page === totalPages || loading} onClick={() => onPage(page + 1)}
-          className="px-2 py-0.5 border border-[#9e9e9e] rounded disabled:opacity-40 hover:bg-[#e6e6e6] transition">
-          Next ›
-        </button>
-      </div>
-    </div>
-  );
-}
-
 // ─── Page ─────────────────────────────────────────────────────────────────────
 export default function PettyCashPage() {
   const router = useRouter();
@@ -422,7 +388,7 @@ export default function PettyCashPage() {
     if (!projectCode) { toast.error("No project selected"); return; }
     setLoading(true);
     try {
-      const params = new URLSearchParams({ projectCode, page: p, pageSize: PAGE_SIZE });
+      const params = new URLSearchParams({ projectCode, page: p, limit: PAGE_SIZE });
       if (selectedId) params.set("bankCashId", selectedId);
       if (fromDate)   params.set("fromDate", fromDate);
       if (toDate)     params.set("toDate", toDate);
@@ -606,12 +572,14 @@ export default function PettyCashPage() {
               </>
             )}
             {pagination && pagination.totalPages > 1 && (
-              <Paginator
+              <Pagination
                 page={page}
                 totalPages={pagination.totalPages}
                 total={pagination.total}
+                limit={pagination.limit ?? PAGE_SIZE}
                 onPage={(p) => fetchLedger(p)}
                 loading={loading}
+                className="border mt-1"
               />
             )}
           </div>
