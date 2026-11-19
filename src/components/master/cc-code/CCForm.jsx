@@ -19,7 +19,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { apiRequest } from "@/lib/apiClient";
-import { API_ENDPOINTS } from "@/config/api.config";
+import API_BASE_URL, { API_ENDPOINTS } from "@/config/api.config";
 import { toast } from "sonner";
 import { Loader2, Trash2 } from "lucide-react";
 import { CATEGORY_OPTIONS } from "@/config/categoryOptions.config";
@@ -33,6 +33,33 @@ const schema = z.object({
   categoryId: z.string().min(1, "Required"),
   subGroupId: z.string().optional(),
 });
+
+async function updateCCWithConfirmation(ccId, payload) {
+  const token = typeof window !== "undefined" ? localStorage.getItem("token") : null;
+  const rawRes = await fetch(
+    `${API_BASE_URL}${API_ENDPOINTS.MASTER.UPDATE_CC_CODE_BY_ID}/${ccId}`,
+    {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+        ...(token && { Authorization: `Bearer ${token}` }),
+      },
+      body: JSON.stringify(payload),
+    }
+  );
+  const body = await rawRes.json().catch(() => ({}));
+  if (rawRes.status === 409 && body?.data?.[0]?.requiresConfirmation) {
+    return {
+      _needsConfirmation: true,
+      message: body.message || "This change affects posted transactions.",
+      count: body.data[0].affectedPostings || 0,
+    };
+  }
+  if (!rawRes.ok) {
+    throw new Error(body?.message || "Update failed");
+  }
+  return body;
+}
 
 export default function CCForm({
   mode = "create",
@@ -54,6 +81,8 @@ export default function CCForm({
   const [isNonLedger, setIsNonLedger] = useState(
     data?.isNonLedger !== undefined && data?.isNonLedger !== null ? data.isNonLedger : false
   );
+  // GST account type (only for GST category CCs)
+  const [gstAccountType, setGstAccountType] = useState(data?.gstAccountType || "");
   // Profit & Loss link (every CC code is Balance Sheet; some also fall under P&L)
   const [plLinked, setPlLinked] = useState(!!data?.plLinked);
   const [plGroupId, setPlGroupId] = useState(data?.plGroupId ? String(data.plGroupId) : "");
@@ -79,6 +108,8 @@ export default function CCForm({
   });
 
   const selectedGroupId = watch("groupId");
+  const selectedCategoryId = watch("categoryId");
+  const isGstCategory = categories.find((c) => c.value === selectedCategoryId)?.label?.toUpperCase() === "GST";
 
   // Main group: Balance Sheet groups (plus an older record's current group, if it is not one)
   const BS = "Balance Sheet";
@@ -188,6 +219,7 @@ export default function CCForm({
         categoryId: values.categoryId,
         subGroupId: values.subGroupId ? Number(values.subGroupId) : null,
         isNonLedger: showLedgerType ? !!isNonLedger : null,
+        gstAccountType: gstAccountType || null,
         plLinked,
         plGroupId: plLinked && plGroupId ? Number(plGroupId) : null,
         plSubGroupId: plLinked && plSubGroupPath.length ? plSubGroupPath[plSubGroupPath.length - 1] : null,
@@ -203,15 +235,19 @@ export default function CCForm({
         toast.success(res.message || "Created", { id: toastId });
         setIsEditing(false);
       } else {
-        let resp = await apiRequest({
-          url: `${API_ENDPOINTS.MASTER.UPDATE_CC_CODE_BY_ID}/${ccId}`,
-          method: "PUT",
-          data: payload,
-        });
+        const updateResp = await updateCCWithConfirmation(ccId, payload);
+        if (updateResp._needsConfirmation) {
+          toast.dismiss(toastId);
+          setStructuralWarning({
+            message: updateResp.message,
+            count: updateResp.count,
+            payload,
+          });
+          return;
+        }
 
-        toast.success(resp.message || "Updated", { id: toastId });
+        toast.success(updateResp.message || "Updated", { id: toastId });
 
-        //refetch
         const res = await apiRequest({
           url: `${API_ENDPOINTS.MASTER.GET_CC_CODE_BY_ID}/${ccId}`,
         });
@@ -227,6 +263,7 @@ export default function CCForm({
         });
         setSubGroupPath((d.ccSubGroupLevels || []).map((l) => l.subGroupId));
         setIsNonLedger(d.isNonLedger ?? false);
+        setGstAccountType(d.gstAccountType || "");
         setPlLinked(!!d.plLinked);
         setPlGroupId(d.plGroupId ? String(d.plGroupId) : "");
         setPlSubGroupPath((d.plSubGroupLevels || []).map((l) => l.subGroupId));
@@ -235,6 +272,44 @@ export default function CCForm({
       }
     } catch (err) {
       toast.error(err.message || "Failed", { id: toastId });
+    }
+  };
+
+  // Structural change confirmation
+  const [structuralWarning, setStructuralWarning] = useState(null);
+
+  const confirmStructuralChange = async () => {
+    if (!structuralWarning) return;
+    const toastId = toast.loading("Saving...");
+    try {
+      await updateCCWithConfirmation(ccId, {
+        ...structuralWarning.payload,
+        confirmStructuralChange: true,
+      });
+      toast.success("Updated successfully", { id: toastId });
+
+      const res = await apiRequest({
+        url: `${API_ENDPOINTS.MASTER.GET_CC_CODE_BY_ID}/${ccId}`,
+      });
+      const d = res.data[0];
+      reset({
+        ccCode: d.ccCode,
+        ccName: d.ccName,
+        groupId: String(d.ccGroupId),
+        categoryId: String(d.ccCategoryId),
+        subGroupId: d.ccSubGroupId ? String(d.ccSubGroupId) : "",
+      });
+      setSubGroupPath((d.ccSubGroupLevels || []).map((l) => l.subGroupId));
+      setIsNonLedger(d.isNonLedger ?? false);
+      setGstAccountType(d.gstAccountType || "");
+      setPlLinked(!!d.plLinked);
+      setPlGroupId(d.plGroupId ? String(d.plGroupId) : "");
+      setPlSubGroupPath((d.plSubGroupLevels || []).map((l) => l.subGroupId));
+      setIsEditing(false);
+    } catch (err) {
+      toast.error(err.message || "Failed", { id: toastId });
+    } finally {
+      setStructuralWarning(null);
     }
   };
   const handleCancel = () => {
@@ -249,6 +324,7 @@ export default function CCForm({
     });
     setSubGroupPath(data.subGroupPath || []);
     setIsNonLedger(data.isNonLedger ?? false);
+    setGstAccountType(data.gstAccountType || "");
     setPlLinked(!!data.plLinked);
     setPlGroupId(data.plGroupId ? String(data.plGroupId) : "");
     setPlSubGroupPath(data.plSubGroupPath || []);
@@ -353,6 +429,31 @@ export default function CCForm({
             ))}
           </select>
         </div>
+
+        {/* GST ACCOUNT TYPE (only for GST category) */}
+        {isGstCategory && (
+          <div className="flex gap-2">
+            <div className={label}>GST Type</div>
+            <select
+              value={gstAccountType}
+              onChange={(e) => setGstAccountType(e.target.value)}
+              disabled={fieldDisabled}
+              className={`flex-1 ${getInputClass(null, fieldDisabled)} disabled:cursor-not-allowed rounded-md`}
+            >
+              <option value="">Not a GST account</option>
+              <optgroup label="Input (Purchases)">
+                <option value="INPUT_SGST">Input SGST</option>
+                <option value="INPUT_CGST">Input CGST</option>
+                <option value="INPUT_IGST">Input IGST</option>
+              </optgroup>
+              <optgroup label="Output (Sales)">
+                <option value="OUTPUT_SGST">Output SGST</option>
+                <option value="OUTPUT_CGST">Output CGST</option>
+                <option value="OUTPUT_IGST">Output IGST</option>
+              </optgroup>
+            </select>
+          </div>
+        )}
 
         {/* ── BALANCE SHEET GROUP SECTION ── */}
         <div className="pt-2">
@@ -513,6 +614,32 @@ export default function CCForm({
               className="bg-red-600 hover:bg-red-700 text-[12px] h-8"
             >
               {deleteLoading ? "Deleting..." : "Delete"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Structural change confirmation dialog */}
+      <AlertDialog open={!!structuralWarning} onOpenChange={(v) => { if (!v) setStructuralWarning(null); }}>
+        <AlertDialogContent className="max-w-sm">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="text-[14px]">Confirm Structural Change</AlertDialogTitle>
+            <AlertDialogDescription className="text-[12px]">
+              {structuralWarning?.message || "This change affects existing accounting entries."}
+              {structuralWarning?.count > 0 && (
+                <span className="block mt-1 font-semibold text-orange-600">
+                  {structuralWarning.count} posted transaction(s) will be affected retroactively.
+                </span>
+              )}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel className="text-[12px] h-8">Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={confirmStructuralChange}
+              className="text-[12px] h-8 bg-orange-600 hover:bg-orange-700"
+            >
+              Confirm Change
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

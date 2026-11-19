@@ -2,8 +2,19 @@
 
 import { useEffect, useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Input } from "@/components/ui/input";
 import { apiRequest } from "@/lib/apiClient";
+import API_BASE_URL from "@/config/api.config";
 import { toast } from "sonner";
 import { Pencil } from "lucide-react";
 import SaveButton from "@/components/common/SaveButton";
@@ -32,6 +43,7 @@ export default function GroupCategorySection({
   });
 
   const [saving, setSaving] = useState(false);
+  const [structuralWarning, setStructuralWarning] = useState(null);
   const { tableRef } = useColumnResize();
 
   // 🔥 FETCH LIST
@@ -84,14 +96,31 @@ export default function GroupCategorySection({
       toastId = toast.loading("Saving...");
 
       if (editingItem) {
-        await apiRequest({
-          url: `${updateApi}/${editingItem[idKey]}`,
-          method: "PUT",
-          data: {
-            [nameKey]: form.name,
-            headUnder: form.headUnder,
-          },
-        });
+        const token = typeof window !== "undefined" ? localStorage.getItem("token") : null;
+        const rawRes = await fetch(
+          `${API_BASE_URL}${updateApi}/${editingItem[idKey]}`,
+          {
+            method: "PUT",
+            headers: {
+              "Content-Type": "application/json",
+              ...(token && { Authorization: `Bearer ${token}` }),
+            },
+            body: JSON.stringify({ [nameKey]: form.name, headUnder: form.headUnder }),
+          }
+        );
+        const body = await rawRes.json().catch(() => ({}));
+        if (rawRes.status === 409 && body?.data?.[0]?.requiresConfirmation) {
+          toast.dismiss(toastId);
+          setStructuralWarning({
+            message: body.message || "This change affects posted transactions.",
+            count: body.data[0].affectedPostings || 0,
+            itemId: editingItem[idKey],
+            payload: { [nameKey]: form.name, headUnder: form.headUnder },
+          });
+          setSaving(false);
+          return;
+        }
+        if (!rawRes.ok) throw new Error(body?.message || "Update failed");
       } else {
         await apiRequest({
           url: createApi,
@@ -111,6 +140,34 @@ export default function GroupCategorySection({
       toast.error("Failed", { id: toastId });
     } finally {
       setSaving(false);
+    }
+  };
+
+  const confirmStructuralChange = async () => {
+    if (!structuralWarning) return;
+    const toastId = toast.loading("Saving...");
+    try {
+      const token = typeof window !== "undefined" ? localStorage.getItem("token") : null;
+      const rawRes = await fetch(
+        `${API_BASE_URL}${updateApi}/${structuralWarning.itemId}`,
+        {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+            ...(token && { Authorization: `Bearer ${token}` }),
+          },
+          body: JSON.stringify({ ...structuralWarning.payload, confirmStructuralChange: true }),
+        }
+      );
+      const body = await rawRes.json().catch(() => ({}));
+      if (!rawRes.ok) throw new Error(body?.message || "Update failed");
+      toast.success("Updated successfully", { id: toastId });
+      setOpen(false);
+      fetchList();
+    } catch (e) {
+      toast.error(e.message || "Failed", { id: toastId });
+    } finally {
+      setStructuralWarning(null);
     }
   };
 
@@ -232,6 +289,31 @@ export default function GroupCategorySection({
           </div>
         </DialogContent>
       </Dialog>
+
+      <AlertDialog open={!!structuralWarning} onOpenChange={(v) => { if (!v) setStructuralWarning(null); }}>
+        <AlertDialogContent className="max-w-sm">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="text-[14px]">Confirm Structural Change</AlertDialogTitle>
+            <AlertDialogDescription className="text-[12px]">
+              {structuralWarning?.message || "This change affects existing accounting entries."}
+              {structuralWarning?.count > 0 && (
+                <span className="block mt-1 font-semibold text-orange-600">
+                  {structuralWarning.count} posted transaction(s) will be affected retroactively.
+                </span>
+              )}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel className="text-[12px] h-8">Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={confirmStructuralChange}
+              className="text-[12px] h-8 bg-orange-600 hover:bg-orange-700"
+            >
+              Confirm Change
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
     </div>
   );

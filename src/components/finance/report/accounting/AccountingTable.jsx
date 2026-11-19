@@ -23,20 +23,20 @@ export default function AccountingTable({
 
   if (!rows?.length) {
     return (
-      <div className="text-center text-gray-400 text-[13px] py-10">{emptyMessage}</div>
+      <div className="text-center text-[#9ca3af] text-[12px] py-10">{emptyMessage}</div>
     );
   }
 
   return (
-    <div className="border border-[#9e9e9e] overflow-x-auto">
+    <div className="border border-[#d1d5db] overflow-x-auto">
       <div className="max-h-[608px] overflow-y-auto">
-        <table ref={tableRef} className="w-full min-w-max table-fixed border-collapse text-[12.5px]">
+        <table ref={tableRef} className="w-full min-w-max table-fixed border-collapse text-[12px]">
           <thead className="sticky top-0 z-10">
-            <tr className="bg-[#144664]">
+            <tr className="bg-[#1b2f3a]">
               {ordered.map((col) => {
                 const thProps = getThProps(
                   col.id,
-                  `px-3 py-2 text-left font-semibold border border-[#2e5a72] text-white whitespace-nowrap ${col.align === "right" ? "text-right" : ""} ${col.className || ""}`,
+                  `px-2 py-[6px] text-left font-medium border-r border-[#2a4a5a] text-white text-[11px] whitespace-nowrap ${col.align === "right" ? "text-right" : ""} ${col.className || ""}`,
                 );
                 return (
                   <th key={col.id} {...thProps}>
@@ -49,14 +49,14 @@ export default function AccountingTable({
 
           {footerRow && (
             <tfoot className="sticky bottom-0 z-10">
-              <tr className="bg-[#144664] text-white text-[12px] font-semibold">
+              <tr className="bg-[#1b2f3a] text-white text-[11.5px] font-medium">
                 {ordered.map((col) => {
                   const val = footerRow[col.key];
                   const isAmount = col.type === "amount";
                   return (
                     <td
                       key={col.key}
-                      className={`border border-[#2e5a72] px-3 py-1.5 whitespace-nowrap ${col.align === "right" || isAmount ? "text-right tabular-nums" : ""} ${col.className || ""}`}
+                      className={`border-r border-[#2a4a5a] px-2 py-[5px] whitespace-nowrap ${col.align === "right" || isAmount ? "text-right tabular-nums" : ""} ${col.className || ""}`}
                     >
                       {isAmount && val != null ? formatAmount(val) : (val ?? "")}
                     </td>
@@ -70,7 +70,7 @@ export default function AccountingTable({
             {rows.map((row, i) => (
               <tr
                 key={row._key ?? i}
-                className={`border-b border-[#e0e0e0] ${row._highlight ? "bg-[#f5f5ff] font-semibold" : i % 2 === 0 ? "bg-white" : "bg-[#fafafa]"} hover:bg-[#f0f0ff] transition-colors`}
+                className={`border-b border-[#e5e7eb] ${row._highlight ? "bg-[#f3f4f6] font-semibold" : i % 2 === 0 ? "bg-white" : "bg-[#fafbfc]"} hover:bg-[#f0f4f8] transition-colors`}
               >
                 {ordered.map((col) => {
                   const val = row[col.key];
@@ -78,7 +78,7 @@ export default function AccountingTable({
                   return (
                     <td
                       key={col.key}
-                      className={`px-3 py-1.5 border border-[#e6e4e4] ${col.align === "right" || isAmount ? "text-right tabular-nums" : ""} ${col.className || ""}`}
+                      className={`px-2 py-[4px] border-r border-[#f0f0f0] text-[#374151] ${col.align === "right" || isAmount ? "text-right tabular-nums" : ""} ${col.className || ""}`}
                     >
                       {isAmount && val != null ? formatAmount(val) : (val ?? "")}
                     </td>

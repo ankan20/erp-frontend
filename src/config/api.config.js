@@ -776,6 +776,7 @@ export const API_ENDPOINTS = {
       CUSTOMER_LEDGER:         "/finance/accounting/customer-ledger",
       BANK_LEDGER:             "/finance/accounting/bank-ledger",
       CC_LEDGER:               "/finance/accounting/cc-ledger",
+      RECONCILIATION:          "/finance/accounting/reconciliation",
       DAY_BOOK:                "/finance/accounting/day-book",
       VOUCHER_REGISTER:        "/finance/accounting/voucher-register",
       OUTSTANDING_PAYABLES:    "/finance/accounting/outstanding-payables",

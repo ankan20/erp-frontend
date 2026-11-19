@@ -14,24 +14,24 @@ export function fmtDate(raw) {
 }
 
 const SOURCE_COLORS = {
-  purchase_bill:  { bg: "bg-blue-100",   text: "text-blue-800" },
-  payment_voucher:{ bg: "bg-orange-100",  text: "text-orange-800" },
-  bill_payment:   { bg: "bg-teal-100",    text: "text-teal-800" },
-  sale_bill:      { bg: "bg-green-100",   text: "text-green-800" },
-  sale_receipt:   { bg: "bg-emerald-100", text: "text-emerald-800" },
-  journal_entry:  { bg: "bg-purple-100",  text: "text-purple-800" },
-  contra_entry:   { bg: "bg-indigo-100",  text: "text-indigo-800" },
-  debit_note:     { bg: "bg-red-100",     text: "text-red-800" },
-  credit_note:    { bg: "bg-pink-100",    text: "text-pink-800" },
-  petty_cash:     { bg: "bg-amber-100",   text: "text-amber-800" },
+  purchase_bill:   { bg: "bg-[#dbeafe]", text: "text-[#1e40af]" },
+  payment_voucher: { bg: "bg-[#ffedd5]", text: "text-[#9a3412]" },
+  bill_payment:    { bg: "bg-[#ccfbf1]", text: "text-[#115e59]" },
+  sale_bill:       { bg: "bg-[#dcfce7]", text: "text-[#166534]" },
+  sale_receipt:    { bg: "bg-[#d1fae5]", text: "text-[#065f46]" },
+  journal_entry:   { bg: "bg-[#ede9fe]", text: "text-[#5b21b6]" },
+  contra_entry:    { bg: "bg-[#e0e7ff]", text: "text-[#3730a3]" },
+  debit_note:      { bg: "bg-[#fee2e2]", text: "text-[#991b1b]" },
+  credit_note:     { bg: "bg-[#fce7f3]", text: "text-[#9d174d]" },
+  petty_cash:      { bg: "bg-[#fef3c7]", text: "text-[#92400e]" },
 };
 
 export function SourceTypeBadge({ type }) {
   const key = (type || "").toLowerCase().replace(/\s+/g, "_");
-  const c = SOURCE_COLORS[key] || { bg: "bg-gray-100", text: "text-gray-700" };
+  const c = SOURCE_COLORS[key] || { bg: "bg-[#f3f4f6]", text: "text-[#4b5563]" };
   const label = (type || "").replace(/_/g, " ");
   return (
-    <span className={`inline-block px-2 py-0.5 rounded text-[11px] font-medium ${c.bg} ${c.text} whitespace-nowrap`}>
+    <span className={`inline-block px-1.5 py-[1px] text-[10px] font-medium ${c.bg} ${c.text} whitespace-nowrap`}>
       {label}
     </span>
   );
@@ -39,7 +39,7 @@ export function SourceTypeBadge({ type }) {
 
 export function FilterLabel({ children }) {
   return (
-    <span className="inline-block px-2 py-0.5 bg-[#b4b4d9] text-[12px] font-semibold text-[#1a1a5e] rounded-sm whitespace-nowrap">
+    <span className="text-[11.5px] font-medium text-[#6b7280] whitespace-nowrap">
       {children}
     </span>
   );
@@ -47,16 +47,11 @@ export function FilterLabel({ children }) {
 
 export function SummaryBox({ items }) {
   return (
-    <div className="flex flex-wrap gap-2">
+    <div className="flex flex-wrap items-center gap-3 text-[11.5px]">
       {items.map((item, i) => (
-        <div key={i} className={`flex items-center gap-1.5 rounded-sm border border-[#ccc] overflow-hidden text-[12px]`}>
-          <span className={`px-2 py-1 ${item.bg || "bg-gray-100"} font-semibold ${item.text || "text-gray-700"}`}>
-            {item.label}
-          </span>
-          <span className={`px-2 py-1 ${item.vBg || "bg-white"} font-bold tabular-nums ${item.text || "text-gray-700"}`}>
-            {item.value}
-          </span>
-        </div>
+        <span key={i} className="text-[#374151]">
+          {item.label}: <span className={`tabular-nums font-medium ${item.text || ""}`}>{item.value}</span>
+        </span>
       ))}
     </div>
   );
