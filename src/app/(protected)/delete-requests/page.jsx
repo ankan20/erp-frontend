@@ -14,6 +14,7 @@ import { apiRequest } from "@/lib/apiClient";
 import { API_ENDPOINTS } from "@/config/api.config";
 import { Loader2, Bell, RefreshCw, CheckCircle2, Clock, XCircle } from "lucide-react";
 import { toast } from "sonner";
+import Pagination from "@/components/common/Pagination";
 
 const STATUS_OPTIONS = ["ALL", "PENDING", "COMPLETED", "CANCELLED"];
 
@@ -129,7 +130,7 @@ export default function DeleteRequestsPage() {
     try {
       const params = {
         page:     pg,
-        per_page: perPage,
+        limit:    perPage,
       };
       if (status !== "ALL") params.status = status;
 
@@ -257,30 +258,16 @@ export default function DeleteRequestsPage() {
         </div>
       )}
 
-      {/* Pagination */}
-      {pages > 1 && (
-        <div className="flex justify-center items-center gap-3 mt-8">
-          <button
-            type="button"
-            disabled={page <= 1 || loading}
-            onClick={() => setPage((p) => p - 1)}
-            className="px-4 py-1.5 rounded-md border border-gray-200 text-sm text-gray-600 hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed transition"
-          >
-            ← Prev
-          </button>
-          <span className="text-sm text-gray-500">
-            Page {page} / {pages}
-          </span>
-          <button
-            type="button"
-            disabled={page >= pages || loading}
-            onClick={() => setPage((p) => p + 1)}
-            className="px-4 py-1.5 rounded-md border border-gray-200 text-sm text-gray-600 hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed transition"
-          >
-            Next →
-          </button>
-        </div>
-      )}
+      {/* Pagination — shared pager */}
+      <Pagination
+        page={page}
+        totalPages={pages}
+        total={total}
+        limit={perPage}
+        onPage={setPage}
+        loading={loading}
+        className="mt-6 border rounded-md"
+      />
     </div>
   );
 }

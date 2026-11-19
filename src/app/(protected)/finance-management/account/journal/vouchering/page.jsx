@@ -18,45 +18,10 @@ import { getLocalStorage } from "@/lib/localStorage";
 import { formatAmount }    from "@/helper/numberFormatter";
 import { getfmtDisplaydate } from "@/helper/getfmtDisplayDate";
 
-const PAGE_SIZE = 10;
+const DEFAULT_LIMIT = 10;
 
 const fmtD   = (raw) => { if (!raw) return "—"; const d = new Date(raw); return isNaN(d) ? raw : d.toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" }); };
 const fmtAmt = (v) => Number(v || 0).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-
-// ─── Paginator (copied from petty-cash page pattern) ─────────────────────────
-function Paginator({ page, totalPages, total, onPage, loading }) {
-  if (totalPages <= 1) return null;
-  const pages = Array.from({ length: totalPages }, (_, i) => i + 1)
-    .filter((p) => p === 1 || p === totalPages || Math.abs(p - page) <= 1)
-    .reduce((acc, p, i, arr) => {
-      if (i > 0 && p - arr[i - 1] > 1) acc.push("…");
-      acc.push(p);
-      return acc;
-    }, []);
-  return (
-    <div className="flex items-center justify-between px-2 py-1.5 border-t border-[#d5e8f5] bg-[#f7fbff] text-[11.5px] text-gray-600">
-      <span>Page {page} of {totalPages} · {total} record{total !== 1 ? "s" : ""}</span>
-      <div className="flex items-center gap-1">
-        <button disabled={page === 1 || loading} onClick={() => onPage(page - 1)}
-          className="px-2 py-0.5 border border-[#9e9e9e] rounded disabled:opacity-40 hover:bg-[#e6e6e6] transition">
-          ‹ Prev
-        </button>
-        {pages.map((p, i) =>
-          p === "…" ? <span key={`e-${i}`} className="px-1">…</span> : (
-            <button key={p} disabled={loading} onClick={() => onPage(p)}
-              className={`px-2 py-0.5 border rounded transition ${p === page ? "bg-[#144664] border-[#144664] text-white font-semibold" : "border-[#9e9e9e] hover:bg-[#e6e6e6]"}`}>
-              {p}
-            </button>
-          )
-        )}
-        <button disabled={page === totalPages || loading} onClick={() => onPage(page + 1)}
-          className="px-2 py-0.5 border border-[#9e9e9e] rounded disabled:opacity-40 hover:bg-[#e6e6e6] transition">
-          Next ›
-        </button>
-      </div>
-    </div>
-  );
-}
 
 // ─── PDF download ─────────────────────────────────────────────────────────────
 async function downloadListPDF(list, projectCode) {
@@ -106,6 +71,7 @@ export default function Page() {
   const [list,       setList]       = useState([]);
   const [pagination, setPagination] = useState(null);
   const [page,       setPage]       = useState(1);
+  const [limit,      setLimit]      = useState(DEFAULT_LIMIT);
   const [loading,    setLoading]    = useState(false);
   const [dlBusy,     setDlBusy]     = useState(false); // used by top-bar PDF download
 
@@ -114,11 +80,11 @@ export default function Page() {
   const [fromDate,  setFromDate]  = useState("");
   const [toDate,    setToDate]    = useState("");
 
-  const fetchList = useCallback(async (p = 1, q = searchQ, from = fromDate, to = toDate) => {
+  const fetchList = useCallback(async (p = 1, q = searchQ, from = fromDate, to = toDate, lim = limit) => {
     if (!projectCode) return;
     setLoading(true);
     try {
-      const params = new URLSearchParams({ projectCode, page: p, pageSize: PAGE_SIZE });
+      const params = new URLSearchParams({ projectCode, page: p, limit: lim });
       if (q)    params.set("search",   q);
       if (from) params.set("fromDate", from);
       if (to)   params.set("toDate",   to);
@@ -126,14 +92,15 @@ export default function Page() {
         url:    `${API_ENDPOINTS.FINANCE.JOURNAL_VOUCHERING.LIST}?${params}`,
         method: "GET",
       });
-      setList(res.data?.list || []);
-      setPagination(res.data?.pagination || null);
+      // standard list shape: data = rows, pagination = { page, limit, total, totalPages }
+      setList(Array.isArray(res?.data) ? res.data : []);
+      setPagination(res?.pagination || null);
     } catch {
       toast.error("Failed to fetch Bulk Docket list");
     } finally {
       setLoading(false);
     }
-  }, [projectCode, searchQ, fromDate, toDate]);
+  }, [projectCode, searchQ, fromDate, toDate, limit]);
 
   // Auto-load on mount
   useEffect(() => {
@@ -148,7 +115,7 @@ export default function Page() {
     fetchList(1, search || "", from || "", to || "");
   };
 
-  const handlePage = (p) => { setPage(p); fetchList(p); };
+  const handlePage = (p, lim = limit) => { setPage(p); setLimit(lim); fetchList(p, searchQ, fromDate, toDate, lim); };
 
   const handleDownload = async () => {
     setDlBusy(true);
@@ -172,7 +139,7 @@ export default function Page() {
   ];
 
   const tableData = list.map((r, i) => ({
-    sl:              (page - 1) * PAGE_SIZE + i + 1,
+    sl:              (page - 1) * limit + i + 1,
     _id:             r.id,
     voucherNo:       r.voucherNo      || "—",
     voucherDate:     getfmtDisplaydate(r.voucherDate) || "—",
@@ -207,20 +174,14 @@ export default function Page() {
               <DataTable
                 columns={columns}
                 data={tableData}
+                pagination={pagination}
+                onPageChange={handlePage}
+                loading={loading}
                 onRowClick={(row) => {
                   if (!access.canOpenDetails || !row._id) return;
                   router.push(`/finance-management/account/journal/vouchering/${row._id}`);
                 }}
               />
-              {pagination && pagination.totalPages > 1 && (
-                <Paginator
-                  page={page}
-                  totalPages={pagination.totalPages}
-                  total={pagination.total}
-                  onPage={handlePage}
-                  loading={loading}
-                />
-              )}
             </div>
           </>
         )}

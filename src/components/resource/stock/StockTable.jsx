@@ -3,6 +3,7 @@
 import React, { useState, useRef, useEffect, useCallback, useMemo } from "react";
 import { createPortal } from "react-dom";
 import { useColumnResize } from "@/hooks/useColumnResize";
+import Pagination from "@/components/common/Pagination";
 import {
   ArrowUp,
   ArrowDown,
@@ -648,55 +649,15 @@ export default function StockTable({ data = [], onItemClick, pagination, onPageC
         </table>
       </div>
 
-      {/* PAGINATION */}
-      {totalPages > 1 && (
-        <div className="flex items-center justify-between px-3 py-1.5 border-t border-[#9e9e9e] bg-[#f9f9f9] text-xs text-gray-600">
-          <span>
-            Page {currentPage} of {totalPages} &nbsp;·&nbsp; {totalGroups} groups
-          </span>
-          <div className="flex items-center gap-1">
-            <button
-              disabled={currentPage === 1 || tableLoading}
-              onClick={() => onPageChange?.(currentPage - 1)}
-              className="px-2 py-0.5 border border-[#9e9e9e] rounded disabled:opacity-40 hover:bg-[#e6e6e6] transition"
-            >
-              ‹ Prev
-            </button>
-            {Array.from({ length: totalPages }, (_, i) => i + 1)
-              .filter((p) => p === 1 || p === totalPages || Math.abs(p - currentPage) <= 1)
-              .reduce((acc, p, i, arr) => {
-                if (i > 0 && p - arr[i - 1] > 1) acc.push("...");
-                acc.push(p);
-                return acc;
-              }, [])
-              .map((p, i) =>
-                p === "..." ? (
-                  <span key={`ellipsis-${i}`} className="px-1">…</span>
-                ) : (
-                  <button
-                    key={p}
-                    disabled={tableLoading}
-                    onClick={() => onPageChange?.(p)}
-                    className={`px-2 py-0.5 border rounded transition ${
-                      p === currentPage
-                        ? "bg-[#7fc3d4] border-[#4d8ea3] text-black font-semibold"
-                        : "border-[#9e9e9e] hover:bg-[#e6e6e6]"
-                    }`}
-                  >
-                    {p}
-                  </button>
-                )
-              )}
-            <button
-              disabled={currentPage === totalPages || tableLoading}
-              onClick={() => onPageChange?.(currentPage + 1)}
-              className="px-2 py-0.5 border border-[#9e9e9e] rounded disabled:opacity-40 hover:bg-[#e6e6e6] transition"
-            >
-              Next ›
-            </button>
-          </div>
-        </div>
-      )}
+      {/* PAGINATION — shared pager (stock pages on CC-code groups) */}
+      <Pagination
+        page={currentPage}
+        totalPages={totalPages}
+        total={totalGroups}
+        limit={limit}
+        onPage={(p) => onPageChange?.(p)}
+        loading={tableLoading}
+      />
 
       {renderFilterDropdown()}
     </div>

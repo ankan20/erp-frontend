@@ -6,6 +6,7 @@ import { useColumnResize } from "@/hooks/useColumnResize";
 import { ArrowUp, ArrowDown, ArrowUpDown, ChevronDown, Search } from "lucide-react";
 import { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider } from "@/components/ui/tooltip";
 import { isTypingTarget, topDialog } from "@/lib/shortcuts";
+import Pagination, { PAGE_SIZE_OPTIONS } from "@/components/common/Pagination";
 
 function readSession(key) {
   try { return JSON.parse(sessionStorage.getItem(key) || "null"); } catch { return null; }
@@ -90,6 +91,16 @@ export default function DataTable({
   storageKey,          // optional override; defaults to current pathname
   pendingDeleteIds,    // Set<number> — rows with pending delete requests get an orange dot
   summaryRow,          // { [accessor]: true } — columns to sum in a footer row; omit or {} = no footer
+  // ─── PAGINATION (uniform on every list)
+  // Client mode (default): all rows are fetched; the table pages them AFTER
+  // filter + sort, so column filters / sort / totals still cover every row.
+  // Server mode: pass the API's `pagination` block ({ page, limit, total,
+  // totalPages }) and onPageChange(page, limit) to fetch that page.
+  paginate = true,     // false = render every row (small tables, modals)
+  pageSize = 25,       // client-mode default rows per page
+  pagination,          // server meta from the API response
+  onPageChange,        // (page, limit) => void — server mode
+  loading = false,
 }) {
   const pathname = usePathname();
   const tableKey = `table-state:${storageKey ?? pathname}`;
@@ -269,6 +280,46 @@ export default function DataTable({
     return 0;
   });
 
+  // ─── PAGE (client mode slices sortedData; server mode shows rows as given)
+  const serverMode = !!pagination && !!onPageChange;
+  const [clientLimit, setClientLimit] = useState(() => saved?.pageSize ?? pageSize);
+  // back to page 1 whenever the visible set changes (new rows, filter, sort):
+  // the page is remembered together with the set it belongs to. Keyed on the
+  // row count, not the array — callers often pass data={list.map(...)}.
+  const resetKey = `${data.length}|${JSON.stringify(filterConfig)}|${sortConfig.key}|${sortConfig.direction}`;
+  const [pageState, setPageState] = useState({ key: resetKey, page: 1 });
+  const clientPage = pageState.key === resetKey ? pageState.page : 1;
+  const setClientPage = (p) => setPageState({ key: resetKey, page: p });
+  const clientTotalPages = Math.max(1, Math.ceil(sortedData.length / clientLimit));
+  const currentPage = serverMode ? pagination.page || 1 : Math.min(clientPage, clientTotalPages);
+
+
+  const pageRows = serverMode || !paginate
+    ? sortedData
+    : sortedData.slice((currentPage - 1) * clientLimit, currentPage * clientLimit);
+
+  const pagerProps = serverMode
+    ? {
+        page: currentPage,
+        totalPages: pagination.totalPages || 1,
+        total: pagination.total || 0,
+        limit: pagination.limit,
+        onPage: (p) => onPageChange(p, pagination.limit),
+        onLimit: (n) => onPageChange(1, n),
+      }
+    : {
+        page: currentPage,
+        totalPages: clientTotalPages,
+        total: sortedData.length,
+        limit: clientLimit,
+        onPage: setClientPage,
+        onLimit: (n) => {
+          setClientLimit(n);
+          setClientPage(1);
+          writeSession(tableKey, { ...readSession(tableKey), pageSize: n });
+        },
+      };
+
   // ─── EXPANDED CELL (existing) 
   const [expandedCell, setExpandedCell] = useState(null);
 
@@ -277,10 +328,10 @@ export default function DataTable({
   const [activeRow, setActiveRow] = useState(null);
   const containerRef = useRef(null);
   const keyNav = useRef({});
-  const activeIndex = activeRow != null && activeRow < sortedData.length ? activeRow : null;
+  const activeIndex = activeRow != null && activeRow < pageRows.length ? activeRow : null;
 
   useEffect(() => {
-    keyNav.current = { rows: sortedData, onRowClick, activeIndex, filterOpen: !!activeFilterCol };
+    keyNav.current = { rows: pageRows, onRowClick, activeIndex, filterOpen: !!activeFilterCol };
   });
 
   useEffect(() => {
@@ -561,7 +612,7 @@ export default function DataTable({
           )}
 
           <tbody>
-            {sortedData.length === 0 ? (
+            {pageRows.length === 0 ? (
               <tr>
                 <td
                   colSpan={columns.length}
@@ -571,7 +622,7 @@ export default function DataTable({
                 </td>
               </tr>
             ) : (
-              sortedData.map((row, rowIndex) => {
+              pageRows.map((row, rowIndex) => {
                 const hasPendingDelete = pendingDeleteIds?.has(Number(row.id));
                 return (
                 <tr
@@ -589,6 +640,7 @@ export default function DataTable({
 
                     // EXISTING: expandedCell tracks by rowIndex — known limitation
                     const isExpanded =
+                      expandedCell?.page === currentPage &&
                       expandedCell?.row === rowIndex &&
                       expandedCell?.col === colIndex;
 
@@ -600,9 +652,9 @@ export default function DataTable({
                           // opt-in action cells handle their own clicks
                           if (col.action) return;
                           setExpandedCell((prev) =>
-                            prev?.row === rowIndex && prev?.col === colIndex
+                            prev?.page === currentPage && prev?.row === rowIndex && prev?.col === colIndex
                               ? null
-                              : { row: rowIndex, col: colIndex }
+                              : { row: rowIndex, col: colIndex, page: currentPage }
                           );
                           // EXISTING: colIndex 1 triggers row navigation
                           if (colIndex === 1 && onRowClick) {
@@ -667,6 +719,16 @@ export default function DataTable({
       {/* Filter dropdown — rendered outside table flow via fixed position */}
       {renderFilterDropdown()}
     </div>
+    {(paginate || serverMode) && (
+      <Pagination
+        {...pagerProps}
+        loading={loading}
+        pageSizeOptions={PAGE_SIZE_OPTIONS.includes(pagerProps.limit) || !pagerProps.limit
+          ? PAGE_SIZE_OPTIONS
+          : [...PAGE_SIZE_OPTIONS, pagerProps.limit].sort((a, b) => a - b)}
+        className="border border-t-0"
+      />
+    )}
     </TooltipProvider>
   );
 }
