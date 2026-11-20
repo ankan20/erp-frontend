@@ -1,6 +1,7 @@
 "use client";
 
 import { X } from "lucide-react";
+import RebackRequestDialog from "@/components/common/RebackRequestDialog";
 
 export default function HeaderWrapper({
   header,
@@ -17,6 +18,9 @@ export default function HeaderWrapper({
       <div className="shrink-0">
         {header}
       </div>
+
+      {/* reback request on a fully approved record — opened from the Approve / Action icon */}
+      <RebackRequestDialog />
 
       {/* PENDING APPROVAL BANNER */}
       {pendingApproval && (

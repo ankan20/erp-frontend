@@ -967,6 +967,12 @@ export const API_ENDPOINTS = {
     BULK_ACTION:      "/workflow/bulk-action",           // POST { module, action: approve|reback|reject, ids, remarks }
     BULK_ELIGIBLE:    "/workflow/bulk-action/eligible",  // POST { module, ids } -> { eligibleIds }
     BULK_MODULES:     "/workflow/bulk-action/modules",   // GET
+    // reback request on a fully approved record (final approver / admin accepts)
+    REBACK_REQUESTS:        "/workflow/reback-requests",               // GET list ?status=&module= · POST { module, id, reason, pageUrl }
+    REBACK_REQUEST_RECORD:  "/workflow/reback-requests/record",        // GET ?path=<my-approval-status url>&id=
+    REBACK_REQUEST_COUNT:   "/workflow/reback-requests/pending-count", // GET -> { count } waiting on me
+    REBACK_REQUEST_MODULES: "/workflow/reback-requests/modules",       // GET
+    // POST /workflow/reback-requests/<id>/accept|decline|cancel  { comment }
   },
 
   DELETE_MANAGER: {
