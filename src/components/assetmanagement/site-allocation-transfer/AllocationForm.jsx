@@ -3,7 +3,8 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { Loader2, PackageSearch, Clock3, FileText, User2 } from "lucide-react";
+import { PackageSearch, Clock3, FileText, User2 } from "lucide-react";
+import { EdoxMark } from "@/components/common/EdoxLoader";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 
 import SaveButton from "@/components/common/SaveButton";
@@ -140,7 +141,7 @@ export default function AllocationForm({ mode = "create", docId }) {
     // In real implementation: API call + state update
   };
 
-  if (loading) return <div className="flex items-center justify-center h-52"><Loader2 className="animate-spin w-6 h-6 text-gray-400" /></div>;
+  if (loading) return <div className="flex items-center justify-center h-52"><EdoxMark size={32} /></div>;
 
   const statusActions = record && (
     <div className="flex items-center gap-2 flex-wrap">

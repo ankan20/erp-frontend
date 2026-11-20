@@ -15,6 +15,7 @@ import {
   XCircle,
   AlertCircle,
 } from "lucide-react";
+import { EdoxMark } from "@/components/common/EdoxLoader";
 
 import { toast } from "sonner";
 
@@ -180,7 +181,7 @@ export default function ProjectSelectPopup({
           {/* Loading state */}
           {loadingProjects && (
             <div className="flex justify-center items-center py-12">
-              <Loader2 className="w-8 h-8 animate-spin text-[#0c3472]" />
+              <EdoxMark size={40} />
             </div>
           )}
 

@@ -3,7 +3,8 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { Loader2, PackageSearch, RefreshCw, ChevronDown, ChevronUp } from "lucide-react";
+import { PackageSearch, RefreshCw, ChevronDown, ChevronUp } from "lucide-react";
+import { EdoxMark } from "@/components/common/EdoxLoader";
 
 import SaveButton from "@/components/common/SaveButton";
 import EditButton from "@/components/common/EditButton";
@@ -253,7 +254,7 @@ export default function AssetRegisterForm({ mode = "create", assetId: routeId, o
   if (loading) {
     return (
       <div className="flex items-center justify-center h-[300px]">
-        <Loader2 className="animate-spin w-6 h-6 text-gray-400" />
+        <EdoxMark size={32} />
       </div>
     );
   }

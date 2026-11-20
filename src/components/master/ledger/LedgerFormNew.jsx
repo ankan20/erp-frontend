@@ -8,6 +8,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
 import { Check, ChevronDown, Loader2, Search, X } from "lucide-react";
+import { EdoxMark } from "@/components/common/EdoxLoader";
 
 import SaveButton from "@/components/common/SaveButton";
 import PhoneInput from "@/components/common/PhoneInput";
@@ -560,7 +561,7 @@ export default function LedgerFormNew({
   };
 
   if (pageLoading) {
-    return <div className="flex justify-center items-center h-[300px]"><Loader2 className="animate-spin w-6 h-6" /></div>;
+    return <div className="flex justify-center items-center h-[300px]"><EdoxMark size={32} /></div>;
   }
 
   return (

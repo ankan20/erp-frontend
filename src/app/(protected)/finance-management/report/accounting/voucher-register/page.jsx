@@ -2,7 +2,8 @@
 
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Loader2, Search } from "lucide-react";
+import { Search } from "lucide-react";
+import { EdoxMark } from "@/components/common/EdoxLoader";
 
 import HeaderWrapper from "@/components/layout/HeaderWrapper";
 import PageHeader from "@/components/layout/PageHeader";
@@ -154,7 +155,7 @@ export default function VoucherRegisterPage() {
 
         {loading ? (
           <div className="flex justify-center items-center h-[300px]">
-            <Loader2 className="animate-spin w-6 h-6 text-[#144664]" />
+            <EdoxMark size={32} />
           </div>
         ) : !fetched ? (
           <div className="flex flex-col items-center justify-center h-[280px] text-gray-400 text-[13px] gap-1">

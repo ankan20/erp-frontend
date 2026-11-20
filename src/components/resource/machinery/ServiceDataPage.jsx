@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Loader2 } from "lucide-react";
+import { EdoxMark } from "@/components/common/EdoxLoader";
 import { toast } from "sonner";
 
 import DataTable from "@/components/common/DataTable";
@@ -168,7 +168,7 @@ export default function ServiceDataPage({ canAdd = false }) {
             <SearchSection onSearch={handleHistorySearch} showDateRange={false} actions={addActions} />
             {historyLoading ? (
               <div className="flex justify-center items-center h-[200px]">
-                <Loader2 className="animate-spin w-6 h-6" />
+                <EdoxMark size={32} />
               </div>
             ) : (
               <DataTable
@@ -187,7 +187,7 @@ export default function ServiceDataPage({ canAdd = false }) {
             <SearchSection onSearch={handleScheduleSearch} showDateRange={false} actions={addActions} />
             {scheduleLoading ? (
               <div className="flex justify-center items-center h-[200px]">
-                <Loader2 className="animate-spin w-6 h-6" />
+                <EdoxMark size={32} />
               </div>
             ) : (
               <DataTable

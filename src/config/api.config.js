@@ -962,6 +962,13 @@ export const API_ENDPOINTS = {
     ACCEPT: "/auth/consent/accept", // POST — { acknowledgements: {...}, final_consent: bool }
   },
 
+  WORKFLOW: {
+    MY_APPROVALS:     "/workflow/my-approvals",          // GET /<module_code>
+    BULK_ACTION:      "/workflow/bulk-action",           // POST { module, action: approve|reback|reject, ids, remarks }
+    BULK_ELIGIBLE:    "/workflow/bulk-action/eligible",  // POST { module, ids } -> { eligibleIds }
+    BULK_MODULES:     "/workflow/bulk-action/modules",   // GET
+  },
+
   DELETE_MANAGER: {
     CHECK:          "/delete-manager/check",       // GET  /<module_code>/<record_id>
     RAISE_REQUEST:  "/delete-manager/request",     // POST /<module_code>/<record_id>  body: { reason }

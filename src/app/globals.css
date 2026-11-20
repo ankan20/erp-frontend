@@ -277,3 +277,52 @@ td:has(textarea.has-error:focus) {
   outline-offset: -1px;
   background-color: rgb(254 242 242) !important;
 }
+/* ─── Edox animated brand loader (components/common/EdoxLoader.jsx) ─────── */
+.edox-mark .edox-e { transform-box: fill-box; }
+.edox-mark .edox-e-spine { transform-origin: 50% 100%; }
+.edox-mark .edox-e-1, .edox-mark .edox-e-2, .edox-mark .edox-e-3 { transform-origin: 0% 50%; }
+
+/* intro — plays once: outline draws → fill → E builds → shine loops */
+.edox-intro .edox-hex-line { stroke-dasharray: 1; stroke-dashoffset: 1; animation: edox-draw .7s cubic-bezier(.6,0,.3,1) forwards; }
+.edox-intro .edox-hex-fill { opacity: 0; animation: edox-fade .45s .5s ease-out forwards; }
+.edox-intro .edox-e-spine { animation: edox-grow-y .35s .75s cubic-bezier(.3,1.4,.5,1) both; }
+.edox-intro .edox-e-1 { animation: edox-grow-x .35s .85s cubic-bezier(.3,1.4,.5,1) both; }
+.edox-intro .edox-e-2 { animation: edox-grow-x .35s .95s cubic-bezier(.3,1.4,.5,1) both; }
+.edox-intro .edox-e-3 { animation: edox-grow-x .35s 1.05s cubic-bezier(.3,1.4,.5,1) both; }
+.edox-intro .edox-shine { animation: edox-shine 2.4s 1.5s ease-in-out infinite; }
+
+/* loop — mark-only spinner: the E builds, holds, resets; shine passes */
+.edox-loop .edox-hex-line { display: none; }
+.edox-loop .edox-e-spine { animation: edox-cycle-y 1.8s ease-in-out infinite; }
+.edox-loop .edox-e-1 { animation: edox-cycle-x 1.8s .12s ease-in-out infinite; }
+.edox-loop .edox-e-2 { animation: edox-cycle-x 1.8s .24s ease-in-out infinite; }
+.edox-loop .edox-e-3 { animation: edox-cycle-x 1.8s .36s ease-in-out infinite; }
+.edox-loop .edox-shine { animation: edox-shine 1.8s ease-in-out infinite; }
+
+/* splash pieces */
+.edox-letter { display: inline-block; animation: edox-rise .45s cubic-bezier(.2,1.2,.4,1) both; }
+.edox-word { opacity: 0; animation: edox-fade .4s var(--d) ease-out forwards, edox-glow 2.4s var(--h) ease-in-out infinite; }
+.edox-sep { animation: edox-fade .4s var(--d) ease-out forwards; color: #9cc9cd; }
+.edox-msg { opacity: 0; animation: edox-fade .4s 1.8s ease-out forwards; }
+.edox-bar { animation: edox-bar 1.3s ease-in-out infinite; }
+.edox-splash { animation: edox-fade .2s ease-out both; }
+.edox-splash.edox-leave { animation: edox-out .45s ease-in forwards; pointer-events: none; }
+
+@keyframes edox-draw   { to { stroke-dashoffset: 0; } }
+@keyframes edox-fade   { from { opacity: 0; } to { opacity: 1; } }
+@keyframes edox-out    { to { opacity: 0; transform: scale(1.03); } }
+@keyframes edox-grow-x { from { transform: scaleX(0); } to { transform: scaleX(1); } }
+@keyframes edox-grow-y { from { transform: scaleY(0); } to { transform: scaleY(1); } }
+@keyframes edox-rise   { from { opacity: 0; transform: translateY(18px); } to { opacity: 1; transform: none; } }
+@keyframes edox-shine  { 0% { transform: skewX(-20deg) translateX(0); } 55%, 100% { transform: skewX(-20deg) translateX(210px); } }
+@keyframes edox-glow   { 0%, 100% { color: #0a8c96; text-shadow: none; } 15% { color: #19c3cc; text-shadow: 0 0 12px rgba(25,195,204,.45); } 35% { color: #0a8c96; text-shadow: none; } }
+@keyframes edox-bar    { from { transform: translateX(-100%); } to { transform: translateX(300%); } }
+@keyframes edox-cycle-x { 0% { transform: scaleX(0); } 30%, 75% { transform: scaleX(1); } 100% { transform: scaleX(0); } }
+@keyframes edox-cycle-y { 0% { transform: scaleY(0); } 25%, 80% { transform: scaleY(1); } 100% { transform: scaleY(0); } }
+
+@media (prefers-reduced-motion: reduce) {
+  .edox-mark *, .edox-letter, .edox-word, .edox-sep, .edox-msg, .edox-bar, .edox-splash {
+    animation: none !important; opacity: 1 !important; transform: none !important; stroke-dashoffset: 0 !important;
+  }
+  .edox-shine { display: none; }
+}

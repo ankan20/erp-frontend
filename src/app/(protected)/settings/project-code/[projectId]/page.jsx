@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { apiRequest } from "@/lib/apiClient";
 import { API_ENDPOINTS } from "@/config/api.config";
-import { Loader2 } from "lucide-react";
+import { EdoxMark } from "@/components/common/EdoxLoader";
 import { toast } from "sonner";
 import ProjectForm from "@/components/project-code/ProjectCodeForm";
 import { getPageActions } from "@/components/common/PageActionButtons";
@@ -50,7 +50,7 @@ const Page = () => {
   if (loading) {
     return (
       <div className="flex justify-center items-center h-[300px]">
-        <Loader2 className="animate-spin w-6 h-6" />
+        <EdoxMark size={32} />
       </div>
     );
   }

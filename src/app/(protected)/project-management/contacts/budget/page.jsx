@@ -2,11 +2,11 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Loader2 } from "lucide-react";
+import { EdoxMark } from "@/components/common/EdoxLoader";
 import { toast } from "sonner";
 
 import SearchSection    from "@/components/common/SearchSection";
-import DataTable        from "@/components/common/DataTable";
+import BulkWorkflowTable from "@/components/common/BulkWorkflowTable";
 import PageHeader       from "@/components/layout/PageHeader";
 import HeaderWrapper    from "@/components/layout/HeaderWrapper";
 import PageNotAvailable from "@/components/common/PageNotAvailable";
@@ -100,7 +100,7 @@ export default function BudgetMasterListPage() {
   if (loading) {
     return (
       <div className="flex justify-center items-center h-[300px]">
-        <Loader2 className="animate-spin w-6 h-6" />
+        <EdoxMark size={32} />
       </div>
     );
   }
@@ -117,7 +117,7 @@ export default function BudgetMasterListPage() {
               : []
           }
         />
-        <DataTable
+        <BulkWorkflowTable module="contract_budget" canAct={access.canApprove} rowId="_id" statusKey="workflowStatus"
           columns={columns}
           data={filteredData}
           onRowClick={(row) => {

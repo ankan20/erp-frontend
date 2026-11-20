@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Loader2, Plus } from "lucide-react";
+import { EdoxMark } from "@/components/common/EdoxLoader";
 import { toast } from "sonner";
 
 import HeaderWrapper from "@/components/layout/HeaderWrapper";
@@ -89,7 +90,7 @@ export default function FinancialYearPage() {
 
         {loading ? (
           <div className="flex justify-center items-center h-[200px]">
-            <Loader2 className="animate-spin w-6 h-6 text-[#144664]" />
+            <EdoxMark size={32} />
           </div>
         ) : !years.length ? (
           <div className="text-center text-[#9ca3af] text-[12px] py-10">No financial years configured</div>

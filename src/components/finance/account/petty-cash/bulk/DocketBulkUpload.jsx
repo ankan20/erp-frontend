@@ -6,6 +6,7 @@ import {
   Upload, FileSpreadsheet, FileText, Download, CheckCircle2, AlertCircle, ChevronRight,
   RefreshCw, Trash2, Plus, Loader2, Send, ExternalLink, Pencil, X,
 } from "lucide-react";
+import { EdoxMark } from "@/components/common/EdoxLoader";
 
 import { apiRequest }      from "@/lib/apiClient";
 import { API_ENDPOINTS }   from "@/config/api.config";
@@ -350,7 +351,7 @@ export default function DocketBulkUpload() {
             onChange={(e) => handleFile(e.target.files?.[0])} />
           {loading ? (
             <div className="flex flex-col items-center gap-2 text-gray-600">
-              <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
+              <EdoxMark size={40} />
               <div className="text-[13px]">{busy === "parsing" ? "Reading file…" : "Checking every row against the budget…"}</div>
             </div>
           ) : (

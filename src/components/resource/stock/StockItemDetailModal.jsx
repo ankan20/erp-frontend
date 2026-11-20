@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { X, Package, ArrowDownCircle, ArrowUpCircle, FileDown } from "lucide-react";
+import { EdoxMark } from "@/components/common/EdoxLoader";
 import { apiRequest } from "@/lib/apiClient";
 import { API_ENDPOINTS } from "@/config/api.config";
 import { Loader2 } from "lucide-react";
@@ -118,7 +119,7 @@ export default function StockItemDetailModal({ item, projectCode, onClose }) {
 
         {loading ? (
           <div className="flex-1 flex items-center justify-center py-12">
-            <Loader2 className="animate-spin text-[#4d8ea3]" size={28} />
+            <EdoxMark size={40} />
           </div>
         ) : !detail ? (
           <div className="flex-1 flex items-center justify-center py-12 text-sm text-gray-400">

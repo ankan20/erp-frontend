@@ -5,7 +5,8 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { ChevronLeft, ChevronRight, Loader2 } from "lucide-react";
+import { ChevronLeft, ChevronRight } from "lucide-react";
+import { EdoxMark } from "@/components/common/EdoxLoader";
 import { apiRequest } from "@/lib/apiClient";
 import { API_ENDPOINTS } from "@/config/api.config";
 import { DPR_BASE, isValidDay, longDay, shiftDay, todayIST, useProjectCode } from "@/lib/dpr";
@@ -89,7 +90,7 @@ export default function DprDayView({ date, canEditPage, onReport, onAfterSubmit 
   if (!data) {
     return (
       <div className="flex justify-center items-center h-[300px]">
-        <Loader2 className="animate-spin w-6 h-6" />
+        <EdoxMark size={32} />
       </div>
     );
   }

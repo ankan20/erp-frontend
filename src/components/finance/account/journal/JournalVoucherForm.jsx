@@ -3,6 +3,7 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter }                                  from "next/navigation";
 import { ChevronDown, ChevronRight, Loader2, PanelLeftClose, PanelLeftOpen } from "lucide-react";
+import { EdoxMark } from "@/components/common/EdoxLoader";
 import { toast }                                      from "sonner";
 
 import SaveButton      from "@/components/common/SaveButton";
@@ -672,7 +673,7 @@ export default function JournalVoucherForm({ mode = "create", voucherId, onUuid,
   if (isLoading) {
     return (
       <div className="flex justify-center items-center h-[300px]">
-        <Loader2 className="animate-spin w-6 h-6" />
+        <EdoxMark size={32} />
       </div>
     );
   }

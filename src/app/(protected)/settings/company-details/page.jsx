@@ -9,7 +9,7 @@ import EditButton from "@/components/common/EditButton";
 import { apiRequest } from "@/lib/apiClient";
 import { API_ENDPOINTS } from "@/config/api.config";
 import { toast } from "sonner";
-import { Loader2 } from "lucide-react";
+import { EdoxMark } from "@/components/common/EdoxLoader";
 import { clearAuthCookies, getCookie, setCookie } from "@/lib/cookies";
 import FileUploadInline, { ACCEPT_PDF, TYPES_PDF } from "@/components/common/FileUploadInline";
 
@@ -259,7 +259,7 @@ export default function CompanyDetailsPage() {
   if (loadingData) {
     return (
       <div className="flex justify-center items-center h-75">
-        <Loader2 className="animate-spin w-6 h-6" />
+        <EdoxMark size={32} />
       </div>
     );
   }

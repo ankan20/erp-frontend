@@ -8,8 +8,9 @@ import { zodResolver }   from "@hookform/resolvers/zod";
 import { toast }         from "sonner";
 import { useRouter }     from "next/navigation";
 import {
-  Loader2, PanelLeftClose, PanelLeftOpen, Plus, Trash2, List,
+  PanelLeftClose, PanelLeftOpen, Plus, Trash2, List,
 } from "lucide-react";
+import { EdoxMark } from "@/components/common/EdoxLoader";
 
 import SaveButton          from "@/components/common/SaveButton";
 import SaveDraftButton     from "@/components/common/SaveDraftButton";
@@ -356,7 +357,7 @@ export default function DebitNoteForm({ mode = "create", noteId, onAfterSubmit, 
   if (isLoading) {
     return (
       <div className="flex justify-center items-center h-[300px]">
-        <Loader2 className="animate-spin w-6 h-6" />
+        <EdoxMark size={32} />
       </div>
     );
   }

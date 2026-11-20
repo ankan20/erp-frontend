@@ -11,8 +11,8 @@ import {
   ChevronDown,
   ChevronRight,
   Search,
-  Loader2,
-} from "lucide-react";
+  } from "lucide-react";
+import { EdoxMark } from "@/components/common/EdoxLoader";
 
 
 const STATUS_RANK = { draft: 0, ongoing: 2, approved: 3, completed: 4, reback: 5, rejected: 6, reject: 6 };
@@ -567,7 +567,7 @@ export default function StockTable({ data = [], onItemClick, pagination, onPageC
       {/* PAGINATION LOADER OVERLAY */}
       {tableLoading && (
         <div className="absolute inset-0 z-20 bg-white/60 flex items-center justify-center">
-          <Loader2 className="animate-spin w-6 h-6 text-[#4d8ea3]" />
+          <EdoxMark size={32} />
         </div>
       )}
       <div className="max-h-[608px] overflow-y-auto">

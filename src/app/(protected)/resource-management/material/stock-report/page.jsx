@@ -6,7 +6,7 @@ import { apiRequest } from "@/lib/apiClient";
 import { API_ENDPOINTS } from "@/config/api.config";
 import { getLocalStorage } from "@/lib/localStorage";
 import { toast } from "sonner";
-import { Loader2 } from "lucide-react";
+import { EdoxMark } from "@/components/common/EdoxLoader";
 import SearchSection from "@/components/common/SearchSection";
 import PageHeader from "@/components/layout/PageHeader";
 import HeaderWrapper from "@/components/layout/HeaderWrapper";
@@ -94,7 +94,7 @@ export default function StockReportPage() {
   if (loading) {
     return (
       <div className="flex justify-center items-center h-[300px]">
-        <Loader2 className="animate-spin w-6 h-6" />
+        <EdoxMark size={32} />
       </div>
     );
   }

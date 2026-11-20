@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { Loader2 } from "lucide-react";
+import { EdoxMark } from "@/components/common/EdoxLoader";
 import { isMasterEditable } from "@/helper/getMasterAccess";
 import PageNotAvailable from "@/components/common/PageNotAvailable";
 import PageHeader from "@/components/layout/PageHeader";
@@ -26,7 +26,7 @@ export default function Page() {
       .catch(() => {});
   }, [supplierId]);
 
-  if (!data) return <div className="flex justify-center items-center h-[300px]"><Loader2 className="animate-spin w-6 h-6" /></div>;
+  if (!data) return <div className="flex justify-center items-center h-[300px]"><EdoxMark size={32} /></div>;
 
   return (
     <HeaderWrapper header={<PageHeader actions={getPageActions({ router })} />}>

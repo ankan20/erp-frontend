@@ -7,13 +7,13 @@ import {
   ChevronRight,
   ExternalLink,
   GripVertical,
-  Loader2,
   Maximize2,
   Minimize2,
   RotateCw,
   Undo2,
   X,
 } from "lucide-react";
+import { EdoxMark } from "@/components/common/EdoxLoader";
 import { getBreadcrumbs } from "@/lib/breadcrumbs";
 import { MESSAGE_KEY, PANE_NAME_PREFIX, splitActions } from "./splitStore";
 
@@ -168,7 +168,7 @@ export default function PaneFrame({
         />
         {!loaded && (
           <div className="absolute inset-0 flex items-center justify-center bg-[#f5f5f5]">
-            <Loader2 className="h-6 w-6 animate-spin text-[#2f6f9f]" />
+            <EdoxMark size={32} />
           </div>
         )}
       </div>

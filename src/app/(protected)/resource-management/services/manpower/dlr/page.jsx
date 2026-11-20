@@ -17,7 +17,7 @@ export default function Page() {
 
   return (
     <HeaderWrapper header={<PageHeader actions={actions} />}>
-      <DLRListPage canAdd={access.canAdd} />
+      <DLRListPage canAdd={access.canAdd} canApprove={access.canApprove} />
     </HeaderWrapper>
   );
 }

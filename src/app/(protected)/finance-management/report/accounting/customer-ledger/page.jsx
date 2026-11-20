@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Loader2, Search, RefreshCw } from "lucide-react";
+import { EdoxMark } from "@/components/common/EdoxLoader";
 import { toast } from "sonner";
 
 import HeaderWrapper      from "@/components/layout/HeaderWrapper";
@@ -160,7 +161,7 @@ export default function CustomerLedgerPage() {
         )}
 
         {loading ? (
-          <div className="flex justify-center items-center h-[300px]"><Loader2 className="animate-spin w-6 h-6 text-[#144664]" /></div>
+          <div className="flex justify-center items-center h-[300px]"><EdoxMark size={32} /></div>
         ) : !fetched ? (
           <div className="flex flex-col items-center justify-center h-[280px] text-gray-400 text-[13px] gap-1">
             <Search size={22} className="opacity-40" /> Select a customer and press Fetch

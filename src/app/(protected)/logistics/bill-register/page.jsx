@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 
 import SearchSection        from "@/components/common/SearchSection";
-import DataTable            from "@/components/common/DataTable";
+import BulkWorkflowTable from "@/components/common/BulkWorkflowTable";
 import HeaderWrapper        from "@/components/layout/HeaderWrapper";
 import PageHeader           from "@/components/layout/PageHeader";
 import PageNotAvailable     from "@/components/common/PageNotAvailable";
@@ -157,7 +157,7 @@ export default function Page() {
         {loading ? (
           <div className="flex justify-center items-center h-40 text-sm text-gray-400">Loading…</div>
         ) : (
-          <DataTable
+          <BulkWorkflowTable module="logistics_bill" canAct={access.canApprove} rowId="id" statusKey="workflowStatus"
             columns={columns}
             data={filteredData}
             onRowClick={(row) => access.canOpenDetails && router.push(`/logistics/bill-register/${row.id}`)}

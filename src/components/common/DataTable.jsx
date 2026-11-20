@@ -101,6 +101,12 @@ export default function DataTable({
   pagination,          // server meta from the API response
   onPageChange,        // (page, limit) => void — server mode
   loading = false,
+  // ─── ROW SELECTION (opt-in, e.g. bulk approve). A tick box is drawn in the
+  // first (Sl. no) column; the header box ticks every selectable row that
+  // passes the current filters, on all pages.
+  //   selection: { keys: Set, getKey: (row) => key, isSelectable: (row) => bool,
+  //                onChange: (nextSet) => void }
+  selection,
 }) {
   const pathname = usePathname();
   const tableKey = `table-state:${storageKey ?? pathname}`;
@@ -293,6 +299,23 @@ export default function DataTable({
   const clientTotalPages = Math.max(1, Math.ceil(sortedData.length / clientLimit));
   const currentPage = serverMode ? pagination.page || 1 : Math.min(clientPage, clientTotalPages);
 
+
+  // ─── SELECTION (opt-in)
+  const selectableRows = selection ? sortedData.filter((r) => selection.isSelectable?.(r) ?? true) : [];
+  const selectedVisible = selection ? selectableRows.filter((r) => selection.keys.has(selection.getKey(r))).length : 0;
+  const allVisibleSelected = selectableRows.length > 0 && selectedVisible === selectableRows.length;
+  const toggleRowSelected = (row) => {
+    const key = selection.getKey(row);
+    const next = new Set(selection.keys);
+    if (next.has(key)) next.delete(key);
+    else next.add(key);
+    selection.onChange(next);
+  };
+  const toggleAllSelected = () => {
+    const next = new Set(selection.keys);
+    selectableRows.forEach((r) => (allVisibleSelected ? next.delete(selection.getKey(r)) : next.add(selection.getKey(r))));
+    selection.onChange(next);
+  };
 
   const pageRows = serverMode || !paginate
     ? sortedData
@@ -508,6 +531,21 @@ export default function DataTable({
                   >
                     <div className="flex items-center justify-between gap-1">
 
+                      {/* Select-all tick box (selection mode, first column) */}
+                      {selection && index === 0 && (
+                        <input
+                          type="checkbox"
+                          aria-label="Select all rows"
+                          title={selectableRows.length ? "Select all rows you can act on" : "No rows you can act on"}
+                          disabled={!selectableRows.length}
+                          checked={allVisibleSelected}
+                          ref={(el) => { if (el) el.indeterminate = selectedVisible > 0 && !allVisibleSelected; }}
+                          onChange={toggleAllSelected}
+                          onClick={(e) => e.stopPropagation()}
+                          className="h-3.5 w-3.5 shrink-0 cursor-pointer accent-blue-500 disabled:cursor-not-allowed disabled:opacity-40"
+                        />
+                      )}
+
                       {/* Column label — click to sort if sortable */}
                       <Tooltip>
                         <TooltipTrigger asChild>
@@ -687,9 +725,26 @@ export default function DataTable({
                             </span>
                           ) : null;
 
+                          const tick = (selection && colIndex === 0) ? (() => {
+                            const can = selection.isSelectable?.(row) ?? true;
+                            return (
+                              <input
+                                type="checkbox"
+                                aria-label="Select row"
+                                disabled={!can}
+                                title={can ? undefined : "Not waiting for your action"}
+                                checked={can && selection.keys.has(selection.getKey(row))}
+                                onChange={() => toggleRowSelected(row)}
+                                onClick={(e) => e.stopPropagation()}
+                                className="h-3.5 w-3.5 shrink-0 mr-1 cursor-pointer accent-blue-600 disabled:cursor-not-allowed disabled:opacity-30"
+                              />
+                            );
+                          })() : null;
+
                           const justifyClass = col.align === "right" ? "justify-end" : col.align === "center" ? "justify-center" : "justify-start";
                           const inner = (
                             <div className={`flex items-center gap-0.5 ${justifyClass} ${isExpanded ? "whitespace-normal break-words" : "truncate whitespace-nowrap overflow-hidden"}`}>
+                              {tick}
                               {slDot}
                               {content}
                             </div>
