@@ -77,6 +77,27 @@ export default function AccountingProfitLossPage() {
           </div>
         ) : (
           <>
+            {/* Net Result summary */}
+            <div className={`border px-4 py-3 flex items-start gap-3 ${
+              netResult >= 0
+                ? "border-[#bbf7d0] bg-[#f0fdf4]"
+                : "border-[#fecaca] bg-[#fef2f2]"
+            }`}>
+              <div className="flex-1">
+                <div className="flex items-center gap-2 mb-1">
+                  <span className={`inline-block w-2 h-2 rounded-full ${
+                    netResult >= 0 ? "bg-[#16a34a]" : "bg-[#dc2626]"
+                  }`} />
+                  <span className="text-[12px] font-semibold text-[#1e293b]">
+                    {netResult >= 0 ? "Net Profit" : "Net Loss"}: {formatAmount(Math.abs(netResult))}
+                  </span>
+                </div>
+                <div className="text-[11px] text-[#64748b] leading-relaxed pl-4">
+                  Total Income ({formatAmount(totalIncome)}) − Total Expenses ({formatAmount(totalExpense)})
+                </div>
+              </div>
+            </div>
+
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
               {/* Income tree */}
               <AccountingTreeTable
@@ -107,22 +128,6 @@ export default function AccountingProfitLossPage() {
                 percentBase={totalIncome}
                 zeroDisplay="dash"
               />
-            </div>
-
-            {/* Net Result */}
-            <div className={`flex items-center justify-between px-4 py-2.5 border ${
-              netResult >= 0
-                ? "bg-[#f0fdf4] border-[#bbf7d0]"
-                : "bg-[#fef2f2] border-[#fecaca]"
-            }`}>
-              <span className="font-semibold text-[13px] text-[#1f2937]">
-                {netResult >= 0 ? "Net Profit" : "Net Loss"}
-              </span>
-              <span className={`font-bold text-[15px] tabular-nums ${
-                netResult >= 0 ? "text-[#166534]" : "text-[#991b1b]"
-              }`}>
-                {formatAmount(Math.abs(netResult))}
-              </span>
             </div>
           </>
         )}
