@@ -1,8 +1,8 @@
 "use client";
 
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useMemo } from "react";
 import { useRouter } from "next/navigation";
-import { Loader2, Search, FileSearch } from "lucide-react";
+import { Loader2, Search } from "lucide-react";
 
 import HeaderWrapper from "@/components/layout/HeaderWrapper";
 import PageHeader from "@/components/layout/PageHeader";
@@ -15,16 +15,13 @@ import { formatAmount } from "@/helper/numberFormatter";
 import AccountingFilterBar from "@/components/finance/report/accounting/AccountingFilterBar";
 import AccountingTable from "@/components/finance/report/accounting/AccountingTable";
 import useAccountingFetch from "@/components/finance/report/accounting/useAccountingFetch";
-import ReconciliationModal from "@/components/finance/report/accounting/ReconciliationModal";
 
 const COLUMNS = [
-  { key: "accountCode", label: "Type" },
+  { key: "accountCode", label: "Account Code" },
   { key: "accountName", label: "Account Name", className: "min-w-[220px]" },
   { key: "groupName", label: "Group" },
-  { key: "headUnder", label: "Head Under" },
   { key: "debit", label: "Debit", type: "amount", align: "right" },
   { key: "credit", label: "Credit", type: "amount", align: "right" },
-  { key: "action", label: "", className: "w-[32px]" },
 ];
 
 export default function TrialBalancePage() {
@@ -35,8 +32,6 @@ export default function TrialBalancePage() {
     data, loading, fetched, projectList, handleFetch, handleReset, handleExport,
   } = useAccountingFetch(API_ENDPOINTS.FINANCE.ACCOUNTING.TRIAL_BALANCE);
 
-  const [reconcile, setReconcile] = useState(null);
-
   const rows = useMemo(() => {
     if (!data?.rows) return [];
     const result = data.rows.map((a, i) => ({
@@ -44,34 +39,18 @@ export default function TrialBalancePage() {
       accountCode: a.accountType || "",
       accountName: a.accountName || "",
       groupName: a.groupName || "",
-      headUnder: a.headUnder || "",
       debit: a.closingDebit,
       credit: a.closingCredit,
-      action: (
-        <button
-          onClick={() => setReconcile({
-            accountType: a.accountType,
-            accountId: a.accountId,
-            accountName: a.accountName,
-          })}
-          title="View transactions"
-          className="p-0.5 text-[#9ca3af] hover:text-[#1b2f3a] transition-colors"
-        >
-          <FileSearch size={13} />
-        </button>
-      ),
     }));
     if (data.grandTotalDebit != null) {
       result.push({
         _key: "total",
         _highlight: true,
         accountCode: "",
-        accountName: "Total",
+        accountName: "TOTAL",
         groupName: "",
-        headUnder: "",
         debit: data.grandTotalDebit,
         credit: data.grandTotalCredit,
-        action: null,
       });
     }
     return result;
@@ -111,25 +90,25 @@ export default function TrialBalancePage() {
 
         {loading ? (
           <div className="flex justify-center items-center h-[300px]">
-            <Loader2 className="animate-spin w-5 h-5 text-[#1b2f3a]" />
+            <Loader2 className="animate-spin w-6 h-6 text-[#144664]" />
           </div>
         ) : !fetched ? (
-          <div className="flex flex-col items-center justify-center h-[280px] text-[#9ca3af] text-[12px] gap-1">
-            <Search size={20} className="opacity-40" />
+          <div className="flex flex-col items-center justify-center h-[280px] text-gray-400 text-[13px] gap-1">
+            <Search size={22} className="opacity-40" />
             Choose filters and press Fetch to view the Trial Balance
           </div>
         ) : (
           <>
             {data?.grandTotalDebit != null && (
-              <div className="flex items-center gap-4 text-[11.5px] py-1.5">
-                <span className="text-[#374151]">
-                  Total Debit: <span className="font-semibold tabular-nums text-[#166534]">{formatAmount(data.grandTotalDebit)}</span>
+              <div className="flex flex-wrap gap-3 text-[12px]">
+                <span className="px-3 py-1 bg-[#e8f4e8] rounded border border-[#b0d4b0]">
+                  Total Debit: <strong>{formatAmount(data.grandTotalDebit)}</strong>
                 </span>
-                <span className="text-[#374151]">
-                  Total Credit: <span className="font-semibold tabular-nums text-[#991b1b]">{formatAmount(data.grandTotalCredit)}</span>
+                <span className="px-3 py-1 bg-[#fce8e8] rounded border border-[#f0b0b0]">
+                  Total Credit: <strong>{formatAmount(data.grandTotalCredit)}</strong>
                 </span>
                 {data.grandTotalDebit !== data.grandTotalCredit && (
-                  <span className="text-[#92400e] font-medium">
+                  <span className="px-3 py-1 bg-[#fff3e0] rounded border border-[#ffcc80] text-[#e65100] font-semibold">
                     Difference: {formatAmount(Math.abs(data.grandTotalDebit - data.grandTotalCredit))}
                   </span>
                 )}
@@ -139,17 +118,6 @@ export default function TrialBalancePage() {
           </>
         )}
       </div>
-
-      <ReconciliationModal
-        open={!!reconcile}
-        onClose={() => setReconcile(null)}
-        accountType={reconcile?.accountType}
-        accountId={reconcile?.accountId}
-        accountName={reconcile?.accountName}
-        fromDate={fromDate}
-        toDate={toDate}
-        projectCode={projectCode}
-      />
     </HeaderWrapper>
   );
 }

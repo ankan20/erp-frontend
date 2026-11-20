@@ -10,7 +10,7 @@ import { Input } from "@/components/ui/input";
 import { apiRequest } from "@/lib/apiClient";
 import { API_ENDPOINTS } from "@/config/api.config";
 import { toast } from "sonner";
-import { Loader2 } from "lucide-react";
+import { EdoxMark } from "@/components/common/EdoxLoader";
 import { getInputClass } from "@/lib/formStyles";
 import {
   getStateCodeByName,
@@ -213,7 +213,7 @@ export default function LedgerForm({
   if (loading) {
     return (
       <div className="flex justify-center items-center h-[300px]">
-        <Loader2 className="animate-spin w-6 h-6" />
+        <EdoxMark size={32} />
       </div>
     );
   }

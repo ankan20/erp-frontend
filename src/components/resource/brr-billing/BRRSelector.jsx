@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Loader2, Search } from "lucide-react";
+import { Search } from "lucide-react";
+import { EdoxMark } from "@/components/common/EdoxLoader";
 import { toast } from "sonner";
 import { apiRequest } from "@/lib/apiClient";
 import { API_ENDPOINTS } from "@/config/api.config";
@@ -81,7 +82,7 @@ export default function BRRSelector({ onSelect }) {
 
       {loading ? (
         <div className="flex justify-center items-center h-40">
-          <Loader2 className="w-6 h-6 animate-spin text-gray-400" />
+          <EdoxMark size={32} />
         </div>
       ) : filtered.length === 0 ? (
         <div className="text-center text-gray-400 py-16 text-[13px]">

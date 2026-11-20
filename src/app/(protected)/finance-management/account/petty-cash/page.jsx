@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import {
   Loader2, Search, RefreshCw, Download, ChevronDown, ChevronUp,
 } from "lucide-react";
+import { EdoxMark } from "@/components/common/EdoxLoader";
 import { toast } from "sonner";
 
 import HeaderWrapper      from "@/components/layout/HeaderWrapper";
@@ -533,7 +534,7 @@ export default function PettyCashPage() {
         {/* Loading */}
         {loading && (
           <div className="flex justify-center items-center h-[200px]">
-            <Loader2 className="animate-spin w-6 h-6 text-[#144664]" />
+            <EdoxMark size={32} />
           </div>
         )}
 

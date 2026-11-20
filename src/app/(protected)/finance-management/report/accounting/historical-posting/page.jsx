@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Loader2, RefreshCw, Play } from "lucide-react";
+import { EdoxMark } from "@/components/common/EdoxLoader";
 import { toast } from "sonner";
 
 import HeaderWrapper from "@/components/layout/HeaderWrapper";
@@ -127,7 +128,7 @@ export default function PostingStatusPage() {
 
         {loading ? (
           <div className="flex justify-center items-center h-[200px]">
-            <Loader2 className="animate-spin w-6 h-6 text-[#144664]" />
+            <EdoxMark size={32} />
           </div>
         ) : (
           <div className="overflow-x-auto border border-[#ccc] rounded-sm">

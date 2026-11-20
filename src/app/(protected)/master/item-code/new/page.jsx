@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { apiRequest } from "@/lib/apiClient";
 import { API_ENDPOINTS } from "@/config/api.config";
-import { Loader2 } from "lucide-react";
+import { EdoxMark } from "@/components/common/EdoxLoader";
 import ItemForm from "@/components/master/item/ItemForm";
 import { CATEGORY_OPTIONS } from "@/config/categoryOptions.config";
 import { useRouter } from "next/navigation";
@@ -48,7 +48,7 @@ export default function Page() {
   //   fetchAll();
   // }, []);
 
-  // if (loading) return <Loader2 className="animate-spin m-auto mt-10" />;
+  // if (loading) return <EdoxMark size={32} className="m-auto mt-10" />;
   // BLOCK NON-ADMIN USERS
     if (!canEdit) {
       return <PageNotAvailable />;

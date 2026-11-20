@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { Loader2 } from "lucide-react";
+import { EdoxMark } from "@/components/common/EdoxLoader";
 
 import { getPageAccess } from "@/helper/getPageAccess";
 import PageNotAvailable from "@/components/common/PageNotAvailable";
@@ -29,7 +29,7 @@ export default function Page() {
 
   if (!access.allowed) return <PageNotAvailable />;
 
-  if (!data) return <div className="flex justify-center items-center h-[300px]"><Loader2 className="animate-spin w-6 h-6" /></div>;
+  if (!data) return <div className="flex justify-center items-center h-[300px]"><EdoxMark size={32} /></div>;
 
   const actions = getPageActions({ router });
   return (

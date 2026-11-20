@@ -4,13 +4,13 @@ import { useEffect, useState } from "react";
 import Image from "next/image";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import {
-  Loader2,
   Clock3,
   User2,
   Circle,
   Layers,
   MessageSquare,
 } from "lucide-react";
+import { EdoxMark } from "@/components/common/EdoxLoader";
 import { toast } from "sonner";
 import { apiRequest } from "@/lib/apiClient";
 import { WORKFLOW_ACTIONS } from "@/config/workflowAction.config";
@@ -344,7 +344,7 @@ export default function HistoryTimelineSheet({
           <div className="px-5 py-5">
             {loading ? (
               <div className="h-[280px] flex items-center justify-center">
-                <Loader2 className="w-6 h-6 animate-spin text-gray-400" />
+                <EdoxMark size={32} />
               </div>
             ) : nodes.length === 0 ? (
               <div className="h-[280px] flex flex-col items-center justify-center text-gray-400 gap-3">

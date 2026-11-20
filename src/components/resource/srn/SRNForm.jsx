@@ -5,7 +5,8 @@ import { useFormWithToast as useForm } from "@/hooks/useFormWithToast";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
-import { Loader2, PanelLeftClose, PanelLeftOpen } from "lucide-react";
+import { PanelLeftClose, PanelLeftOpen } from "lucide-react";
+import { EdoxMark } from "@/components/common/EdoxLoader";
 import { useRouter } from "next/navigation";
 
 import SaveButton from "@/components/common/SaveButton";
@@ -431,7 +432,7 @@ export default function SRNForm({ mode = "create", srnId, onUuid, onAfterSubmit 
   if (isLoading) {
     return (
       <div className="flex justify-center items-center h-[300px]">
-        <Loader2 className="animate-spin w-6 h-6" />
+        <EdoxMark size={32} />
       </div>
     );
   }

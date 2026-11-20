@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { Check, Loader2, Search } from "lucide-react";
+import { Check, Search } from "lucide-react";
+import { EdoxMark } from "@/components/common/EdoxLoader";
 import { toast } from "sonner";
 import {
   Dialog,
@@ -263,7 +264,7 @@ export default function PWOrderItemSelectionModal({ open, onClose, form }) {
                 <tr>
                   <td colSpan={9} className="h-[200px] text-center">
                     <div className="flex items-center justify-center">
-                      <Loader2 className="w-6 h-6 animate-spin" />
+                      <EdoxMark size={32} />
                     </div>
                   </td>
                 </tr>

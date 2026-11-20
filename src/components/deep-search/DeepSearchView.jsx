@@ -13,6 +13,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Boxes, Building2, FolderKanban, Landmark, Loader2, Tags, Truck, UserRound } from "lucide-react";
+import { EdoxMark } from "@/components/common/EdoxLoader";
 import { toast } from "sonner";
 import DataTable from "@/components/common/DataTable";
 import { apiRequest } from "@/lib/apiClient";
@@ -143,7 +144,7 @@ export default function DeepSearchView({ kind, id, initialTab }) {
   if (state.loading) {
     return (
       <div className="flex h-[300px] items-center justify-center">
-        <Loader2 className="h-6 w-6 animate-spin" />
+        <EdoxMark size={32} />
       </div>
     );
   }

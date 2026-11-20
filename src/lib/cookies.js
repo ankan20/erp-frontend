@@ -42,5 +42,7 @@ export const clearAuthCookies = () => {
     localStorage.removeItem("permissions");
     localStorage.removeItem("userName");
     localStorage.removeItem("projectInfo");
+    // next login shows the Edox intro splash again (ProtectedLayoutAuth)
+    try { sessionStorage.removeItem("edox:splashShown"); } catch {}
   }
 };

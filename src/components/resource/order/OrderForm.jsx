@@ -3,7 +3,8 @@
 import { useEffect, useState } from "react";
 import { useFormWithToast as useForm } from "@/hooks/useFormWithToast";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Loader2, PanelLeftClose, PanelLeftOpen } from "lucide-react";
+import { PanelLeftClose, PanelLeftOpen } from "lucide-react";
+import { EdoxMark } from "@/components/common/EdoxLoader";
 import { toast } from "sonner";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import SaveButton from "@/components/common/SaveButton";
@@ -436,7 +437,7 @@ export default function OrderForm({ mode = "create", orderId, onUuid, onAfterSub
   if (loading) {
     return (
       <div className="h-[300px] flex items-center justify-center">
-        <Loader2 className="w-6 h-6 animate-spin" />
+        <EdoxMark size={32} />
       </div>
     );
   }

@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter }           from "next/navigation";
-import { Loader2 }             from "lucide-react";
+import { EdoxMark } from "@/components/common/EdoxLoader";
 import { toast }               from "sonner";
 
 import SearchSection    from "@/components/common/SearchSection";
@@ -104,7 +104,7 @@ export default function BudgetListPage() {
 
         {loading ? (
           <div className="flex justify-center items-center h-[200px]">
-            <Loader2 className="animate-spin w-6 h-6 text-[#144664]" />
+            <EdoxMark size={32} />
           </div>
         ) : (
           <DataTable

@@ -2,7 +2,8 @@
 
 import { useEffect, useState, useCallback } from "react";
 import { toast } from "sonner";
-import { Loader2, PanelLeftClose, PanelLeftOpen } from "lucide-react";
+import { PanelLeftClose, PanelLeftOpen } from "lucide-react";
+import { EdoxMark } from "@/components/common/EdoxLoader";
 import { useRouter } from "next/navigation";
 
 import SaveButton      from "@/components/common/SaveButton";
@@ -360,7 +361,7 @@ export default function UncertainAllocationForm({ mode = "create", uaId, onAfter
   if (isLoading && mode !== "create") {
     return (
       <div className="flex justify-center items-center h-[300px]">
-        <Loader2 className="animate-spin w-6 h-6 text-[#144664]" />
+        <EdoxMark size={32} />
       </div>
     );
   }

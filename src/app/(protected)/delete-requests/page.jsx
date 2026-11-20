@@ -12,7 +12,8 @@
 import { useEffect, useState, useCallback } from "react";
 import { apiRequest } from "@/lib/apiClient";
 import { API_ENDPOINTS } from "@/config/api.config";
-import { Loader2, Bell, RefreshCw, CheckCircle2, Clock, XCircle } from "lucide-react";
+import { Bell, RefreshCw, CheckCircle2, Clock, XCircle } from "lucide-react";
+import { EdoxMark } from "@/components/common/EdoxLoader";
 import { toast } from "sonner";
 import Pagination from "@/components/common/Pagination";
 
@@ -240,7 +241,7 @@ export default function DeleteRequestsPage() {
       {/* Content */}
       {loading ? (
         <div className="flex justify-center items-center py-20">
-          <Loader2 className="h-8 w-8 animate-spin text-blue-400" />
+          <EdoxMark size={40} />
         </div>
       ) : data.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-20 text-gray-400">

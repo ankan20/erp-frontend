@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { apiRequest } from "@/lib/apiClient";
 import { API_ENDPOINTS } from "@/config/api.config";
-import { Loader2 } from "lucide-react";
+import { EdoxMark } from "@/components/common/EdoxLoader";
 import ItemForm from "@/components/master/item/ItemForm";
 import { CATEGORY_OPTIONS } from "@/config/categoryOptions.config";
 import { getPageActions } from "@/components/common/PageActionButtons";
@@ -45,7 +45,7 @@ export default function Page() {
     fetchAll();
   }, [itemId]);
 
-  if (loading) return <Loader2 className="animate-spin m-auto mt-10" />;
+  if (loading) return <EdoxMark size={32} className="m-auto mt-10" />;
 
   return (
     <>

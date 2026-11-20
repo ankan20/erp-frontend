@@ -1,7 +1,8 @@
 "use client";
 
 import React, { useEffect, useMemo, useState } from "react";
-import { Check, Loader2, Search } from "lucide-react";
+import { Check, Search } from "lucide-react";
+import { EdoxMark } from "@/components/common/EdoxLoader";
 import { toast } from "sonner";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle,
@@ -240,7 +241,7 @@ export default function GRNItemSelectionModal({ open, onClose, form, brrId, init
         <div className="overflow-auto flex-1 min-h-0">
           {loading && (
             <div className="h-[200px] flex items-center justify-center">
-              <Loader2 className="w-6 h-6 animate-spin text-gray-400" />
+              <EdoxMark size={32} />
             </div>
           )}
           {!loading && !filteredGroups.length && (

@@ -2,7 +2,7 @@
 
 import { Suspense } from "react";
 import { useRouter } from "next/navigation";
-import { Loader2 } from "lucide-react";
+import { EdoxMark } from "@/components/common/EdoxLoader";
 import PageHeader from "@/components/layout/PageHeader";
 import HeaderWrapper from "@/components/layout/HeaderWrapper";
 import { getPageActions } from "@/components/common/PageActionButtons";
@@ -19,7 +19,7 @@ export default function Page() {
       <Suspense
         fallback={
           <div className="flex h-[300px] items-center justify-center">
-            <Loader2 className="h-6 w-6 animate-spin" />
+            <EdoxMark size={32} />
           </div>
         }
       >

@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useMemo, useState } from "react";
+import { useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { Loader2, Search } from "lucide-react";
 
@@ -14,82 +14,27 @@ import { formatAmount } from "@/helper/numberFormatter";
 
 import AccountingFilterBar from "@/components/finance/report/accounting/AccountingFilterBar";
 import useAccountingFetch from "@/components/finance/report/accounting/useAccountingFetch";
-import AccountingTreeTable from "@/components/finance/report/accounting/AccountingTreeTable";
-import ReconciliationModal from "@/components/finance/report/accounting/ReconciliationModal";
 
-function buildExtraRows(data, side, onReconcile) {
-  if (!data) return [];
-  const rows = [];
-
-  if (side === "asset") {
-    (data.vendorAssets || []).forEach((v) => {
-      rows.push({
-        label: v.name,
-        code: v.code,
-        balance: v.balance,
-        bgCls: "bg-[#f8fafc]",
-        expandable: true,
-        details: (v.details || []).map((d) => ({ ...d, accountType: "Vendor" })),
-      });
-    });
-    if (data.bankAssets?.length > 0) {
-      data.bankAssets.forEach((b) => {
-        rows.push({
-          label: b.name,
-          code: b.code,
-          balance: b.balance,
-          bgCls: "bg-[#f8fafc]",
-          onReconcile: onReconcile
-            ? () => onReconcile("BankCash", b.id, `${b.code} - ${b.name}`)
-            : null,
-        });
-      });
-    }
-    if (data.plResult && data.plResult.code === "NET_LOSS") {
-      rows.push({
-        label: data.plResult.name,
-        code: "P&L",
-        balance: data.plResult.balance,
-        bgCls: "bg-[#fef2f2]",
-      });
-    }
-  }
-
-  if (side === "liability") {
-    (data.vendorLiabilities || []).forEach((v) => {
-      rows.push({
-        label: v.name,
-        code: v.code,
-        balance: v.balance,
-        bgCls: "bg-[#f8fafc]",
-        expandable: true,
-        details: (v.details || []).map((d) => ({ ...d, accountType: "Vendor" })),
-      });
-    });
-    if (data.bankLiabilities?.length > 0) {
-      data.bankLiabilities.forEach((b) => {
-        rows.push({
-          label: b.name,
-          code: b.code,
-          balance: b.balance,
-          bgCls: "bg-[#f8fafc]",
-          onReconcile: onReconcile
-            ? () => onReconcile("BankCash", b.id, `${b.code} - ${b.name}`)
-            : null,
-        });
-      });
-    }
-    if (data.plResult && data.plResult.code === "NET_PROFIT") {
-      rows.push({
-        label: data.plResult.name,
-        code: "P&L",
-        balance: data.plResult.balance,
-        bgCls: "bg-[#f0fdf4]",
-      });
-    }
-  }
-
-  return rows;
+function Section({ title, items, total, bgHeader, bgTotal }) {
+  return (
+    <div className="border border-[#ccc] rounded-sm overflow-hidden">
+      <div className={`${bgHeader} px-4 py-2 font-semibold text-[13px] border-b border-[#bbb]`}>{title}</div>
+      <table className="w-full text-[12.5px]">
+        <tbody>
+          {(items || []).map((item, i) => (
+            <tr key={i} className="border-b border-[#eee] hover:bg-[#f8f8ff]">
+              <td className="px-4 py-1.5">{item.name || item.code || ""}</td>
+              <td className="px-4 py-1.5 text-right tabular-nums">{formatAmount(item.balance || 0)}</td>
+            </tr>
+          ))}
+          <tr className={`${bgTotal} font-semibold`}>
+            <td className="px-4 py-2">Total</td>
+            <td className="px-4 py-2 text-right tabular-nums">{formatAmount(total || 0)}</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  );
 }
 
 export default function AccountingBalanceSheetPage() {
@@ -99,12 +44,6 @@ export default function AccountingBalanceSheetPage() {
     projectCode, setProjectCode, fromDate, setFromDate, toDate, setToDate,
     data, loading, fetched, projectList, handleFetch, handleReset, handleExport,
   } = useAccountingFetch(API_ENDPOINTS.FINANCE.ACCOUNTING.BALANCE_SHEET);
-
-  const [reconcile, setReconcile] = useState(null);
-
-  const onReconcile = useCallback((accountType, accountId, accountName) => {
-    setReconcile({ accountType, accountId, accountName });
-  }, []);
 
   const onPDF = useCallback(
     () => handleExport(API_ENDPOINTS.FINANCE.ACCOUNTING.EXPORT.BALANCE_SHEET, "pdf"),
@@ -116,15 +55,6 @@ export default function AccountingBalanceSheetPage() {
   );
 
   const actions = usePageActions({ router });
-
-  const assetExtras = useMemo(
-    () => buildExtraRows(data, "asset", onReconcile),
-    [data, onReconcile],
-  );
-  const liabilityExtras = useMemo(
-    () => buildExtraRows(data, "liability", onReconcile),
-    [data, onReconcile],
-  );
 
   if (!access.allowed) return <PageNotAvailable />;
 
@@ -149,62 +79,27 @@ export default function AccountingBalanceSheetPage() {
 
         {loading ? (
           <div className="flex justify-center items-center h-[300px]">
-            <Loader2 className="animate-spin w-5 h-5 text-[#1b2f3a]" />
+            <Loader2 className="animate-spin w-6 h-6 text-[#144664]" />
           </div>
         ) : !fetched ? (
-          <div className="flex flex-col items-center justify-center h-[280px] text-[#9ca3af] text-[12px] gap-1">
-            <Search size={20} className="opacity-40" />
+          <div className="flex flex-col items-center justify-center h-[280px] text-gray-400 text-[13px] gap-1">
+            <Search size={22} className="opacity-40" />
             Choose filters and press Fetch to view the Balance Sheet
           </div>
         ) : (
           <>
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
-              <AccountingTreeTable
-                title="Assets"
-                headerBg="#1e3a5f"
-                groups={data?.assetGroups || []}
-                columns={["debit", "credit", "net"]}
-                columnLabels={{ net: "Balance", debit: "Debit", credit: "Credit" }}
-                grandTotal={data?.totalAssets}
-                grandTotalLabel="Total Assets"
-                onReconcile={onReconcile}
-                extraRows={assetExtras}
-                zeroDisplay="zero"
-              />
-
-              <AccountingTreeTable
-                title="Equity & Liabilities"
-                headerBg="#6b2121"
-                groups={data?.liabilityGroups || []}
-                columns={["debit", "credit", "net"]}
-                columnLabels={{ net: "Balance", debit: "Debit", credit: "Credit" }}
-                grandTotal={data?.totalLiabilities}
-                grandTotalLabel="Total Equity & Liabilities"
-                onReconcile={onReconcile}
-                extraRows={liabilityExtras}
-                zeroDisplay="zero"
-              />
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+              <Section title="Assets" items={data?.assets} total={data?.totalAssets} bgHeader="bg-[#e8eef4]" bgTotal="bg-[#d0dce8]" />
+              <Section title="Liabilities" items={data?.liabilities} total={data?.totalLiabilities} bgHeader="bg-[#fce8e8]" bgTotal="bg-[#f0d0d0]" />
             </div>
-
-            {data?.difference != null && Math.abs(data.difference) > 0.01 && (
-              <div className="px-4 py-2 bg-[#fffbeb] border border-[#fde68a] text-[12px] text-[#92400e] font-medium">
+            {data?.difference != null && data.difference !== 0 && (
+              <div className="px-4 py-2 bg-[#fff3e0] rounded-sm border border-[#ffcc80] text-[13px] text-[#e65100] font-semibold">
                 Difference (Assets − Liabilities): {formatAmount(data.difference)}
               </div>
             )}
           </>
         )}
       </div>
-
-      <ReconciliationModal
-        open={!!reconcile}
-        onClose={() => setReconcile(null)}
-        accountType={reconcile?.accountType}
-        accountId={reconcile?.accountId}
-        accountName={reconcile?.accountName}
-        fromDate={fromDate}
-        toDate={toDate}
-        projectCode={projectCode}
-      />
     </HeaderWrapper>
   );
 }

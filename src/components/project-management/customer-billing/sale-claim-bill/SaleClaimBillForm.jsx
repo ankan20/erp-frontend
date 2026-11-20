@@ -6,7 +6,8 @@ import { useFormWithToast as useForm } from "@/hooks/useFormWithToast";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
-import { Loader2, PanelLeftClose, PanelLeftOpen, Download, ClipboardList, TableProperties } from "lucide-react";
+import { PanelLeftClose, PanelLeftOpen, Download, ClipboardList, TableProperties } from "lucide-react";
+import { EdoxMark } from "@/components/common/EdoxLoader";
 import { useRouter } from "next/navigation";
 
 import SaveButton            from "@/components/common/SaveButton";
@@ -420,7 +421,7 @@ export default function SaleClaimBillForm({ mode = "create", billId, onAfterSubm
   if (isLoading) {
     return (
       <div className="flex justify-center items-center h-[300px]">
-        <Loader2 className="animate-spin w-6 h-6" />
+        <EdoxMark size={32} />
       </div>
     );
   }

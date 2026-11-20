@@ -1,6 +1,7 @@
 "use client";
 
-import { CheckCircle2, Loader2, XCircle } from "lucide-react";
+import { CheckCircle2, XCircle } from "lucide-react";
+import { EdoxMark } from "@/components/common/EdoxLoader";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useRef, useState } from "react";
@@ -27,7 +28,7 @@ function Connected() {
   return (
     <div className="min-h-[60vh] flex items-center justify-center p-6">
       <div className="max-w-sm w-full text-center rounded-2xl border border-gray-200 bg-white shadow-sm p-6">
-        {state.kind === "working" && <><Loader2 className="w-8 h-8 mx-auto animate-spin text-violet-600" /><p className="mt-3 text-[14px] text-gray-600">Connecting Edox Drive…</p></>}
+        {state.kind === "working" && <><EdoxMark size={40} className="mx-auto" /><p className="mt-3 text-[14px] text-gray-600">Connecting Edox Drive…</p></>}
         {state.kind === "ok" && (
           <>
             <CheckCircle2 className="w-10 h-10 mx-auto text-green-600" />

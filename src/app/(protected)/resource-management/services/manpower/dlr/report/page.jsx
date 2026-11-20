@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Loader2, Search, RefreshCw, FileSpreadsheet } from "lucide-react";
+import { EdoxMark } from "@/components/common/EdoxLoader";
 import { toast } from "sonner";
 
 import HeaderWrapper from "@/components/layout/HeaderWrapper";
@@ -682,7 +683,7 @@ export default function DlrReportPage() {
         {/* table */}
         {loading ? (
           <div className="flex justify-center items-center h-[300px]">
-            <Loader2 className="animate-spin w-6 h-6 text-[#144664]" />
+            <EdoxMark size={32} />
           </div>
         ) : !fetched ? (
           <div className="flex flex-col items-center justify-center h-[280px] text-gray-400 text-[13px] gap-1">

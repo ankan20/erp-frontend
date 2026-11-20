@@ -5,7 +5,7 @@ import { useFormWithToast as useForm } from "@/hooks/useFormWithToast";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { Controller } from "react-hook-form";
-import { Loader2 } from "lucide-react";
+import { EdoxMark } from "@/components/common/EdoxLoader";
 import FileUpload, { ACCEPT_DOC, TYPES_DOC } from "@/components/common/FileUpload";
 import ExpandableTextField from "@/components/common/ExpandableTextField";
 import { toast } from "sonner";
@@ -352,7 +352,7 @@ export default function BRRForm({ mode = "create", brrId, onDataLoaded, onAfterS
   if (loading) {
     return (
       <div className="h-[300px] flex items-center justify-center">
-        <Loader2 className="w-6 h-6 animate-spin" />
+        <EdoxMark size={32} />
       </div>
     );
   }

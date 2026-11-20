@@ -21,7 +21,8 @@ import {
 import { apiRequest } from "@/lib/apiClient";
 import API_BASE_URL, { API_ENDPOINTS } from "@/config/api.config";
 import { toast } from "sonner";
-import { Loader2, Trash2 } from "lucide-react";
+import { Trash2 } from "lucide-react";
+import { EdoxMark } from "@/components/common/EdoxLoader";
 import { CATEGORY_OPTIONS } from "@/config/categoryOptions.config";
 import { getInputClass } from "@/lib/formStyles";
 import SubGroupCascade from "@/components/master/cc-code/SubGroupCascade";
@@ -353,7 +354,7 @@ export default function CCForm({
   if (loading) {
     return (
       <div className="flex justify-center items-center h-75">
-        <Loader2 className="animate-spin w-6 h-6" />
+        <EdoxMark size={32} />
       </div>
     );
   }

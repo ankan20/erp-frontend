@@ -2,7 +2,8 @@
 
 import { useEffect, useMemo, useState } from "react";
 
-import { Check, Loader2, Search } from "lucide-react";
+import { Check, Search } from "lucide-react";
+import { EdoxMark } from "@/components/common/EdoxLoader";
 
 import { toast } from "sonner";
 
@@ -448,13 +449,7 @@ export default function OrderItemSelectionModal({
                         justify-center
                       "
                     >
-                      <Loader2
-                        className="
-                          w-6
-                          h-6
-                          animate-spin
-                        "
-                      />
+                      <EdoxMark size={32} />
                     </div>
                   </td>
                 </tr>
