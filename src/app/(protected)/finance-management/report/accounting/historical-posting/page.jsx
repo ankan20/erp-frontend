@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Loader2, RefreshCw, Play } from "lucide-react";
+import { Loader2, RefreshCw, Play, X, ChevronDown, ChevronRight } from "lucide-react";
 import { EdoxMark } from "@/components/common/EdoxLoader";
 import { toast } from "sonner";
 
@@ -25,7 +25,145 @@ const SOURCE_LABELS = {
   debit_note: "Debit Note",
   credit_note: "Credit Note",
   contra_entry: "Contra Entry",
+  grn: "GRN",
+  gin: "GIN",
 };
+
+function parseDrCr(errorMsg) {
+  const m = errorMsg.match(/Dr=([\d.]+),?\s*Cr=([\d.]+)/);
+  if (!m) return null;
+  const dr = parseFloat(m[1]);
+  const cr = parseFloat(m[2]);
+  return { dr, cr, diff: Math.abs(dr - cr).toFixed(2) };
+}
+
+function PostingResultBanner({ result, onDismiss }) {
+  const [openModules, setOpenModules] = useState(new Set());
+
+  if (!result) return null;
+
+  const { summary, posted, errors } = result;
+  const hasErrors = summary.totalErrors > 0;
+  const isDryRun = summary.dryRun;
+
+  const errorEntries = Object.entries(errors || {}).filter(
+    ([, v]) => Array.isArray(v) && v.length > 0,
+  );
+
+  const toggleModule = (key) => {
+    setOpenModules((prev) => {
+      const next = new Set(prev);
+      next.has(key) ? next.delete(key) : next.add(key);
+      return next;
+    });
+  };
+
+  return (
+    <div className="space-y-3">
+      {/* Summary bar */}
+      <div className={`border px-4 py-3 flex items-center justify-between ${
+        hasErrors ? "border-[#fecaca] bg-[#fef2f2]" : "border-[#bbf7d0] bg-[#f0fdf4]"
+      }`}>
+        <div>
+          <div className="flex items-center gap-2 mb-0.5">
+            <span className={`inline-block w-2 h-2 rounded-full ${hasErrors ? "bg-[#dc2626]" : "bg-[#16a34a]"}`} />
+            <span className="text-[12px] font-semibold text-[#1e293b]">
+              {isDryRun ? "[Dry Run] " : ""}
+              {hasErrors
+                ? `Completed with ${summary.totalErrors} failed document${summary.totalErrors > 1 ? "s" : ""}`
+                : "All documents posted successfully"}
+            </span>
+          </div>
+          <div className="text-[11px] text-[#64748b] pl-4">
+            Posted: {summary.totalPosted} &middot; Already posted: {summary.totalSkipped} &middot; Failed: {summary.totalErrors}
+            {summary.totalPosted > 0 && (
+              <span className="ml-3 text-[#2d7a2d]">
+                ({Object.entries(posted || {}).filter(([, v]) => v > 0).map(([k, v]) => `${SOURCE_LABELS[k] || k}: ${v}`).join(", ")})
+              </span>
+            )}
+          </div>
+        </div>
+        <button onClick={onDismiss} className="p-1 text-[#9ca3af] hover:text-[#4b5563] transition-colors">
+          <X size={14} />
+        </button>
+      </div>
+
+      {/* Error details — per module, collapsible with table inside */}
+      {errorEntries.map(([moduleKey, errs]) => {
+        const isOpen = openModules.has(moduleKey);
+        const docErrors = errs.filter((e) => typeof e === "object" && e.id);
+        const msgErrors = errs.filter((e) => typeof e === "string");
+        const count = docErrors.length + msgErrors.length;
+
+        return (
+          <div key={moduleKey} className="border border-[#d1d5db] overflow-hidden">
+            <button
+              onClick={() => toggleModule(moduleKey)}
+              className="w-full flex items-center gap-2 px-3 py-[6px] bg-[#1b2f3a] text-white text-[11px] font-medium hover:bg-[#263f4d] transition-colors"
+            >
+              {isOpen ? <ChevronDown size={12} /> : <ChevronRight size={12} />}
+              <span>{SOURCE_LABELS[moduleKey] || moduleKey}</span>
+              <span className="ml-auto px-1.5 py-0.5 bg-[#dc2626] text-white text-[10px] font-semibold rounded-sm">
+                {count} failed
+              </span>
+            </button>
+
+            {isOpen && (
+              <div className="overflow-x-auto">
+                {msgErrors.length > 0 && (
+                  <div className="px-3 py-2 bg-[#fef2f2] text-[11px] text-[#991b1b] border-b border-[#e5e7eb]">
+                    {msgErrors.map((msg, i) => <div key={i}>{msg}</div>)}
+                  </div>
+                )}
+                {docErrors.length > 0 && (
+                  <table className="w-full text-[11px] border-collapse">
+                    <thead>
+                      <tr className="bg-[#f8f9fb]">
+                        <th className="px-2 py-[5px] text-left font-medium text-[#4b5563] border-b border-[#e5e7eb] w-[100px]">Doc No</th>
+                        <th className="px-2 py-[5px] text-left font-medium text-[#4b5563] border-b border-[#e5e7eb] w-[100px]">Project</th>
+                        <th className="px-2 py-[5px] text-right font-medium text-[#4b5563] border-b border-[#e5e7eb] w-[110px]">Debit</th>
+                        <th className="px-2 py-[5px] text-right font-medium text-[#4b5563] border-b border-[#e5e7eb] w-[110px]">Credit</th>
+                        <th className="px-2 py-[5px] text-right font-medium text-[#4b5563] border-b border-[#e5e7eb] w-[90px]">Difference</th>
+                        <th className="px-2 py-[5px] text-left font-medium text-[#4b5563] border-b border-[#e5e7eb]">Error</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {docErrors.map((err, i) => {
+                        const amounts = parseDrCr(err.error);
+                        return (
+                          <tr key={err.id} className={`${i % 2 === 0 ? "bg-white" : "bg-[#fafbfc]"} hover:bg-[#fef2f2] transition-colors`}>
+                            <td className="px-2 py-[3px] font-medium text-[#1e293b] border-b border-[#f0f0f0] whitespace-nowrap">
+                              {err.docNo || `#${err.id}`}
+                            </td>
+                            <td className="px-2 py-[3px] text-[#4b5563] border-b border-[#f0f0f0] whitespace-nowrap">
+                              {err.project || "—"}
+                            </td>
+                            <td className="px-2 py-[3px] text-right tabular-nums text-[#374151] border-b border-[#f0f0f0]">
+                              {amounts ? amounts.dr.toLocaleString("en-IN", { minimumFractionDigits: 2 }) : "—"}
+                            </td>
+                            <td className="px-2 py-[3px] text-right tabular-nums text-[#374151] border-b border-[#f0f0f0]">
+                              {amounts ? amounts.cr.toLocaleString("en-IN", { minimumFractionDigits: 2 }) : "—"}
+                            </td>
+                            <td className="px-2 py-[3px] text-right tabular-nums font-medium text-[#dc2626] border-b border-[#f0f0f0]">
+                              {amounts ? amounts.diff : "—"}
+                            </td>
+                            <td className="px-2 py-[3px] text-[#7f1d1d] border-b border-[#f0f0f0]">
+                              {amounts ? "Unbalanced entry" : err.error}
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                )}
+              </div>
+            )}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
 
 export default function PostingStatusPage() {
   const access = getPageAccess({ pageCode: "accounting_posting_status", pageType: "LIST" });
@@ -33,6 +171,7 @@ export default function PostingStatusPage() {
   const [status, setStatus] = useState(null);
   const [loading, setLoading] = useState(true);
   const [posting, setPosting] = useState(false);
+  const [postingResult, setPostingResult] = useState(null);
 
   const fetchStatus = useCallback(async () => {
     setLoading(true);
@@ -50,17 +189,25 @@ export default function PostingStatusPage() {
 
   const handleHistoricalPosting = async (dryRun = false) => {
     setPosting(true);
+    setPostingResult(null);
     try {
       const res = await apiRequest({
         url: API_ENDPOINTS.FINANCE.ACCOUNTING.HISTORICAL_POSTING,
         method: "POST",
         data: { dry_run: dryRun },
       });
-      const summary = res?.data?.summary;
-      if (summary) {
-        toast.success(
-          `${dryRun ? "[Dry Run] " : ""}Posted: ${summary.totalPosted}, Skipped: ${summary.totalSkipped}, Errors: ${summary.totalErrors}`
-        );
+      const data = res?.data;
+      if (data?.summary) {
+        setPostingResult(data);
+        if (data.summary.totalErrors === 0) {
+          toast.success(
+            `${dryRun ? "[Dry Run] " : ""}Posted ${data.summary.totalPosted} documents successfully`,
+          );
+        } else {
+          toast.warning(
+            `${dryRun ? "[Dry Run] " : ""}${data.summary.totalErrors} document${data.summary.totalErrors > 1 ? "s" : ""} failed — see details below`,
+          );
+        }
       }
       fetchStatus();
     } catch (err) {
@@ -169,6 +316,12 @@ export default function PostingStatusPage() {
             </table>
           </div>
         )}
+
+        {/* Posting result — below the status table */}
+        <PostingResultBanner
+          result={postingResult}
+          onDismiss={() => setPostingResult(null)}
+        />
       </div>
     </HeaderWrapper>
   );
