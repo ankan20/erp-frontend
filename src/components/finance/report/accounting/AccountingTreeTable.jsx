@@ -29,6 +29,9 @@ function flattenTree(groups, onReconcile) {
 
     if (sg.accounts) {
       sg.accounts.forEach((acc) => {
+        const isBankCash = !!acc._bankCashId;
+        const reconType = isBankCash ? "BankCash" : "CC";
+        const reconId = isBankCash ? acc._bankCashId : acc.ccId;
         rows.push({
           id: `acc_${acc.ccId}`,
           type: "account",
@@ -41,7 +44,7 @@ function flattenTree(groups, onReconcile) {
           credit: acc.credit,
           net: acc.net,
           plLinked: acc.plLinked,
-          onReconcile: onReconcile ? () => onReconcile("CC", acc.ccId, `${acc.ccCode} - ${acc.ccName}`) : null,
+          onReconcile: onReconcile ? () => onReconcile(reconType, reconId, `${acc.ccCode} - ${acc.ccName}`) : null,
         });
       });
     }
@@ -68,6 +71,9 @@ function flattenTree(groups, onReconcile) {
 
     if (grp.accounts) {
       grp.accounts.forEach((acc) => {
+        const isBankCash = !!acc._bankCashId;
+        const reconType = isBankCash ? "BankCash" : "CC";
+        const reconId = isBankCash ? acc._bankCashId : acc.ccId;
         rows.push({
           id: `acc_${acc.ccId}`,
           type: "account",
@@ -80,7 +86,7 @@ function flattenTree(groups, onReconcile) {
           credit: acc.credit,
           net: acc.net,
           plLinked: acc.plLinked,
-          onReconcile: onReconcile ? () => onReconcile("CC", acc.ccId, `${acc.ccCode} - ${acc.ccName}`) : null,
+          onReconcile: onReconcile ? () => onReconcile(reconType, reconId, `${acc.ccCode} - ${acc.ccName}`) : null,
         });
       });
     }
@@ -98,7 +104,30 @@ function AmountCell({ value, zeroDisplay = "dash", className = "" }) {
   }
   return (
     <span className={`tabular-nums ${className}`}>
-      {formatAmount(value)}
+      {formatAmount(Math.abs(value))}
+    </span>
+  );
+}
+
+function DrCrCell({ value, side, zeroDisplay = "dash" }) {
+  if (value == null) {
+    return <span className="text-[#9ca3af]">{zeroDisplay === "zero" ? "0.00" : "—"}</span>;
+  }
+  if (value === 0) {
+    return <span className="text-[#9ca3af]">{zeroDisplay === "zero" ? "0.00" : "—"}</span>;
+  }
+  // For asset side: positive net = Dr, negative = Cr
+  // For liability side: positive net = Cr, negative = Dr
+  let label;
+  if (side === "asset") {
+    label = value > 0 ? "Dr" : "Cr";
+  } else {
+    label = value > 0 ? "Cr" : "Dr";
+  }
+  return (
+    <span className="tabular-nums">
+      {formatAmount(Math.abs(value))}{" "}
+      <span className="text-[10px] text-[#6b7280]">{label}</span>
     </span>
   );
 }
@@ -128,6 +157,7 @@ export default function AccountingTreeTable({
   showPercent = false,
   percentBase,
   zeroDisplay = "dash",
+  side,
 }) {
   const { rows, groupIds } = useMemo(() => flattenTree(groups, onReconcile), [groups, onReconcile]);
 
@@ -252,10 +282,10 @@ export default function AccountingTreeTable({
                 <td className="px-2 py-[3px] text-right font-medium tabular-nums">
                   {isGroupish ? (
                     <span className="font-semibold text-[#1f2937]">
-                      <AmountCell value={row.total} zeroDisplay={zeroDisplay} />
+                      {side ? <DrCrCell value={row.total} side={side} zeroDisplay={zeroDisplay} /> : <AmountCell value={row.total} zeroDisplay={zeroDisplay} />}
                     </span>
                   ) : (
-                    <AmountCell value={row.net} zeroDisplay={zeroDisplay} />
+                    side ? <DrCrCell value={row.net} side={side} zeroDisplay={zeroDisplay} /> : <AmountCell value={row.net} zeroDisplay={zeroDisplay} />
                   )}
                 </td>
 
@@ -289,43 +319,16 @@ export default function AccountingTreeTable({
 
           {/* Extra rows (vendors, banks, PL result, etc.) */}
           {extraRows?.map((er, i) => (
-            <tr key={`extra_${i}`} className={`border-b border-[#e5e7eb] ${er.bgCls || "bg-[#f5f7f9]"}`} style={{ height: 28 }}>
-              <td className="px-2 py-[3px] text-[10.5px] text-[#6b7280] font-mono">{er.code || ""}</td>
-              <td className="px-2 py-[3px]" style={{ paddingLeft: `${8 + (er.indent || 0)}px` }}>
-                {er.expandable ? (
-                  <ExtraExpandableRow {...er} onReconcile={onReconcile} />
-                ) : (
-                  <span className="font-medium text-[#374151]">{er.label}</span>
-                )}
-              </td>
-              {showDebitCredit && (
-                <>
-                  <td className="px-2 py-[3px]"></td>
-                  <td className="px-2 py-[3px]"></td>
-                </>
-              )}
-              <td className="px-2 py-[3px] text-right font-semibold tabular-nums">
-                <AmountCell value={er.balance || er.net} zeroDisplay={zeroDisplay} />
-              </td>
-              {showPercent && (
-                <td className="px-2 py-[3px] text-right text-[11px]">
-                  <PercentCell value={er.balance || er.net} grandTotal={pctBase} />
-                </td>
-              )}
-              {onReconcile && (
-                <td className="px-2 py-[3px] text-center">
-                  {er.onReconcile && (
-                    <button
-                      onClick={er.onReconcile}
-                      title="View transactions"
-                      className="p-0.5 text-[#9ca3af] hover:text-[#1b2f3a] transition-colors"
-                    >
-                      <FileSearch size={13} />
-                    </button>
-                  )}
-                </td>
-              )}
-            </tr>
+            <ExtraRowGroup
+              key={`extra_${i}`}
+              er={er}
+              showDebitCredit={showDebitCredit}
+              showPercent={showPercent}
+              zeroDisplay={zeroDisplay}
+              pctBase={pctBase}
+              onReconcile={onReconcile}
+              side={side}
+            />
           ))}
 
           {/* Grand total — accounting double-line convention */}
@@ -340,7 +343,12 @@ export default function AccountingTreeTable({
                 </>
               )}
               <td className="px-2 py-[5px] text-right tabular-nums text-[13px] font-bold">
-                {formatAmount(grandTotal)}
+                {formatAmount(Math.abs(grandTotal))}
+                {side && grandTotal !== 0 && (
+                  <span className="text-[10px] ml-1 opacity-80">
+                    {side === "asset" ? (grandTotal > 0 ? "Dr" : "Cr") : (grandTotal > 0 ? "Cr" : "Dr")}
+                  </span>
+                )}
               </td>
               {showPercent && (
                 <td className="px-2 py-[5px] text-right text-[11px]">100.00%</td>
@@ -354,41 +362,95 @@ export default function AccountingTreeTable({
   );
 }
 
-function ExtraExpandableRow({ label, details, detailColumns, onReconcile: parentReconcile }) {
+function ExtraRowGroup({ er, showDebitCredit, showPercent, zeroDisplay, pctBase, onReconcile, side }) {
   const [open, setOpen] = useState(false);
+  const colCount = 2 + (showDebitCredit ? 2 : 0) + 1 + (showPercent ? 1 : 0) + (onReconcile ? 1 : 0);
 
   return (
-    <div>
-      <button
-        onClick={() => setOpen((p) => !p)}
-        className="flex items-center gap-1 font-medium text-[#374151]"
-      >
-        {open ? <ChevronDown size={12} /> : <ChevronRight size={12} />}
-        {label}
-        {details?.length > 0 && (
-          <span className="text-[10px] text-[#9ca3af] font-normal">({details.length})</span>
+    <>
+      {/* Parent row */}
+      <tr className={`border-b border-[#e5e7eb] ${er.bgCls || "bg-[#f5f7f9]"}`} style={{ height: 28 }}>
+        <td className="px-2 py-[3px] text-[10.5px] text-[#6b7280] font-mono">{er.code || ""}</td>
+        <td className="px-2 py-[3px]" style={{ paddingLeft: `${8 + (er.indent || 0)}px` }}>
+          {er.expandable ? (
+            <button
+              onClick={() => setOpen((p) => !p)}
+              className="flex items-center gap-1 font-medium text-[#374151]"
+            >
+              {open ? <ChevronDown size={12} /> : <ChevronRight size={12} />}
+              {er.label}
+              {er.details?.length > 0 && (
+                <span className="text-[10px] text-[#9ca3af] font-normal">({er.details.length})</span>
+              )}
+            </button>
+          ) : (
+            <span className="font-medium text-[#374151]">{er.label}</span>
+          )}
+        </td>
+        {showDebitCredit && (
+          <>
+            <td className="px-2 py-[3px]"></td>
+            <td className="px-2 py-[3px]"></td>
+          </>
         )}
-      </button>
-      {open && details?.length > 0 && (
-        <div className="mt-0.5 ml-3 border-l border-[#d1d5db] pl-2">
-          {details.map((d, i) => (
-            <div key={i} className="flex items-center gap-2 text-[11px] py-[2px] text-[#4b5563]">
-              <span className="font-mono text-[#9ca3af] w-[60px] text-[10px]">{d.code}</span>
-              <span className="flex-1 truncate">{d.name}</span>
-              <span className="tabular-nums font-medium w-[85px] text-right">{formatAmount(d.balance)}</span>
-              {parentReconcile && d.id && (
+        <td className="px-2 py-[3px] text-right font-semibold tabular-nums">
+          {side ? <DrCrCell value={er.balance || er.net} side={side} zeroDisplay={zeroDisplay} /> : <AmountCell value={er.balance || er.net} zeroDisplay={zeroDisplay} />}
+        </td>
+        {showPercent && (
+          <td className="px-2 py-[3px] text-right text-[11px]">
+            <PercentCell value={er.balance || er.net} grandTotal={pctBase} />
+          </td>
+        )}
+        {onReconcile && (
+          <td className="px-2 py-[3px] text-center">
+            {er.onReconcile && (
+              <button
+                onClick={er.onReconcile}
+                title="View transactions"
+                className="p-0.5 text-[#9ca3af] hover:text-[#1b2f3a] transition-colors"
+              >
+                <FileSearch size={13} />
+              </button>
+            )}
+          </td>
+        )}
+      </tr>
+
+      {/* Expanded detail rows */}
+      {open && er.details?.map((d, i) => (
+        <tr key={`detail_${i}`} className="border-b border-[#f0f0f0] bg-[#fafbfc] hover:bg-[#f0f4f8]" style={{ height: 26 }}>
+          <td className="px-2 py-[2px] text-[10px] text-[#9ca3af] font-mono pl-4">{d.code}</td>
+          <td className="px-2 py-[2px] text-[11px] text-[#4b5563]" style={{ paddingLeft: 28 }}>{d.name}</td>
+          {showDebitCredit && (
+            <>
+              <td className="px-2 py-[2px]"></td>
+              <td className="px-2 py-[2px]"></td>
+            </>
+          )}
+          <td className="px-2 py-[2px] text-right tabular-nums text-[11px] font-medium text-[#374151]">
+            {formatAmount(Math.abs(d.balance))}
+            {side && d.balance !== 0 && (
+              <span className="text-[10px] text-[#6b7280] ml-0.5">
+                {side === "asset" ? (d.balance > 0 ? "Dr" : "Cr") : (d.balance > 0 ? "Cr" : "Dr")}
+              </span>
+            )}
+          </td>
+          {showPercent && <td className="px-2 py-[2px]"></td>}
+          {onReconcile && (
+            <td className="px-2 py-[2px] text-center">
+              {d.id && (
                 <button
-                  onClick={() => parentReconcile(d.accountType || "Vendor", d.id, `${d.code} - ${d.name}`)}
+                  onClick={() => onReconcile(d.accountType || "Vendor", d.id, `${d.code} - ${d.name}`)}
                   title="View transactions"
                   className="p-0.5 text-[#9ca3af] hover:text-[#1b2f3a] transition-colors"
                 >
                   <FileSearch size={11} />
                 </button>
               )}
-            </div>
-          ))}
-        </div>
-      )}
-    </div>
+            </td>
+          )}
+        </tr>
+      ))}
+    </>
   );
 }

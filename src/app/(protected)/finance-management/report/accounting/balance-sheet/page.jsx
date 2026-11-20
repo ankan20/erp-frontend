@@ -170,6 +170,7 @@ export default function AccountingBalanceSheetPage() {
                 onReconcile={onReconcile}
                 extraRows={assetExtras}
                 zeroDisplay="zero"
+                side="asset"
               />
 
               <AccountingTreeTable
@@ -183,6 +184,7 @@ export default function AccountingBalanceSheetPage() {
                 onReconcile={onReconcile}
                 extraRows={liabilityExtras}
                 zeroDisplay="zero"
+                side="liability"
               />
             </div>
 

@@ -68,34 +68,34 @@ export default function AccountingDashboardPage() {
 
   return (
     <HeaderWrapper header={<PageHeader />}>
-      <div className="p-4 space-y-6">
-        <div>
-          <h1 className="text-lg font-bold text-[#1a1a4e]">Central Accounting</h1>
-          <p className="text-[13px] text-gray-500 mt-0.5">
+      <div className="p-3 space-y-4">
+        <div className="border-b border-[#d1d5db] pb-3">
+          <h1 className="text-[15px] font-bold text-[#144664]">Central Accounting</h1>
+          <p className="text-[11.5px] text-[#6b7280] mt-0.5">
             Unified accounting ledger reports powered by the central posting engine
           </p>
         </div>
 
         {SECTIONS.map((section) => (
           <div key={section.title}>
-            <h2 className="text-[13px] font-semibold text-[#5a5aaa] uppercase tracking-wide mb-2">
+            <h2 className="text-[11px] font-semibold text-[#1b2f3a] uppercase tracking-wide mb-2">
               {section.title}
             </h2>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-2">
               {section.items.map((item) => {
                 const Icon = item.icon;
                 return (
                   <button
                     key={item.path}
                     onClick={() => router.push(item.path)}
-                    className="flex items-start gap-3 p-3 border border-[#d0d0e0] rounded-md bg-white hover:bg-[#f5f5ff] hover:border-[#8888cc] transition-colors text-left group"
+                    className="flex items-start gap-2.5 p-2.5 border border-[#d1d5db] bg-white hover:bg-[#f0f4f8] hover:border-[#1b2f3a]/30 transition-colors text-left group"
                   >
-                    <div className="mt-0.5 p-1.5 rounded bg-[#eeeef8] group-hover:bg-[#ddddf8] transition-colors">
-                      <Icon size={16} className="text-[#5a5aaa]" />
+                    <div className="mt-0.5 p-1.5 bg-[#1b2f3a]/8 group-hover:bg-[#1b2f3a]/15 transition-colors">
+                      <Icon size={15} className="text-[#1b2f3a]" />
                     </div>
                     <div>
-                      <div className="text-[13px] font-semibold text-[#1a1a4e]">{item.label}</div>
-                      <div className="text-[11px] text-gray-500 mt-0.5">{item.desc}</div>
+                      <div className="text-[12px] font-semibold text-[#374151] group-hover:text-[#144664] transition-colors">{item.label}</div>
+                      <div className="text-[10.5px] text-[#9ca3af] mt-0.5 leading-tight">{item.desc}</div>
                     </div>
                   </button>
                 );
