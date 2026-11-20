@@ -6,7 +6,7 @@ import { EdoxMark } from "@/components/common/EdoxLoader";
 import { toast } from "sonner";
 
 import SearchSection from "@/components/common/SearchSection";
-import DataTable from "@/components/common/DataTable";
+import BulkWorkflowTable from "@/components/common/BulkWorkflowTable";
 import PageHeader from "@/components/layout/PageHeader";
 import HeaderWrapper from "@/components/layout/HeaderWrapper";
 import PageNotAvailable from "@/components/common/PageNotAvailable";
@@ -33,6 +33,7 @@ export default function Page() {
       .then((res) => {
         const rows = (res.data || []).map((r, i) => ({
           sl: i + 1,
+          id: r.id,
           reportDate: r.reportDate,
           dateLabel: getfmtDisplaydate(r.reportDate) || r.reportDate,
           dprNo: r.dprNo || "—",
@@ -93,7 +94,7 @@ export default function Page() {
               : []
           }
         />
-        <DataTable
+        <BulkWorkflowTable module="dpr" canAct={access.canApprove} rowId="id" statusKey="workflowStatus"
           columns={columns}
           data={filteredData}
           onRowClick={(row) => access.canOpenDetails && router.push(`${BASE}/${row.reportDate}`)}

@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { EdoxMark } from "@/components/common/EdoxLoader";
 import { toast } from "sonner";
 
-import DataTable from "@/components/common/DataTable";
+import BulkWorkflowTable from "@/components/common/BulkWorkflowTable";
 import SearchSection from "@/components/common/SearchSection";
 import { apiRequest } from "@/lib/apiClient";
 import { API_ENDPOINTS } from "@/config/api.config";
@@ -19,7 +19,7 @@ const columns = [
   { header: "Status",        accessor: "status" },
 ];
 
-export default function DLRListPage({ canAdd = false }) {
+export default function DLRListPage({ canAdd = false, canApprove = false }) {
   const router = useRouter();
   const [data,     setData]     = useState([]);
   const [filtered, setFiltered] = useState([]);
@@ -94,7 +94,11 @@ export default function DLRListPage({ canAdd = false }) {
           { label: "Report", onClick: () => router.push("/resource-management/services/manpower/dlr/report") },
         ]}
       />
-      <DataTable
+      <BulkWorkflowTable
+        module="dlr"
+        canAct={canApprove}
+        rowId="id"
+        statusKey="status"
         columns={columns}
         data={filtered}
         onRowClick={(row) => router.push(`/resource-management/services/manpower/dlr/${row.id}`)}

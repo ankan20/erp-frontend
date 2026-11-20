@@ -13,7 +13,7 @@
 import { Fragment, useCallback, useEffect, useRef, useState } from "react";
 import { usePathname } from "next/navigation";
 import { RefreshCw, X } from "lucide-react";
-import { onDataChanged } from "@/lib/dataSync";
+import { onDataChanged, RELOAD_PAGE_EVENT } from "@/lib/dataSync";
 
 const DEBOUNCE_MS = 600; // one save often sends several requests
 const ROOT = "[data-sync-root]";
@@ -108,6 +108,12 @@ export default function DataSyncBoundary({ children }) {
     const busy = typed.current || !!document.querySelector(OPEN_FORM);
     if (busy) setStale(true);
     else reload();
+  }, [reload]);
+
+  // this window asked for fresh data (e.g. after a bulk approve)
+  useEffect(() => {
+    window.addEventListener(RELOAD_PAGE_EVENT, reload);
+    return () => window.removeEventListener(RELOAD_PAGE_EVENT, reload);
   }, [reload]);
 
   // changes from other windows (debounced; hidden tabs update when shown)

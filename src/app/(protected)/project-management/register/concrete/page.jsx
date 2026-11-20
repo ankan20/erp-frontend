@@ -6,7 +6,7 @@ import { EdoxMark } from "@/components/common/EdoxLoader";
 import { toast } from "sonner";
 
 import SearchSection from "@/components/common/SearchSection";
-import DataTable from "@/components/common/DataTable";
+import BulkWorkflowTable from "@/components/common/BulkWorkflowTable";
 import { useDeletePendingIds } from "@/hooks/useDeletePendingIds";
 import PageHeader from "@/components/layout/PageHeader";
 import HeaderWrapper from "@/components/layout/HeaderWrapper";
@@ -56,6 +56,7 @@ export default function Page() {
           requisitionNo: r.requisitionNo || "",
           vehicleNumber: r.vehicleNumber || "",
           batchNo: r.batchNo || "",
+          workflowStatus: r.workflowStatus || "", // not shown; drives bulk approve
         }));
 
         setData(formatted);
@@ -152,7 +153,7 @@ export default function Page() {
           }
         />
 
-        <DataTable
+        <BulkWorkflowTable module="concrete_registry" canAct={access.canApprove} rowId="id" statusKey="workflowStatus"
           columns={columns}
           data={filteredData}
           onRowClick={(row) => {

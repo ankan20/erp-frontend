@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import SearchSection from "@/components/common/SearchSection";
-import DataTable from "@/components/common/DataTable";
+import BulkWorkflowTable from "@/components/common/BulkWorkflowTable";
 import { useDeletePendingIds } from "@/hooks/useDeletePendingIds";
 import { apiRequest } from "@/lib/apiClient";
 import { API_ENDPOINTS } from "@/config/api.config";
@@ -187,7 +187,7 @@ export default function Page() {
           />
 
           {/*  TABLE */}
-          <DataTable
+          <BulkWorkflowTable module="indent" canAct={access.canApprove} rowId="id" statusKey="indentStatus"
             columns={columns}
             data={filteredData}
             onRowClick={(row) => {

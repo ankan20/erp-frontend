@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { EdoxMark } from "@/components/common/EdoxLoader";
 import { toast } from "sonner";
 
-import DataTable from "@/components/common/DataTable";
+import BulkWorkflowTable from "@/components/common/BulkWorkflowTable";
 import { useDeletePendingIds } from "@/hooks/useDeletePendingIds";
 import SearchSection from "@/components/common/SearchSection";
 import PageHeader from "@/components/layout/PageHeader";
@@ -127,7 +127,7 @@ export default function Page() {
               : []
           }
         />
-        <DataTable
+        <BulkWorkflowTable module="batching" canAct={access.canApprove} rowId="id" statusKey="workflowStatus"
           columns={columns}
           data={filtered}
           onRowClick={(row) => router.push(`/resource-management/services/plant-machinery/batching-plant/${row.id}`)}

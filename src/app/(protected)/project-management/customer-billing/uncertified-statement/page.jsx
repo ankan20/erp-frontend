@@ -6,7 +6,7 @@ import { EdoxMark } from "@/components/common/EdoxLoader";
 import { toast } from "sonner";
 
 import SearchSection    from "@/components/common/SearchSection";
-import DataTable        from "@/components/common/DataTable";
+import BulkWorkflowTable from "@/components/common/BulkWorkflowTable";
 import PageHeader       from "@/components/layout/PageHeader";
 import HeaderWrapper    from "@/components/layout/HeaderWrapper";
 import PageNotAvailable from "@/components/common/PageNotAvailable";
@@ -116,7 +116,7 @@ export default function Page() {
               : []
           }
         />
-        <DataTable
+        <BulkWorkflowTable module="uncertain_allocation" canAct={access.canApprove} rowId="id" statusKey="workflowStatus"
           columns={columns}
           data={filteredData}
           onRowClick={(row) => {

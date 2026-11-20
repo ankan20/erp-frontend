@@ -9,7 +9,7 @@ const FALLBACK_KEY = "erp-data-sync-event";
 // calls that do not change business records
 const IGNORE_URL = [
   /^\/(auth|comm|ai|traceability)(\/|$)/i,
-  /(^|\/)(heartbeat|typing|ping|pings|notifications?|read|read-all|search|suggest|lookup|check|verify|validate|preview|calculate|export|download|print|pdf|upload|login|logout|refresh-token)(\/|$|\?)/i,
+  /(^|\/)(heartbeat|typing|ping|pings|notifications?|read|read-all|search|suggest|lookup|check|eligible|verify|validate|preview|calculate|export|download|print|pdf|upload|login|logout|refresh-token)(\/|$|\?)/i,
 ];
 
 export const WINDOW_ID =
@@ -45,6 +45,17 @@ export function notifyDataChanged(method, url) {
     else window.localStorage.setItem(FALLBACK_KEY, JSON.stringify(msg)); // fires "storage" in other tabs
   } catch {
     /* never break the request */
+  }
+}
+
+/** Ask THIS window to re-mount its page so lists fetch fresh data
+ *  (e.g. after a bulk approve). Handled by DataSyncBoundary. */
+export const RELOAD_PAGE_EVENT = "erp:reload-page";
+export function reloadCurrentPage() {
+  try {
+    window.dispatchEvent(new Event(RELOAD_PAGE_EVENT));
+  } catch {
+    /* never throws */
   }
 }
 
