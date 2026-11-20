@@ -4,6 +4,10 @@ import {
   XCircle,
   Upload,
   FileText,
+  MessageSquareWarning,
+  ThumbsUp,
+  ThumbsDown,
+  Ban,
 } from "lucide-react";
 
 export const WORKFLOW_ACTIONS = {
@@ -153,4 +157,42 @@ export const WORKFLOW_ACTIONS = {
   badge:
     "bg-emerald-100 text-emerald-700",
 },
+
+  // reback request on a fully approved record (raised -> accepted / declined / cancelled)
+  REBACK_REQUEST: {
+    label: "Reback Requested",
+    icon: MessageSquareWarning,
+    color: "bg-amber-500",
+    border: "border-amber-500",
+    text: "text-amber-700",
+    lightBg: "bg-amber-50",
+    badge: "bg-amber-100 text-amber-800",
+  },
+  REBACK_REQUEST_ACCEPTED: {
+    label: "Reback Request Accepted",
+    icon: ThumbsUp,
+    color: "bg-green-600",
+    border: "border-green-600",
+    text: "text-green-700",
+    lightBg: "bg-green-50",
+    badge: "bg-green-100 text-green-700",
+  },
+  REBACK_REQUEST_DECLINED: {
+    label: "Reback Request Declined",
+    icon: ThumbsDown,
+    color: "bg-red-500",
+    border: "border-red-500",
+    text: "text-red-700",
+    lightBg: "bg-red-50",
+    badge: "bg-red-100 text-red-700",
+  },
+  REBACK_REQUEST_CANCELLED: {
+    label: "Reback Request Cancelled",
+    icon: Ban,
+    color: "bg-gray-400",
+    border: "border-gray-400",
+    text: "text-gray-600",
+    lightBg: "bg-gray-50",
+    badge: "bg-gray-100 text-gray-600",
+  },
 };

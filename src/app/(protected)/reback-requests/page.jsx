@@ -21,7 +21,7 @@ import { fmtWhen } from "@/components/common/RebackRequestDialog";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { apiRequest } from "@/lib/apiClient";
 import { API_ENDPOINTS } from "@/config/api.config";
-import { rebackRequestsChanged } from "@/lib/rebackRequest";
+import { grantRebackView, rebackRequestsChanged } from "@/lib/rebackRequest";
 
 const BASE = API_ENDPOINTS.WORKFLOW.REBACK_REQUESTS;
 const STATUS_TABS = [
@@ -100,7 +100,12 @@ export default function Page() {
       render: (row) => row.pageUrl ? (
         <span
           className="text-blue-600 hover:underline cursor-pointer"
-          onClick={(e) => { e.stopPropagation(); router.push(row.pageUrl); }}
+          onClick={(e) => {
+            e.stopPropagation();
+            grantRebackView(row.pageUrl);
+            // full load: the record page checks access on its first render
+            window.location.assign(row.pageUrl);
+          }}
         >
           {row.recordNo}
         </span>

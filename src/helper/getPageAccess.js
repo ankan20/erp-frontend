@@ -1,5 +1,6 @@
 import { getLocalStorage }
 from "@/lib/localStorage";
+import { hasRebackView } from "@/lib/rebackRequest";
 
 // used for every other module
 // except settings and master
@@ -39,6 +40,14 @@ export const getPageAccess = ({
   // NO ACCESS — if defaultToAllowed, treat as full edit access (for new/unconfigured modules)
 
   if (!hasAccess) {
+    // record opened from Reback Requests (admin / final approver): view only
+    if (
+      pageType === "EDIT" &&
+      typeof window !== "undefined" &&
+      hasRebackView(window.location.pathname)
+    ) {
+      return { allowed: true, disabled: true, canApprove: false, mode: "view" };
+    }
     if (defaultToAllowed) {
       canView = true;
       canEdit = true;
