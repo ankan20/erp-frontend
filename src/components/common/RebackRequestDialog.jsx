@@ -64,6 +64,10 @@ export default function RebackRequestDialog() {
       reloadCurrentPage();          // page + header icon load fresh
     } catch (err) {
       toast.error(err?.message || "Something went wrong");
+      // e.g. already declined / accepted elsewhere: close and show the current state
+      setText("");
+      closeRebackRequestDialog();
+      rebackRequestsChanged();
     } finally {
       setBusy(null);
     }
