@@ -22,6 +22,7 @@ import AuthImage from "@/components/common/AuthImage";
 import { userFileUrl } from "@/lib/userFiles";
 import { useComm } from "@/context/CommContext";
 import { ROLE, roleMap } from "@/config/role.config";
+import RebackRequestsNavButton from "@/components/layout/RebackRequestsNavButton";
 
 function NavTooltip({ label, children }) {
   return (
@@ -319,6 +320,7 @@ export default function AppNavbar() {
                   <Keyboard size={16} />
                 </button>
               </NavTooltip>
+              <RebackRequestsNavButton Tip={NavTooltip} />
             </div>
           </div>
         </div>

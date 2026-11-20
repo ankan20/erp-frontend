@@ -2,6 +2,8 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { apiRequest } from "@/lib/apiClient";
+import { API_ENDPOINTS } from "@/config/api.config";
+import { setRebackRecord } from "@/lib/rebackRequest";
 
 export function useMyApprovalStatus(api, entityId, enabled = true) {
   const [isPendingForMe, setIsPendingForMe] = useState(false);
@@ -35,6 +37,18 @@ export function useMyApprovalStatus(api, entityId, enabled = true) {
 
     return () => { cancelled = true; };
   }, [api, entityId, enabled, fetchKey]);
+
+  // Fully approved record? -> reback request info (who raised, can I raise / decide).
+  // The Approve / Action icon and RebackRequestDialog read it (lib/rebackRequest).
+  useEffect(() => {
+    if (!api || !entityId) return undefined;
+    let cancelled = false;
+    const params = new URLSearchParams({ path: api, id: String(entityId) });
+    apiRequest({ url: `${API_ENDPOINTS.WORKFLOW.REBACK_REQUEST_RECORD}?${params}`, method: "GET" })
+      .then((res) => { if (!cancelled) setRebackRecord(res?.data?.approved ? { ...res.data, id: entityId } : null); })
+      .catch(() => { if (!cancelled) setRebackRecord(null); });
+    return () => { cancelled = true; setRebackRecord(null); };
+  }, [api, entityId, fetchKey]);
 
   // Call after approve/reback/reject to re-check status from server
   const refresh = useCallback(() => setFetchKey((k) => k + 1), []);
