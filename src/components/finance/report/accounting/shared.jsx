@@ -56,3 +56,45 @@ export function SummaryBox({ items }) {
     </div>
   );
 }
+
+const NARRATION_HINTS = {
+  "PB expense":          "Purchase Bill — expense line item",
+  "PV expense":          "Payment Voucher — expense line item",
+  "PV payment":          "Payment Voucher — bank/cash payment",
+  "PCDV expense":        "Petty Cash Docket Voucher — expense line item",
+  "PCDV payment":        "Petty Cash Docket Voucher — cash paid out",
+  "BPR bill payment":    "Bill Payment Receipt — payment against bill",
+  "BPR payment":         "Bill Payment Receipt — bank/cash side",
+  "SB revenue":          "Sale Bill — revenue line item",
+  "SRB receipt":         "Sale Receipt Billing — money received",
+  "JE":                  "Journal Entry — manual entry",
+  "JE customer":         "Journal Entry — customer line",
+  "CE transfer":         "Contra Entry — bank/cash transfer",
+  "DN vendor adjustment":"Debit Note — vendor claim back",
+  "DN expense reversal": "Debit Note — expense reversal",
+  "DN GST reversal":     "Debit Note — GST reversal",
+  "CN revenue reversal": "Credit Note — revenue reversal",
+  "CN customer adjustment":"Credit Note — customer credit",
+  "CN GST reversal":     "Credit Note — GST reversal",
+  "GST Input":           "Auto GST — input tax on purchases",
+  "GST Output":          "Auto GST — output tax on sales",
+  "Vendor payable":      "Purchase Bill — vendor credit (payable)",
+  "Customer receivable": "Sale Bill — customer debit (receivable)",
+  "Customer receipt":    "Sale Receipt — customer credit (settled)",
+  "Claim bill WIP":      "Claim Bill — unbilled WIP (UWIP)",
+  "Claim bill provisional":"Claim Bill — provisional customer entry",
+  "Certified bill reduces WIP":"Certified Bill — reverses UWIP",
+  "Certified receivable":"Certified Bill — certified customer receivable",
+  "US reclassify from UWIP":"Uncertified Statement — reclassify UWIP to hold CC",
+  "US reclassify to hold":"Uncertified Statement — credit UWIP for hold CCs",
+  "GRN inventory":       "Goods Received Note — inventory received",
+  "GIN issue":           "Goods Issue Note — material issued to project",
+};
+
+export function getNarrationHint(narration) {
+  if (!narration) return null;
+  for (const [prefix, hint] of Object.entries(NARRATION_HINTS)) {
+    if (narration.startsWith(prefix)) return hint;
+  }
+  return null;
+}

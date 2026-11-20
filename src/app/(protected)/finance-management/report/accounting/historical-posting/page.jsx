@@ -76,52 +76,50 @@ export default function PostingStatusPage() {
 
   const actions = usePageActions({ router });
 
-
   if (!access.allowed) return <PageNotAvailable />;
   return (
     <HeaderWrapper header={<PageHeader actions={actions} />}>
-      <div className="p-4 space-y-4">
-        <div className="flex items-center justify-between">
-          <h1 className="text-lg font-bold text-[#1a1a4e]">Posting Status</h1>
-          <div className="flex items-center gap-2">
+      <div className="p-3 space-y-3">
+        <div className="flex items-center justify-between border-b pb-3">
+          <h2 className="text-[15px] font-bold text-[#144664]">Central Accounting — Posting Status</h2>
+          <div className="flex items-center gap-1.5">
             <button
               onClick={fetchStatus}
               disabled={loading}
-              className="flex items-center gap-1.5 px-3 py-1 border border-[#8f8f8f] text-[13px] rounded-sm hover:bg-gray-100"
+              className="flex items-center gap-1 px-2.5 py-[5px] border border-[#d1d5db] text-[12px] text-[#4b5563] hover:bg-[#f3f4f6] transition-colors"
             >
-              <RefreshCw size={13} /> Refresh
+              <RefreshCw size={12} /> Refresh
             </button>
             <button
               onClick={() => handleHistoricalPosting(true)}
               disabled={posting}
-              className="flex items-center gap-1.5 px-3 py-1 border border-[#5a5aaa] text-[#5a5aaa] text-[13px] rounded-sm hover:bg-[#f0f0ff]"
+              className="flex items-center gap-1 px-2.5 py-[5px] border border-[#1b2f3a] text-[#1b2f3a] text-[12px] hover:bg-[#f0f4f8] transition-colors"
             >
               Dry Run
             </button>
             <button
               onClick={() => handleHistoricalPosting(false)}
               disabled={posting}
-              className="flex items-center gap-1.5 px-4 py-1 bg-[#5a5aaa] hover:bg-[#4a4a9a] text-white text-[13px] font-semibold rounded-sm disabled:opacity-60"
+              className="flex items-center gap-1 px-3 py-[5px] bg-[#1b2f3a] hover:bg-[#263f4d] text-white text-[12px] font-medium disabled:opacity-50 transition-colors"
             >
-              {posting ? <Loader2 size={14} className="animate-spin" /> : <Play size={14} />}
+              {posting ? <Loader2 size={13} className="animate-spin" /> : <Play size={13} />}
               Run Historical Posting
             </button>
           </div>
         </div>
 
-        {/* Summary cards */}
-        <div className="grid grid-cols-3 gap-4">
-          <div className="border border-[#b0b0d0] rounded-sm bg-[#f0f0ff] p-4">
-            <div className="text-[12px] text-gray-600">Total Approved</div>
-            <div className="text-[20px] font-bold mt-1">{totalApproved}</div>
+        <div className="grid grid-cols-3 gap-3">
+          <div className="border border-[#d1d5db] bg-[#f8f9fb] p-3">
+            <div className="text-[11px] text-[#6b7280] font-medium">Total Approved</div>
+            <div className="text-[18px] font-bold text-[#374151] mt-0.5 tabular-nums">{totalApproved}</div>
           </div>
-          <div className="border border-[#b0d4b0] rounded-sm bg-[#e8f4e8] p-4">
-            <div className="text-[12px] text-gray-600">Posted</div>
-            <div className="text-[20px] font-bold text-[#2d7a2d] mt-1">{totalPosted}</div>
+          <div className="border border-[#d1d5db] bg-[#f0fdf4] p-3">
+            <div className="text-[11px] text-[#6b7280] font-medium">Posted</div>
+            <div className="text-[18px] font-bold text-[#2d7a2d] mt-0.5 tabular-nums">{totalPosted}</div>
           </div>
-          <div className="border border-[#f0c0a0] rounded-sm bg-[#fff8f0] p-4">
-            <div className="text-[12px] text-gray-600">Pending</div>
-            <div className="text-[20px] font-bold text-[#c06000] mt-1">{totalPending}</div>
+          <div className="border border-[#d1d5db] bg-[#fffbeb] p-3">
+            <div className="text-[11px] text-[#6b7280] font-medium">Pending</div>
+            <div className="text-[18px] font-bold text-[#b45309] mt-0.5 tabular-nums">{totalPending}</div>
           </div>
         </div>
 
@@ -130,34 +128,43 @@ export default function PostingStatusPage() {
             <Loader2 className="animate-spin w-6 h-6 text-[#144664]" />
           </div>
         ) : (
-          <div className="overflow-x-auto border border-[#ccc] rounded-sm">
-            <table className="w-full text-[12.5px] border-collapse">
+          <div className="border border-[#d1d5db] overflow-x-auto">
+            <table className="w-full text-[12px] border-collapse">
               <thead>
-                <tr className="bg-[#e8e8f0]">
-                  <th className="px-3 py-2 text-left font-semibold border-b border-[#bbb]">Module</th>
-                  <th className="px-3 py-2 text-right font-semibold border-b border-[#bbb]">Approved</th>
-                  <th className="px-3 py-2 text-right font-semibold border-b border-[#bbb]">Posted</th>
-                  <th className="px-3 py-2 text-right font-semibold border-b border-[#bbb]">Pending</th>
-                  <th className="px-3 py-2 text-left font-semibold border-b border-[#bbb]">Status</th>
+                <tr className="bg-[#1b2f3a]">
+                  <th className="px-2 py-[6px] text-left font-medium text-white text-[11px] border-r border-[#2a4a5a]">Module</th>
+                  <th className="px-2 py-[6px] text-right font-medium text-white text-[11px] border-r border-[#2a4a5a]">Approved</th>
+                  <th className="px-2 py-[6px] text-right font-medium text-white text-[11px] border-r border-[#2a4a5a]">Posted</th>
+                  <th className="px-2 py-[6px] text-right font-medium text-white text-[11px] border-r border-[#2a4a5a]">Pending</th>
+                  <th className="px-2 py-[6px] text-left font-medium text-white text-[11px]">Status</th>
                 </tr>
               </thead>
               <tbody>
                 {entries.map(([key, val], i) => (
-                  <tr key={key} className={`border-b border-[#e0e0e0] ${i % 2 === 0 ? "bg-white" : "bg-[#fafafa]"} hover:bg-[#f0f0ff]`}>
-                    <td className="px-3 py-1.5 font-medium">{SOURCE_LABELS[key] || key}</td>
-                    <td className="px-3 py-1.5 text-right tabular-nums">{val.totalApproved}</td>
-                    <td className="px-3 py-1.5 text-right tabular-nums text-[#2d7a2d]">{val.posted}</td>
-                    <td className="px-3 py-1.5 text-right tabular-nums text-[#c06000]">{val.pending}</td>
-                    <td className="px-3 py-1.5">
+                  <tr key={key} className={`border-b border-[#e5e7eb] ${i % 2 === 0 ? "bg-white" : "bg-[#fafbfc]"} hover:bg-[#f0f4f8] transition-colors`}>
+                    <td className="px-2 py-[4px] font-medium text-[#374151] border-r border-[#f0f0f0]">{SOURCE_LABELS[key] || key}</td>
+                    <td className="px-2 py-[4px] text-right tabular-nums text-[#374151] border-r border-[#f0f0f0]">{val.totalApproved}</td>
+                    <td className="px-2 py-[4px] text-right tabular-nums text-[#2d7a2d] border-r border-[#f0f0f0]">{val.posted}</td>
+                    <td className="px-2 py-[4px] text-right tabular-nums text-[#b45309] border-r border-[#f0f0f0]">{val.pending}</td>
+                    <td className="px-2 py-[4px]">
                       {val.pending === 0 ? (
-                        <span className="px-2 py-0.5 bg-[#e8f4e8] text-[#2d7a2d] rounded text-[11px] font-semibold">Complete</span>
+                        <span className="px-1.5 py-0.5 bg-[#e8f4e8] text-[#2d7a2d] text-[10px] font-semibold">Complete</span>
                       ) : (
-                        <span className="px-2 py-0.5 bg-[#fff3e0] text-[#c06000] rounded text-[11px] font-semibold">{val.pending} pending</span>
+                        <span className="px-1.5 py-0.5 bg-[#fef3c7] text-[#b45309] text-[10px] font-semibold">{val.pending} pending</span>
                       )}
                     </td>
                   </tr>
                 ))}
               </tbody>
+              <tfoot>
+                <tr className="bg-[#1b2f3a] text-white text-[11.5px] font-medium">
+                  <td className="px-2 py-[5px] border-r border-[#2a4a5a]">Total</td>
+                  <td className="px-2 py-[5px] text-right tabular-nums border-r border-[#2a4a5a]">{totalApproved}</td>
+                  <td className="px-2 py-[5px] text-right tabular-nums border-r border-[#2a4a5a]">{totalPosted}</td>
+                  <td className="px-2 py-[5px] text-right tabular-nums border-r border-[#2a4a5a]">{totalPending}</td>
+                  <td className="px-2 py-[5px]"></td>
+                </tr>
+              </tfoot>
             </table>
           </div>
         )}

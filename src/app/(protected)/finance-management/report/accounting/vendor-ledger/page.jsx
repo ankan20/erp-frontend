@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Loader2, Search, RefreshCw } from "lucide-react";
 import { toast } from "sonner";
@@ -15,7 +15,14 @@ import { apiRequest }     from "@/lib/apiClient";
 import { API_ENDPOINTS }  from "@/config/api.config";
 import { formatAmount }   from "@/helper/numberFormatter";
 import AccountingTable    from "@/components/finance/report/accounting/AccountingTable";
-import { FilterLabel, SummaryBox, fmt, fmtDate } from "@/components/finance/report/accounting/shared";
+import { FilterLabel, SummaryBox, fmt, fmtDate, getNarrationHint } from "@/components/finance/report/accounting/shared";
+
+function fmtBalDrCr(val) {
+  if (val == null || val === 0) return "—";
+  const abs = Math.abs(val);
+  const side = val > 0 ? "Dr" : "Cr";
+  return `${formatAmount(abs)} ${side}`;
+}
 
 const COLUMNS = [
   { key: "sl",       label: "#",          className: "w-[40px]" },
@@ -25,7 +32,7 @@ const COLUMNS = [
   { key: "narration", label: "Narration",  className: "min-w-[200px]" },
   { key: "debit",    label: "Debit (Dr)",  type: "amount", align: "right", className: "w-[110px]" },
   { key: "credit",   label: "Credit (Cr)", type: "amount", align: "right", className: "w-[110px]" },
-  { key: "balance",  label: "Balance",     type: "amount", align: "right", className: "w-[130px]" },
+  { key: "balance",  label: "Balance",     align: "right", className: "w-[130px]" },
 ];
 
 export default function VendorLedgerPage() {
@@ -33,12 +40,13 @@ export default function VendorLedgerPage() {
   const router  = useRouter();
   const actions = usePageActions({ router });
 
-  const [vendorId, setVendorId]   = useState("");
-  const [fromDate, setFromDate]   = useState("");
-  const [toDate, setToDate]       = useState("");
-  const [data, setData]           = useState(null);
-  const [loading, setLoading]     = useState(false);
-  const [fetched, setFetched]     = useState(false);
+  const [vendorId, setVendorId]     = useState("");
+  const [fromDate, setFromDate]     = useState("");
+  const [toDate, setToDate]         = useState("");
+  const [searchText, setSearchText] = useState("");
+  const [data, setData]             = useState(null);
+  const [loading, setLoading]       = useState(false);
+  const [fetched, setFetched]       = useState(false);
   const [vendorList, setVendorList] = useState([]);
 
   useEffect(() => {
@@ -66,20 +74,33 @@ export default function VendorLedgerPage() {
   }, [vendorId, fromDate, toDate]);
 
   const handleReset = () => {
-    setVendorId(""); setFromDate(""); setToDate("");
+    setVendorId(""); setFromDate(""); setToDate(""); setSearchText("");
     setData(null); setFetched(false);
   };
 
   const entries = data?.entries || [];
-  const rows = entries.map((e, i) => ({
-    _key: i, sl: i + 1,
-    date: fmtDate(e.date),
-    source: (e.sourceType || "").replace(/_/g, " "),
-    docNo: e.voucherNo || "",
-    narration: e.narration || "",
-    debit: e.debit, credit: e.credit,
-    balance: e.balance,
-  }));
+  const rows = useMemo(() => {
+    const q = searchText.trim().toLowerCase();
+    return entries
+      .map((e, i) => {
+        const row = {
+          _key: i, sl: i + 1,
+          date: fmtDate(e.date),
+          source: (e.sourceType || "").replace(/_/g, " "),
+          docNo: e.voucherNo || "",
+          narration: e.narration || "",
+          _narrationHint: getNarrationHint(e.narration),
+          debit: e.debit, credit: e.credit,
+          balance: fmtBalDrCr(e.balance),
+        };
+        if (q) {
+          const haystack = `${row.docNo} ${row.source} ${row.date} ${row.narration}`.toLowerCase();
+          if (!haystack.includes(q)) return null;
+        }
+        return row;
+      })
+      .filter(Boolean);
+  }, [entries, searchText]);
 
 
   if (!access.allowed) return <PageNotAvailable />;
@@ -87,6 +108,7 @@ export default function VendorLedgerPage() {
     <HeaderWrapper header={<PageHeader actions={actions} />}>
       <div className="p-3 space-y-3">
         <h2 className="text-[15px] font-bold text-[#144664]">Central Accounting — Vendor Ledger</h2>
+
         <div className="flex flex-wrap items-center gap-3 border-b pb-3">
           <div className="flex items-center gap-2">
             <FilterLabel>Vendor</FilterLabel>
@@ -100,27 +122,42 @@ export default function VendorLedgerPage() {
             <FilterLabel>From</FilterLabel>
             <input type="date" value={fromDate} max={toDate || undefined}
               onChange={(e) => setFromDate(e.target.value)}
-              className="h-7 w-[140px] border border-[#8f8f8f] px-2 text-sm rounded-sm" />
+              className="h-[28px] w-[130px] border border-[#d1d5db] px-2 text-[12px] text-[#374151] bg-white focus:border-[#1b2f3a] focus:outline-none transition-colors" />
           </div>
           <div className="flex items-center gap-2">
             <FilterLabel>To</FilterLabel>
             <input type="date" value={toDate} min={fromDate || undefined}
               onChange={(e) => setToDate(e.target.value)}
-              className="h-7 w-[140px] border border-[#8f8f8f] px-2 text-sm rounded-sm" />
+              className="h-[28px] w-[130px] border border-[#d1d5db] px-2 text-[12px] text-[#374151] bg-white focus:border-[#1b2f3a] focus:outline-none transition-colors" />
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1.5 ml-auto">
             <button onClick={handleFetch} disabled={loading}
-              className="flex items-center gap-1.5 px-4 py-1 bg-[#5a5aaa] hover:bg-[#4a4a9a] text-white text-[13px] font-semibold rounded-sm disabled:opacity-60 transition-colors">
-              {loading ? <Loader2 size={14} className="animate-spin" /> : <Search size={14} />} Fetch
+              className="flex items-center gap-1 px-3 py-[5px] bg-[#1b2f3a] hover:bg-[#263f4d] text-white text-[12px] font-medium disabled:opacity-50 transition-colors">
+              {loading ? <Loader2 size={13} className="animate-spin" /> : <Search size={13} />}
+              Fetch
             </button>
             {fetched && (
               <button onClick={handleReset}
-                className="flex items-center gap-1.5 px-3 py-1 border border-[#8f8f8f] text-[13px] rounded-sm hover:bg-gray-100 transition-colors">
-                <RefreshCw size={13} /> Reset
+                className="flex items-center gap-1 px-2.5 py-[5px] border border-[#d1d5db] text-[12px] text-[#4b5563] hover:bg-[#f3f4f6] transition-colors">
+                <RefreshCw size={12} /> Reset
               </button>
             )}
           </div>
         </div>
+
+        {fetched && !loading && (
+          <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1.5 flex-1 max-w-[300px]">
+              <Search size={13} className="text-[#9ca3af] shrink-0" />
+              <input type="text" value={searchText} onChange={(e) => setSearchText(e.target.value)}
+                placeholder="Search voucher, narration..."
+                className="w-full h-[28px] px-2 text-[12px] border border-[#d1d5db] bg-white text-[#374151] placeholder:text-[#9ca3af] focus:border-[#1b2f3a] focus:outline-none transition-colors" />
+            </div>
+            <span className="ml-auto text-[11.5px] text-[#6b7280]">
+              {rows.length} entr{rows.length !== 1 ? "ies" : "y"}
+            </span>
+          </div>
+        )}
 
         {loading ? (
           <div className="flex justify-center items-center h-[300px]"><Loader2 className="animate-spin w-6 h-6 text-[#144664]" /></div>
@@ -132,13 +169,13 @@ export default function VendorLedgerPage() {
           <>
             {(data?.openingBalance != null || data?.totalDebit != null) && (
               <SummaryBox items={[
-                { label: "Opening", value: fmt(data?.openingBalance), bg: "bg-[#e8eaff]", vBg: "bg-[#d0d4ff]", text: "text-[#3030a3]" },
-                { label: "Total Debit", value: fmt(data?.totalDebit), bg: "bg-[#fce8e8]", vBg: "bg-[#f5d0d0]", text: "text-[#a32020]" },
-                { label: "Total Credit", value: fmt(data?.totalCredit), bg: "bg-[#e8f4e8]", vBg: "bg-[#ccebcc]", text: "text-[#2d7a2d]" },
-                { label: "Closing", value: fmt(data?.closingBalance), bg: "bg-[#DCE8D2]", vBg: "bg-[#F2B07E]", text: "text-[#6b3000] font-bold" },
+                { label: "Opening", value: fmtBalDrCr(data?.openingBalance), text: "text-[#3030a3]" },
+                { label: "Total Debit", value: fmt(data?.totalDebit), text: "text-[#a32020]" },
+                { label: "Total Credit", value: fmt(data?.totalCredit), text: "text-[#2d7a2d]" },
+                { label: "Closing", value: fmtBalDrCr(data?.closingBalance), text: "text-[#6b3000] font-bold" },
               ]} />
             )}
-            <AccountingTable columns={COLUMNS} rows={rows} emptyMessage="No vendor ledger entries" />
+            <AccountingTable columns={COLUMNS} rows={rows} emptyMessage="No vendor ledger entries" narrationTooltip />
           </>
         )}
       </div>

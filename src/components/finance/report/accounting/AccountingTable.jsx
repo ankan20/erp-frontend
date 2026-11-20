@@ -9,6 +9,7 @@ export default function AccountingTable({
   emptyMessage = "No data",
   storageKey,
   footerRow,
+  narrationTooltip,
 }) {
   const cols = columns.map((c) => ({ ...c, id: c.key }));
 
@@ -75,12 +76,21 @@ export default function AccountingTable({
                 {ordered.map((col) => {
                   const val = row[col.key];
                   const isAmount = col.type === "amount";
+                  const isNarration = narrationTooltip && col.key === "narration";
+                  const hint = isNarration ? row._narrationHint : null;
                   return (
                     <td
                       key={col.key}
                       className={`px-2 py-[4px] border-r border-[#f0f0f0] text-[#374151] ${col.align === "right" || isAmount ? "text-right tabular-nums" : ""} ${col.className || ""}`}
+                      title={hint ? `${hint}\n\n${val}` : isNarration ? (val || "") : undefined}
                     >
-                      {isAmount && val != null ? formatAmount(val) : (val ?? "")}
+                      {isNarration ? (
+                        <span className={hint ? "border-b border-dashed border-[#9ca3af] cursor-help" : ""}>
+                          {val || ""}
+                        </span>
+                      ) : (
+                        isAmount && val != null ? formatAmount(val) : (val ?? "")
+                      )}
                     </td>
                   );
                 })}

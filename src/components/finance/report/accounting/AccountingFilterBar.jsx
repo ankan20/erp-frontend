@@ -1,6 +1,6 @@
 "use client";
 
-import { Loader2, Search, RefreshCw, FileText, FileSpreadsheet } from "lucide-react";
+import { Loader2, Search, RefreshCw, FileText, FileSpreadsheet, ArrowUpDown } from "lucide-react";
 import SearchableSelect from "@/components/common/SearchableSelect";
 
 export default function AccountingFilterBar({
@@ -18,6 +18,8 @@ export default function AccountingFilterBar({
   onPDF,
   onExcel,
   extraFilters,
+  sortOrder,
+  onSortToggle,
 }) {
   return (
     <div className="flex flex-wrap items-center gap-x-4 gap-y-2 py-2 border-b border-[#d1d5db]">
@@ -62,6 +64,17 @@ export default function AccountingFilterBar({
       </div>
 
       {extraFilters}
+
+      {sortOrder && onSortToggle && (
+        <button
+          onClick={onSortToggle}
+          className="flex items-center gap-1 h-[28px] px-2 border border-[#d1d5db] text-[11.5px] text-[#374151] bg-white hover:bg-[#f3f4f6] transition-colors whitespace-nowrap"
+          title={sortOrder === "desc" ? "Showing latest first" : "Showing oldest first"}
+        >
+          <ArrowUpDown size={12} className="text-[#6b7280]" />
+          {sortOrder === "desc" ? "Latest First" : "Oldest First"}
+        </button>
+      )}
 
       {/* Actions */}
       <div className="flex items-center gap-1.5 ml-auto">

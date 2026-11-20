@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Loader2, Search, RefreshCw, FileText, FileSpreadsheet } from "lucide-react";
 import { toast } from "sonner";
@@ -8,17 +8,25 @@ import { toast } from "sonner";
 import HeaderWrapper      from "@/components/layout/HeaderWrapper";
 import PageHeader         from "@/components/layout/PageHeader";
 import PageNotAvailable from "@/components/common/PageNotAvailable";
-import { getPageAccess } from "@/helper/getPageAccess";
 import SearchableSelect   from "@/components/common/SearchableSelect";
 import { usePageActions } from "@/components/common/PageActionButtons";
+import { getPageAccess } from "@/helper/getPageAccess";
 import { apiRequest }     from "@/lib/apiClient";
 import { API_ENDPOINTS }  from "@/config/api.config";
 import { formatAmount }   from "@/helper/numberFormatter";
+import { getLocalStorage } from "@/lib/localStorage";
 
 import AccountingTable from "@/components/finance/report/accounting/AccountingTable";
 import {
-  FilterLabel, SummaryBox, SourceTypeBadge, fmt, fmtDate,
+  FilterLabel, SummaryBox, fmt, fmtDate, getNarrationHint,
 } from "@/components/finance/report/accounting/shared";
+
+function fmtBalDrCr(val) {
+  if (val == null || val === 0) return "—";
+  const abs = Math.abs(val);
+  const side = val > 0 ? "Dr" : "Cr";
+  return `${formatAmount(abs)} ${side}`;
+}
 
 const COLUMNS = [
   { key: "sl",          label: "#",         className: "w-[40px]" },
@@ -28,18 +36,22 @@ const COLUMNS = [
   { key: "narration",   label: "Narration",  className: "min-w-[200px]" },
   { key: "debit",       label: "Debit (Dr)", type: "amount", align: "right", className: "w-[110px]" },
   { key: "credit",      label: "Credit (Cr)", type: "amount", align: "right", className: "w-[110px]" },
-  { key: "balance",     label: "Balance",    type: "amount", align: "right", className: "w-[130px]" },
+  { key: "balance",     label: "Balance",    align: "right", className: "w-[130px]" },
 ];
+const PROJECT_COL = { key: "projectCode", label: "Project", className: "w-[90px]" };
 
 export default function GeneralLedgerPage() {
   const access = getPageAccess({ pageCode: "accounting_ledger", pageType: "LIST" });
   const router  = useRouter();
   const actions = usePageActions({ router });
 
+  const defaultProject = getLocalStorage("projectInfo")?.projectCode || "";
+  const [projectCode, setProjectCode] = useState(defaultProject);
   const [accountType, setAccountType] = useState("CC");
   const [accountId, setAccountId]     = useState("");
   const [fromDate, setFromDate]       = useState("");
   const [toDate, setToDate]           = useState("");
+  const [searchText, setSearchText]   = useState("");
 
   const [data, setData]               = useState(null);
   const [loading, setLoading]         = useState(false);
@@ -48,16 +60,19 @@ export default function GeneralLedgerPage() {
   const [ccList, setCcList]           = useState([]);
   const [vendorList, setVendorList]   = useState([]);
   const [bankList, setBankList]       = useState([]);
+  const [projectList, setProjectList] = useState([]);
 
   useEffect(() => {
     Promise.all([
       apiRequest({ url: API_ENDPOINTS.MASTER.GET_ALL_CC_CODE, method: "GET" }),
       apiRequest({ url: API_ENDPOINTS.MASTER.GET_ALL_LEDGER, method: "GET" }),
       apiRequest({ url: API_ENDPOINTS.MASTER.BANK_CASH.LIST, method: "GET" }),
-    ]).then(([cc, v, b]) => {
+      apiRequest({ url: API_ENDPOINTS.SETTINGS.GET_ALL_PROJECTS, method: "GET" }),
+    ]).then(([cc, v, b, p]) => {
       setCcList(cc?.data || []);
       setVendorList(v?.data || []);
       setBankList(b?.data || []);
+      setProjectList(p?.data || []);
     }).catch(() => {});
   }, []);
 
@@ -71,6 +86,8 @@ export default function GeneralLedgerPage() {
   const accountValueKey = accountType === "CC" ? "ccId"
     : accountType === "Vendor" ? "ledgerId" : "id";
 
+  const showProject = !projectCode;
+
   const handleFetch = useCallback(async () => {
     if (!accountId) { toast.error("Please select an account"); return; }
     setLoading(true); setFetched(false);
@@ -78,6 +95,7 @@ export default function GeneralLedgerPage() {
       const params = new URLSearchParams();
       params.set("account_type", accountType);
       params.set("account_id", accountId);
+      if (projectCode) params.set("project_code", projectCode);
       if (fromDate) params.set("from_date", fromDate);
       if (toDate)   params.set("to_date", toDate);
       const res = await apiRequest({
@@ -90,10 +108,11 @@ export default function GeneralLedgerPage() {
       setData(null);
       toast.error(err?.message || "Failed to fetch ledger");
     } finally { setLoading(false); }
-  }, [accountType, accountId, fromDate, toDate]);
+  }, [accountType, accountId, projectCode, fromDate, toDate]);
 
   const handleReset = () => {
-    setAccountId(""); setFromDate(""); setToDate("");
+    setProjectCode(defaultProject);
+    setAccountId(""); setFromDate(""); setToDate(""); setSearchText("");
     setData(null); setFetched(false);
   };
 
@@ -103,6 +122,7 @@ export default function GeneralLedgerPage() {
       const params = new URLSearchParams();
       params.set("account_type", accountType);
       params.set("account_id", accountId);
+      if (projectCode) params.set("project_code", projectCode);
       if (fromDate) params.set("from_date", fromDate);
       if (toDate) params.set("to_date", toDate);
       params.set("format", format);
@@ -122,21 +142,40 @@ export default function GeneralLedgerPage() {
     } catch (err) {
       toast.error(err?.message || `Export failed`);
     }
-  }, [accountType, accountId, fromDate, toDate]);
+  }, [accountType, accountId, projectCode, fromDate, toDate]);
 
   const entries = data?.entries || [];
 
-  const rows = entries.map((e, i) => ({
-    _key: i,
-    sl: i + 1,
-    date: fmtDate(e.date),
-    sourceType: (e.sourceType || "").replace(/_/g, " "),
-    docNo: e.voucherNo || "",
-    narration: e.narration || "",
-    debit: e.debit,
-    credit: e.credit,
-    balance: e.balance,
-  }));
+  const columns = useMemo(
+    () => (showProject ? [COLUMNS[0], PROJECT_COL, ...COLUMNS.slice(1)] : COLUMNS),
+    [showProject],
+  );
+
+  const rows = useMemo(() => {
+    const q = searchText.trim().toLowerCase();
+    return entries
+      .map((e, i) => {
+        const row = {
+          _key: i,
+          sl: i + 1,
+          ...(showProject && { projectCode: e.projectCode || "" }),
+          date: fmtDate(e.date),
+          sourceType: (e.sourceType || "").replace(/_/g, " "),
+          docNo: e.voucherNo || "",
+          narration: e.narration || "",
+          _narrationHint: getNarrationHint(e.narration),
+          debit: e.debit,
+          credit: e.credit,
+          balance: fmtBalDrCr(e.balance),
+        };
+        if (q) {
+          const haystack = `${row.docNo} ${row.sourceType} ${row.date} ${row.narration} ${row.projectCode || ""}`.toLowerCase();
+          if (!haystack.includes(q)) return null;
+        }
+        return row;
+      })
+      .filter(Boolean);
+  }, [entries, showProject, searchText]);
 
 
   if (!access.allowed) return <PageNotAvailable />;
@@ -146,12 +185,30 @@ export default function GeneralLedgerPage() {
         <h2 className="text-[15px] font-bold text-[#144664]">Central Accounting — General Ledger</h2>
 
         <div className="flex flex-wrap items-center gap-3 border-b pb-3">
+          {/* Project */}
+          <div className="flex items-center gap-2">
+            <FilterLabel>Project</FilterLabel>
+            <div className="w-[200px]">
+              <SearchableSelect
+                options={projectList}
+                value={projectCode}
+                onChange={(val) => setProjectCode(val)}
+                labelKey={["projectCode", "projectName"]}
+                labelSeparator=" : "
+                valueKey="projectCode"
+                placeholder="All Projects"
+                clearLabel="— All Projects —"
+                searchKeys={["projectCode", "projectName"]}
+              />
+            </div>
+          </div>
+
           <div className="flex items-center gap-2">
             <FilterLabel>Account Type</FilterLabel>
             <select
               value={accountType}
               onChange={(e) => { setAccountType(e.target.value); setAccountId(""); }}
-              className="h-7 border border-[#8f8f8f] px-2 text-sm rounded-sm"
+              className="h-7 border border-[#d1d5db] px-2 text-[12px] text-[#374151] bg-white focus:border-[#1b2f3a] focus:outline-none transition-colors"
             >
               <option value="CC">CC Code</option>
               <option value="Vendor">Vendor / Party</option>
@@ -179,39 +236,58 @@ export default function GeneralLedgerPage() {
             <FilterLabel>From</FilterLabel>
             <input type="date" value={fromDate} max={toDate || undefined}
               onChange={(e) => setFromDate(e.target.value)}
-              className="h-7 w-[140px] border border-[#8f8f8f] px-2 text-sm rounded-sm" />
+              className="h-[28px] w-[130px] border border-[#d1d5db] px-2 text-[12px] text-[#374151] bg-white focus:border-[#1b2f3a] focus:outline-none transition-colors" />
           </div>
           <div className="flex items-center gap-2">
             <FilterLabel>To</FilterLabel>
             <input type="date" value={toDate} min={fromDate || undefined}
               onChange={(e) => setToDate(e.target.value)}
-              className="h-7 w-[140px] border border-[#8f8f8f] px-2 text-sm rounded-sm" />
+              className="h-[28px] w-[130px] border border-[#d1d5db] px-2 text-[12px] text-[#374151] bg-white focus:border-[#1b2f3a] focus:outline-none transition-colors" />
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1.5 ml-auto">
             <button onClick={handleFetch} disabled={loading}
-              className="flex items-center gap-1.5 px-4 py-1 bg-[#5a5aaa] hover:bg-[#4a4a9a] text-white text-[13px] font-semibold rounded-sm disabled:opacity-60 transition-colors">
-              {loading ? <Loader2 size={14} className="animate-spin" /> : <Search size={14} />}
+              className="flex items-center gap-1 px-3 py-[5px] bg-[#1b2f3a] hover:bg-[#263f4d] text-white text-[12px] font-medium disabled:opacity-50 transition-colors">
+              {loading ? <Loader2 size={13} className="animate-spin" /> : <Search size={13} />}
               Fetch
             </button>
             {fetched && (
               <>
                 <button onClick={handleReset}
-                  className="flex items-center gap-1.5 px-3 py-1 border border-[#8f8f8f] text-[13px] rounded-sm hover:bg-gray-100 transition-colors">
-                  <RefreshCw size={13} /> Reset
+                  className="flex items-center gap-1 px-2.5 py-[5px] border border-[#d1d5db] text-[12px] text-[#4b5563] hover:bg-[#f3f4f6] transition-colors">
+                  <RefreshCw size={12} /> Reset
                 </button>
                 <button onClick={() => handleExport("pdf")}
-                  className="flex items-center gap-1.5 px-3 py-1 border border-[#a33] text-[#a33] text-[13px] rounded-sm hover:bg-red-50 transition-colors">
-                  <FileText size={13} /> PDF
+                  className="flex items-center gap-1 px-2.5 py-[5px] border border-[#d1d5db] text-[12px] text-[#9b2c2c] hover:bg-[#fef2f2] transition-colors">
+                  <FileText size={12} /> PDF
                 </button>
                 <button onClick={() => handleExport("excel")}
-                  className="flex items-center gap-1.5 px-3 py-1 border border-[#2d7a2d] text-[#2d7a2d] text-[13px] rounded-sm hover:bg-green-50 transition-colors">
-                  <FileSpreadsheet size={13} /> Excel
+                  className="flex items-center gap-1 px-2.5 py-[5px] border border-[#d1d5db] text-[12px] text-[#166534] hover:bg-[#f0fdf4] transition-colors">
+                  <FileSpreadsheet size={12} /> Excel
                 </button>
               </>
             )}
           </div>
         </div>
+
+        {/* Search bar (after fetch) */}
+        {fetched && !loading && (
+          <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1.5 flex-1 max-w-[300px]">
+              <Search size={13} className="text-[#9ca3af] shrink-0" />
+              <input
+                type="text"
+                value={searchText}
+                onChange={(e) => setSearchText(e.target.value)}
+                placeholder="Search voucher, narration..."
+                className="w-full h-[28px] px-2 text-[12px] border border-[#d1d5db] bg-white text-[#374151] placeholder:text-[#9ca3af] focus:border-[#1b2f3a] focus:outline-none transition-colors"
+              />
+            </div>
+            <span className="ml-auto text-[11.5px] text-[#6b7280]">
+              {rows.length} entr{rows.length !== 1 ? "ies" : "y"}
+            </span>
+          </div>
+        )}
 
         {loading ? (
           <div className="flex justify-center items-center h-[300px]">
@@ -226,13 +302,18 @@ export default function GeneralLedgerPage() {
           <>
             {(data?.openingBalance != null || data?.totalDebit != null) && (
               <SummaryBox items={[
-                { label: "Opening", value: fmt(data?.openingBalance), bg: "bg-[#e8eaff]", vBg: "bg-[#d0d4ff]", text: "text-[#3030a3]" },
-                { label: "Total Debit", value: fmt(data?.totalDebit), bg: "bg-[#fce8e8]", vBg: "bg-[#f5d0d0]", text: "text-[#a32020]" },
-                { label: "Total Credit", value: fmt(data?.totalCredit), bg: "bg-[#e8f4e8]", vBg: "bg-[#ccebcc]", text: "text-[#2d7a2d]" },
-                { label: "Closing", value: fmt(data?.closingBalance), bg: "bg-[#DCE8D2]", vBg: "bg-[#F2B07E]", text: "text-[#6b3000] font-bold" },
+                { label: "Opening", value: fmtBalDrCr(data?.openingBalance), text: "text-[#3030a3]" },
+                { label: "Total Debit", value: fmt(data?.totalDebit), text: "text-[#a32020]" },
+                { label: "Total Credit", value: fmt(data?.totalCredit), text: "text-[#2d7a2d]" },
+                { label: "Closing", value: fmtBalDrCr(data?.closingBalance), text: "text-[#6b3000] font-bold" },
               ]} />
             )}
-            <AccountingTable columns={COLUMNS} rows={rows} emptyMessage="No ledger entries found" />
+            <AccountingTable
+              columns={columns}
+              rows={rows}
+              emptyMessage="No ledger entries found"
+              narrationTooltip
+            />
           </>
         )}
       </div>

@@ -15,24 +15,28 @@ import { usePageActions } from "@/components/common/PageActionButtons";
 import { apiRequest } from "@/lib/apiClient";
 import { API_ENDPOINTS } from "@/config/api.config";
 import { formatAmount } from "@/helper/numberFormatter";
-import { fmtDate } from "@/components/finance/report/accounting/shared";
+import { getLocalStorage } from "@/lib/localStorage";
+import { FilterLabel } from "@/components/finance/report/accounting/shared";
 
 export default function OpeningBalancePage() {
   const access = getPageAccess({ pageCode: "accounting_opening_balance", pageType: "LIST" });
   const router = useRouter();
   const actions = usePageActions({ router });
 
+  const defaultProject = getLocalStorage("projectInfo")?.projectCode || "";
+
   const [fyList, setFyList] = useState([]);
   const [ccList, setCcList] = useState([]);
   const [vendorList, setVendorList] = useState([]);
   const [bankList, setBankList] = useState([]);
+  const [projectList, setProjectList] = useState([]);
 
   const [selectedFy, setSelectedFy] = useState("");
   const [accountType, setAccountType] = useState("CC");
   const [accountId, setAccountId] = useState("");
   const [drCr, setDrCr] = useState("Dr");
   const [amount, setAmount] = useState("");
-  const [projectCode, setProjectCode] = useState("");
+  const [projectCode, setProjectCode] = useState(defaultProject);
   const [narration, setNarration] = useState("");
 
   const [entries, setEntries] = useState([]);
@@ -47,12 +51,14 @@ export default function OpeningBalancePage() {
       apiRequest({ url: API_ENDPOINTS.MASTER.GET_ALL_CC_CODE, method: "GET" }),
       apiRequest({ url: API_ENDPOINTS.MASTER.GET_ALL_LEDGER, method: "GET" }),
       apiRequest({ url: API_ENDPOINTS.MASTER.BANK_CASH.LIST, method: "GET" }),
-    ]).then(([fy, cc, v, b]) => {
+      apiRequest({ url: API_ENDPOINTS.SETTINGS.GET_ALL_PROJECTS, method: "GET" }),
+    ]).then(([fy, cc, v, b, p]) => {
       const fyData = fy?.data || [];
       setFyList(fyData);
       setCcList(cc?.data || []);
       setVendorList(v?.data || []);
       setBankList(b?.data || []);
+      setProjectList(p?.data || []);
       const active = fyData.find((f) => f.isCurrent);
       if (active) setSelectedFy(String(active.id));
     }).catch(() => {});
@@ -155,59 +161,58 @@ export default function OpeningBalancePage() {
     label: f.fyCode || `FY ${f.id}`,
   }));
 
-  const defaultProject = typeof window !== "undefined"
-    ? localStorage.getItem("selected_project") || ""
-    : "";
-
-  useEffect(() => {
-    if (defaultProject && !projectCode) setProjectCode(defaultProject);
-  }, [defaultProject]);
-
 
   if (!access.allowed) return <PageNotAvailable />;
   return (
     <HeaderWrapper header={<PageHeader actions={actions} />}>
-      <div className="p-4 space-y-5">
-        <h1 className="text-lg font-bold text-[#1a1a4e]">Opening Balances</h1>
+      <div className="p-3 space-y-3">
+        <h2 className="text-[15px] font-bold text-[#144664]">Central Accounting — Opening Balances</h2>
 
-        {/* ─── Filter Bar ──────────────────────────────────── */}
-        <div className="flex flex-wrap items-end gap-3 bg-[#f5f5fa] p-3 rounded-sm border border-[#ddd]">
-          <div>
-            <label className="block text-[11px] font-semibold text-[#555] mb-0.5">Financial Year</label>
-            <SearchableSelect
-              options={fyOptions}
-              value={selectedFy}
-              onChange={setSelectedFy}
-              labelKey="label"
-              valueKey="id"
-              placeholder="Select FY"
-              searchKeys={["label"]}
-              className="w-[180px]"
-            />
+        {/* Filter Bar */}
+        <div className="flex flex-wrap items-center gap-3 border-b pb-3">
+          <div className="flex items-center gap-2">
+            <FilterLabel>Financial Year</FilterLabel>
+            <div className="w-[160px]">
+              <SearchableSelect
+                options={fyOptions}
+                value={selectedFy}
+                onChange={setSelectedFy}
+                labelKey="label"
+                valueKey="id"
+                placeholder="Select FY"
+                searchKeys={["label"]}
+              />
+            </div>
           </div>
-          <div>
-            <label className="block text-[11px] font-semibold text-[#555] mb-0.5">Project Code</label>
-            <input
-              type="text"
-              value={projectCode}
-              onChange={(e) => setProjectCode(e.target.value)}
-              placeholder="e.g. P001"
-              className="h-8 w-[120px] border border-[#8f8f8f] px-2 text-sm rounded-sm"
-            />
+          <div className="flex items-center gap-2">
+            <FilterLabel>Project</FilterLabel>
+            <div className="w-[200px]">
+              <SearchableSelect
+                options={projectList}
+                value={projectCode}
+                onChange={(val) => setProjectCode(val)}
+                labelKey={["projectCode", "projectName"]}
+                labelSeparator=" : "
+                valueKey="projectCode"
+                placeholder="All Projects"
+                clearLabel="— All Projects —"
+                searchKeys={["projectCode", "projectName"]}
+              />
+            </div>
           </div>
         </div>
 
-        {/* ─── Entry Form ──────────────────────────────────── */}
-        <div className="bg-white border border-[#ccc] rounded-sm p-4 space-y-3">
-          <h2 className="text-[13px] font-bold text-[#1a1a4e]">Add Opening Balance</h2>
+        {/* Entry Form */}
+        <div className="border border-[#d1d5db] bg-[#f8f9fb] p-3 space-y-2">
+          <h3 className="text-[12px] font-bold text-[#144664]">Add Opening Balance</h3>
 
-          <div className="flex flex-wrap items-end gap-3">
-            <div>
-              <label className="block text-[11px] font-semibold text-[#555] mb-0.5">Account Type</label>
+          <div className="flex flex-wrap items-center gap-3">
+            <div className="flex items-center gap-2">
+              <FilterLabel>Account Type</FilterLabel>
               <select
                 value={accountType}
                 onChange={(e) => { setAccountType(e.target.value); setAccountId(""); }}
-                className="h-8 w-[130px] border border-[#8f8f8f] px-2 text-sm rounded-sm bg-white"
+                className="h-[28px] border border-[#d1d5db] px-2 text-[12px] text-[#374151] bg-white focus:border-[#1b2f3a] focus:outline-none transition-colors"
               >
                 <option value="CC">CC Code</option>
                 <option value="Vendor">Vendor / Customer</option>
@@ -215,34 +220,36 @@ export default function OpeningBalancePage() {
               </select>
             </div>
 
-            <div>
-              <label className="block text-[11px] font-semibold text-[#555] mb-0.5">Account</label>
-              <SearchableSelect
-                options={accountOptions}
-                value={accountId}
-                onChange={setAccountId}
-                labelKey={accountLabelKey}
-                valueKey={accountValueKey}
-                placeholder="Select account"
-                searchKeys={accountLabelKey}
-                className="w-[240px]"
-              />
+            <div className="flex items-center gap-2">
+              <FilterLabel>Account</FilterLabel>
+              <div className="w-[240px]">
+                <SearchableSelect
+                  options={accountOptions}
+                  value={accountId}
+                  onChange={setAccountId}
+                  labelKey={accountLabelKey}
+                  labelSeparator=" : "
+                  valueKey={accountValueKey}
+                  placeholder="Select account…"
+                  searchKeys={accountLabelKey}
+                />
+              </div>
             </div>
 
-            <div>
-              <label className="block text-[11px] font-semibold text-[#555] mb-0.5">Dr / Cr</label>
+            <div className="flex items-center gap-2">
+              <FilterLabel>Dr / Cr</FilterLabel>
               <select
                 value={drCr}
                 onChange={(e) => setDrCr(e.target.value)}
-                className="h-8 w-[80px] border border-[#8f8f8f] px-2 text-sm rounded-sm bg-white"
+                className="h-[28px] w-[70px] border border-[#d1d5db] px-2 text-[12px] text-[#374151] bg-white focus:border-[#1b2f3a] focus:outline-none transition-colors"
               >
                 <option value="Dr">Dr</option>
                 <option value="Cr">Cr</option>
               </select>
             </div>
 
-            <div>
-              <label className="block text-[11px] font-semibold text-[#555] mb-0.5">Amount</label>
+            <div className="flex items-center gap-2">
+              <FilterLabel>Amount</FilterLabel>
               <input
                 type="number"
                 min="0"
@@ -250,98 +257,101 @@ export default function OpeningBalancePage() {
                 value={amount}
                 onChange={(e) => setAmount(e.target.value)}
                 placeholder="0.00"
-                className="h-8 w-[140px] border border-[#8f8f8f] px-2 text-sm rounded-sm text-right"
+                className="h-[28px] w-[130px] border border-[#d1d5db] px-2 text-[12px] text-[#374151] bg-white text-right tabular-nums focus:border-[#1b2f3a] focus:outline-none transition-colors"
               />
             </div>
 
-            <div>
-              <label className="block text-[11px] font-semibold text-[#555] mb-0.5">Narration</label>
+            <div className="flex items-center gap-2">
+              <FilterLabel>Narration</FilterLabel>
               <input
                 type="text"
                 value={narration}
                 onChange={(e) => setNarration(e.target.value)}
                 placeholder="Optional note"
-                className="h-8 w-[200px] border border-[#8f8f8f] px-2 text-sm rounded-sm"
+                className="h-[28px] w-[180px] border border-[#d1d5db] px-2 text-[12px] text-[#374151] bg-white placeholder:text-[#9ca3af] focus:border-[#1b2f3a] focus:outline-none transition-colors"
               />
             </div>
 
             <button
               onClick={handleSave}
               disabled={saving}
-              className="flex items-center gap-1.5 px-4 py-1.5 bg-[#5a5aaa] hover:bg-[#4a4a9a] text-white text-[13px] font-semibold rounded-sm disabled:opacity-60 transition-colors"
+              className="flex items-center gap-1 px-3 py-[5px] bg-[#1b2f3a] hover:bg-[#263f4d] text-white text-[12px] font-medium disabled:opacity-50 transition-colors"
             >
-              {saving ? <Loader2 size={14} className="animate-spin" /> : <Plus size={14} />}
+              {saving ? <Loader2 size={13} className="animate-spin" /> : <Plus size={13} />}
               Save
             </button>
           </div>
         </div>
 
-        {/* ─── Existing Entries Table ──────────────────────── */}
+        {/* Entries Table */}
         {loading ? (
           <div className="flex justify-center items-center h-[200px]">
             <Loader2 className="animate-spin w-6 h-6 text-[#144664]" />
           </div>
         ) : !entries.length ? (
-          <div className="text-center text-gray-400 text-[13px] py-10">
+          <div className="text-center text-[#9ca3af] text-[12px] py-10">
             No opening balances for the selected financial year
           </div>
         ) : (
-          <div className="overflow-x-auto border border-[#ccc] rounded-sm">
-            <table className="w-full text-[12.5px] border-collapse">
-              <thead>
-                <tr className="bg-[#e8e8f0]">
-                  <th className="px-3 py-2 text-left font-semibold border-b border-[#bbb]">#</th>
-                  <th className="px-3 py-2 text-left font-semibold border-b border-[#bbb]">Account Type</th>
-                  <th className="px-3 py-2 text-left font-semibold border-b border-[#bbb]">Account</th>
-                  <th className="px-3 py-2 text-left font-semibold border-b border-[#bbb]">Project</th>
-                  <th className="px-3 py-2 text-center font-semibold border-b border-[#bbb]">Dr/Cr</th>
-                  <th className="px-3 py-2 text-right font-semibold border-b border-[#bbb]">Amount</th>
-                  <th className="px-3 py-2 text-left font-semibold border-b border-[#bbb]">Narration</th>
-                  <th className="px-3 py-2 text-left font-semibold border-b border-[#bbb]">FY</th>
-                  <th className="px-3 py-2 text-center font-semibold border-b border-[#bbb]">Action</th>
-                </tr>
-              </thead>
-              <tbody>
-                {entries.map((e, i) => (
-                  <tr
-                    key={e.id}
-                    className={`border-b border-[#e0e0e0] ${i % 2 === 0 ? "bg-white" : "bg-[#fafafa]"} hover:bg-[#f0f0ff]`}
-                  >
-                    <td className="px-3 py-1.5">{i + 1}</td>
-                    <td className="px-3 py-1.5">{e.accountType}</td>
-                    <td className="px-3 py-1.5 font-medium">{e.accountName}</td>
-                    <td className="px-3 py-1.5">{e.projectCode || "—"}</td>
-                    <td className="px-3 py-1.5 text-center">
-                      <span className={`px-1.5 py-0.5 rounded text-[11px] font-semibold ${
-                        e.drCr === "Dr"
-                          ? "bg-[#fff3e0] text-[#e65100]"
-                          : "bg-[#e0f2f1] text-[#00695c]"
-                      }`}>
-                        {e.drCr}
-                      </span>
-                    </td>
-                    <td className="px-3 py-1.5 text-right font-mono">{formatAmount(e.amount)}</td>
-                    <td className="px-3 py-1.5 text-gray-600">{e.narration || "—"}</td>
-                    <td className="px-3 py-1.5">{e.fyCode || "—"}</td>
-                    <td className="px-3 py-1.5 text-center">
-                      <button
-                        onClick={() => handleDelete(e.id)}
-                        disabled={deleting === e.id}
-                        className="text-red-500 hover:text-red-700 disabled:opacity-40"
-                        title="Delete"
-                      >
-                        {deleting === e.id ? (
-                          <Loader2 size={14} className="animate-spin" />
-                        ) : (
-                          <Trash2 size={14} />
-                        )}
-                      </button>
-                    </td>
+          <>
+            <span className="text-[11.5px] text-[#6b7280]">{entries.length} entr{entries.length !== 1 ? "ies" : "y"}</span>
+            <div className="border border-[#d1d5db] overflow-x-auto">
+              <table className="w-full text-[12px] border-collapse">
+                <thead>
+                  <tr className="bg-[#1b2f3a]">
+                    <th className="px-2 py-[6px] text-left font-medium text-white text-[11px] border-r border-[#2a4a5a] w-[36px]">#</th>
+                    <th className="px-2 py-[6px] text-left font-medium text-white text-[11px] border-r border-[#2a4a5a]">Account Type</th>
+                    <th className="px-2 py-[6px] text-left font-medium text-white text-[11px] border-r border-[#2a4a5a]">Account</th>
+                    <th className="px-2 py-[6px] text-left font-medium text-white text-[11px] border-r border-[#2a4a5a] w-[80px]">Project</th>
+                    <th className="px-2 py-[6px] text-center font-medium text-white text-[11px] border-r border-[#2a4a5a] w-[55px]">Dr/Cr</th>
+                    <th className="px-2 py-[6px] text-right font-medium text-white text-[11px] border-r border-[#2a4a5a] w-[110px]">Amount</th>
+                    <th className="px-2 py-[6px] text-left font-medium text-white text-[11px] border-r border-[#2a4a5a]">Narration</th>
+                    <th className="px-2 py-[6px] text-left font-medium text-white text-[11px] border-r border-[#2a4a5a] w-[80px]">FY</th>
+                    <th className="px-2 py-[6px] text-center font-medium text-white text-[11px] w-[50px]"></th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                </thead>
+                <tbody>
+                  {entries.map((e, i) => (
+                    <tr
+                      key={e.id}
+                      className={`border-b border-[#e5e7eb] ${i % 2 === 0 ? "bg-white" : "bg-[#fafbfc]"} hover:bg-[#f0f4f8] transition-colors`}
+                    >
+                      <td className="px-2 py-[4px] text-[#6b7280] border-r border-[#f0f0f0]">{i + 1}</td>
+                      <td className="px-2 py-[4px] text-[#374151] border-r border-[#f0f0f0]">{e.accountType}</td>
+                      <td className="px-2 py-[4px] font-medium text-[#374151] border-r border-[#f0f0f0]">{e.accountName}</td>
+                      <td className="px-2 py-[4px] text-[#374151] border-r border-[#f0f0f0]">{e.projectCode || "—"}</td>
+                      <td className="px-2 py-[4px] text-center border-r border-[#f0f0f0]">
+                        <span className={`px-1.5 py-0.5 text-[10px] font-semibold ${
+                          e.drCr === "Dr"
+                            ? "bg-[#fef3c7] text-[#b45309]"
+                            : "bg-[#d1fae5] text-[#065f46]"
+                        }`}>
+                          {e.drCr}
+                        </span>
+                      </td>
+                      <td className="px-2 py-[4px] text-right tabular-nums text-[#374151] border-r border-[#f0f0f0]">{formatAmount(e.amount)}</td>
+                      <td className="px-2 py-[4px] text-[#6b7280] border-r border-[#f0f0f0]">{e.narration || "—"}</td>
+                      <td className="px-2 py-[4px] text-[#374151] border-r border-[#f0f0f0]">{e.fyCode || "—"}</td>
+                      <td className="px-2 py-[4px] text-center">
+                        <button
+                          onClick={() => handleDelete(e.id)}
+                          disabled={deleting === e.id}
+                          className="text-[#ef4444] hover:text-[#dc2626] disabled:opacity-40"
+                          title="Delete"
+                        >
+                          {deleting === e.id ? (
+                            <Loader2 size={13} className="animate-spin" />
+                          ) : (
+                            <Trash2 size={13} />
+                          )}
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </>
         )}
       </div>
       <ConfirmDialog state={confirm} onClose={() => setConfirm(null)} />

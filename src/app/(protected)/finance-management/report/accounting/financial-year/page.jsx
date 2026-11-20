@@ -12,6 +12,7 @@ import { getPageAccess } from "@/helper/getPageAccess";
 import { usePageActions } from "@/components/common/PageActionButtons";
 import { apiRequest } from "@/lib/apiClient";
 import { API_ENDPOINTS } from "@/config/api.config";
+import { fmtDate } from "@/components/finance/report/accounting/shared";
 
 export default function FinancialYearPage() {
   const access = getPageAccess({ pageCode: "accounting_financial_year", pageType: "LIST" });
@@ -62,27 +63,26 @@ export default function FinancialYearPage() {
 
   const actions = usePageActions({ router });
 
-
   if (!access.allowed) return <PageNotAvailable />;
   return (
     <HeaderWrapper header={<PageHeader actions={actions} />}>
-      <div className="p-4 space-y-4">
-        <h1 className="text-lg font-bold text-[#1a1a4e]">Financial Years</h1>
+      <div className="p-3 space-y-3">
+        <h2 className="text-[15px] font-bold text-[#144664]">Central Accounting — Financial Years</h2>
 
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-3 border-b pb-3">
           <input
             type="number"
             placeholder="Start Year (e.g. 2024)"
             value={newYear}
             onChange={(e) => setNewYear(e.target.value)}
-            className="h-8 w-[180px] border border-[#8f8f8f] px-3 text-sm rounded-sm"
+            className="h-[28px] w-[180px] border border-[#d1d5db] px-2 text-[12px] text-[#374151] bg-white focus:border-[#1b2f3a] focus:outline-none transition-colors"
           />
           <button
             onClick={handleCreate}
             disabled={creating}
-            className="flex items-center gap-1.5 px-4 py-1.5 bg-[#5a5aaa] hover:bg-[#4a4a9a] text-white text-[13px] font-semibold rounded-sm disabled:opacity-60 transition-colors"
+            className="flex items-center gap-1 px-3 py-[5px] bg-[#1b2f3a] hover:bg-[#263f4d] text-white text-[12px] font-medium disabled:opacity-50 transition-colors"
           >
-            {creating ? <Loader2 size={14} className="animate-spin" /> : <Plus size={14} />}
+            {creating ? <Loader2 size={13} className="animate-spin" /> : <Plus size={13} />}
             Create FY
           </button>
         </div>
@@ -92,29 +92,29 @@ export default function FinancialYearPage() {
             <Loader2 className="animate-spin w-6 h-6 text-[#144664]" />
           </div>
         ) : !years.length ? (
-          <div className="text-center text-gray-400 text-[13px] py-10">No financial years configured</div>
+          <div className="text-center text-[#9ca3af] text-[12px] py-10">No financial years configured</div>
         ) : (
-          <div className="overflow-x-auto border border-[#ccc] rounded-sm">
-            <table className="w-full text-[12.5px] border-collapse">
+          <div className="border border-[#d1d5db] overflow-x-auto">
+            <table className="w-full text-[12px] border-collapse">
               <thead>
-                <tr className="bg-[#e8e8f0]">
-                  <th className="px-3 py-2 text-left font-semibold border-b border-[#bbb]">Label</th>
-                  <th className="px-3 py-2 text-left font-semibold border-b border-[#bbb]">Start Date</th>
-                  <th className="px-3 py-2 text-left font-semibold border-b border-[#bbb]">End Date</th>
-                  <th className="px-3 py-2 text-center font-semibold border-b border-[#bbb]">Active</th>
+                <tr className="bg-[#1b2f3a]">
+                  <th className="px-2 py-[6px] text-left font-medium text-white text-[11px] border-r border-[#2a4a5a]">Label</th>
+                  <th className="px-2 py-[6px] text-left font-medium text-white text-[11px] border-r border-[#2a4a5a]">Start Date</th>
+                  <th className="px-2 py-[6px] text-left font-medium text-white text-[11px] border-r border-[#2a4a5a]">End Date</th>
+                  <th className="px-2 py-[6px] text-center font-medium text-white text-[11px]">Status</th>
                 </tr>
               </thead>
               <tbody>
                 {years.map((fy, i) => (
-                  <tr key={fy.id || i} className={`border-b border-[#e0e0e0] ${i % 2 === 0 ? "bg-white" : "bg-[#fafafa]"} hover:bg-[#f0f0ff]`}>
-                    <td className="px-3 py-1.5 font-medium">{fy.fyCode || `FY ${fy.startDate?.slice(0, 4)}`}</td>
-                    <td className="px-3 py-1.5">{fy.startDate}</td>
-                    <td className="px-3 py-1.5">{fy.endDate}</td>
-                    <td className="px-3 py-1.5 text-center">
+                  <tr key={fy.id || i} className={`border-b border-[#e5e7eb] ${i % 2 === 0 ? "bg-white" : "bg-[#fafbfc]"} hover:bg-[#f0f4f8] transition-colors`}>
+                    <td className="px-2 py-[4px] font-medium text-[#374151] border-r border-[#f0f0f0]">{fy.fyCode || `FY ${fy.startDate?.slice(0, 4)}`}</td>
+                    <td className="px-2 py-[4px] text-[#374151] border-r border-[#f0f0f0]">{fmtDate(fy.startDate)}</td>
+                    <td className="px-2 py-[4px] text-[#374151] border-r border-[#f0f0f0]">{fmtDate(fy.endDate)}</td>
+                    <td className="px-2 py-[4px] text-center border-r border-[#f0f0f0]">
                       {fy.isCurrent ? (
-                        <span className="px-2 py-0.5 bg-[#e8f4e8] text-[#2d7a2d] rounded text-[11px] font-semibold">Active</span>
+                        <span className="px-2 py-0.5 bg-[#e8f4e8] text-[#2d7a2d] text-[10px] font-semibold">Active</span>
                       ) : (
-                        <span className="text-gray-400">-</span>
+                        <span className="text-[#9ca3af]">—</span>
                       )}
                     </td>
                   </tr>

@@ -782,6 +782,7 @@ export const API_ENDPOINTS = {
       OUTSTANDING_PAYABLES:    "/finance/accounting/outstanding-payables",
       OUTSTANDING_RECEIVABLES: "/finance/accounting/outstanding-receivables",
       GST_SUMMARY:             "/finance/accounting/gst-summary",
+      GST_RECONCILIATION:      "/finance/accounting/gst-reconciliation",
       PROJECT_SUMMARY:         "/finance/accounting/project-summary",
       GROUP_LEDGER:            "/finance/accounting/group-ledger",
       FINANCIAL_YEAR:          "/finance/accounting/financial-year",

@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Loader2, Search } from "lucide-react";
 
@@ -10,10 +10,31 @@ import PageNotAvailable from "@/components/common/PageNotAvailable";
 import { getPageAccess } from "@/helper/getPageAccess";
 import { usePageActions } from "@/components/common/PageActionButtons";
 import { API_ENDPOINTS } from "@/config/api.config";
+import { getfmtDisplaydate } from "@/helper/getfmtDisplayDate";
 
 import AccountingFilterBar from "@/components/finance/report/accounting/AccountingFilterBar";
 import AccountingTable from "@/components/finance/report/accounting/AccountingTable";
 import useAccountingFetch from "@/components/finance/report/accounting/useAccountingFetch";
+import { SourceTypeBadge, getNarrationHint } from "@/components/finance/report/accounting/shared";
+
+const SOURCE_TYPE_OPTIONS = [
+  { value: "", label: "All Types" },
+  { value: "purchase_bill", label: "Purchase Bill" },
+  { value: "payment_voucher", label: "Payment Voucher" },
+  { value: "bill_payment", label: "Bill Payment" },
+  { value: "sale_bill", label: "Sale Bill" },
+  { value: "sale_receipt_billing", label: "Sale Receipt" },
+  { value: "journal_entry", label: "Journal Entry" },
+  { value: "contra_entry", label: "Contra Entry" },
+  { value: "debit_note", label: "Debit Note" },
+  { value: "credit_note", label: "Credit Note" },
+  { value: "petty_cash_docket", label: "Petty Cash Docket" },
+  { value: "grn", label: "GRN" },
+  { value: "gin", label: "GIN" },
+  { value: "sale_claim_bill", label: "Claim Bill" },
+  { value: "sale_certified_bill", label: "Certified Bill" },
+  { value: "uncertified_statement", label: "Uncertified Statement" },
+];
 
 const BASE_COLUMNS = [
   { key: "voucherNo", label: "Voucher No" },
@@ -32,8 +53,17 @@ export default function DayBookPage() {
   const router = useRouter();
   const {
     projectCode, setProjectCode, fromDate, setFromDate, toDate, setToDate,
-    data, loading, fetched, projectList, handleFetch, handleReset,
+    data, loading, fetched, projectList, extraParams, setExtraParams,
+    handleFetch, handleReset,
   } = useAccountingFetch(API_ENDPOINTS.FINANCE.ACCOUNTING.DAY_BOOK);
+
+  const [searchText, setSearchText] = useState("");
+  const [sortOrder, setSortOrder] = useState("desc");
+  const sourceType = extraParams.source_type || "";
+
+  const setSourceType = (val) => {
+    setExtraParams((prev) => ({ ...prev, source_type: val || "" }));
+  };
 
   const showProject = !projectCode;
   const columns = useMemo(
@@ -43,28 +73,38 @@ export default function DayBookPage() {
 
   const rows = useMemo(() => {
     if (!data?.entries) return [];
+    const q = searchText.trim().toLowerCase();
+    const entries = sortOrder === "asc" ? [...data.entries].reverse() : data.entries;
     const flat = [];
-    data.entries.forEach((e) => {
+    entries.forEach((e) => {
       (e.lines || []).forEach((line, li) => {
-        flat.push({
+        const narration = line.narration || (li === 0 ? e.remarks || "" : "");
+        const row = {
           _key: `${e.postingId}-${li}`,
           ...(showProject && { projectCode: li === 0 ? (e.projectCode || "") : "" }),
           voucherNo: li === 0 ? (e.voucherNo || "") : "",
           sourceType: li === 0 ? (e.sourceTypeLabel || e.sourceType || "").replace(/_/g, " ") : "",
-          date: li === 0 ? (e.date || "") : "",
+          date: li === 0 ? (e.date ? getfmtDisplaydate(e.date) : "") : "",
           accountCode: line.accountType || "",
           accountName: line.accountName || "",
-          narration: line.narration || (li === 0 ? e.remarks || "" : ""),
+          narration,
+          _narrationHint: getNarrationHint(narration),
           debit: line.drCr === "Dr" ? line.amount : null,
           credit: line.drCr === "Cr" ? line.amount : null,
-        });
+        };
+
+        if (q) {
+          const haystack = `${row.voucherNo} ${row.sourceType} ${row.date} ${row.accountCode} ${row.accountName} ${row.narration} ${row.projectCode || ""}`.toLowerCase();
+          if (!haystack.includes(q)) return;
+        }
+
+        flat.push(row);
       });
     });
     return flat;
-  }, [data, showProject]);
+  }, [data, showProject, searchText, sortOrder]);
 
   const actions = usePageActions({ router });
-
 
   if (!access.allowed) return <PageNotAvailable />;
   return (
@@ -81,8 +121,42 @@ export default function DayBookPage() {
           loading={loading}
           fetched={fetched}
           onFetch={handleFetch}
-          onReset={handleReset}
+          onReset={() => { handleReset(); setSearchText(""); setSortOrder("desc"); }}
+          sortOrder={sortOrder}
+          onSortToggle={() => setSortOrder((s) => (s === "desc" ? "asc" : "desc"))}
+          extraFilters={
+            <div className="flex items-center gap-1.5">
+              <label className="text-[11.5px] font-medium text-[#6b7280] whitespace-nowrap">Type</label>
+              <select
+                value={sourceType}
+                onChange={(e) => setSourceType(e.target.value)}
+                className="h-[28px] w-[160px] border border-[#d1d5db] px-2 text-[12px] text-[#374151] bg-white focus:border-[#1b2f3a] focus:outline-none transition-colors"
+              >
+                {SOURCE_TYPE_OPTIONS.map((o) => (
+                  <option key={o.value} value={o.value}>{o.label}</option>
+                ))}
+              </select>
+            </div>
+          }
         />
+
+        {fetched && !loading && (
+          <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1.5 flex-1 max-w-[300px]">
+              <Search size={13} className="text-[#9ca3af] shrink-0" />
+              <input
+                type="text"
+                value={searchText}
+                onChange={(e) => setSearchText(e.target.value)}
+                placeholder="Search voucher, account, narration..."
+                className="w-full h-[28px] px-2 text-[12px] border border-[#d1d5db] bg-white text-[#374151] placeholder:text-[#9ca3af] focus:border-[#1b2f3a] focus:outline-none transition-colors"
+              />
+            </div>
+            <span className="ml-auto text-[11.5px] text-[#6b7280]">
+              {rows.length} line{rows.length !== 1 ? "s" : ""}
+            </span>
+          </div>
+        )}
 
         {loading ? (
           <div className="flex justify-center items-center h-[300px]">
@@ -94,7 +168,12 @@ export default function DayBookPage() {
             Choose a date range and press Fetch to view the Day Book
           </div>
         ) : (
-          <AccountingTable columns={columns} rows={rows} emptyMessage="No entries for this date" />
+          <AccountingTable
+            columns={columns}
+            rows={rows}
+            emptyMessage="No entries for this date"
+            narrationTooltip
+          />
         )}
       </div>
     </HeaderWrapper>
