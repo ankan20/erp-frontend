@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Loader2, Search, RefreshCw, FileText, FileSpreadsheet } from "lucide-react";
+import { Loader2, Search, RefreshCw } from "lucide-react";
 import { EdoxMark } from "@/components/common/EdoxLoader";
 import { toast } from "sonner";
 
@@ -21,6 +21,7 @@ import AccountingTable from "@/components/finance/report/accounting/AccountingTa
 import {
   FilterLabel, SummaryBox, fmt, fmtDate, getNarrationHint,
 } from "@/components/finance/report/accounting/shared";
+import { exportPDF, exportExcel } from "@/components/finance/report/accounting/exportAccounting";
 
 function fmtBalDrCr(val) {
   if (val == null || val === 0) return "—";
@@ -117,33 +118,48 @@ export default function GeneralLedgerPage() {
     setData(null); setFetched(false);
   };
 
-  const handleExport = useCallback(async (format) => {
-    if (!accountId) return;
-    try {
-      const params = new URLSearchParams();
-      params.set("account_type", accountType);
-      params.set("account_id", accountId);
-      if (projectCode) params.set("project_code", projectCode);
-      if (fromDate) params.set("from_date", fromDate);
-      if (toDate) params.set("to_date", toDate);
-      params.set("format", format);
-      const res = await apiRequest({
-        url: `${API_ENDPOINTS.FINANCE.ACCOUNTING.EXPORT.LEDGER}?${params}`,
-        method: "GET",
-        responseType: "blob",
-      });
-      if (res instanceof Blob) {
-        const url = URL.createObjectURL(res);
-        const a = document.createElement("a");
-        a.href = url;
-        a.download = `general_ledger.${format === "pdf" ? "pdf" : "xlsx"}`;
-        a.click();
-        URL.revokeObjectURL(url);
-      }
-    } catch (err) {
-      toast.error(err?.message || `Export failed`);
+  const period = fromDate && toDate ? `${fromDate} to ${toDate}` : "";
+
+  const onPDF = useCallback(() => {
+    if (!data?.entries) return;
+    const bodyRows = data.entries.map((e) => [
+      fmtDate(e.date), (e.sourceType || "").replace(/_/g, " "),
+      e.narration || "", formatAmount(e.debit || 0), formatAmount(e.credit || 0),
+      fmtBalDrCr(e.closingBalance),
+    ]);
+    exportPDF({
+      title: `General Ledger — ${data.accountName || ""}`,
+      period, project: projectCode || "All",
+      filename: "general_ledger",
+      head: [["Date", "Source", "Narration", "Debit", "Credit", "Balance"]],
+      body: bodyRows,
+      foot: data.closingBalance != null
+        ? [["", "", "Closing Balance", formatAmount(data.totalDebit || 0), formatAmount(data.totalCredit || 0), fmtBalDrCr(data.closingBalance)]]
+        : [],
+      columnStyles: { 3: { halign: "right" }, 4: { halign: "right" }, 5: { halign: "right" } },
+      amountColumns: [3, 4, 5],
+    });
+  }, [data, period, projectCode]);
+
+  const onExcel = useCallback(() => {
+    if (!data?.entries) return;
+    const excelRows = data.entries.map((e) => [
+      fmtDate(e.date), (e.sourceType || "").replace(/_/g, " "),
+      e.narration || "", e.debit || 0, e.credit || 0, fmtBalDrCr(e.closingBalance),
+    ]);
+    if (data.closingBalance != null) {
+      excelRows.push(["", "", "Closing Balance", data.totalDebit || 0, data.totalCredit || 0, fmtBalDrCr(data.closingBalance)]);
     }
-  }, [accountType, accountId, projectCode, fromDate, toDate]);
+    exportExcel({
+      title: `General Ledger — ${data.accountName || ""}`,
+      period, project: projectCode || "All",
+      filename: "general_ledger",
+      sheetName: "Ledger",
+      headers: ["Date", "Source", "Narration", "Debit", "Credit", "Balance"],
+      rows: excelRows,
+      colWidths: [12, 15, 35, 15, 15, 18],
+    });
+  }, [data, period, projectCode]);
 
   const entries = data?.entries || [];
 
@@ -258,13 +274,13 @@ export default function GeneralLedgerPage() {
                   className="flex items-center gap-1 px-2.5 py-[5px] border border-[#d1d5db] text-[12px] text-[#4b5563] hover:bg-[#f3f4f6] transition-colors">
                   <RefreshCw size={12} /> Reset
                 </button>
-                <button onClick={() => handleExport("pdf")}
-                  className="flex items-center gap-1 px-2.5 py-[5px] border border-[#d1d5db] text-[12px] text-[#9b2c2c] hover:bg-[#fef2f2] transition-colors">
-                  <FileText size={12} /> PDF
+                <button onClick={onPDF}
+                  className="flex items-center gap-1 px-2.5 py-[5px] border border-[#d1d5db] text-[12px] text-[#4b5563] hover:bg-[#f3f4f6] transition-colors">
+                  PDF
                 </button>
-                <button onClick={() => handleExport("excel")}
-                  className="flex items-center gap-1 px-2.5 py-[5px] border border-[#d1d5db] text-[12px] text-[#166534] hover:bg-[#f0fdf4] transition-colors">
-                  <FileSpreadsheet size={12} /> Excel
+                <button onClick={onExcel}
+                  className="flex items-center gap-1 px-2.5 py-[5px] border border-[#d1d5db] text-[12px] text-[#4b5563] hover:bg-[#f3f4f6] transition-colors">
+                  Excel
                 </button>
               </>
             )}

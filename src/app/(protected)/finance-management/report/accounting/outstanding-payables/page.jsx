@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo } from "react";
+import { useCallback, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { Search } from "lucide-react";
 import { EdoxMark } from "@/components/common/EdoxLoader";
@@ -16,6 +16,7 @@ import { formatAmount } from "@/helper/numberFormatter";
 import AccountingFilterBar from "@/components/finance/report/accounting/AccountingFilterBar";
 import AccountingTable from "@/components/finance/report/accounting/AccountingTable";
 import useAccountingFetch from "@/components/finance/report/accounting/useAccountingFetch";
+import { exportPDF, exportExcel } from "@/components/finance/report/accounting/exportAccounting";
 
 const COLUMNS = [
   { key: "vendorCode", label: "Vendor Code" },
@@ -31,25 +32,54 @@ export default function OutstandingPayablesPage() {
     data, loading, fetched, projectList, handleFetch, handleReset,
   } = useAccountingFetch(API_ENDPOINTS.FINANCE.ACCOUNTING.OUTSTANDING_PAYABLES);
 
-  const rows = useMemo(() => {
-    if (!data?.rows) return [];
-    const result = data.rows.map((v, i) => ({
+  const period = fromDate && toDate ? `${fromDate} to ${toDate}` : "";
+
+  const onPDF = useCallback(() => {
+    if (!data?.rows) return;
+    const bodyRows = data.rows.map((v) => [
+      v.ledgerCode || "", v.ledgerName || "", formatAmount(v.outstanding || 0),
+    ]);
+    bodyRows.push(["", "GRAND TOTAL", formatAmount(data.total || 0)]);
+    exportPDF({
+      title: "Outstanding Payables",
+      period, project: projectCode || "All",
+      filename: "outstanding_payables",
+      head: [["Vendor Code", "Vendor Name", "Outstanding"]],
+      body: bodyRows,
+      columnStyles: { 2: { halign: "right" } },
+      amountColumns: [2],
+    });
+  }, [data, period, projectCode]);
+
+  const onExcel = useCallback(() => {
+    if (!data?.rows) return;
+    const excelRows = data.rows.map((v) => [
+      v.ledgerCode || "", v.ledgerName || "", v.outstanding || 0,
+    ]);
+    excelRows.push(["", "GRAND TOTAL", data.total || 0]);
+    exportExcel({
+      title: "Outstanding Payables",
+      period, project: projectCode || "All",
+      filename: "outstanding_payables",
+      sheetName: "Payables",
+      headers: ["Vendor Code", "Vendor Name", "Outstanding"],
+      rows: excelRows,
+      colWidths: [15, 35, 18],
+    });
+  }, [data, period, projectCode]);
+
+  const { rows, footerRow } = useMemo(() => {
+    if (!data?.rows) return { rows: [], footerRow: null };
+    const rows = data.rows.map((v, i) => ({
       _key: i,
       vendorCode: v.ledgerCode || "",
       vendorName: v.ledgerName || "",
-      totalDebit: null,
-      totalCredit: null,
       balance: v.outstanding,
     }));
-    if (data.total != null) {
-      result.push({
-        _key: "total", _highlight: true,
-        vendorCode: "", vendorName: "GRAND TOTAL",
-        totalDebit: null, totalCredit: null,
-        balance: data.total,
-      });
-    }
-    return result;
+    const footerRow = data.total != null ? {
+      vendorCode: "", vendorName: "GRAND TOTAL", balance: data.total,
+    } : null;
+    return { rows, footerRow };
   }, [data]);
 
   const actions = usePageActions({ router });
@@ -71,6 +101,8 @@ export default function OutstandingPayablesPage() {
           fetched={fetched}
           onFetch={handleFetch}
           onReset={handleReset}
+          onPDF={onPDF}
+          onExcel={onExcel}
         />
 
         {loading ? (
@@ -91,7 +123,7 @@ export default function OutstandingPayablesPage() {
                 </span>
               </div>
             )}
-            <AccountingTable columns={COLUMNS} rows={rows} emptyMessage="No outstanding payables" />
+            <AccountingTable columns={COLUMNS} rows={rows} footerRow={footerRow} emptyMessage="No outstanding payables" />
           </>
         )}
       </div>

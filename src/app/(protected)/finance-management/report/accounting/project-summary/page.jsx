@@ -1,5 +1,6 @@
 "use client";
 
+import { useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { Search } from "lucide-react";
 import { EdoxMark } from "@/components/common/EdoxLoader";
@@ -14,12 +15,30 @@ import { formatAmount } from "@/helper/numberFormatter";
 
 import AccountingFilterBar from "@/components/finance/report/accounting/AccountingFilterBar";
 import useAccountingFetch from "@/components/finance/report/accounting/useAccountingFetch";
+import { exportPDF, exportExcel } from "@/components/finance/report/accounting/exportAccounting";
 
 function fmtBalDrCr(val) {
   if (val == null || val === 0) return "—";
   const abs = Math.abs(val);
   const side = val > 0 ? "Dr" : "Cr";
   return `${formatAmount(abs)} ${side}`;
+}
+
+function buildSummaryRows(data) {
+  const hasSplit = data && ("creditorDebit" in data || "debtorDebit" in data);
+  if (hasSplit) {
+    return [
+      { label: "CC Codes (Expenses / Revenue)", dr: data.ccDebit || 0, cr: data.ccCredit || 0 },
+      { label: "Sundry Creditors (Vendors)", dr: data.creditorDebit || 0, cr: data.creditorCredit || 0 },
+      { label: "Sundry Debtors (Customers)", dr: data.debtorDebit || 0, cr: data.debtorCredit || 0 },
+      { label: "Bank / Cash", dr: data.bankDebit || 0, cr: data.bankCredit || 0 },
+    ];
+  }
+  return [
+    { label: "CC Codes (Expenses / Revenue)", dr: data.ccDebit || 0, cr: data.ccCredit || 0 },
+    { label: "Vendors / Customers", dr: data.vendorDebit || 0, cr: data.vendorCredit || 0 },
+    { label: "Bank / Cash", dr: data.bankDebit || 0, cr: data.bankCredit || 0 },
+  ];
 }
 
 function SummaryCard({ label, debit, credit }) {
@@ -52,32 +71,50 @@ export default function ProjectSummaryPage() {
     data, loading, fetched, projectList, handleFetch, handleReset,
   } = useAccountingFetch(API_ENDPOINTS.FINANCE.ACCOUNTING.PROJECT_SUMMARY);
 
+  const period = fromDate && toDate ? `${fromDate} to ${toDate}` : "";
+
+  const onPDF = useCallback(() => {
+    if (!data) return;
+    const summaryRows = buildSummaryRows(data);
+    const totalDr = summaryRows.reduce((s, r) => s + r.dr, 0);
+    const totalCr = summaryRows.reduce((s, r) => s + r.cr, 0);
+    const bodyRows = summaryRows.map((r) => [
+      r.label, formatAmount(r.dr), formatAmount(r.cr), fmtBalDrCr(r.dr - r.cr),
+    ]);
+    exportPDF({
+      title: "Project Financial Summary",
+      period, project: data.projectCode || projectCode || "All",
+      filename: "project_summary",
+      head: [["Account Type", "Total Debit", "Total Credit", "Net Balance"]],
+      body: bodyRows,
+      foot: [["Grand Total", formatAmount(totalDr), formatAmount(totalCr), fmtBalDrCr(totalDr - totalCr)]],
+      columnStyles: { 1: { halign: "right" }, 2: { halign: "right" }, 3: { halign: "right" } },
+      amountColumns: [1, 2, 3],
+    });
+  }, [data, period, projectCode]);
+
+  const onExcel = useCallback(() => {
+    if (!data) return;
+    const summaryRows = buildSummaryRows(data);
+    const totalDr = summaryRows.reduce((s, r) => s + r.dr, 0);
+    const totalCr = summaryRows.reduce((s, r) => s + r.cr, 0);
+    const excelRows = summaryRows.map((r) => [r.label, r.dr, r.cr, fmtBalDrCr(r.dr - r.cr)]);
+    excelRows.push(["Grand Total", totalDr, totalCr, fmtBalDrCr(totalDr - totalCr)]);
+    exportExcel({
+      title: "Project Financial Summary",
+      period, project: data.projectCode || projectCode || "All",
+      filename: "project_summary",
+      sheetName: "Summary",
+      headers: ["Account Type", "Total Debit", "Total Credit", "Net Balance"],
+      rows: excelRows,
+      colWidths: [30, 18, 18, 18],
+    });
+  }, [data, period, projectCode]);
+
   const actions = usePageActions({ router });
 
-  const ccDr = data?.ccDebit || 0;
-  const ccCr = data?.ccCredit || 0;
-  const credDr = data?.creditorDebit || 0;
-  const credCr = data?.creditorCredit || 0;
-  const debtDr = data?.debtorDebit || 0;
-  const debtCr = data?.debtorCredit || 0;
-  const bankDr = data?.bankDebit || 0;
-  const bankCr = data?.bankCredit || 0;
-
-  // fallback: if backend hasn't been updated yet, use vendorDebit/Credit for creditors
   const hasDebtorCreditorSplit = data && ("creditorDebit" in data || "debtorDebit" in data);
-
-  const rows = hasDebtorCreditorSplit
-    ? [
-        { label: "CC Codes (Expenses / Revenue)", dr: ccDr, cr: ccCr },
-        { label: "Sundry Creditors (Vendors)", dr: credDr, cr: credCr },
-        { label: "Sundry Debtors (Customers)", dr: debtDr, cr: debtCr },
-        { label: "Bank / Cash", dr: bankDr, cr: bankCr },
-      ]
-    : [
-        { label: "CC Codes (Expenses / Revenue)", dr: ccDr, cr: ccCr },
-        { label: "Vendors / Customers", dr: data?.vendorDebit || 0, cr: data?.vendorCredit || 0 },
-        { label: "Bank / Cash", dr: bankDr, cr: bankCr },
-      ];
+  const rows = data ? buildSummaryRows(data) : [];
 
   const totalDr = rows.reduce((s, r) => s + r.dr, 0);
   const totalCr = rows.reduce((s, r) => s + r.cr, 0);
@@ -100,6 +137,8 @@ export default function ProjectSummaryPage() {
           fetched={fetched}
           onFetch={handleFetch}
           onReset={handleReset}
+          onPDF={onPDF}
+          onExcel={onExcel}
         />
 
         {loading ? (
@@ -120,17 +159,10 @@ export default function ProjectSummaryPage() {
             )}
 
             {/* Summary Cards */}
-            <div className={`grid gap-3 ${hasDebtorCreditorSplit ? "grid-cols-2 sm:grid-cols-4" : "grid-cols-3"}`}>
-              <SummaryCard label="CC Codes" debit={ccDr} credit={ccCr} />
-              {hasDebtorCreditorSplit ? (
-                <>
-                  <SummaryCard label="Sundry Creditors" debit={credDr} credit={credCr} />
-                  <SummaryCard label="Sundry Debtors" debit={debtDr} credit={debtCr} />
-                </>
-              ) : (
-                <SummaryCard label="Vendors / Customers" debit={data?.vendorDebit} credit={data?.vendorCredit} />
-              )}
-              <SummaryCard label="Bank / Cash" debit={bankDr} credit={bankCr} />
+            <div className={`grid gap-3 ${rows.length >= 4 ? "grid-cols-2 sm:grid-cols-4" : "grid-cols-3"}`}>
+              {rows.map((r, i) => (
+                <SummaryCard key={i} label={r.label.replace(/ \(.*\)/, "")} debit={r.dr} credit={r.cr} />
+              ))}
             </div>
 
             {/* Detail Table */}

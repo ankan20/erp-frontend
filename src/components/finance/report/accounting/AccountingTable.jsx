@@ -81,7 +81,7 @@ export default function AccountingTable({
                   return (
                     <td
                       key={col.key}
-                      className={`px-2 py-[4px] border-r border-[#f0f0f0] text-[#374151] ${col.align === "right" || isAmount ? "text-right tabular-nums" : ""} ${col.className || ""}`}
+                      className={`px-2 py-[4px] border-r border-[#f0f0f0] text-[#374151] ${isNarration ? "max-w-[280px] truncate" : ""} ${col.align === "right" || isAmount ? "text-right tabular-nums" : ""} ${col.className || ""}`}
                       title={hint ? `${hint}\n\n${val}` : isNarration ? (val || "") : undefined}
                     >
                       {isNarration ? (

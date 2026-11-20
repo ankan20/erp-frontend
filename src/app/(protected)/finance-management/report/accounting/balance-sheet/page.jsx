@@ -16,6 +16,7 @@ import AccountingFilterBar from "@/components/finance/report/accounting/Accounti
 import useAccountingFetch from "@/components/finance/report/accounting/useAccountingFetch";
 import AccountingTreeTable from "@/components/finance/report/accounting/AccountingTreeTable";
 import ReconciliationModal from "@/components/finance/report/accounting/ReconciliationModal";
+import { exportPDF, exportExcel } from "@/components/finance/report/accounting/exportAccounting";
 
 function buildExtraRows(data, side, onReconcile) {
   if (!data) return [];
@@ -97,7 +98,7 @@ export default function AccountingBalanceSheetPage() {
   const router = useRouter();
   const {
     projectCode, setProjectCode, fromDate, setFromDate, toDate, setToDate,
-    data, loading, fetched, projectList, handleFetch, handleReset, handleExport,
+    data, loading, fetched, projectList, handleFetch, handleReset,
   } = useAccountingFetch(API_ENDPOINTS.FINANCE.ACCOUNTING.BALANCE_SHEET);
 
   const [reconcile, setReconcile] = useState(null);
@@ -106,14 +107,81 @@ export default function AccountingBalanceSheetPage() {
     setReconcile({ accountType, accountId, accountName });
   }, []);
 
-  const onPDF = useCallback(
-    () => handleExport(API_ENDPOINTS.FINANCE.ACCOUNTING.EXPORT.BALANCE_SHEET, "pdf"),
-    [handleExport],
-  );
-  const onExcel = useCallback(
-    () => handleExport(API_ENDPOINTS.FINANCE.ACCOUNTING.EXPORT.BALANCE_SHEET, "excel"),
-    [handleExport],
-  );
+  const period = fromDate && toDate ? `${fromDate} to ${toDate}` : "";
+
+  const flattenBSSection = (sectionLetter, label, groups, total, fmtFn) => {
+    const rows = [];
+    rows.push([`${sectionLetter}. ${label}`, "", "", ""]);
+    let grpIdx = 0;
+    (groups || []).forEach((grp) => {
+      grpIdx++;
+      const grpNum = `${sectionLetter}.${grpIdx}`;
+      rows.push([`  ${grpNum}  ${grp.groupName}`, "", "", fmtFn(grp.total || 0)]);
+      let accIdx = 0;
+      (grp.accounts || []).forEach((acc) => {
+        accIdx++;
+        rows.push([`      ${grpNum}.${accIdx}  ${acc.ccCode} - ${acc.ccName}`, fmtFn(acc.debit || 0), fmtFn(acc.credit || 0), fmtFn(acc.net || 0)]);
+      });
+      let sgIdx = 0;
+      (grp.subGroups || []).forEach((sg) => {
+        sgIdx++;
+        const sgNum = `${grpNum}.${accIdx + sgIdx}`;
+        rows.push([`    ${sgNum}  ${sg.subGroupName}`, "", "", fmtFn(sg.total || 0)]);
+        let sgAccIdx = 0;
+        (sg.accounts || []).forEach((acc) => {
+          sgAccIdx++;
+          rows.push([`        ${sgNum}.${sgAccIdx}  ${acc.ccCode} - ${acc.ccName}`, fmtFn(acc.debit || 0), fmtFn(acc.credit || 0), fmtFn(acc.net || 0)]);
+        });
+      });
+    });
+    rows.push([`  Total ${label}`, "", "", fmtFn(total || 0)]);
+    return rows;
+  };
+
+  const onPDF = useCallback(() => {
+    if (!data) return;
+    const bodyRows = [
+      ...flattenBSSection("A", "Assets", data.assetGroups, data.totalAssets, formatAmount),
+      ["", "", "", ""],
+      ...flattenBSSection("B", "Equity & Liabilities", data.liabilityGroups, data.totalLiabilities, formatAmount),
+    ];
+    if (data.difference != null && Math.abs(data.difference) > 0.01) {
+      bodyRows.push(["", "", "", ""]);
+      bodyRows.push(["Difference", "", "", formatAmount(data.difference)]);
+    }
+    exportPDF({
+      title: "Balance Sheet",
+      period, project: projectCode || "All",
+      filename: "balance_sheet",
+      head: [["Particulars", "Debit", "Credit", "Balance"]],
+      body: bodyRows,
+      columnStyles: { 1: { halign: "right" }, 2: { halign: "right" }, 3: { halign: "right" } },
+      amountColumns: [1, 2, 3],
+    });
+  }, [data, period, projectCode]);
+
+  const onExcel = useCallback(() => {
+    if (!data) return;
+    const raw = (v) => v || 0;
+    const excelRows = [
+      ...flattenBSSection("A", "Assets", data.assetGroups, data.totalAssets, raw),
+      ["", "", "", ""],
+      ...flattenBSSection("B", "Equity & Liabilities", data.liabilityGroups, data.totalLiabilities, raw),
+    ];
+    if (data.difference != null && Math.abs(data.difference) > 0.01) {
+      excelRows.push(["", "", "", ""]);
+      excelRows.push(["Difference", "", "", data.difference]);
+    }
+    exportExcel({
+      title: "Balance Sheet",
+      period, project: projectCode || "All",
+      filename: "balance_sheet",
+      sheetName: "Balance Sheet",
+      headers: ["Particulars", "Debit", "Credit", "Balance"],
+      rows: excelRows,
+      colWidths: [45, 18, 18, 18],
+    });
+  }, [data, period, projectCode]);
 
   const actions = usePageActions({ router });
 

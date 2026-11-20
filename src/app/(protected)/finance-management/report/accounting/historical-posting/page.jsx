@@ -42,11 +42,16 @@ function PostingResultBanner({ result, onDismiss }) {
 
   if (!result) return null;
 
-  const { summary, posted, errors } = result;
+  const { summary, posted, errors, warnings } = result;
   const hasErrors = summary.totalErrors > 0;
+  const hasWarnings = (summary.totalWarnings || 0) > 0;
   const isDryRun = summary.dryRun;
 
   const errorEntries = Object.entries(errors || {}).filter(
+    ([, v]) => Array.isArray(v) && v.length > 0,
+  );
+
+  const warningEntries = Object.entries(warnings || {}).filter(
     ([, v]) => Array.isArray(v) && v.length > 0,
   );
 
@@ -76,6 +81,7 @@ function PostingResultBanner({ result, onDismiss }) {
           </div>
           <div className="text-[11px] text-[#64748b] pl-4">
             Posted: {summary.totalPosted} &middot; Already posted: {summary.totalSkipped} &middot; Failed: {summary.totalErrors}
+            {hasWarnings && <> &middot; <span className="text-[#b45309]">Skipped: {summary.totalWarnings}</span></>}
             {summary.totalPosted > 0 && (
               <span className="ml-3 text-[#2d7a2d]">
                 ({Object.entries(posted || {}).filter(([, v]) => v > 0).map(([k, v]) => `${SOURCE_LABELS[k] || k}: ${v}`).join(", ")})
@@ -161,6 +167,56 @@ function PostingResultBanner({ result, onDismiss }) {
           </div>
         );
       })}
+
+      {/* Warnings — skipped documents with data issues */}
+      {warningEntries.map(([moduleKey, warns]) => {
+        const warnKey = `warn_${moduleKey}`;
+        const isOpen = openModules.has(warnKey);
+
+        return (
+          <div key={warnKey} className="border border-[#d1d5db] overflow-hidden">
+            <button
+              onClick={() => toggleModule(warnKey)}
+              className="w-full flex items-center gap-2 px-3 py-[6px] bg-[#78592a] text-white text-[11px] font-medium hover:bg-[#8b6930] transition-colors"
+            >
+              {isOpen ? <ChevronDown size={12} /> : <ChevronRight size={12} />}
+              <span>{SOURCE_LABELS[moduleKey] || moduleKey}</span>
+              <span className="ml-auto px-1.5 py-0.5 bg-[#b45309] text-white text-[10px] font-semibold rounded-sm">
+                {warns.length} skipped
+              </span>
+            </button>
+
+            {isOpen && (
+              <div className="overflow-x-auto">
+                <table className="w-full text-[11px] border-collapse">
+                  <thead>
+                    <tr className="bg-[#fffbeb]">
+                      <th className="px-2 py-[5px] text-left font-medium text-[#4b5563] border-b border-[#e5e7eb] w-[100px]">Doc No</th>
+                      <th className="px-2 py-[5px] text-left font-medium text-[#4b5563] border-b border-[#e5e7eb] w-[100px]">Project</th>
+                      <th className="px-2 py-[5px] text-left font-medium text-[#4b5563] border-b border-[#e5e7eb]">Reason</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {warns.map((w, i) => (
+                      <tr key={w.id} className={`${i % 2 === 0 ? "bg-white" : "bg-[#fafbfc]"} hover:bg-[#fffbeb] transition-colors`}>
+                        <td className="px-2 py-[3px] font-medium text-[#1e293b] border-b border-[#f0f0f0] whitespace-nowrap">
+                          {w.docNo || `#${w.id}`}
+                        </td>
+                        <td className="px-2 py-[3px] text-[#4b5563] border-b border-[#f0f0f0] whitespace-nowrap">
+                          {w.project || "—"}
+                        </td>
+                        <td className="px-2 py-[3px] text-[#92400e] border-b border-[#f0f0f0]">
+                          {w.reason}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        );
+      })}
     </div>
   );
 }
@@ -199,13 +255,17 @@ export default function PostingStatusPage() {
       const data = res?.data;
       if (data?.summary) {
         setPostingResult(data);
-        if (data.summary.totalErrors === 0) {
+        const warnCount = data.summary.totalWarnings || 0;
+        if (data.summary.totalErrors === 0 && warnCount === 0) {
           toast.success(
             `${dryRun ? "[Dry Run] " : ""}Posted ${data.summary.totalPosted} documents successfully`,
           );
         } else {
+          const parts = [];
+          if (data.summary.totalErrors > 0) parts.push(`${data.summary.totalErrors} failed`);
+          if (warnCount > 0) parts.push(`${warnCount} skipped`);
           toast.warning(
-            `${dryRun ? "[Dry Run] " : ""}${data.summary.totalErrors} document${data.summary.totalErrors > 1 ? "s" : ""} failed — see details below`,
+            `${dryRun ? "[Dry Run] " : ""}${parts.join(", ")} — see details below`,
           );
         }
       }

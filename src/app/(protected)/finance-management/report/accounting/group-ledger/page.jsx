@@ -18,6 +18,7 @@ import { formatAmount }   from "@/helper/numberFormatter";
 import { getLocalStorage } from "@/lib/localStorage";
 import AccountingTable    from "@/components/finance/report/accounting/AccountingTable";
 import { FilterLabel } from "@/components/finance/report/accounting/shared";
+import { exportPDF, exportExcel } from "@/components/finance/report/accounting/exportAccounting";
 
 function fmtBalDrCr(val) {
   if (val == null || val === 0) return "—";
@@ -79,6 +80,80 @@ export default function GroupLedgerPage() {
     setData(null); setFetched(false);
   };
 
+  const period = fromDate && toDate ? `${fromDate} to ${toDate}` : "";
+
+  const onPDF = useCallback(() => {
+    if (!data?.rows) return;
+    const allRows = data.rows;
+    const plRows = allRows.filter((r) => r.headUnder !== "Balance Sheet");
+    const bsRows = allRows.filter((r) => r.headUnder === "Balance Sheet");
+    const bodyRows = [];
+    if (plRows.length) {
+      bodyRows.push(["Profit & Loss", "", "", "", ""]);
+      plRows.forEach((r) => bodyRows.push([
+        r.groupName, r.headUnder || "", formatAmount(r.debit), formatAmount(r.credit), fmtBalDrCr(r.net),
+      ]));
+      const plDr = plRows.reduce((s, r) => s + (r.debit || 0), 0);
+      const plCr = plRows.reduce((s, r) => s + (r.credit || 0), 0);
+      bodyRows.push([`  Sub-total (${plRows.length} groups)`, "", formatAmount(plDr), formatAmount(plCr), fmtBalDrCr(plDr - plCr)]);
+    }
+    if (bsRows.length) {
+      bodyRows.push(["Balance Sheet", "", "", "", ""]);
+      bsRows.forEach((r) => bodyRows.push([
+        r.groupName, r.headUnder || "", formatAmount(r.debit), formatAmount(r.credit), fmtBalDrCr(r.net),
+      ]));
+      const bsDr = bsRows.reduce((s, r) => s + (r.debit || 0), 0);
+      const bsCr = bsRows.reduce((s, r) => s + (r.credit || 0), 0);
+      bodyRows.push([`  Sub-total (${bsRows.length} groups)`, "", formatAmount(bsDr), formatAmount(bsCr), fmtBalDrCr(bsDr - bsCr)]);
+    }
+    const grandDr = allRows.reduce((s, r) => s + (r.debit || 0), 0);
+    const grandCr = allRows.reduce((s, r) => s + (r.credit || 0), 0);
+    exportPDF({
+      title: "Group Summary",
+      period, project: projectCode || "All",
+      filename: "group_ledger",
+      head: [["Group Name", "Head Under", "Total Debit", "Total Credit", "Net Balance"]],
+      body: bodyRows,
+      foot: [["Grand Total", "", formatAmount(grandDr), formatAmount(grandCr), fmtBalDrCr(grandDr - grandCr)]],
+      columnStyles: { 2: { halign: "right" }, 3: { halign: "right" }, 4: { halign: "right" } },
+      amountColumns: [2, 3, 4],
+    });
+  }, [data, period, projectCode]);
+
+  const onExcel = useCallback(() => {
+    if (!data?.rows) return;
+    const allRows = data.rows;
+    const plRows = allRows.filter((r) => r.headUnder !== "Balance Sheet");
+    const bsRows = allRows.filter((r) => r.headUnder === "Balance Sheet");
+    const excelRows = [];
+    if (plRows.length) {
+      excelRows.push(["Profit & Loss", "", "", "", ""]);
+      plRows.forEach((r) => excelRows.push([r.groupName, r.headUnder || "", r.debit || 0, r.credit || 0, fmtBalDrCr(r.net)]));
+      const plDr = plRows.reduce((s, r) => s + (r.debit || 0), 0);
+      const plCr = plRows.reduce((s, r) => s + (r.credit || 0), 0);
+      excelRows.push([`  Sub-total (${plRows.length} groups)`, "", plDr, plCr, fmtBalDrCr(plDr - plCr)]);
+    }
+    if (bsRows.length) {
+      excelRows.push(["Balance Sheet", "", "", "", ""]);
+      bsRows.forEach((r) => excelRows.push([r.groupName, r.headUnder || "", r.debit || 0, r.credit || 0, fmtBalDrCr(r.net)]));
+      const bsDr = bsRows.reduce((s, r) => s + (r.debit || 0), 0);
+      const bsCr = bsRows.reduce((s, r) => s + (r.credit || 0), 0);
+      excelRows.push([`  Sub-total (${bsRows.length} groups)`, "", bsDr, bsCr, fmtBalDrCr(bsDr - bsCr)]);
+    }
+    const grandDr = allRows.reduce((s, r) => s + (r.debit || 0), 0);
+    const grandCr = allRows.reduce((s, r) => s + (r.credit || 0), 0);
+    excelRows.push(["Grand Total", "", grandDr, grandCr, fmtBalDrCr(grandDr - grandCr)]);
+    exportExcel({
+      title: "Group Summary",
+      period, project: projectCode || "All",
+      filename: "group_ledger",
+      sheetName: "Group Summary",
+      headers: ["Group Name", "Head Under", "Total Debit", "Total Credit", "Net Balance"],
+      rows: excelRows,
+      colWidths: [30, 15, 18, 18, 18],
+    });
+  }, [data, period, projectCode]);
+
   const groups = data?.rows || [];
 
   const { rows, footerRow, plTotal, bsTotal } = useMemo(() => {
@@ -96,7 +171,7 @@ export default function GroupLedgerPage() {
       }
       slCounter++;
       const row = {
-        _key: g.groupId || slCounter,
+        _key: `grp_${slCounter}`,
         sl: slCounter,
         groupName: name,
         headUnder: head,
@@ -202,10 +277,20 @@ export default function GroupLedgerPage() {
               Fetch
             </button>
             {fetched && (
-              <button onClick={handleReset}
-                className="flex items-center gap-1 px-2.5 py-[5px] border border-[#d1d5db] text-[12px] text-[#4b5563] hover:bg-[#f3f4f6] transition-colors">
-                <RefreshCw size={12} /> Reset
-              </button>
+              <>
+                <button onClick={handleReset}
+                  className="flex items-center gap-1 px-2.5 py-[5px] border border-[#d1d5db] text-[12px] text-[#4b5563] hover:bg-[#f3f4f6] transition-colors">
+                  <RefreshCw size={12} /> Reset
+                </button>
+                <button onClick={onPDF}
+                  className="flex items-center gap-1 px-2.5 py-[5px] border border-[#d1d5db] text-[12px] text-[#4b5563] hover:bg-[#f3f4f6] transition-colors">
+                  PDF
+                </button>
+                <button onClick={onExcel}
+                  className="flex items-center gap-1 px-2.5 py-[5px] border border-[#d1d5db] text-[12px] text-[#4b5563] hover:bg-[#f3f4f6] transition-colors">
+                  Excel
+                </button>
+              </>
             )}
           </div>
         </div>

@@ -793,12 +793,6 @@ export const API_ENDPOINTS = {
       CANCELLATION_STATUS:     "/finance/accounting/cancellation-status",
       STOCK_BALANCE:           "/finance/accounting/stock-balance",
       STOCK_SUMMARY:           "/finance/accounting/stock-summary",
-      EXPORT: {
-        LEDGER:         "/finance/accounting/export/ledger",
-        TRIAL_BALANCE:  "/finance/accounting/export/trial-balance",
-        PROFIT_LOSS:    "/finance/accounting/export/profit-loss",
-        BALANCE_SHEET:  "/finance/accounting/export/balance-sheet",
-      },
     },
     BANK_STATEMENT: {
       ACCOUNTS:      "/finance/bank-statement/accounts",             // GET — BANK accounts the user may use (+ linked sites)

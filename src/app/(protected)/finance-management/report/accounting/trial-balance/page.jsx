@@ -16,6 +16,7 @@ import AccountingFilterBar from "@/components/finance/report/accounting/Accounti
 import AccountingTable from "@/components/finance/report/accounting/AccountingTable";
 import useAccountingFetch from "@/components/finance/report/accounting/useAccountingFetch";
 import ReconciliationModal from "@/components/finance/report/accounting/ReconciliationModal";
+import { exportPDF, exportExcel } from "@/components/finance/report/accounting/exportAccounting";
 
 const COLUMNS = [
   { key: "accountCode", label: "Type" },
@@ -32,14 +33,14 @@ export default function TrialBalancePage() {
   const router = useRouter();
   const {
     projectCode, setProjectCode, fromDate, setFromDate, toDate, setToDate,
-    data, loading, fetched, projectList, handleFetch, handleReset, handleExport,
+    data, loading, fetched, projectList, handleFetch, handleReset,
   } = useAccountingFetch(API_ENDPOINTS.FINANCE.ACCOUNTING.TRIAL_BALANCE);
 
   const [reconcile, setReconcile] = useState(null);
 
-  const rows = useMemo(() => {
-    if (!data?.rows) return [];
-    const result = data.rows.map((a, i) => ({
+  const { rows, footerRow } = useMemo(() => {
+    if (!data?.rows) return { rows: [], footerRow: null };
+    const rows = data.rows.map((a, i) => ({
       _key: i,
       accountCode: a.accountType || "",
       accountName: a.accountName || "",
@@ -61,30 +62,54 @@ export default function TrialBalancePage() {
         </button>
       ),
     }));
-    if (data.grandTotalDebit != null) {
-      result.push({
-        _key: "total",
-        _highlight: true,
-        accountCode: "",
-        accountName: "Total",
-        groupName: "",
-        headUnder: "",
-        debit: data.grandTotalDebit,
-        credit: data.grandTotalCredit,
-        action: null,
-      });
-    }
-    return result;
+    const footerRow = data.grandTotalDebit != null ? {
+      accountCode: "", accountName: "Total", groupName: "", headUnder: "",
+      debit: data.grandTotalDebit, credit: data.grandTotalCredit, action: null,
+    } : null;
+    return { rows, footerRow };
   }, [data]);
 
-  const onPDF = useCallback(
-    () => handleExport(API_ENDPOINTS.FINANCE.ACCOUNTING.EXPORT.TRIAL_BALANCE, "pdf"),
-    [handleExport],
-  );
-  const onExcel = useCallback(
-    () => handleExport(API_ENDPOINTS.FINANCE.ACCOUNTING.EXPORT.TRIAL_BALANCE, "excel"),
-    [handleExport],
-  );
+  const period = fromDate && toDate ? `${fromDate} to ${toDate}` : "";
+
+  const onPDF = useCallback(() => {
+    if (!data?.rows) return;
+    const bodyRows = data.rows.map((a) => [
+      a.accountType || "", a.accountName || "", a.groupName || "", a.headUnder || "",
+      formatAmount(a.closingDebit || 0), formatAmount(a.closingCredit || 0),
+    ]);
+    exportPDF({
+      title: "Trial Balance",
+      period, project: projectCode || "All",
+      filename: "trial_balance",
+      head: [["Type", "Account Name", "Group", "Head Under", "Debit", "Credit"]],
+      body: bodyRows,
+      foot: data.grandTotalDebit != null
+        ? [["", "Total", "", "", formatAmount(data.grandTotalDebit), formatAmount(data.grandTotalCredit)]]
+        : [],
+      columnStyles: { 4: { halign: "right" }, 5: { halign: "right" } },
+      amountColumns: [4, 5],
+    });
+  }, [data, period, projectCode]);
+
+  const onExcel = useCallback(() => {
+    if (!data?.rows) return;
+    const excelRows = data.rows.map((a) => [
+      a.accountType || "", a.accountName || "", a.groupName || "", a.headUnder || "",
+      a.closingDebit || 0, a.closingCredit || 0,
+    ]);
+    if (data.grandTotalDebit != null) {
+      excelRows.push(["", "Total", "", "", data.grandTotalDebit, data.grandTotalCredit]);
+    }
+    exportExcel({
+      title: "Trial Balance",
+      period, project: projectCode || "All",
+      filename: "trial_balance",
+      sheetName: "Trial Balance",
+      headers: ["Type", "Account Name", "Group", "Head Under", "Debit", "Credit"],
+      rows: excelRows,
+      colWidths: [10, 30, 20, 15, 18, 18],
+    });
+  }, [data, period, projectCode]);
 
   const actions = usePageActions({ router });
 
@@ -135,7 +160,7 @@ export default function TrialBalancePage() {
                 )}
               </div>
             )}
-            <AccountingTable columns={COLUMNS} rows={rows} emptyMessage="No accounts found" />
+            <AccountingTable columns={COLUMNS} rows={rows} footerRow={footerRow} emptyMessage="No accounts found" />
           </>
         )}
       </div>
