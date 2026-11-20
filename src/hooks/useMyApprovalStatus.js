@@ -1,15 +1,26 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useSyncExternalStore } from "react";
 import { apiRequest } from "@/lib/apiClient";
 import { API_ENDPOINTS } from "@/config/api.config";
-import { setRebackRecord } from "@/lib/rebackRequest";
+import {
+  setRebackRecord,
+  subscribeRebackRequest,
+  getRebackRequestState,
+  getServerRebackRequestState,
+} from "@/lib/rebackRequest";
 
 export function useMyApprovalStatus(api, entityId, enabled = true) {
   const [isPendingForMe, setIsPendingForMe] = useState(false);
   const [myLevel, setMyLevel]               = useState(null);
   const [fetchKey, setFetchKey]             = useState(0);
   const [dismissed, setDismissed]           = useState(false);
+  // bumps after any reback request raise / accept / decline / cancel (here, navbar or list page)
+  const rebackChanges = useSyncExternalStore(
+    subscribeRebackRequest,
+    () => getRebackRequestState().changes,
+    () => getServerRebackRequestState().changes,
+  );
 
   useEffect(() => {
     if (!api || !entityId || !enabled) {
@@ -48,7 +59,7 @@ export function useMyApprovalStatus(api, entityId, enabled = true) {
       .then((res) => { if (!cancelled) setRebackRecord(res?.data?.approved ? { ...res.data, id: entityId } : null); })
       .catch(() => { if (!cancelled) setRebackRecord(null); });
     return () => { cancelled = true; setRebackRecord(null); };
-  }, [api, entityId, fetchKey]);
+  }, [api, entityId, fetchKey, rebackChanges]);
 
   // Call after approve/reback/reject to re-check status from server
   const refresh = useCallback(() => setFetchKey((k) => k + 1), []);
