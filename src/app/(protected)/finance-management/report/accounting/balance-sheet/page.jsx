@@ -158,6 +158,26 @@ export default function AccountingBalanceSheetPage() {
           </div>
         ) : (
           <>
+            {data?.difference != null && Math.abs(data.difference) > 0.01 && (
+              <div className="border border-[#e2e8f0] bg-[#f8fafc] px-4 py-3 flex items-start gap-3">
+                <div className="flex-1">
+                  <div className="flex items-center gap-2 mb-1">
+                    <span className="inline-block w-2 h-2 rounded-full bg-[#f59e0b]" />
+                    <span className="text-[12px] font-semibold text-[#1e293b]">
+                      Balance Sheet Difference: {formatAmount(data.difference)}
+                    </span>
+                  </div>
+                  <div className="text-[11px] text-[#64748b] leading-relaxed pl-4">
+                    Assets ({formatAmount(data.totalAssets)}) − Equity &amp; Liabilities ({formatAmount(data.totalLiabilities)}).
+                    This difference arises because the Net Profit / Loss is included under Equity
+                    while the same income &amp; expense accounts are already reflected in their
+                    respective Balance Sheet groups. Excluding the P&amp;L figure from Equity would
+                    bring the totals into balance.
+                  </div>
+                </div>
+              </div>
+            )}
+
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
               <AccountingTreeTable
                 title="Assets"
@@ -187,12 +207,6 @@ export default function AccountingBalanceSheetPage() {
                 side="liability"
               />
             </div>
-
-            {data?.difference != null && Math.abs(data.difference) > 0.01 && (
-              <div className="px-4 py-2 bg-[#fffbeb] border border-[#fde68a] text-[12px] text-[#92400e] font-medium">
-                Difference (Assets − Liabilities): {formatAmount(data.difference)}
-              </div>
-            )}
           </>
         )}
       </div>

@@ -42,9 +42,10 @@ function flattenTree(groups, onReconcile) {
           ccId: acc.ccId,
           debit: acc.debit,
           credit: acc.credit,
-          net: acc.net,
+          net: acc.displayBalance != null ? acc.displayBalance : acc.net,
           plLinked: acc.plLinked,
-          onReconcile: onReconcile ? () => onReconcile(reconType, reconId, `${acc.ccCode} - ${acc.ccName}`) : null,
+          _informational: acc._informational,
+          onReconcile: (onReconcile && !acc._informational) ? () => onReconcile(reconType, reconId, `${acc.ccCode} - ${acc.ccName}`) : null,
         });
       });
     }
@@ -84,9 +85,10 @@ function flattenTree(groups, onReconcile) {
           ccId: acc.ccId,
           debit: acc.debit,
           credit: acc.credit,
-          net: acc.net,
+          net: acc.displayBalance != null ? acc.displayBalance : acc.net,
           plLinked: acc.plLinked,
-          onReconcile: onReconcile ? () => onReconcile(reconType, reconId, `${acc.ccCode} - ${acc.ccName}`) : null,
+          _informational: acc._informational,
+          onReconcile: (onReconcile && !acc._informational) ? () => onReconcile(reconType, reconId, `${acc.ccCode} - ${acc.ccName}`) : null,
         });
       });
     }
