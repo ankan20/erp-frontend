@@ -586,8 +586,7 @@ export const API_ENDPOINTS = {
   },
   FINANCE: {
     SALE_BILL: {
-      CERTIFIED_BILLS:      "/finance/sale-bill/certified-bills",        // GET ?erpDocNumber&projectCode
-      CERTIFIED_BILL_ITEMS: "/finance/sale-bill/certified-bill-items",   // GET ?certifiedBillId&projectCode
+      ORDERS_WITH_PENDING_BILLS: "/finance/sale-bill/orders-with-pending-bills", // GET ?projectCode&excludeSaleBillId
       CREATE:               "/finance/sale-bill/create",                  // POST JSON
       LIST:                 "/finance/sale-bill/list",                    // GET ?projectCode&mode&workflowStatus&search
       GET_BY_ID:            "/finance/sale-bill/",                        // /:id GET

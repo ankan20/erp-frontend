@@ -35,20 +35,18 @@ export default function CertifiedBillPickerModal({
   onConfirm,
   saleBillId = null,
 }) {
-  const [orders,       setOrders]       = useState([]);
+  const [orders,       setOrders]       = useState([]);  // each order has .certifiedBills[]
   const [ordersLoading, setOrdersLoading] = useState(false);
   const [ordersError,  setOrdersError]  = useState(null);
 
-  // expandedOrderId → certified bills array (fetched lazily)
   const [expandedId,   setExpandedId]   = useState(null);
-  const [billsMap,     setBillsMap]      = useState({}); // { [orderId]: { loading, error, data[] } }
 
-  // Controlled selection: { saleOrderId, saleOrderNo, saleOrderErpNo, debtorName } + Set of certifiedBillIds
-  const [selectedOrderMeta, setSelectedOrderMeta] = useState(null); // { id, orderNo, erpNo, debtorName }
+  // Controlled selection
+  const [selectedOrderMeta, setSelectedOrderMeta] = useState(null);
   const [selectedBillIds,   setSelectedBillIds]   = useState(new Set());
 
   // Confirm dialog when user tries to switch sale orders
-  const [pendingSwitch, setPendingSwitch] = useState(null); // { order, bill } — the click that triggered it
+  const [pendingSwitch, setPendingSwitch] = useState(null);
 
   const [search, setSearch] = useState("");
 
@@ -66,19 +64,18 @@ export default function CertifiedBillPickerModal({
     setSelectedBillIds(new Set(currentSources.map((s) => s.certifiedBillId)));
   }, [isOpen]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // ── Fetch orders on open ──────────────────────────────────────────────────────
+  // ── Single API: fetch orders + their pending bills ────────────────────────────
   useEffect(() => {
     if (!isOpen || !projectCode) return;
     setOrdersLoading(true);
     setOrdersError(null);
-    apiRequest({
-      url: `${API_ENDPOINTS.PROJECT.OG_SALE_ORDER.LIST}?projectCode=${projectCode}&workflowStatus=Approved`,
-      method: "GET",
-    })
+    let url = `${API_ENDPOINTS.FINANCE.SALE_BILL.ORDERS_WITH_PENDING_BILLS}?projectCode=${projectCode}`;
+    if (saleBillId) url += `&excludeSaleBillId=${saleBillId}`;
+    apiRequest({ url, method: "GET" })
       .then((res) => setOrders(Array.isArray(res.data) ? res.data : []))
       .catch((err) => setOrdersError(err.message || "Failed to load Sale Orders"))
       .finally(() => setOrdersLoading(false));
-  }, [isOpen, projectCode]);
+  }, [isOpen, projectCode, saleBillId]);
 
   // ── Reset local state when closed ────────────────────────────────────────────
   const handleClose = useCallback(() => {
@@ -87,42 +84,18 @@ export default function CertifiedBillPickerModal({
     onClose();
   }, [onClose]);
 
-  // ── Expand order and fetch its certified bills ────────────────────────────────
+  // ── Expand / collapse order ──────────────────────────────────────────────────
   const handleExpandOrder = useCallback((order) => {
-    const id = order.id;
-    if (expandedId === id) {
-      setExpandedId(null);
-      return;
-    }
-    setExpandedId(id);
-    if (billsMap[id]) return; // already fetched
-
-    setBillsMap((prev) => ({ ...prev, [id]: { loading: true, error: null, data: [] } }));
-    apiRequest({
-      url: `${API_ENDPOINTS.FINANCE.SALE_BILL.CERTIFIED_BILLS}?erpDocNumber=${order.erpDocNumber}&projectCode=${projectCode}`,
-      method: "GET",
-    })
-      .then((res) => {
-        const bills = Array.isArray(res.data) ? res.data : [];
-        setBillsMap((prev) => ({ ...prev, [id]: { loading: false, error: null, data: bills } }));
-      })
-      .catch((err) => {
-        setBillsMap((prev) => ({
-          ...prev,
-          [id]: { loading: false, error: err.message || "Failed to load bills", data: [] },
-        }));
-      });
-  }, [expandedId, billsMap, projectCode]);
+    setExpandedId((prev) => (prev === order.id ? null : order.id));
+  }, []);
 
   // ── Select all bills for an order ────────────────────────────────────────────
   const handleSelectAllBills = useCallback((order, e) => {
-    e.stopPropagation(); // don't trigger expand/collapse
-    const bills = billsMap[order.id]?.data || [];
+    e.stopPropagation();
+    const bills = order.certifiedBills || [];
     if (bills.length === 0) return;
 
-    // If a different order has bills selected, trigger the switch dialog first
     if (selectedOrderMeta && selectedOrderMeta.id !== order.id && selectedBillIds.size > 0) {
-      // Reuse pendingSwitch but with a "select all" flag
       setPendingSwitch({ order, bill: null, selectAll: true, bills });
       return;
     }
@@ -135,25 +108,21 @@ export default function CertifiedBillPickerModal({
       debtorCorporateAddress: order.debtorCorporateAddress || "",
     });
 
-    // Only consider bills that still have remaining amount
-    const availableBills = bills.filter((b) => Number(b.remaining) > 0);
-
     setSelectedBillIds((prev) => {
-      const availableIds = new Set(availableBills.map((b) => b.id));
-      // If every available bill is already selected → deselect all; otherwise select all available
-      const allSelected = availableBills.length > 0 && availableBills.every((b) => prev.has(b.id));
+      const allIds = new Set(bills.map((b) => b.id));
+      const allSelected = bills.length > 0 && bills.every((b) => prev.has(b.id));
       if (allSelected) {
         setSelectedOrderMeta(null);
         return new Set();
       }
-      return availableIds;
+      return allIds;
     });
-  }, [billsMap, selectedOrderMeta, selectedBillIds]);
+  }, [selectedOrderMeta, selectedBillIds]);
 
   // ── Toggle a certified bill checkbox ──────────────────────────────────────────
   const handleToggleBill = useCallback((order, bill) => {
-    // Block selection of fully-billed bills
-    if (Number(bill.remaining) <= 0) return;
+    // Block selecting fully-billed bills, but allow deselecting them
+    if (Number(bill.remaining) <= 0 && !selectedBillIds.has(bill.id)) return;
 
     // If selecting from a different sale order than currently selected
     if (selectedOrderMeta && selectedOrderMeta.id !== order.id && selectedBillIds.size > 0) {
@@ -204,13 +173,12 @@ export default function CertifiedBillPickerModal({
   // ── Confirm selection ──────────────────────────────────────────────────────────
   const handleConfirm = useCallback(() => {
     if (!selectedOrderMeta || selectedBillIds.size === 0) return;
-    // Build sources from selected bills
-    const orderBills = billsMap[selectedOrderMeta.id]?.data || [];
+    const order = orders.find((o) => o.id === selectedOrderMeta.id);
+    const orderBills = order?.certifiedBills || [];
     const sources = [...selectedBillIds]
       .map((billId) => {
         const b = orderBills.find((x) => x.id === billId);
         if (!b) {
-          // Try to reconstruct from currentSources (edit mode — bill may not be in fetched list)
           const existing = currentSources.find((s) => s.certifiedBillId === billId);
           if (existing) return existing;
           return null;
@@ -231,7 +199,7 @@ export default function CertifiedBillPickerModal({
 
     onConfirm(sources);
     handleClose();
-  }, [selectedOrderMeta, selectedBillIds, billsMap, currentSources, onConfirm, handleClose]);
+  }, [selectedOrderMeta, selectedBillIds, orders, currentSources, onConfirm, handleClose]);
 
   // ── Filtered orders ────────────────────────────────────────────────────────────
   const filteredOrders = orders.filter((o) => {
@@ -311,10 +279,11 @@ export default function CertifiedBillPickerModal({
           ) : (
             <div className="space-y-1">
               {filteredOrders.map((order) => {
-                const isExpanded   = expandedId === order.id;
-                const billState    = billsMap[order.id];
-                const isActiveSO   = selectedOrderMeta?.id === order.id;
+                const isExpanded    = expandedId === order.id;
+                const bills         = order.certifiedBills || [];
+                const isActiveSO    = selectedOrderMeta?.id === order.id;
                 const isDifferentSO = selectedOrderMeta && selectedOrderMeta.id !== order.id && selectedBillIds.size > 0;
+                const allSelected   = isActiveSO && bills.length > 0 && bills.every((b) => selectedBillIds.has(b.id));
 
                 return (
                   <div
@@ -353,21 +322,18 @@ export default function CertifiedBillPickerModal({
                           </span>
                         )}
                       </button>
-                      {/* Order-level select all — only when bills are loaded */}
-                      {billsMap[order.id]?.data?.length > 0 && (
+                      {bills.length > 0 && (
                         <button
                           type="button"
                           onClick={(e) => handleSelectAllBills(order, e)}
                           title="Select / deselect all bills in this order"
                           className={`mx-2 px-2 py-1 text-[10px] font-medium rounded border transition shrink-0 ${
-                            isActiveSO && billsMap[order.id].data.filter((b) => Number(b.remaining) > 0).every((b) => selectedBillIds.has(b.id))
+                            allSelected
                               ? "bg-blue-100 border-blue-300 text-blue-700 hover:bg-blue-200"
                               : "bg-gray-100 border-gray-300 text-gray-600 hover:bg-gray-200"
                           }`}
                         >
-                          {isActiveSO && billsMap[order.id].data.filter((b) => Number(b.remaining) > 0).every((b) => selectedBillIds.has(b.id))
-                            ? "Deselect All"
-                            : "Select All"}
+                          {allSelected ? "Deselect All" : "Select All"}
                         </button>
                       )}
                     </div>
@@ -375,88 +341,55 @@ export default function CertifiedBillPickerModal({
                     {/* Certified Bills */}
                     {isExpanded && (
                       <div className="border-t border-gray-100 bg-white">
-                        {billState?.loading ? (
-                          <div className="flex items-center gap-2 px-6 py-3 text-gray-400 text-[12px]">
-                            <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                            Loading certified bills...
-                          </div>
-                        ) : billState?.error ? (
-                          <div className="px-6 py-3 text-red-500 text-[12px] flex items-center gap-1">
-                            <AlertCircle className="h-3.5 w-3.5" />
-                            {billState.error}
-                          </div>
-                        ) : !billState || billState.data.length === 0 ? (
-                          <div className="px-6 py-3 text-gray-400 text-[12px] italic">
-                            No certified bills found for this order.
-                          </div>
-                        ) : (
-                          <table className="w-full text-[11px]">
-                            <thead>
-                              <tr className="bg-gray-50 border-b border-gray-100">
-                                <th className="pl-6 pr-2 py-1.5 text-left font-semibold text-gray-600 w-8"></th>
-                                <th className="px-2 py-1.5 text-left font-semibold text-gray-600">Bill No</th>
-                                <th className="px-2 py-1.5 text-left font-semibold text-gray-600">Date</th>
-                                <th className="px-2 py-1.5 text-right font-semibold text-gray-600">Bill Amount</th>
-                                <th className="px-2 py-1.5 text-right font-semibold text-gray-600">Already Billed</th>
-                                <th className="px-2 py-1.5 text-right font-semibold text-gray-600">Remaining</th>
-                              </tr>
-                            </thead>
-                            <tbody>
-                              {[...billState.data]
-                                .sort((a, b) => {
-                                  const aFull = Number(a.remaining) <= 0;
-                                  const bFull = Number(b.remaining) <= 0;
-                                  if (aFull !== bFull) return aFull ? 1 : -1;
-                                  return (b.billingDate || "").localeCompare(a.billingDate || "");
-                                })
-                                .map((bill) => {
-                                const isChecked    = selectedBillIds.has(bill.id);
-                                const isFullyBilled = Number(bill.remaining) <= 0;
-                                return (
-                                  <tr
-                                    key={bill.id}
-                                    className={`border-b border-gray-100 transition ${
-                                      isFullyBilled
-                                        ? "opacity-50 cursor-not-allowed bg-gray-50"
-                                        : `cursor-pointer hover:bg-blue-50 ${isChecked ? "bg-blue-50" : ""}`
-                                    }`}
-                                    onClick={() => handleToggleBill(order, bill)}
-                                  >
-                                    <td className="pl-6 pr-2 py-1.5 w-8">
-                                      {isFullyBilled ? (
-                                        <Square className="h-3.5 w-3.5 text-gray-300" />
-                                      ) : isChecked ? (
-                                        <CheckSquare className="h-3.5 w-3.5 text-blue-500" />
-                                      ) : (
-                                        <Square className="h-3.5 w-3.5 text-gray-400" />
-                                      )}
-                                    </td>
-                                    <td className="px-2 py-1.5 font-medium text-[#1c3a5e]">
-                                      <span>{bill.billingNo}</span>
-                                      {isFullyBilled && (
-                                        <span className="ml-1.5 text-[9px] font-semibold bg-orange-100 text-orange-600 px-1.5 py-0.5 rounded">
-                                          Fully Billed
-                                        </span>
-                                      )}
-                                    </td>
-                                    <td className="px-2 py-1.5 text-gray-500">
-                                      {getfmtDisplaydate(bill.billingDate) || "—"}
-                                    </td>
-                                    <td className="px-2 py-1.5 text-right font-semibold text-gray-700">
-                                      {formatAmount(bill.thisBillClaim)}
-                                    </td>
-                                    <td className="px-2 py-1.5 text-right text-orange-600 font-semibold">
-                                      {formatAmount(bill.alreadyBilled)}
-                                    </td>
-                                    <td className={`px-2 py-1.5 text-right font-semibold ${isFullyBilled ? "text-gray-400" : "text-green-700"}`}>
-                                      {formatAmount(bill.remaining)}
-                                    </td>
-                                  </tr>
-                                );
-                              })}
-                            </tbody>
-                          </table>
-                        )}
+                        <table className="w-full text-[11px]">
+                          <thead>
+                            <tr className="bg-gray-50 border-b border-gray-100">
+                              <th className="pl-6 pr-2 py-1.5 text-left font-semibold text-gray-600 w-8"></th>
+                              <th className="px-2 py-1.5 text-left font-semibold text-gray-600">Bill No</th>
+                              <th className="px-2 py-1.5 text-left font-semibold text-gray-600">Date</th>
+                              <th className="px-2 py-1.5 text-right font-semibold text-gray-600">Bill Amount</th>
+                              <th className="px-2 py-1.5 text-right font-semibold text-gray-600">Already Billed</th>
+                              <th className="px-2 py-1.5 text-right font-semibold text-gray-600">Remaining</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {bills
+                              .sort((a, b) => (b.billingDate || "").localeCompare(a.billingDate || ""))
+                              .map((bill) => {
+                              const isChecked = selectedBillIds.has(bill.id);
+                              return (
+                                <tr
+                                  key={bill.id}
+                                  className={`border-b border-gray-100 transition cursor-pointer hover:bg-blue-50 ${isChecked ? "bg-blue-50" : ""}`}
+                                  onClick={() => handleToggleBill(order, bill)}
+                                >
+                                  <td className="pl-6 pr-2 py-1.5 w-8">
+                                    {isChecked ? (
+                                      <CheckSquare className="h-3.5 w-3.5 text-blue-500" />
+                                    ) : (
+                                      <Square className="h-3.5 w-3.5 text-gray-400" />
+                                    )}
+                                  </td>
+                                  <td className="px-2 py-1.5 font-medium text-[#1c3a5e]">
+                                    {bill.billingNo}
+                                  </td>
+                                  <td className="px-2 py-1.5 text-gray-500">
+                                    {getfmtDisplaydate(bill.billingDate) || "—"}
+                                  </td>
+                                  <td className="px-2 py-1.5 text-right font-semibold text-gray-700">
+                                    {formatAmount(bill.thisBillClaim)}
+                                  </td>
+                                  <td className="px-2 py-1.5 text-right text-orange-600 font-semibold">
+                                    {formatAmount(bill.alreadyBilled)}
+                                  </td>
+                                  <td className="px-2 py-1.5 text-right font-semibold text-green-700">
+                                    {formatAmount(bill.remaining)}
+                                  </td>
+                                </tr>
+                              );
+                            })}
+                          </tbody>
+                        </table>
                       </div>
                     )}
                   </div>

@@ -302,6 +302,7 @@ export default function OGSaleOrderForm({ mode = "create", saleOrderId, onAfterS
   // ── SAVE DRAFT / UPDATE ───────────────────────────────────────────────────────
   const onSave = async () => {
     if (!projectCode) { toast.error("Please select a project first"); return; }
+    if (!debtorId) { toast.error("Sundry Debtor is required"); return; }
     let tid;
     try {
       tid = toast.loading(mode === "create" ? "Creating…" : "Saving…");
@@ -435,7 +436,7 @@ export default function OGSaleOrderForm({ mode = "create", saleOrderId, onAfterS
               />
             </PMFormRow>
 
-            <PMFormRow label="Sundry Debtor" labelWidth="sm:w-[130px] sm:min-w-[130px]">
+            <PMFormRow label="Sundry Debtor" required={!disabled} labelWidth="sm:w-[130px] sm:min-w-[130px]">
               <div className="max-w-[300px] w-full">
                 <SearchableSelect
                   options={debtorOptions}

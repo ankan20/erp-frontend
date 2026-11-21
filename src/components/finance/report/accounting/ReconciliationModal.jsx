@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { X, Loader2, ExternalLink, ChevronDown, ChevronRight, Search } from "lucide-react";
+import { X, Loader2, ExternalLink, ChevronDown, ChevronRight, Search, Download } from "lucide-react";
 import { toast } from "sonner";
 import Link from "next/link";
 
@@ -10,6 +10,7 @@ import { API_ENDPOINTS } from "@/config/api.config";
 import { formatAmount } from "@/helper/numberFormatter";
 import { getfmtDisplaydate } from "@/helper/getfmtDisplayDate";
 import { getNarrationHint } from "@/components/finance/report/accounting/shared";
+import { getLocalStorage } from "@/lib/localStorage";
 
 function NarrationCell({ narration }) {
   const hint = getNarrationHint(narration);
@@ -121,6 +122,236 @@ function SourceGroup({ group, showProject, searchTerm }) {
   );
 }
 
+const fmtINR = (v) =>
+  Number(v || 0).toLocaleString("en-IN", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  });
+
+function splitAmount(text) {
+  if (typeof text !== "string") return null;
+  const dot = text.lastIndexOf(".");
+  if (dot === -1) return null;
+  const intPart = text.slice(0, dot);
+  const decPart = text.slice(dot);
+  if (!/^\.\d+$/.test(decPart)) return null;
+  return { intPart, decPart };
+}
+
+async function exportReconciliationPDF({ data, accountName, fromDate, toDate, projectCode, showProject }) {
+  const { default: jsPDF } = await import("jspdf");
+  const { default: autoTable } = await import("jspdf-autotable");
+
+  const doc = new jsPDF({ orientation: "landscape", unit: "mm", format: "a4" });
+  const pageW = doc.internal.pageSize.getWidth();
+  const co = (() => {
+    const c = getLocalStorage("companyInfo") || {};
+    return {
+      name: c.companyName || c.company_name || "",
+      address: c.address || "",
+      contact: c.contact || c.phone || "",
+      email: c.email || "",
+    };
+  })();
+  let y = 12;
+
+  if (co.name) {
+    doc.setFontSize(13);
+    doc.setFont("helvetica", "bold");
+    doc.text(co.name.toUpperCase(), pageW / 2, y, { align: "center" });
+    y += 4.5;
+  }
+  if (co.address) {
+    doc.setFontSize(7);
+    doc.setFont("helvetica", "normal");
+    doc.setTextColor(80, 80, 80);
+    doc.text(co.address, pageW / 2, y, { align: "center" });
+    y += 3;
+  }
+  const contactParts = [];
+  if (co.contact) contactParts.push(`Ph: ${co.contact}`);
+  if (co.email) contactParts.push(co.email);
+  if (contactParts.length) {
+    doc.setFontSize(6.5);
+    doc.text(contactParts.join("   |   "), pageW / 2, y, { align: "center" });
+    y += 3.5;
+  }
+  doc.setTextColor(0, 0, 0);
+
+  doc.setDrawColor(180, 180, 180);
+  doc.setLineWidth(0.2);
+  doc.line(10, y, pageW - 10, y);
+  y += 4;
+
+  doc.setFontSize(11);
+  doc.setFont("helvetica", "bold");
+  doc.text("Reconciliation Statement", pageW / 2, y, { align: "center" });
+  y += 4.5;
+
+  doc.setFontSize(9);
+  doc.text(accountName || "", pageW / 2, y, { align: "center" });
+  y += 4;
+
+  const meta = [];
+  if (fromDate || toDate) meta.push(`${fromDate || "…"} to ${toDate || "…"}`);
+  if (projectCode) meta.push(`Project: ${projectCode}`);
+  else meta.push("All Projects");
+  doc.setFontSize(7.5);
+  doc.setFont("helvetica", "normal");
+  doc.setTextColor(80, 80, 80);
+  doc.text(meta.join("     |     "), pageW / 2, y, { align: "center" });
+  doc.setTextColor(0, 0, 0);
+  y += 5;
+
+  const amountCols = showProject ? [4, 5] : [3, 4];
+  const head = showProject
+    ? [["Date", "Voucher", "Project", "Narration", "Debit", "Credit"]]
+    : [["Date", "Voucher", "Narration", "Debit", "Credit"]];
+
+  const body = [];
+  for (const group of (data.groups || [])) {
+    const srcLabel = group.sourceType.replace(/_/g, " ");
+    if (showProject) {
+      body.push([
+        { content: srcLabel, colSpan: 4, styles: { fontStyle: "bold", fillColor: [240, 240, 240] } },
+        { content: fmtINR(group.totalDebit), styles: { fontStyle: "bold", fillColor: [240, 240, 240], halign: "right" } },
+        { content: fmtINR(group.totalCredit), styles: { fontStyle: "bold", fillColor: [240, 240, 240], halign: "right" } },
+      ]);
+    } else {
+      body.push([
+        { content: srcLabel, colSpan: 3, styles: { fontStyle: "bold", fillColor: [240, 240, 240] } },
+        { content: fmtINR(group.totalDebit), styles: { fontStyle: "bold", fillColor: [240, 240, 240], halign: "right" } },
+        { content: fmtINR(group.totalCredit), styles: { fontStyle: "bold", fillColor: [240, 240, 240], halign: "right" } },
+      ]);
+    }
+
+    for (const e of group.entries) {
+      const row = [
+        e.date || "—",
+        e.voucherNo || "—",
+      ];
+      if (showProject) row.push(e.projectCode || "—");
+      row.push(e.narration || "—");
+      row.push(e.debit ? fmtINR(e.debit) : "—");
+      row.push(e.credit ? fmtINR(e.credit) : "—");
+      body.push(row);
+    }
+  }
+
+  const foot = showProject
+    ? [[
+        { content: "Total", colSpan: 4, styles: { fontStyle: "bold" } },
+        { content: fmtINR(data.totalDebit), styles: { halign: "right", fontStyle: "bold" } },
+        { content: fmtINR(data.totalCredit), styles: { halign: "right", fontStyle: "bold" } },
+      ]]
+    : [[
+        { content: "Total", colSpan: 3, styles: { fontStyle: "bold" } },
+        { content: fmtINR(data.totalDebit), styles: { halign: "right", fontStyle: "bold" } },
+        { content: fmtINR(data.totalCredit), styles: { halign: "right", fontStyle: "bold" } },
+      ]];
+
+  const netLabel = `Net: ${fmtINR(Math.abs(data.net))} ${data.net > 0 ? "Dr" : data.net < 0 ? "Cr" : ""}`;
+  if (showProject) {
+    foot.push([{ content: netLabel, colSpan: 6, styles: { fontStyle: "bold", halign: "right" } }]);
+  } else {
+    foot.push([{ content: netLabel, colSpan: 5, styles: { fontStyle: "bold", halign: "right" } }]);
+  }
+
+  const colStyles = {};
+  for (const ci of amountCols) {
+    colStyles[ci] = { halign: "right" };
+  }
+
+  autoTable(doc, {
+    startY: y,
+    head,
+    body,
+    foot,
+    theme: "grid",
+    styles: {
+      fontSize: 7.5,
+      cellPadding: { top: 1.5, right: 2, bottom: 1.5, left: 2 },
+      lineColor: [200, 200, 200],
+      lineWidth: 0.15,
+      textColor: [30, 30, 30],
+      overflow: "linebreak",
+    },
+    headStyles: {
+      fillColor: [240, 240, 240],
+      textColor: [30, 30, 30],
+      fontStyle: "bold",
+      fontSize: 7.5,
+      lineColor: [180, 180, 180],
+      lineWidth: 0.2,
+    },
+    bodyStyles: { fillColor: false },
+    footStyles: {
+      fillColor: [240, 240, 240],
+      textColor: [30, 30, 30],
+      fontStyle: "bold",
+      fontSize: 7.5,
+      lineColor: [180, 180, 180],
+      lineWidth: 0.2,
+    },
+    columnStyles: colStyles,
+    margin: { left: 10, right: 10 },
+    tableLineColor: [180, 180, 180],
+    tableLineWidth: 0.2,
+
+    willDrawCell: (cellData) => {
+      if (cellData.section !== "body" && cellData.section !== "foot") return;
+      if (!amountCols.includes(cellData.column.index)) return;
+      const text = (cellData.cell.text || []).join("");
+      const parts = splitAmount(text);
+      if (!parts) return;
+      cellData.cell.text = [];
+      cellData.cell._amountParts = parts;
+    },
+
+    didDrawCell: (cellData) => {
+      if (!cellData.cell._amountParts) return;
+      const { intPart, decPart } = cellData.cell._amountParts;
+      const cell = cellData.cell;
+      const styles = cell.styles;
+      const x = cell.x + cell.width - styles.cellPadding.right;
+      const yPos = cell.y + cell.height / 2 + 1;
+      doc.setFont("helvetica", styles.fontStyle || "normal");
+      doc.setFontSize(5.5);
+      const decW = doc.getTextWidth(decPart);
+      doc.setTextColor(...(styles.textColor || [30, 30, 30]));
+      doc.text(decPart, x, yPos, { align: "right" });
+      doc.setFontSize(styles.fontSize || 7.5);
+      doc.text(intPart, x - decW, yPos, { align: "right" });
+      doc.setTextColor(0, 0, 0);
+    },
+
+    didDrawPage: () => {
+      const pageH = doc.internal.pageSize.getHeight();
+      doc.setDrawColor(200, 200, 200);
+      doc.setLineWidth(0.1);
+      doc.line(10, pageH - 10, pageW - 10, pageH - 10);
+      doc.setFontSize(6);
+      doc.setFont("helvetica", "normal");
+      doc.setTextColor(130, 130, 130);
+      doc.text(
+        `${co.name || ""}   |   ${new Date().toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" })}`,
+        10,
+        pageH - 7,
+      );
+      doc.text(
+        `Page ${doc.internal.getCurrentPageInfo().pageNumber}`,
+        pageW - 10,
+        pageH - 7,
+        { align: "right" },
+      );
+      doc.setTextColor(0, 0, 0);
+    },
+  });
+
+  const safeName = (accountName || "reconciliation").replace(/[^a-zA-Z0-9_\- ]/g, "").replace(/\s+/g, "_");
+  doc.save(`${safeName}_${new Date().toISOString().slice(0, 10)}.pdf`);
+}
+
 export default function ReconciliationModal({ open, onClose, accountType, accountId, accountName, fromDate, toDate, projectCode }) {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -177,9 +408,20 @@ export default function ReconciliationModal({ open, onClose, accountType, accoun
               {totalEntries > 0 && ` · ${totalEntries} entries`}
             </p>
           </div>
-          <button onClick={onClose} className="p-1 hover:bg-white/15 transition-colors shrink-0">
-            <X size={16} />
-          </button>
+          <div className="flex items-center gap-1 shrink-0">
+            {data && !loading && (
+              <button
+                onClick={() => exportReconciliationPDF({ data, accountName: accountName || `${accountType} #${accountId}`, fromDate, toDate, projectCode, showProject })}
+                className="p-1 hover:bg-white/15 transition-colors"
+                title="Download PDF"
+              >
+                <Download size={14} />
+              </button>
+            )}
+            <button onClick={onClose} className="p-1 hover:bg-white/15 transition-colors">
+              <X size={16} />
+            </button>
+          </div>
         </div>
 
         {/* Search + summary */}
