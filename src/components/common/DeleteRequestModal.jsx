@@ -114,10 +114,12 @@ export default function DeleteRequestModal({
           <div className="flex gap-3 p-3 bg-amber-50 border border-amber-200 rounded-md mb-4">
             <AlertTriangle className="h-5 w-5 text-amber-500 shrink-0 mt-0.5" />
             <div className="text-sm text-amber-800">
-              <p className="mb-1">
-                <strong>{record_no || `#${recordId}`}</strong> is posted to the accounting ledger,
-                so it can only be cancelled with a reversal entry.
-              </p>
+              {accounting_action === "cancel" && (
+                <p className="mb-1">
+                  <strong>{record_no || `#${recordId}`}</strong> is posted to the accounting ledger,
+                  so it can only be cancelled with a reversal entry.
+                </p>
+              )}
               <p>{cancel_problem}</p>
             </div>
           </div>
@@ -214,11 +216,12 @@ export default function DeleteRequestModal({
     const handleConfirmDelete = async () => {
       setLoading(true);
       try {
-        await apiRequest({
+        const res = await apiRequest({
           url:    `${API_ENDPOINTS.DELETE_MANAGER.RAISE_REQUEST}/${moduleCode}/${recordId}`,
           method: "POST",
           data:   { reason: "Direct delete — no blocking records." },
         });
+        if (accounting_action === "void") toast.success(res?.message || "Kept as Cancelled");
         onImmediateDelete?.();
       } catch (err) {
         toast.error(err.message || "Failed to delete record");
@@ -229,14 +232,22 @@ export default function DeleteRequestModal({
 
     return (
       <Overlay onClose={onClose}>
-        <ModalBox title={`Delete ${moduleLabel}`} onClose={onClose}>
+        <ModalBox title={`${accounting_action === "void" ? "Cancel" : "Delete"} ${moduleLabel}`} onClose={onClose}>
           <div className="flex gap-3 p-3 bg-red-50 border border-red-200 rounded-md mb-4">
             <AlertTriangle className="h-5 w-5 text-red-500 shrink-0 mt-0.5" />
-            <p className="text-sm text-red-700">
-              Are you sure you want to delete{" "}
-              <strong>{record_no || `#${recordId}`}</strong>?
-              This action cannot be undone.
-            </p>
+            {accounting_action === "void" ? (
+              <p className="text-sm text-red-700">
+                <strong>{record_no || `#${recordId}`}</strong> is already submitted/approved, so it will
+                not be removed: it is kept with status <strong>Cancelled</strong> and anything it was
+                using is released. This cannot be undone.
+              </p>
+            ) : (
+              <p className="text-sm text-red-700">
+                Are you sure you want to delete{" "}
+                <strong>{record_no || `#${recordId}`}</strong>?
+                This action cannot be undone.
+              </p>
+            )}
           </div>
           <div className="flex justify-end gap-3">
             <button
@@ -256,7 +267,9 @@ export default function DeleteRequestModal({
               className="px-4 py-2 rounded-md bg-red-500 hover:bg-red-600 text-white text-sm font-medium flex items-center gap-2 transition disabled:opacity-60 disabled:cursor-not-allowed"
             >
               {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
-              {loading ? "Deleting..." : "Yes, Delete"}
+              {loading
+                ? (accounting_action === "void" ? "Cancelling..." : "Deleting...")
+                : (accounting_action === "void" ? "Yes, Cancel" : "Yes, Delete")}
             </button>
           </div>
         </ModalBox>
@@ -334,6 +347,12 @@ export default function DeleteRequestModal({
                 The following linked records must be deleted first. Managers will be
                 notified via WhatsApp.
               </p>
+              {accounting_action === "void" && (
+                <p className="text-yellow-800 mt-1.5">
+                  It is already submitted/approved, so once they are cleared it will be
+                  <strong> kept with status Cancelled</strong> (not removed).
+                </p>
+              )}
               {accounting_action === "cancel" && (
                 <p className="text-yellow-800 mt-1.5">
                   It is posted to the accounting ledger, so once they are cleared it will be
