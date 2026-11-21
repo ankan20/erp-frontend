@@ -9,6 +9,7 @@ import { toast }                                      from "sonner";
 import SaveButton      from "@/components/common/SaveButton";
 import SaveDraftButton from "@/components/common/SaveDraftButton";
 import EditButton      from "@/components/common/EditButton";
+import DeleteRequestButton from "@/components/common/DeleteRequestButton";
 import PMSection       from "@/components/project-management/common/PMSection";
 import PMFormRow       from "@/components/project-management/common/PMFormRow";
 import PMSelect        from "@/components/project-management/common/PMSelect";
@@ -801,6 +802,14 @@ export default function JournalVoucherForm({ mode = "create", voucherId, onUuid,
             <EditButton onClick={handleEdit}>
               {isEditing ? "Cancel" : "Edit"}
             </EditButton>
+          )}
+
+          {mode === "edit" && !isEditing && voucherId && (
+            <DeleteRequestButton
+              moduleCode="JOURNAL_VOUCHER"
+              recordId={Number(voucherId)}
+              onDeleted={() => router.push("/finance-management/account/journal/vouchering")}
+            />
           )}
         </div>
       )}

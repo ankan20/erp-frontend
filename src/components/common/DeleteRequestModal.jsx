@@ -44,6 +44,7 @@ const MODULE_LABELS = {
   DEBIT_NOTE:        "Debit Note",
   PETTY_CASH_BUDGET: "Petty Cash Budget",
   PETTY_CASH_VOUCHER:"Petty Cash Voucher",
+  JOURNAL_VOUCHER:   "Bulk Docket",
   OG_SALE_ORDER:     "OG Sale Order",
   BILLING:           "Custom Billing",
   UNCERTAIN_ALLOC:   "Uncertain Allocation",
