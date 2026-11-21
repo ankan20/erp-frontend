@@ -444,6 +444,9 @@ export const API_ENDPOINTS = {
       HISTORY:            "/project-mgmt/og-sale-order/history/",                   // /:id GET
       MY_APPROVAL_STATUS: "/project-mgmt/og-sale-order/my-approval-status/",        // /:id GET
       GET_BY_UUID:        "/project-mgmt/og-sale-order/uuid/",                      // /:uuid GET no-auth
+      BULK_REFERENCE:     "/project-mgmt/og-sale-order/bulk/reference",             // GET ?projectCode — debtor list
+      BULK_VALIDATE:      "/project-mgmt/og-sale-order/bulk/validate",              // POST {projectCode, orders, items}
+      BULK_IMPORT:        "/project-mgmt/og-sale-order/bulk/import",                // POST {projectCode, orders, items, submit}
     },
     BUDGET_MASTER: {
       // Lookups

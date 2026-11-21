@@ -134,7 +134,10 @@ export default function Page() {
           showDateRange
           actions={
             access.canAdd
-              ? [{ label: "+ New Sale Order", onClick: () => router.push("/project-management/contacts/sale-order/new") }]
+              ? [
+                  { label: "+ New Sale Order", onClick: () => router.push("/project-management/contacts/sale-order/new") },
+                  { label: "Bulk Upload",      onClick: () => router.push("/project-management/contacts/sale-order/bulk-upload") },
+                ]
               : []
           }
         />
