@@ -769,7 +769,7 @@ export default function UncertainAllocationForm({ mode = "create", uaId, onAfter
 
           {mode === "edit" && !isEditing && (
             <DeleteRequestButton
-              moduleCode="UNCERTAIN_ALLOC"
+              moduleCode="UNCERTAIN_ALLOCATION"
               recordId={Number(uaId)}
               onDeleted={() => router.back()}
             />

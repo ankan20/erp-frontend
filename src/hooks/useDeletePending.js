@@ -25,7 +25,9 @@ export function useDeletePending(moduleCode, recordId, enabled = true) {
         const blocked = data.blocked_by ?? [];
         setIsPendingDeletion(true);
         setPendingInfo({
-          blockedBy: blocked.length > 0 ? blocked.join(", ") : null,
+          blockedBy: blocked.length > 0
+            ? blocked.map((b) => (typeof b === "string" ? b : `${b.label || ""} ${b.doc_no || ""}`.trim())).join(", ")
+            : null,
           pending_request: data.pending_request,
         });
       } else {
@@ -39,6 +41,9 @@ export function useDeletePending(moduleCode, recordId, enabled = true) {
 
   useEffect(() => {
     check();
+    // DeleteRequestButton broadcasts this after raising / completing a request
+    window.addEventListener("delete-requests-changed", check);
+    return () => window.removeEventListener("delete-requests-changed", check);
   }, [check]);
 
   const dismiss = useCallback(() => setDismissed(true), []);

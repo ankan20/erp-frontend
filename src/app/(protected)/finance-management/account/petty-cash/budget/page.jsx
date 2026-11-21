@@ -85,7 +85,7 @@ export default function BudgetListPage() {
     { header: "Prepared By", accessor: "createdBy",      width: "130px" },
   ];
 
-  const pendingDeleteIds = useDeletePendingIds("BUDGET", access.allowed);
+  const pendingDeleteIds = useDeletePendingIds("PETTY_CASH_BUDGET", access.allowed);
 
   if (!access.allowed) return <PageNotAvailable />;
 

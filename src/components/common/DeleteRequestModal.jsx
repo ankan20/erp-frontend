@@ -334,6 +334,12 @@ export default function DeleteRequestModal({
                 The following linked records must be deleted first. Managers will be
                 notified via WhatsApp.
               </p>
+              {accounting_action === "cancel" && (
+                <p className="text-yellow-800 mt-1.5">
+                  It is posted to the accounting ledger, so once they are cleared it will be
+                  <strong> cancelled automatically with a reversal entry</strong> (kept as Cancelled).
+                </p>
+              )}
             </div>
           </div>
 
@@ -344,7 +350,7 @@ export default function DeleteRequestModal({
               {blocked_by.map((b, i) => (
                 <div key={i} className="flex items-center justify-between px-3 py-2 text-xs">
                   <span className="font-medium text-gray-700">
-                    {MODULE_LABELS[b.module_code] || b.module_code}
+                    {b.label || MODULE_LABELS[b.module_code] || b.module_code}
                   </span>
                   <span className="text-gray-500 bg-gray-100 px-2 py-0.5 rounded font-mono">
                     {b.doc_no}
@@ -357,7 +363,10 @@ export default function DeleteRequestModal({
           {/* Reason */}
           <div>
             <label className="font-medium text-gray-600 block mb-1">
-              Reason <span className="text-gray-400 font-normal">(optional)</span>
+              Reason{" "}
+              {accounting_action === "cancel"
+                ? <span className="text-red-500">*</span>
+                : <span className="text-gray-400 font-normal">(optional)</span>}
             </label>
             <textarea
               rows={3}
@@ -380,7 +389,7 @@ export default function DeleteRequestModal({
           <button
             type="button"
             onClick={handleRaiseRequest}
-            disabled={loading}
+            disabled={loading || (accounting_action === "cancel" && !reason.trim())}
             data-shortcut="confirm"
             title="Shortcut: Ctrl+Enter"
             className="px-4 py-2 rounded-md bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium flex items-center gap-2 transition disabled:opacity-60 disabled:cursor-not-allowed"

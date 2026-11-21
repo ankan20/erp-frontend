@@ -79,15 +79,22 @@ export default function DeleteRequestButton({
     setCheckData(null);
   };
 
+  // lists (red glow) and detail banners re-fetch on this event
+  const broadcast = () => {
+    try { window.dispatchEvent(new Event("delete-requests-changed")); } catch { /* SSR */ }
+  };
+
   const handleRequestRaised = () => {
     setModalOpen(false);
     setCheckData(null);
     toast.success("Delete request raised. Notifications sent via WhatsApp.");
+    broadcast();
   };
 
   const handleImmediateDelete = () => {
     setModalOpen(false);
     setCheckData(null);
+    broadcast();
     if (onDeleted) onDeleted();
   };
 

@@ -32,7 +32,7 @@ export default function Page() {
   );
 
 
-  const { isPendingDeletion, pendingInfo, dismissDeletion } = useDeletePending("SERVICE_ORDER", serviceOrderId, access.allowed);
+  const { isPendingDeletion, pendingInfo, dismissDeletion } = useDeletePending("PW_ORDER", serviceOrderId, access.allowed);
   if (!access.allowed) return <PageNotAvailable />;
 
   const actions = getPageActions({

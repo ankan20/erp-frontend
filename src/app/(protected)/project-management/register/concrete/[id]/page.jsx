@@ -32,7 +32,7 @@ export default function Page() {
   );
 
 
-  const { isPendingDeletion, pendingInfo, dismissDeletion } = useDeletePending("CONCRETE", id, access.allowed);
+  const { isPendingDeletion, pendingInfo, dismissDeletion } = useDeletePending("CONCRETE_REGISTRY", id, access.allowed);
   if (!access.allowed) {
     return <PageNotAvailable />;
   }

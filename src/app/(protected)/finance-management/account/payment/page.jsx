@@ -114,7 +114,7 @@ export default function Page() {
 
   const actions = getPageActions({ router });
 
-  const pendingDeleteIds = useDeletePendingIds("PAYMENT", access.allowed);
+  const pendingDeleteIds = useDeletePendingIds("BILL_PAYMENT", access.allowed);
 
   if (!access.allowed) return <PageNotAvailable />;
 

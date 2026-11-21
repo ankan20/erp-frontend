@@ -118,7 +118,7 @@ export default function Page() {
 
   const actions = getPageActions({ router });
 
-  const pendingDeleteIds = useDeletePendingIds("CONCRETE", access.allowed);
+  const pendingDeleteIds = useDeletePendingIds("CONCRETE_REGISTRY", access.allowed);
 
   if (!access.allowed) {
     return <PageNotAvailable />;

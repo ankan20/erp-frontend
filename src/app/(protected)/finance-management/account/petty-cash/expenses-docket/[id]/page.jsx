@@ -32,7 +32,7 @@ export default function Page() {
   );
 
 
-  const { isPendingDeletion, pendingInfo, dismissDeletion } = useDeletePending("DOCKET_VOUCHER", id, access.allowed);
+  const { isPendingDeletion, pendingInfo, dismissDeletion } = useDeletePending("PETTY_CASH_VOUCHER", id, access.allowed);
   if (!access.allowed) return <PageNotAvailable />;
 
   const actions = getPageActions({

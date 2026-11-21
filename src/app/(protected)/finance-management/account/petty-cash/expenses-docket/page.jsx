@@ -104,7 +104,7 @@ export default function DocketVoucherListPage() {
 
   const actions = getPageActions({ router });
 
-  const pendingDeleteIds = useDeletePendingIds("DOCKET_VOUCHER", access.allowed);
+  const pendingDeleteIds = useDeletePendingIds("PETTY_CASH_VOUCHER", access.allowed);
 
   if (!access.allowed) return <PageNotAvailable />;
 

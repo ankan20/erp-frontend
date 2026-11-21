@@ -661,7 +661,8 @@ export default function DataTable({
               </tr>
             ) : (
               pageRows.map((row, rowIndex) => {
-                const hasPendingDelete = pendingDeleteIds?.has(Number(row.id));
+                // workflow lists key rows by `_id` (BulkWorkflowTable rowId="_id"), others by `id`
+                const hasPendingDelete = pendingDeleteIds?.has(Number(row.id ?? row._id));
                 return (
                 <tr
                   key={rowIndex}

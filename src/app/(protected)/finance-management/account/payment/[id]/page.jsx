@@ -34,7 +34,7 @@ export default function Page() {
   );
 
 
-  const { isPendingDeletion, pendingInfo, dismissDeletion } = useDeletePending("PAYMENT", id, access.allowed);
+  const { isPendingDeletion, pendingInfo, dismissDeletion } = useDeletePending("BILL_PAYMENT", id, access.allowed);
   if (!access.allowed) return <PageNotAvailable />;
 
   const actions = getPageActions({

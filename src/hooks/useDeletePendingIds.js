@@ -13,7 +13,7 @@ export function useDeletePendingIds(moduleCode, enabled = true) {
 
   useEffect(() => {
     if (!moduleCode || !enabled) return;
-    apiRequest({
+    const load = () => apiRequest({
       url: `${API_ENDPOINTS.DELETE_MANAGER.LIST_REQUESTS}?module_code=${moduleCode}&status=PENDING&per_page=200`,
       method: "GET",
     })
@@ -23,6 +23,10 @@ export function useDeletePendingIds(moduleCode, enabled = true) {
         setPendingIds(ids);
       })
       .catch(() => {});
+    load();
+    // DeleteRequestButton broadcasts this after raising / completing a request
+    window.addEventListener("delete-requests-changed", load);
+    return () => window.removeEventListener("delete-requests-changed", load);
   }, [moduleCode, enabled]);
 
   return pendingIds;

@@ -31,7 +31,7 @@ export default function Page() {
   );
 
 
-  const { isPendingDeletion, pendingInfo, dismissDeletion } = useDeletePending("BUDGET", id, access.allowed);
+  const { isPendingDeletion, pendingInfo, dismissDeletion } = useDeletePending("PETTY_CASH_BUDGET", id, access.allowed);
   if (!access.allowed) return <PageNotAvailable />;
 
   const actions = getPageActions({

@@ -13,6 +13,7 @@ import HeaderWrapper    from "@/components/layout/HeaderWrapper";
 import PageNotAvailable from "@/components/common/PageNotAvailable";
 import { getPageActions }  from "@/components/common/PageActionButtons";
 import { getPageAccess }   from "@/helper/getPageAccess";
+import { useDeletePendingIds } from "@/hooks/useDeletePendingIds";
 import { apiRequest }      from "@/lib/apiClient";
 import { API_ENDPOINTS }   from "@/config/api.config";
 import { getLocalStorage } from "@/lib/localStorage";
@@ -67,6 +68,7 @@ async function downloadListPDF(list, projectCode) {
 export default function Page() {
   const router      = useRouter();
   const access      = getPageAccess({ pageCode: "journal", pageType: "LIST" });
+  const pendingDeleteIds = useDeletePendingIds("JOURNAL_VOUCHER", access.allowed);
   const projectCode = getLocalStorage("projectInfo")?.projectCode || "";
 
   const [list,       setList]       = useState([]);
@@ -175,6 +177,7 @@ export default function Page() {
               <BulkWorkflowTable module="journal_voucher" canAct={access.canApprove} rowId="_id" statusKey="workflowStatus"
                 columns={columns}
                 data={tableData}
+                pendingDeleteIds={pendingDeleteIds}
                 pagination={pagination}
                 onPageChange={handlePage}
                 loading={loading}

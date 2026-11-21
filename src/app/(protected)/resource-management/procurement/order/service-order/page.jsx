@@ -179,7 +179,7 @@ export default function Page() {
 
   const actions = getPageActions({ router });
 
-  const pendingDeleteIds = useDeletePendingIds("SERVICE_ORDER", access.allowed);
+  const pendingDeleteIds = useDeletePendingIds("PW_ORDER", access.allowed);
 
   if (!access.allowed) return <PageNotAvailable />;
 
