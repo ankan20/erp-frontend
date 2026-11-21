@@ -71,7 +71,8 @@ export default function AccountingTable({
             {rows.map((row, i) => (
               <tr
                 key={row._key ?? i}
-                className={`border-b border-[#e5e7eb] ${row._highlight ? "bg-[#f3f4f6] font-semibold" : i % 2 === 0 ? "bg-white" : "bg-[#fafbfc]"} hover:bg-[#f0f4f8] transition-colors`}
+                title={row._cancelled ? `${row._cancelLabel} — no effect on balances (nets to zero with its pair)` : undefined}
+                className={`border-b border-[#e5e7eb] ${row._cancelled ? "bg-[#fdf2f2] line-through decoration-[#b91c1c]/60 opacity-70" : row._highlight ? "bg-[#f3f4f6] font-semibold" : i % 2 === 0 ? "bg-white" : "bg-[#fafbfc]"} hover:bg-[#f0f4f8] transition-colors`}
               >
                 {ordered.map((col) => {
                   const val = row[col.key];

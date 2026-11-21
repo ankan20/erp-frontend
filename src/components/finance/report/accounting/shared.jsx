@@ -57,6 +57,37 @@ export function SummaryBox({ items }) {
   );
 }
 
+/**
+ * "Show cancelled" toggle for central-accounting ledger screens.
+ * Cancelled / rebacked documents leave an original + reversal pair in the
+ * ledger that nets to zero. The backend hides the pair unless
+ * ?include_cancelled=true; when shown, rows are struck through.
+ */
+export function ShowCancelledToggle({ checked, onChange, count }) {
+  if (!checked && !count) return null;
+  return (
+    <label
+      className="flex items-center gap-1.5 text-[11.5px] text-[#4b5563] cursor-pointer select-none whitespace-nowrap"
+      title="Cancelled documents and their reversal entries net to zero and are hidden by default"
+    >
+      <input
+        type="checkbox"
+        checked={checked}
+        onChange={(e) => onChange(e.target.checked)}
+        className="h-3.5 w-3.5 accent-[#1b2f3a] cursor-pointer"
+      />
+      Show cancelled{count ? ` (${count})` : ""}
+    </label>
+  );
+}
+
+/** Row fields for AccountingTable from an API entry's cancel flags. */
+export function cancelRowProps(entry) {
+  return entry?.isCancelled
+    ? { _cancelled: true, _cancelLabel: entry.cancelLabel || "Cancelled" }
+    : {};
+}
+
 const NARRATION_HINTS = {
   "PB expense":          "Purchase Bill — expense line item",
   "PV expense":          "Payment Voucher — expense line item",

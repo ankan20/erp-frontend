@@ -15,7 +15,7 @@ import { API_ENDPOINTS } from "@/config/api.config";
 import AccountingFilterBar from "@/components/finance/report/accounting/AccountingFilterBar";
 import AccountingTable from "@/components/finance/report/accounting/AccountingTable";
 import useAccountingFetch from "@/components/finance/report/accounting/useAccountingFetch";
-import { fmtDate, getNarrationHint } from "@/components/finance/report/accounting/shared";
+import { fmtDate, getNarrationHint, ShowCancelledToggle, cancelRowProps } from "@/components/finance/report/accounting/shared";
 
 const BASE_COLUMNS = [
   { key: "date", label: "Date", className: "w-[100px]" },
@@ -52,6 +52,7 @@ export default function VoucherRegisterPage() {
   const [sourceType, setSourceType] = useState("");
   const [searchText, setSearchText] = useState("");
   const [sortOrder, setSortOrder] = useState("desc");
+  const [showCancelled, setShowCancelled] = useState(false);
   const {
     projectCode, setProjectCode, fromDate, setFromDate, toDate, setToDate,
     data, loading, fetched, projectList, handleFetch, handleReset,
@@ -71,6 +72,7 @@ export default function VoucherRegisterPage() {
       const row = {
         _key: i,
         _rawDate: v.date || "",
+        ...cancelRowProps(v),
         ...(showProject && { projectCode: v.projectCode || "" }),
         date: fmtDate(v.date),
         voucherNo: v.voucherNo || "",
@@ -95,7 +97,11 @@ export default function VoucherRegisterPage() {
     return mapped;
   }, [data, showProject, searchText, sortOrder]);
 
-  const wrappedFetch = () => handleFetch(sourceType ? { source_type: sourceType } : {});
+  const wrappedFetch = (incl = showCancelled) => handleFetch({
+    ...(sourceType ? { source_type: sourceType } : {}),
+    ...(incl === true ? { include_cancelled: "true" } : {}),
+  });
+  const toggleCancelled = (v) => { setShowCancelled(v); wrappedFetch(v); };
 
   const typeFilter = (
     <div className="flex items-center gap-1.5">
@@ -128,8 +134,8 @@ export default function VoucherRegisterPage() {
           setToDate={setToDate}
           loading={loading}
           fetched={fetched}
-          onFetch={wrappedFetch}
-          onReset={() => { setSourceType(""); setSearchText(""); setSortOrder("desc"); handleReset(); }}
+          onFetch={() => wrappedFetch()}
+          onReset={() => { setSourceType(""); setShowCancelled(false); setSearchText(""); setSortOrder("desc"); handleReset(); }}
           extraFilters={typeFilter}
           sortOrder={sortOrder}
           onSortToggle={() => setSortOrder((s) => (s === "desc" ? "asc" : "desc"))}
@@ -147,7 +153,9 @@ export default function VoucherRegisterPage() {
                 className="w-full h-[28px] px-2 text-[12px] border border-[#d1d5db] bg-white text-[#374151] placeholder:text-[#9ca3af] focus:border-[#1b2f3a] focus:outline-none transition-colors"
               />
             </div>
-            <span className="ml-auto text-[11.5px] text-[#6b7280]">
+            <span className="ml-auto"><ShowCancelledToggle checked={showCancelled}
+              count={data?.cancelledCount} onChange={toggleCancelled} /></span>
+            <span className="text-[11.5px] text-[#6b7280]">
               {rows.length} voucher{rows.length !== 1 ? "s" : ""}
             </span>
           </div>

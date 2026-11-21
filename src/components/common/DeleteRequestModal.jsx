@@ -80,6 +80,8 @@ export default function DeleteRequestModal({
     blocked_by      = [],
     pending_request,
     record_no,
+    accounting_action,          // "delete" | "cancel" | "kept" | "refuse"
+    cancel_problem,
   } = checkData || {};
 
   const moduleLabel = MODULE_LABELS[moduleCode] || moduleCode;
@@ -100,6 +102,109 @@ export default function DeleteRequestModal({
       setLoading(false);
     }
   };
+
+  // ── Render: posted to accounts → cannot delete right now ─────────
+  // (blocked by downstream docs / locked FY / not final approver, or a
+  //  Cancelled document that is kept for audit)
+  if (accounting_action && accounting_action !== "delete" && cancel_problem) {
+    return (
+      <Overlay onClose={onClose}>
+        <ModalBox title={`Delete ${moduleLabel}`} onClose={onClose}>
+          <div className="flex gap-3 p-3 bg-amber-50 border border-amber-200 rounded-md mb-4">
+            <AlertTriangle className="h-5 w-5 text-amber-500 shrink-0 mt-0.5" />
+            <div className="text-sm text-amber-800">
+              <p className="mb-1">
+                <strong>{record_no || `#${recordId}`}</strong> is posted to the accounting ledger,
+                so it can only be cancelled with a reversal entry.
+              </p>
+              <p>{cancel_problem}</p>
+            </div>
+          </div>
+          <div className="flex justify-end">
+            <button
+              type="button"
+              onClick={onClose}
+              className="px-4 py-2 rounded-md bg-gray-100 hover:bg-gray-200 text-gray-700 text-sm font-medium transition"
+            >
+              Close
+            </button>
+          </div>
+        </ModalBox>
+      </Overlay>
+    );
+  }
+
+  // ── Render: posted to accounts → cancel with reversal entry ──────
+  if (accounting_action === "cancel" && can_delete_now) {
+    const handleConfirmCancel = async () => {
+      if (!reason.trim()) {
+        toast.error("Please enter a reason");
+        return;
+      }
+      setLoading(true);
+      try {
+        const res = await apiRequest({
+          url:    `${API_ENDPOINTS.DELETE_MANAGER.RAISE_REQUEST}/${moduleCode}/${recordId}`,
+          method: "POST",
+          data:   { reason: reason.trim() },
+        });
+        toast.success(res?.message || "Document cancelled with a reversal entry");
+        onImmediateDelete?.();
+      } catch (err) {
+        toast.error(err.message || "Failed to cancel document");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    return (
+      <Overlay onClose={onClose}>
+        <ModalBox title={`Cancel ${moduleLabel}`} onClose={onClose}>
+          <div className="flex gap-3 p-3 bg-amber-50 border border-amber-200 rounded-md mb-4">
+            <AlertTriangle className="h-5 w-5 text-amber-500 shrink-0 mt-0.5" />
+            <p className="text-sm text-amber-800">
+              <strong>{record_no || `#${recordId}`}</strong> is posted to the accounting ledger,
+              so it will not be deleted. It will be <strong>cancelled</strong>: a reversal entry
+              is posted and the document is kept with status Cancelled. This cannot be undone.
+            </p>
+          </div>
+          <div className="mb-4">
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Reason <span className="text-red-500">*</span>
+            </label>
+            <textarea
+              rows={3}
+              value={reason}
+              onChange={(e) => setReason(e.target.value)}
+              placeholder="Why is this document being cancelled?"
+              className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-300 resize-none"
+            />
+          </div>
+          <div className="flex justify-end gap-3">
+            <button
+              type="button"
+              onClick={onClose}
+              disabled={loading}
+              className="px-4 py-2 rounded-md bg-gray-100 hover:bg-gray-200 text-gray-700 text-sm font-medium transition disabled:opacity-60"
+            >
+              Close
+            </button>
+            <button
+              type="button"
+              onClick={handleConfirmCancel}
+              disabled={loading || !reason.trim()}
+              data-shortcut="confirm"
+              title="Shortcut: Ctrl+Enter"
+              className="px-4 py-2 rounded-md bg-red-500 hover:bg-red-600 text-white text-sm font-medium flex items-center gap-2 transition disabled:opacity-60 disabled:cursor-not-allowed"
+            >
+              {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
+              {loading ? "Cancelling..." : "Yes, Cancel with reversal"}
+            </button>
+          </div>
+        </ModalBox>
+      </Overlay>
+    );
+  }
 
   // ── Render: can delete immediately ───────────────────────────────
   // Checked FIRST — even if a pending_request exists but blockers are cleared,

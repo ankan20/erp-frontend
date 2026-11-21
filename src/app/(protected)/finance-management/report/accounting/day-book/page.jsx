@@ -16,7 +16,7 @@ import { getfmtDisplaydate } from "@/helper/getfmtDisplayDate";
 import AccountingFilterBar from "@/components/finance/report/accounting/AccountingFilterBar";
 import AccountingTable from "@/components/finance/report/accounting/AccountingTable";
 import useAccountingFetch from "@/components/finance/report/accounting/useAccountingFetch";
-import { SourceTypeBadge, getNarrationHint } from "@/components/finance/report/accounting/shared";
+import { SourceTypeBadge, getNarrationHint, ShowCancelledToggle, cancelRowProps } from "@/components/finance/report/accounting/shared";
 
 const SOURCE_TYPE_OPTIONS = [
   { value: "", label: "All Types" },
@@ -61,6 +61,12 @@ export default function DayBookPage() {
   const [searchText, setSearchText] = useState("");
   const [sortOrder, setSortOrder] = useState("desc");
   const sourceType = extraParams.source_type || "";
+  const showCancelled = extraParams.include_cancelled === "true";
+  const toggleCancelled = (v) => {
+    const val = v ? "true" : "";
+    setExtraParams((prev) => ({ ...prev, include_cancelled: val }));
+    handleFetch({ include_cancelled: val });
+  };
 
   const setSourceType = (val) => {
     setExtraParams((prev) => ({ ...prev, source_type: val || "" }));
@@ -82,6 +88,7 @@ export default function DayBookPage() {
         const narration = line.narration || (li === 0 ? e.remarks || "" : "");
         const row = {
           _key: `${e.postingId}-${li}`,
+          ...cancelRowProps(e),
           ...(showProject && { projectCode: li === 0 ? (e.projectCode || "") : "" }),
           voucherNo: li === 0 ? (e.voucherNo || "") : "",
           sourceType: li === 0 ? (e.sourceTypeLabel || e.sourceType || "").replace(/_/g, " ") : "",
@@ -153,7 +160,9 @@ export default function DayBookPage() {
                 className="w-full h-[28px] px-2 text-[12px] border border-[#d1d5db] bg-white text-[#374151] placeholder:text-[#9ca3af] focus:border-[#1b2f3a] focus:outline-none transition-colors"
               />
             </div>
-            <span className="ml-auto text-[11.5px] text-[#6b7280]">
+            <span className="ml-auto"><ShowCancelledToggle checked={showCancelled}
+              count={data?.cancelledCount} onChange={toggleCancelled} /></span>
+            <span className="text-[11.5px] text-[#6b7280]">
               {rows.length} line{rows.length !== 1 ? "s" : ""}
             </span>
           </div>

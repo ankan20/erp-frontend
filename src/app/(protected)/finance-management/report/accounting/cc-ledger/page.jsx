@@ -16,7 +16,7 @@ import { apiRequest }     from "@/lib/apiClient";
 import { API_ENDPOINTS }  from "@/config/api.config";
 import { formatAmount }   from "@/helper/numberFormatter";
 import AccountingTable    from "@/components/finance/report/accounting/AccountingTable";
-import { FilterLabel, SummaryBox, fmt, fmtDate, getNarrationHint } from "@/components/finance/report/accounting/shared";
+import { FilterLabel, SummaryBox, fmt, fmtDate, getNarrationHint, ShowCancelledToggle, cancelRowProps } from "@/components/finance/report/accounting/shared";
 
 function fmtBalDrCr(val) {
   if (val == null || val === 0) return "—";
@@ -48,6 +48,7 @@ export default function CCLedgerPage() {
   const [data, setData]             = useState(null);
   const [loading, setLoading]       = useState(false);
   const [fetched, setFetched]       = useState(false);
+  const [showCancelled, setShowCancelled] = useState(false);
   const [ccList, setCcList]         = useState([]);
 
   useEffect(() => {
@@ -56,7 +57,7 @@ export default function CCLedgerPage() {
       .catch(() => {});
   }, []);
 
-  const handleFetch = useCallback(async () => {
+  const handleFetch = useCallback(async (includeCancelled = showCancelled) => {
     if (!ccId) { toast.error("Please select a CC code"); return; }
     setLoading(true); setFetched(false);
     try {
@@ -64,6 +65,7 @@ export default function CCLedgerPage() {
       params.set("cc_id", ccId);
       if (fromDate) params.set("from_date", fromDate);
       if (toDate)   params.set("to_date", toDate);
+      if (includeCancelled) params.set("include_cancelled", "true");
       const res = await apiRequest({
         url: `${API_ENDPOINTS.FINANCE.ACCOUNTING.CC_LEDGER}?${params}`,
         method: "GET",
@@ -72,9 +74,10 @@ export default function CCLedgerPage() {
     } catch (err) {
       setData(null); toast.error(err?.message || "Failed to fetch CC ledger");
     } finally { setLoading(false); }
-  }, [ccId, fromDate, toDate]);
+  }, [ccId, fromDate, toDate, showCancelled]);
 
   const handleReset = () => {
+    setShowCancelled(false);
     setCcId(""); setFromDate(""); setToDate(""); setSearchText("");
     setData(null); setFetched(false);
   };
@@ -85,7 +88,7 @@ export default function CCLedgerPage() {
     return entries
       .map((e, i) => {
         const row = {
-          _key: i, sl: i + 1,
+          _key: i, sl: i + 1, ...cancelRowProps(e),
           date: fmtDate(e.date),
           source: (e.sourceType || "").replace(/_/g, " "),
           docNo: e.voucherNo || "",
@@ -132,7 +135,7 @@ export default function CCLedgerPage() {
               className="h-[28px] w-[130px] border border-[#d1d5db] px-2 text-[12px] text-[#374151] bg-white focus:border-[#1b2f3a] focus:outline-none transition-colors" />
           </div>
           <div className="flex items-center gap-1.5 ml-auto">
-            <button onClick={handleFetch} disabled={loading}
+            <button onClick={() => handleFetch()} disabled={loading}
               className="flex items-center gap-1 px-3 py-[5px] bg-[#1b2f3a] hover:bg-[#263f4d] text-white text-[12px] font-medium disabled:opacity-50 transition-colors">
               {loading ? <Loader2 size={13} className="animate-spin" /> : <Search size={13} />}
               Fetch
@@ -154,7 +157,9 @@ export default function CCLedgerPage() {
                 placeholder="Search voucher, narration..."
                 className="w-full h-[28px] px-2 text-[12px] border border-[#d1d5db] bg-white text-[#374151] placeholder:text-[#9ca3af] focus:border-[#1b2f3a] focus:outline-none transition-colors" />
             </div>
-            <span className="ml-auto text-[11.5px] text-[#6b7280]">
+            <span className="ml-auto"><ShowCancelledToggle checked={showCancelled} count={data?.cancelledCount}
+              onChange={(v) => { setShowCancelled(v); handleFetch(v); }} /></span>
+            <span className="text-[11.5px] text-[#6b7280]">
               {rows.length} entr{rows.length !== 1 ? "ies" : "y"}
             </span>
           </div>
