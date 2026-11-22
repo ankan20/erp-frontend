@@ -1,6 +1,7 @@
 import { APP_FONT, APP_FONT_MONO, HEADING_FONT } from "@/config/fonts.config";
 import { Toaster } from "@/components/ui/sonner";
 import CommRoot from "@/components/communication/CommRoot";
+import DateYearAutofill from "@/components/common/DateYearAutofill";
 import "./globals.css";
 
 export const metadata = {
@@ -17,6 +18,7 @@ export default function RootLayout({ children }) {
       <body className="min-h-full flex flex-col">
       <CommRoot>{children}</CommRoot>
       <Toaster richColors position="top-center" />
+      <DateYearAutofill />
       </body>
     </html>
   );

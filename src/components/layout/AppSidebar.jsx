@@ -6,6 +6,7 @@ import { sidebarConfig } from "@/config/sidebar.config";
 import { ChevronRight, ChevronDown, Menu } from "lucide-react";
 import { getCookie } from "@/lib/cookies";
 import { ROLE } from "@/config/role.config";
+import { useIssueTrackerStatus } from "@/lib/issueTrackerStatus";
 
 export default function AppSidebar({ collapsed, setCollapsed }) {
   const pathname = usePathname();
@@ -81,6 +82,7 @@ export default function AppSidebar({ collapsed, setCollapsed }) {
 
   // Role-based sidebar filtering
   const role = getCookie("role"); // raw cookie value e.g. "super_admin"
+  const issueTracker = useIssueTrackerStatus();
   // Permission-only entries (permissionOnly: true) exist just for the
   // permission grid — never render them as menu items.
   const stripPermissionOnly = (items) =>
@@ -89,6 +91,8 @@ export default function AppSidebar({ collapsed, setCollapsed }) {
       .map((it) => (it.children ? { ...it, children: stripPermissionOnly(it.children) } : it));
 
   const visibleConfig = stripPermissionOnly(sidebarConfig).filter((item) => {
+    // Issues & Requests: own access list + kill switch, decided by the backend
+    if (item.issueTracker) return !!issueTracker?.showMenu;
     if (role === ROLE.SUPER_ADMIN) {
       if (item.title === "Settings") return true;
       if (item.title === "MIS") return true; // super admin sees / edits everyone's tasks

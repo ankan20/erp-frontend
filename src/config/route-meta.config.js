@@ -879,6 +879,11 @@ export const routeMetaConfig = [
     basePath: "/finance-management/account/journal/docket-voucher/[id]",
     breadcrumbs: ["Finance Management", "Accounts", "Journal", "Voucher Docket", "Details"],
   },
+  // Issues & Feature Requests
+  {
+    basePath: "/issue-tracker",
+    breadcrumbs: ["Issues & Requests", "Issues & Feature Requests"],
+  },
   // Finance Management — Bank Statements
   {
     basePath: "/finance-management/account/bank-statement",

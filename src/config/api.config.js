@@ -971,6 +971,14 @@ export const API_ENDPOINTS = {
     // POST /workflow/reback-requests/<id>/accept|decline|cancel  { comment }
   },
 
+  ISSUE_TRACKER: {
+    STATUS:   "/issue-tracker/status",   // GET  { enabled, showMenu, isSuperAdmin, canView, canEdit, isDeveloper }
+    SETTINGS: "/issue-tracker/settings", // PUT  { enabled } — super admin kill switch
+    MEMBERS:  "/issue-tracker/members",  // GET (members + users) / POST { userId, canEdit, isDeveloper } / DELETE /:userId
+    ITEMS:    "/issue-tracker/items",    // GET ?status=open|done|all / POST { kind, bodyHtml } / PUT|DELETE /:id
+    // POST /items/:id/done multipart { comment, keepImages (JSON), images[] } · DELETE /items/:id/done = untick
+  },
+
   DELETE_MANAGER: {
     CHECK:          "/delete-manager/check",       // GET  /<module_code>/<record_id>
     RAISE_REQUEST:  "/delete-manager/request",     // POST /<module_code>/<record_id>  body: { reason }

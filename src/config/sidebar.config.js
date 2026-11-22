@@ -7,6 +7,7 @@ import {
   Wallet,
   Users,
   ListTodo,
+  Bug,
 } from "lucide-react";
 //dummy changes
 export const sidebarConfig = [
@@ -919,6 +920,23 @@ export const sidebarConfig = [
         permissionKey: "schedule_compliance",
       },
 
+    ],
+  },
+  // Issues & Feature Requests — own access list (super admin manages it on the
+  // page) and a kill switch; AppSidebar shows it only when /issue-tracker/status says so.
+  {
+    title: "Issues & Requests",
+    key: "issue_tracker",
+    icon: Bug,
+    basePath: "/issue-tracker",
+    hideInPermissions: true,
+    issueTracker: true,
+    children: [
+      {
+        title: "Issues & Feature Requests",
+        path: "/issue-tracker",
+        activePaths: ["/issue-tracker"],
+      },
     ],
   },
 ];
