@@ -19,10 +19,10 @@ import { CATEGORY_OPTIONS } from "@/config/categoryOptions.config";
 import { getInputClass } from "@/lib/formStyles";
 
 const schema = z.object({
-  unitName: z.string().min(1),
-  shortName: z.string().min(1),
-  unitType: z.string().min(1),
-  categoryId: z.string().min(1),
+  unitName: z.string().min(1, "Unit Name is required"),
+  shortName: z.string().min(1, "Short Name is required"),
+  unitType: z.string().min(1, "Type of Unit is required"),
+  categoryId: z.string().min(1, "Unit Category is required"),
 
   parentUnitId: z.string().optional(),
   parentUnitMultiplyFactor: z.string().optional(),

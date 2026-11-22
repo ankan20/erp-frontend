@@ -30,23 +30,23 @@ import { zodDate } from "@/lib/dateUtils";
 import { useCopySource, forCopy, copyLoadedToast } from "@/lib/copyRecord";
 
 const indentSchema = z.object({
-  categoryCode: z.string().min(1),
-  priority: z.string().min(1),
-  requiredWithin: z.string().min(1),
+  categoryCode: z.string().min(1, "Category is required"),
+  priority: z.string().min(1, "Priority is required"),
+  requiredWithin: z.string().min(1, "Required Within is required"),
   indentDate: zodDate(z, "indentDate"),
-  indentPlacedBy: z.string().min(1),
-  siteRegSerialNo: z.string().min(1),
-  saleOrderNo: z.string().min(1),
+  indentPlacedBy: z.string().min(1, "Indent Placed By is required"),
+  siteRegSerialNo: z.string().min(1, "Site Reg Serial No is required"),
+  saleOrderNo: z.string().min(1, "Sale Order No is required"),
   remarks: z.string().optional(),
 
   items: z.array(
     z.object({
-      itemCode: z.string().min(1),
+      itemCode: z.string().min(1, "Item Code is required"),
       itemDisplayCode: z.string().optional(),
       itemName: z.string().optional(),
-      qty: z.coerce.number().gt(0),
+      qty: z.coerce.number().gt(0, "Qty must be greater than 0"),
       ammenmendQty: z.any().optional(),
-      location: z.string().min(2),
+      location: z.string().min(1, "Use To (Location) is required"),
       note: z.string().optional(),
       unit: z.string().optional(),
       isAsset: z.boolean().optional(),

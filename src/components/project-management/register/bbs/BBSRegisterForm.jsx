@@ -39,7 +39,7 @@ const DELIVERY_MODE_OPTIONS = [
 const bbsSchema = z.object({
   bbsNo:              z.string().optional(),
   revision:           z.string().optional(),
-  bbsTitle:           z.string().min(1),
+  bbsTitle:           z.string().min(1, "BBS Title is required"),
   referenceOrderNo:   z.string().optional(),
   projectSubLocation: z.string().optional(),
   segmentLayer:       z.string().optional(),

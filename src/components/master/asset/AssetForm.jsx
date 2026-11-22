@@ -15,13 +15,13 @@ import { getInputClass } from "@/lib/formStyles";
 import AmountInput from "@/components/common/AmountInput";
 
 const assetSchema = z.object({
-  itemCategoryId: z.string().min(1),
-  ccCodeId: z.string().min(1),
-  assetName: z.string().min(1),
-  assetDescription: z.string().min(1),
-  unit: z.string().min(1),
-  hsnSac: z.string().min(1),
-  gstPercentage: z.string().min(1),
+  itemCategoryId: z.string().min(1, "Item Category is required"),
+  ccCodeId: z.string().min(1, "CC Category is required"),
+  assetName: z.string().min(1, "Asset Name is required"),
+  assetDescription: z.string().min(1, "Asset Description is required"),
+  unit: z.string().min(1, "Unit is required"),
+  hsnSac: z.string().min(1, "HSN/SAC is required"),
+  gstPercentage: z.string().min(1, "GST % is required"),
 });
 
 export default function AssetForm({
