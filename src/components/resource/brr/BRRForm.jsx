@@ -50,8 +50,8 @@ const brrSchema = z.object({
   vendorId:          z.string().min(1, "Required"),
   partyAddress:      z.string().optional(),
   gstn:              z.string().optional(),
-  orderCategory:     z.string().optional(),
-  orderId:           z.string().optional(),
+  orderCategory:     z.string().min(1, "Order Category is required"),
+  orderId:           z.string().min(1, "Order No is required"),
   orderDate: zodDate(z, "orderDate"),
   partyBillNo:       z.string().min(1, "Required"),
   partyDate: zodDate(z, "Party Date", true),
@@ -257,8 +257,8 @@ export default function BRRForm({ mode = "create", brrId, onDataLoaded, onAfterS
     const fd = new FormData();
     fd.append("projectCode",       projectCode);
     fd.append("vendorId",          v.vendorId);
-    if (v.orderCategory)     fd.append("orderCategory",     v.orderCategory);
-    if (v.orderId)           fd.append("orderId",           v.orderId);
+    fd.append("orderCategory",     v.orderCategory);
+    fd.append("orderId",           v.orderId);
     fd.append("partyBillNo",       v.partyBillNo);
     fd.append("partyDate",         v.partyDate);
     if (v.receivedCategory)  fd.append("receivedCategory",  v.receivedCategory);
@@ -457,7 +457,7 @@ export default function BRRForm({ mode = "create", brrId, onDataLoaded, onAfterS
 
             {/* Order info */}
             <div className="flex flex-col gap-[2px] mb-3">
-              <FieldRow label="Order Category">
+              <FieldRow label="Order Category" required>
                 <Controller control={control} name="orderCategory" render={({ field }) => (
                   <Select value={field.value} onValueChange={(val) => {
                     field.onChange(val);
@@ -465,8 +465,8 @@ export default function BRRForm({ mode = "create", brrId, onDataLoaded, onAfterS
                     setValue("orderDate", "");
                     setVendorOrders([]);
                   }} disabled={disabled}>
-                    <SelectTrigger className={`${getInputClass(false, disabled)} w-full h-[36px]`}>
-                      <SelectValue placeholder="All Order Category" />
+                    <SelectTrigger className={`${getInputClass(errors.orderCategory, disabled)} w-full h-[36px]`}>
+                      <SelectValue placeholder="Select Order Category" />
                     </SelectTrigger>
                     <SelectContent>
                       {ORDER_CATEGORIES.map((c) => (
@@ -476,7 +476,7 @@ export default function BRRForm({ mode = "create", brrId, onDataLoaded, onAfterS
                   </Select>
                 )} />
               </FieldRow>
-              <FieldRow label="Order No">
+              <FieldRow label="Order No" required>
                 <Controller control={control} name="orderId" render={({ field }) => (
                   <Select
                     value={field.value ? String(field.value) : ""}
@@ -488,8 +488,8 @@ export default function BRRForm({ mode = "create", brrId, onDataLoaded, onAfterS
                     }}
                     disabled={disabled || !vendorId}
                   >
-                    <SelectTrigger className={`${getInputClass(false, disabled)} w-full h-[36px]`}>
-                      <SelectValue placeholder="Select from Filter Order List" />
+                    <SelectTrigger className={`${getInputClass(errors.orderId, disabled)} w-full h-[36px]`}>
+                      <SelectValue placeholder="Select Order" />
                     </SelectTrigger>
                     <SelectContent>
                       {vendorOrders.map((o) => {
