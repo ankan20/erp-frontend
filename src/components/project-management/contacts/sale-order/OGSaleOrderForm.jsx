@@ -46,6 +46,7 @@ const rowSchema = z.object({
   orderQty:        z.coerce.number().min(0).optional(),
   rate:            z.coerce.number().min(0).optional(),
   gstPercent:      z.coerce.number().min(0).optional(),
+  slNo:            z.any().optional(),   // order line Sl. No. (per table) — used to highlight lines
   amendmentId:     z.any().optional(),   // line added by an amendment (kept through an edit)
   amendmentNo:     z.any().optional(),
 });
@@ -92,6 +93,7 @@ const mapRow = (it, type) => ({
   orderQty:        it.orderQty        || "",
   rate:            it.rate            || "",
   gstPercent:      it.gstPercent      || "",
+  slNo:            it.slNo            || null,
   amendmentId:     it.amendmentId     || null,
   amendmentNo:     it.amendmentNo     || null,
 });
@@ -587,7 +589,9 @@ export default function OGSaleOrderForm({ mode = "create", saleOrderId, onAfterS
                     const gstAmt = basic * Number(row.gstPercent || 0) / 100;
                     const amount = basic + gstAmt;   // line total, GST included
                     return (
-                      <tr key={field.id} className={index % 2 === 0 ? "bg-white" : "bg-[#f5f8fc]"}>
+                      <tr key={field.id} className={`${index % 2 === 0 ? "bg-white" : "bg-[#f5f8fc]"} transition-colors`}
+                        data-so-line={row.slNo ? `${row.type}-${row.slNo}` : undefined}
+                        data-amd={row.amendmentNo || undefined}>
                         {/* SL */}
                         <td className="border border-[#ccc] text-center bg-[#edf4fb] text-[13px] font-medium align-middle">
                           {index + 1}

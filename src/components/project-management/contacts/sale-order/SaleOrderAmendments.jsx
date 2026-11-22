@@ -11,11 +11,10 @@
 import { useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
 import {
-  FilePlus2, ChevronRight, Pencil, Send, Trash2, Plus, Loader2, History, ShieldCheck, Paperclip, Undo2, Layers,
+  FilePlus2, ChevronRight, Pencil, Send, Trash2, Plus, Loader2, History, ShieldCheck, Paperclip, Undo2, Layers, X,
 } from "lucide-react";
 
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
-import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import ApprovalActionModal  from "@/components/common/ApprovalActionModal";
 import HistoryTimelineSheet from "@/components/common/HistoryTimelineSheet";
 import { apiRequest }       from "@/lib/apiClient";
@@ -38,6 +37,45 @@ const STATUS_CLS = (s) =>
       : s === "Reback" ? "bg-amber-50 text-amber-800 border-amber-200"
         : String(s).startsWith("Pending") ? "bg-blue-50 text-blue-700 border-blue-200"
           : "bg-gray-100 text-gray-700 border-gray-200";
+
+// ── highlight lines in the order's Items table (rows carry data-so-line / data-amd) ──
+// Inline styles (not classes): the cells and inputs have their own backgrounds.
+const HL = { outline: "2px solid #9333ea", tint: "#f3e8ff" };       // all lines of an amendment
+const HL_ONE = { outline: "3px solid #f59e0b", tint: "#fef3c7" };   // one line
+function highlightLines(selector, on, look = HL) {
+  if (typeof document === "undefined") return;
+  const rows = document.querySelectorAll(selector);
+  rows.forEach((row) => {
+    // a <tr> outline is not painted in a border-collapse table → style the cells
+    const cells = [...row.children];
+    cells.forEach((td, i) => {
+      td.style.borderTop = on ? look.outline : "";
+      td.style.borderBottom = on ? look.outline : "";
+      if (i === 0) td.style.borderLeft = on ? look.outline : "";
+      if (i === cells.length - 1) td.style.borderRight = on ? look.outline : "";
+      td.style.backgroundColor = on ? look.tint : "";
+      td.querySelectorAll("input, select, textarea").forEach((c) => { c.style.backgroundColor = on ? look.tint : ""; });
+    });
+  });
+  if (on && rows[0]) rows[0].scrollIntoView({ block: "nearest", behavior: "smooth" });
+}
+const clearHighlights = () => highlightLines("[data-so-line]", false);
+
+const hlAmd = (label, on) => {
+  if (!label) return;
+  if (typeof document !== "undefined") document.body.dataset.hlAmd = on ? label : "";
+  highlightLines(`[data-amd="${label}"]`, on);
+};
+const hlLine = (type, slNo, on) => {
+  if (!slNo) return;
+  highlightLines(`[data-so-line="${type}-${slNo}"]`, on, HL_ONE);
+  // back to the amendment-wide highlight when leaving the single line
+  if (!on) {
+    const row = document.querySelector(`[data-so-line="${type}-${slNo}"]`);
+    const amd = row?.getAttribute("data-amd");
+    if (amd && row.closest("body")?.dataset.hlAmd === amd) highlightLines(`[data-so-line="${type}-${slNo}"]`, true);
+  }
+};
 
 const EMPTY_LINE = { type: "non-boq", itemCode: "", itemName: "", itemDescription: "", unit: "", orderQty: "", rate: "", gstPercent: "" };
 
@@ -62,6 +100,32 @@ export default function SaleOrderAmendments({ saleOrderId, onOrderChanged }) {
   const [timeline, setTimeline] = useState(null);   // amendment id
   const [drawer,   setDrawer]   = useState(false);
   const [peek,     setPeek]     = useState(false);   // hover preview
+  const [pos,      setPos]      = useState(() => {   // floating box position (dragged by its header, remembered)
+    try { return JSON.parse(localStorage.getItem("soAmdBoxPos") || "null"); } catch { return null; }
+  });
+
+  const startDrag = (e) => {
+    if (e.button !== 0 || e.target.closest("button, a, input")) return;
+    const box = e.currentTarget.parentElement.getBoundingClientRect();
+    const dx = e.clientX - box.left, dy = e.clientY - box.top;
+    let last = null;
+    const move = (ev) => {
+      last = {
+        x: Math.min(Math.max(ev.clientX - dx, 8), window.innerWidth - 160),
+        y: Math.min(Math.max(ev.clientY - dy, 8), window.innerHeight - 60),
+      };
+      setPos(last);
+    };
+    const up = () => {
+      window.removeEventListener("mousemove", move);
+      window.removeEventListener("mouseup", up);
+      if (last) { try { localStorage.setItem("soAmdBoxPos", JSON.stringify(last)); } catch { /* ignore */ } }
+    };
+    window.addEventListener("mousemove", move);
+    window.addEventListener("mouseup", up);
+    e.preventDefault();
+  };
+  const resetPos = () => { setPos(null); try { localStorage.removeItem("soAmdBoxPos"); } catch { /* ignore */ } };
 
   const load = useCallback(async () => {
     if (!saleOrderId) return;
@@ -88,6 +152,17 @@ export default function SaleOrderAmendments({ saleOrderId, onOrderChanged }) {
   useEffect(() => { load(); }, [load]);
 
   const refreshAll = () => { load(); onOrderChanged?.(); };
+
+  // never leave a line highlighted when the box / preview closes or this unmounts
+  useEffect(() => { if (!drawer && !peek) clearHighlights(); }, [drawer, peek]);
+  useEffect(() => clearHighlights, []);
+
+  useEffect(() => {
+    if (!drawer) return undefined;
+    const onKey = (e) => { if (e.key === "Escape" && !editor && !approve && !timeline) setDrawer(false); };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [drawer, editor, approve, timeline]);
 
   const openDrawer = (focusId) => {
     setPeek(false);
@@ -167,6 +242,8 @@ export default function SaleOrderAmendments({ saleOrderId, onOrderChanged }) {
                 {amds.length === 0 && <div className="px-3 py-2 text-gray-500">No amendments yet.</div>}
                 {amds.map((a) => (
                   <button key={a.id} type="button" onClick={() => openDrawer(a.id)}
+                    onMouseEnter={() => hlAmd(a.label, true)} onMouseLeave={() => hlAmd(a.label, false)}
+                    title="Click to open · its lines are highlighted in Items"
                     className="w-full flex items-center gap-2 px-3 py-1.5 text-left hover:bg-[#edf4fb]">
                     <AmdBadge label={a.label} />
                     <span className="truncate flex-1 text-gray-700" title={a.reason}>{a.reason}</span>
@@ -189,18 +266,17 @@ export default function SaleOrderAmendments({ saleOrderId, onOrderChanged }) {
         )}
       </div>
 
-      {/* ── side drawer: full list with its own scroll ── */}
-      {/* non-modal: no blur, the order's Items stay visible and usable beside it;
-          closes with its X or Esc (not on outside clicks, so its own dialogs work) */}
-      <Sheet open={drawer} onOpenChange={setDrawer} modal={false}>
-        <SheetContent side="right"
-          onInteractOutside={(e) => e.preventDefault()}
-          className="p-0 gap-0 bg-white opacity-100 shadow-2xl border-l-2 border-[#7c9cc4] data-[side=right]:w-[min(820px,94vw)] data-[side=right]:sm:max-w-none">
-          <SheetHeader className="px-4 py-3 border-b">
-            <SheetTitle className="text-[15px]">Amendments · {data.ogSaleOrderNo}</SheetTitle>
-          </SheetHeader>
-      <div className="flex flex-wrap items-center gap-2 px-4 py-2 border-b bg-[#edf4fb]">
-        <span className="text-[14px] font-semibold text-[#1e3a5f]">Amendments</span>
+      {/* ── floating box: only as tall as its content, scrolls inside; the page stays
+          visible and usable around it. Closes with ✕ or Esc. ── */}
+      {drawer && (
+        <div role="dialog" aria-label={`Amendments of ${data.ogSaleOrderNo}`}
+          style={pos ? { left: pos.x, top: pos.y, right: "auto", maxHeight: `calc(100vh - ${pos.y + 16}px)` } : undefined}
+          className="fixed z-40 right-4 top-[120px] w-[min(760px,calc(100vw-2rem))] max-h-[calc(100vh-150px)] flex flex-col
+                     rounded-xl border border-[#9fb6d4] bg-white shadow-2xl animate-in fade-in-0 slide-in-from-right-4 duration-150">
+      <div className="flex flex-wrap items-center gap-2 px-4 py-2.5 border-b bg-[#edf4fb] rounded-t-xl cursor-move select-none"
+        onMouseDown={startDrag} onDoubleClick={resetPos} title="Drag to move · double-click to put it back">
+        <Layers className="w-4 h-4 text-[#1e3a5f]" />
+        <span className="text-[14px] font-semibold text-[#1e3a5f]">Amendments · {data.ogSaleOrderNo}</span>
         <span className="text-[12px] text-gray-600">
           Original {data.originalDate ? `(${dmy(data.originalDate)})` : ""} ₹ {formatAmount(data.originalTotal)}
           {amds.some((a) => a.workflowStatus === "Approved") && <> → now <b>₹ {formatAmount(data.currentTotal)}</b></>}
@@ -215,10 +291,14 @@ export default function SaleOrderAmendments({ saleOrderId, onOrderChanged }) {
               <FilePlus2 className="w-4 h-4" /> Amend (add items)
             </button>
           )}
+          <button type="button" onClick={() => setDrawer(false)} title="Close (Esc)"
+            className="h-8 w-8 inline-flex items-center justify-center rounded-md text-gray-500 hover:bg-white hover:text-gray-800">
+            <X className="w-4 h-4" />
+          </button>
         </div>
       </div>
 
-      <div className="flex-1 overflow-y-auto">
+      <div className="min-h-0 overflow-y-auto overscroll-contain">
       {amds.length === 0 ? (
         <div className="px-3 py-4 text-[12.5px] text-gray-500">
           No amendments yet. Use <b>Amend</b> to add extra items to this approved order. They go through the same approval, and
@@ -230,7 +310,8 @@ export default function SaleOrderAmendments({ saleOrderId, onOrderChanged }) {
             const pend = pending[a.id];
             const canEdit = data.isCreator && (a.workflowStatus === "Draft" || a.workflowStatus === "Reback");
             return (
-              <div key={a.id} className="px-3 py-2">
+              <div key={a.id} className="px-3 py-2 hover:bg-[#fafcfe]"
+                onMouseEnter={() => hlAmd(a.label, true)} onMouseLeave={() => hlAmd(a.label, false)}>
                 <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
                   <button type="button" onClick={() => setOpen((p) => ({ ...p, [a.id]: !p[a.id] }))}
                     className="flex items-center gap-1.5" aria-expanded={!!open[a.id]}>
@@ -315,7 +396,9 @@ export default function SaleOrderAmendments({ saleOrderId, onOrderChanged }) {
                         </thead>
                         <tbody>
                           {(a.items || []).map((i) => (
-                            <tr key={i.id} className="border-t border-[#e2e8f0]">
+                            <tr key={i.id} className="border-t border-[#e2e8f0] hover:bg-purple-50"
+                              onMouseEnter={() => hlLine(i.type, i.orderSlNo, true)}
+                              onMouseLeave={() => hlLine(i.type, i.orderSlNo, false)}>
                               <td className="px-2 py-1 text-gray-500">{i.slNo}</td>
                               <td className="px-2 py-1">{i.type === "boq" ? "BOQ" : "Non-BOQ"}</td>
                               <td className="px-2 py-1">{i.itemCode}</td>
@@ -353,8 +436,8 @@ export default function SaleOrderAmendments({ saleOrderId, onOrderChanged }) {
         </div>
       )}
       </div>
-        </SheetContent>
-      </Sheet>
+        </div>
+      )}
 
       {editor && (
         <AmendmentEditor
@@ -405,6 +488,7 @@ function AmendmentEditor({ saleOrderId, editor, onClose, onSaved }) {
   );
   const [saving, setSaving] = useState(false);
   const [current, setCurrent] = useState(null);     // the order's lines as they are now
+  const [hoverRow, setHoverRow] = useState(null);   // current item under the mouse → details strip
 
   useEffect(() => {
     apiRequest({ url: `${EP.GET_BY_ID}${saleOrderId}`, method: "GET" })
@@ -524,7 +608,9 @@ function AmendmentEditor({ saleOrderId, editor, onClose, onSaved }) {
                 </thead>
                 <tbody>
                   {(current?.rows || []).map((r) => (
-                    <tr key={`${r.type}-${r.id}`} className="border-t border-[#e2e8f0] align-top hover:bg-white">
+                    <tr key={`${r.type}-${r.id}`}
+                      onMouseEnter={() => setHoverRow(r)} onMouseLeave={() => setHoverRow((h) => (h === r ? null : h))}
+                      className={`border-t border-[#e2e8f0] align-top cursor-default ${hoverRow === r ? "bg-blue-50" : "hover:bg-white"}`}>
                       <td className="px-1.5 py-1 text-gray-500 whitespace-nowrap">
                         {r.type === "boq" ? "B" : "N"}{r.slNo}
                         {r.amendmentNo && <div><AmdBadge label={r.amendmentNo} /></div>}
@@ -548,8 +634,27 @@ function AmendmentEditor({ saleOrderId, editor, onClose, onSaved }) {
                 </tbody>
               </table>
             </div>
-            <div className="px-2.5 py-1 border-t text-[11px] text-gray-500">
-              Use <Plus className="w-3 h-3 inline" /> to start a new line from an existing item. Existing lines are never changed.
+            {/* details of the hovered line (fixed height so the list doesn't jump) */}
+            <div className="px-2.5 py-1.5 border-t text-[11.5px] min-h-[52px] bg-white rounded-b-lg">
+              {hoverRow ? (
+                <div className="space-y-0.5">
+                  <div className="text-gray-800">
+                    <b>{hoverRow.type === "boq" ? "BOQ" : "Non-BOQ"} Sl. {hoverRow.slNo}</b>
+                    {hoverRow.itemCode ? ` · ${hoverRow.itemCode}` : ""} · {hoverRow.itemName}
+                    {hoverRow.amendmentNo && <> <AmdBadge label={hoverRow.amendmentNo} /></>}
+                  </div>
+                  {hoverRow.itemDescription && <div className="text-gray-500 line-clamp-2">{hoverRow.itemDescription}</div>}
+                  <div className="text-gray-600 tabular-nums">
+                    {hoverRow.orderQty} {hoverRow.unit || ""} × ₹ {formatAmount(hoverRow.rate)} = ₹ {formatAmount(hoverRow.amount)}
+                    {" "}+ GST {hoverRow.gstPercent}% ₹ {formatAmount(hoverRow.gstAmount)}
+                    {" "}→ <b>₹ {formatAmount(num(hoverRow.amount) + num(hoverRow.gstAmount))}</b>
+                  </div>
+                </div>
+              ) : (
+                <span className="text-gray-500">
+                  Hover a line for its full details. Use <Plus className="w-3 h-3 inline" /> to start a new line from it. Existing lines are never changed.
+                </span>
+              )}
             </div>
           </div>
 
