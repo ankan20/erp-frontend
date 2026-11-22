@@ -196,7 +196,10 @@ async function downloadDocx(data, qrCanvasRef) {
           tCell(item.rowType,   cW[1], false, undefined, AlignmentType.CENTER),
           tCell(item.itemCode || "", cW[2]),
           tCellMulti([
-            new Paragraph({ children: [run(item.itemName || "", { bold: true, size: 19 })] }),
+            new Paragraph({ children: [
+              run(item.itemName || "", { bold: true, size: 19 }),
+              ...(item.amendmentNo ? [run(`  [${item.amendmentNo}]`, { size: 15, color: "7E22CE" })] : []),
+            ] }),
             ...(item.itemDescription ? [new Paragraph({ children: [run(item.itemDescription, { size: 16, color: "6B7280" })] })] : []),
           ], cW[3]),
           tCell(item.unit || "", cW[4], false, undefined, AlignmentType.CENTER),
@@ -480,7 +483,14 @@ export default function OGSaleOrderPrintPage() {
                       </td>
                       <td className={`border ${COLOR.tableBorder} px-1 py-1.5 ${SIZE.tableCell} text-center`} style={{ whiteSpace: "nowrap" }}>{item.itemCode || "-"}</td>
                       <td className={`border ${COLOR.tableBorder} px-1 py-1.5`}>
-                        <p className={ITEM_NAME}>{item.itemName || "-"}</p>
+                        <p className={ITEM_NAME}>
+                          {item.itemName || "-"}
+                          {item.amendmentNo && (
+                            <span className="ml-1 inline-block rounded border border-purple-300 px-1 text-[9px] font-semibold text-purple-700 align-middle">
+                              {item.amendmentNo}
+                            </span>
+                          )}
+                        </p>
                         {item.itemDescription && <p className={ITEM_SUB}>{item.itemDescription}</p>}
                       </td>
                       <td className={`border ${COLOR.tableBorder} px-1 py-1.5 ${SIZE.tableCell} text-center`} style={{ whiteSpace: "nowrap" }}>{item.unit || "-"}</td>

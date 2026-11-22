@@ -25,6 +25,7 @@ import QtyInput           from "@/components/common/QtyInput";
 import AmountInput        from "@/components/common/AmountInput";
 import GstInput           from "@/components/common/GstInput";
 import { formatAmount }   from "@/helper/numberFormatter";
+import { AmdBadge }       from "./SaleOrderAmendments";
 
 import SearchableSelect    from "@/components/common/SearchableSelect";
 import { apiRequest }      from "@/lib/apiClient";
@@ -45,6 +46,8 @@ const rowSchema = z.object({
   orderQty:        z.coerce.number().min(0).optional(),
   rate:            z.coerce.number().min(0).optional(),
   gstPercent:      z.coerce.number().min(0).optional(),
+  amendmentId:     z.any().optional(),   // line added by an amendment (kept through an edit)
+  amendmentNo:     z.any().optional(),
 });
 
 const schema = z.object({
@@ -89,6 +92,8 @@ const mapRow = (it, type) => ({
   orderQty:        it.orderQty        || "",
   rate:            it.rate            || "",
   gstPercent:      it.gstPercent      || "",
+  amendmentId:     it.amendmentId     || null,
+  amendmentNo:     it.amendmentNo     || null,
 });
 
 // ── COMPONENT ─────────────────────────────────────────────────────────────────
@@ -187,7 +192,7 @@ export default function OGSaleOrderForm({ mode = "create", saleOrderId, onAfterS
         const allRows = [
           ...(d.items    || []).map((it) => mapRow(it, "non-boq")),
           ...(d.boqItems || []).map((it) => mapRow(it, "boq")),
-        ];
+        ].map((r) => (isCopy ? { ...r, amendmentId: null, amendmentNo: null } : r));   // a copy is a fresh order
 
         const formatted = {
           erpDocNumber:   d.erpDocNumber   || "",
@@ -279,6 +284,7 @@ export default function OGSaleOrderForm({ mode = "create", saleOrderId, onAfterS
             orderQty:        Number(it.orderQty   || 0),
             rate:            Number(it.rate       || 0),
             gstPercent:      Number(it.gstPercent || 0),
+            amendmentId:     it.amendmentId || null,
           })),
       );
 
@@ -580,6 +586,7 @@ export default function OGSaleOrderForm({ mode = "create", saleOrderId, onAfterS
                         {/* SL */}
                         <td className="border border-[#ccc] text-center bg-[#edf4fb] text-[13px] font-medium align-middle">
                           {index + 1}
+                          {row.amendmentNo && <div className="mt-0.5"><AmdBadge label={row.amendmentNo} /></div>}
                         </td>
 
                         {/* TYPE */}

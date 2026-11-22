@@ -33,6 +33,7 @@ import { getInputClass }       from "@/lib/formStyles";
 import { zodDate }             from "@/lib/dateUtils";
 import { useResizableTable }   from "@/hooks/useResizableTable";
 import { useCopySource, forCopy, copyLoadedToast } from "@/lib/copyRecord";
+import { AmdBadge } from "@/components/project-management/contacts/sale-order/SaleOrderAmendments";
 
 const BILL_MODE = "sale_claim_bill";
 
@@ -218,6 +219,7 @@ export default function SaleClaimBillForm({ mode = "create", billId, onAfterSubm
         setValue("preCertifiedAmount", d.preCertifiedAmount, { shouldDirty: true });
       const mapOrderItem = (it, type) => ({
         type,
+        amendmentNo:       it.amendmentNo || null,   // line added by a Sale Order amendment
         ogSaleOrderItemId: it.id || it.ogSaleOrderItemId || null,
         itemDisplayCode:   it.itemDisplayCode || it.itemCode  || "",
         itemCode:          it.itemCode        || "",
@@ -257,6 +259,7 @@ export default function SaleClaimBillForm({ mode = "create", billId, onAfterSubm
         const d = res.data;
         const mapDetailItem = (it, type) => ({
           type,
+          amendmentNo:       it.amendmentNo || null,   // line added by a Sale Order amendment
           ogSaleOrderItemId: it.ogSaleOrderItemId || null,
           itemDisplayCode:   it.itemDisplayCode   || it.itemCode || "",
           itemCode:          it.itemCode           || "",
@@ -465,7 +468,7 @@ export default function SaleClaimBillForm({ mode = "create", billId, onAfterSubm
 
       switch (colId) {
         case "sl":
-          return <td key={colId} className="border border-[#ccc] text-center bg-[#edf4fb] text-[13px] font-medium align-middle">{index + 1}</td>;
+          return <td key={colId} className="border border-[#ccc] text-center bg-[#edf4fb] text-[13px] font-medium align-middle">{index + 1}{item?.amendmentNo && <div className="mt-0.5"><AmdBadge label={item.amendmentNo} /></div>}</td>;
         case "itemCode":
           return (
             <td key={colId} className="border border-[#ccc] p-0 align-middle">
@@ -784,7 +787,7 @@ export default function SaleClaimBillForm({ mode = "create", billId, onAfterSubm
 
                 const viewCell = (colId) => {
                   switch (colId) {
-                    case "sl":       return <td key={colId} className="border border-[#ccc] text-center align-middle font-medium bg-[#edf4fb]">{index + 1}</td>;
+                    case "sl":       return <td key={colId} className="border border-[#ccc] text-center align-middle font-medium bg-[#edf4fb]">{index + 1}{item?.amendmentNo && <div className="mt-0.5"><AmdBadge label={item.amendmentNo} /></div>}</td>;
                     case "itemCode": return <td key={colId} className="border border-[#ccc] px-2 align-middle text-[#555]">{item?.itemDisplayCode || item?.itemCode || "—"}</td>;
                     case "itemName": return (
                       <td key={colId} className="border border-[#ccc] p-0">

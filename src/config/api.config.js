@@ -447,6 +447,17 @@ export const API_ENDPOINTS = {
       BULK_REFERENCE:     "/project-mgmt/og-sale-order/bulk/reference",             // GET ?projectCode — debtor list
       BULK_VALIDATE:      "/project-mgmt/og-sale-order/bulk/validate",              // POST {projectCode, orders, items}
       BULK_IMPORT:        "/project-mgmt/og-sale-order/bulk/import",                // POST {projectCode, orders, items, submit}
+      // Amendments (extra items on an Approved order) — ids appended as /<id>
+      AMENDMENTS_OF:      "/project-mgmt/og-sale-order",                            // /:soId/amendments GET
+      AMENDMENT_CREATE:   "/project-mgmt/og-sale-order",                            // /:soId/amendment/create POST multipart
+      AMENDMENT:          "/project-mgmt/og-sale-order/amendment",                  // /:id GET · DELETE
+      AMENDMENT_EDIT:     "/project-mgmt/og-sale-order/amendment/edit",             // /:id PUT multipart
+      AMENDMENT_SUBMIT:   "/project-mgmt/og-sale-order/amendment/submit",           // /:id POST
+      AMENDMENT_APPROVE:  "/project-mgmt/og-sale-order/amendment/approve",          // /:id POST {comments}
+      AMENDMENT_REBACK:   "/project-mgmt/og-sale-order/amendment/reback",           // /:id POST {comments}
+      AMENDMENT_REJECT:   "/project-mgmt/og-sale-order/amendment/reject",           // /:id POST {comments}
+      AMENDMENT_HISTORY:  "/project-mgmt/og-sale-order/amendment/history",          // /:id GET
+      AMENDMENT_MY_STATUS:"/project-mgmt/og-sale-order/amendment/my-approval-status", // /:id GET
     },
     BUDGET_MASTER: {
       // Lookups

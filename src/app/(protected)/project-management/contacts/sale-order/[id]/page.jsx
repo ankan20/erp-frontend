@@ -14,6 +14,7 @@ import { API_ENDPOINTS }     from "@/config/api.config";
 import { useMyApprovalStatus } from "@/hooks/useMyApprovalStatus";
 import { useDeletePending } from "@/hooks/useDeletePending";
 import OGSaleOrderForm from "@/components/project-management/contacts/sale-order/OGSaleOrderForm";
+import SaleOrderAmendments from "@/components/project-management/contacts/sale-order/SaleOrderAmendments";
 
 export default function Page() {
   const router    = useRouter();
@@ -22,6 +23,7 @@ export default function Page() {
   const [openApproval, setOpenApproval] = useState(false);
   const [openTimeline, setOpenTimeline] = useState(false);
   const [uuid,         setUuid]         = useState(null);
+  const [formKey,      setFormKey]      = useState(0);   // reload the order after an amendment is approved
 
   const access = getPageAccess({ pageCode: "sale_order", pageType: "EDIT" });
   const { isPendingForMe, myLevel, refresh, dismiss } = useMyApprovalStatus(
@@ -54,7 +56,8 @@ export default function Page() {
       pendingDeletion={isPendingDeletion ? pendingInfo : null}
       onDismissDeletion={dismissDeletion}
     >
-      <OGSaleOrderForm mode={access.mode} saleOrderId={id} onAfterSubmit={refresh} onUuid={setUuid} />
+      <OGSaleOrderForm key={formKey} mode={access.mode} saleOrderId={id} onAfterSubmit={refresh} onUuid={setUuid} />
+      <SaleOrderAmendments saleOrderId={id} onOrderChanged={() => setFormKey((k) => k + 1)} />
 
       <ApprovalActionModal
         open={openApproval}

@@ -60,6 +60,8 @@ export default function Page() {
           billed:         fmtNum(r.billed),
           jobBalance:     fmtNum(r.jobBalance),
           workflowStatus: r.workflowStatus       || "",
+          amendments:     [r.amendmentCount ? `${r.amendmentCount} approved` : "", r.openAmendment || ""]
+                            .filter(Boolean).join(" · "),
         }));
 
         setData(list);
@@ -110,6 +112,7 @@ export default function Page() {
     { header: "Billed",                  accessor: "billed",         width: "110px", align: "right" },
     { header: "Job Balance",             accessor: "jobBalance",     width: "120px", align: "right" },
     { header: "Status",                  accessor: "workflowStatus", width: "120px" },
+    { header: "Amendments",              accessor: "amendments",     width: "150px" },
   ];
 
   const actions = getPageActions({ router });
