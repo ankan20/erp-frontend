@@ -56,8 +56,11 @@ export default function Page() {
       pendingDeletion={isPendingDeletion ? pendingInfo : null}
       onDismissDeletion={dismissDeletion}
     >
-      <OGSaleOrderForm key={formKey} mode={access.mode} saleOrderId={id} onAfterSubmit={refresh} onUuid={setUuid} />
-      <SaleOrderAmendments saleOrderId={id} onOrderChanged={() => setFormKey((k) => k + 1)} />
+      <OGSaleOrderForm
+        mode={access.mode} saleOrderId={id} onAfterSubmit={refresh} onUuid={setUuid}
+        reloadKey={formKey}
+        itemsHeaderExtra={<SaleOrderAmendments saleOrderId={id} onOrderChanged={() => setFormKey((k) => k + 1)} />}
+      />
 
       <ApprovalActionModal
         open={openApproval}

@@ -97,7 +97,9 @@ const mapRow = (it, type) => ({
 });
 
 // ── COMPONENT ─────────────────────────────────────────────────────────────────
-export default function OGSaleOrderForm({ mode = "create", saleOrderId, onAfterSubmit, onUuid }) {
+// itemsHeaderExtra: rendered at the right of the "Items" header (e.g. the Amendments button)
+// reloadKey: bump it to re-fetch the order in place (e.g. after an amendment is approved)
+export default function OGSaleOrderForm({ mode = "create", saleOrderId, onAfterSubmit, onUuid, itemsHeaderExtra, reloadKey = 0 }) {
   // Copy: /new?copy=<id> pre-fills this create form from that record.
   const copyFromId = useCopySource();
   const isCopy = mode === "create" && !!copyFromId;
@@ -241,7 +243,7 @@ export default function OGSaleOrderForm({ mode = "create", saleOrderId, onAfterS
     };
 
     fetchDetail();
-  }, [copyFromId, saleOrderId, mode]);
+  }, [copyFromId, saleOrderId, mode, reloadKey]);
 
   // ── EDIT / CANCEL ─────────────────────────────────────────────────────────────
   const handleEdit = () => {
@@ -370,7 +372,9 @@ export default function OGSaleOrderForm({ mode = "create", saleOrderId, onAfterS
     }
   };
 
-  if (isLoading) {
+  // full-page loader only on the first load — a reload (reloadKey) keeps the form
+  // and its header widgets (e.g. the open Amendments drawer) mounted
+  if (isLoading && !initialData) {
     return (
       <div className="flex justify-center items-center h-[300px]">
         <EdoxMark size={32} />
@@ -546,8 +550,9 @@ export default function OGSaleOrderForm({ mode = "create", saleOrderId, onAfterS
         <div className="w-full lg:flex-1 min-w-0 space-y-4">
 
           <div className="border border-[#b5b5b5]">
-            <div className="bg-[#d6e4f5] px-3 py-1.5 border-b border-[#b5b5b5] font-bold text-[15px] text-[#1c3a5e]">
+            <div className="bg-[#d6e4f5] px-3 py-1.5 border-b border-[#b5b5b5] font-bold text-[15px] text-[#1c3a5e] flex items-center gap-2">
               Items
+              {itemsHeaderExtra && <div className="ml-auto font-normal">{itemsHeaderExtra}</div>}
             </div>
             <div ref={scrollRef} className="overflow-x-auto overflow-y-auto lg:max-h-[calc(100vh-300px)]">
               <table ref={tableRef} className="w-full border-collapse text-sm" style={{ minWidth: 1325, tableLayout: "fixed" }}>

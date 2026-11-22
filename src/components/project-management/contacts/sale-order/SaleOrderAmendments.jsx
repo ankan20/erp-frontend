@@ -1,7 +1,9 @@
 "use client";
 
 // Sale Order amendments: extra items on an Approved order.
-// Shows the amendment history (Original → AMD-1 → AMD-2 …), lets a Sale Order
+// Renders a compact "Amendments" button (placed beside the order's Items
+// header). Hover shows a quick list; click opens a side drawer with the full
+// amendment history (Original → AMD-1 → AMD-2 …), which lets a Sale Order
 // creator raise / edit / submit / delete an amendment, and lets the current
 // approver approve / reback / reject it. On final approval the backend adds the
 // lines to the order (tagged AMD-n) — the order form above is then reloaded.
@@ -9,10 +11,11 @@
 import { useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
 import {
-  FilePlus2, ChevronRight, Pencil, Send, Trash2, Plus, Loader2, History, ShieldCheck, Paperclip, Undo2,
+  FilePlus2, ChevronRight, Pencil, Send, Trash2, Plus, Loader2, History, ShieldCheck, Paperclip, Undo2, Layers,
 } from "lucide-react";
 
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import ApprovalActionModal  from "@/components/common/ApprovalActionModal";
 import HistoryTimelineSheet from "@/components/common/HistoryTimelineSheet";
 import { apiRequest }       from "@/lib/apiClient";
@@ -57,6 +60,8 @@ export default function SaleOrderAmendments({ saleOrderId, onOrderChanged }) {
   const [pending,  setPending]  = useState({});     // amendment id → { isPendingForMe, myLevel }
   const [approve,  setApprove]  = useState(null);   // amendment being approved
   const [timeline, setTimeline] = useState(null);   // amendment id
+  const [drawer,   setDrawer]   = useState(false);
+  const [peek,     setPeek]     = useState(false);   // hover preview
 
   const load = useCallback(async () => {
     if (!saleOrderId) return;
@@ -83,6 +88,12 @@ export default function SaleOrderAmendments({ saleOrderId, onOrderChanged }) {
   useEffect(() => { load(); }, [load]);
 
   const refreshAll = () => { load(); onOrderChanged?.(); };
+
+  const openDrawer = (focusId) => {
+    setPeek(false);
+    if (focusId) setOpen((p) => ({ ...p, [focusId]: true }));
+    setDrawer(true);
+  };
 
   const submit = async (a) => {
     setBusyId(a.id);
@@ -123,10 +134,72 @@ export default function SaleOrderAmendments({ saleOrderId, onOrderChanged }) {
   if (loading || !data) return null;
   const amds = data.amendments || [];
   if (!amds.length && !data.canAmend && data.workflowStatus !== "Approved") return null;
+  const approvedCount = amds.filter((a) => a.workflowStatus === "Approved").length;
+  const openAmd = amds.find((a) => isOpen(a.workflowStatus));
+  const forMe = amds.some((a) => pending[a.id]?.isPendingForMe);
 
   return (
-    <div className="mx-3 mb-4 rounded-lg border border-[#c4d1df] bg-white">
-      <div className="flex flex-wrap items-center gap-2 px-3 py-2 border-b bg-[#edf4fb] rounded-t-lg">
+    <>
+      {/* ── trigger (beside the Items header) + hover preview ── */}
+      <div className="relative inline-block" onMouseEnter={() => setPeek(true)} onMouseLeave={() => setPeek(false)}>
+        <button type="button" onClick={() => openDrawer()}
+          className="inline-flex items-center gap-1.5 h-7 px-2.5 rounded-md border border-[#7c9cc4] bg-white text-[12.5px] font-semibold text-[#1e3a5f] hover:bg-[#edf4fb]"
+          aria-haspopup="dialog" title="Amendments of this order">
+          <Layers className="w-4 h-4" />
+          Amendments
+          {approvedCount > 0 && (
+            <span className="min-w-[18px] h-[18px] px-1 rounded-full bg-purple-600 text-white text-[10.5px] leading-[18px] text-center">{approvedCount}</span>
+          )}
+          {openAmd && (
+            <span className={`w-2 h-2 rounded-full ${forMe ? "bg-red-500 animate-pulse" : "bg-amber-500"}`}
+              title={forMe ? "Waiting for your approval" : `${openAmd.label} is ${openAmd.workflowStatus}`} />
+          )}
+        </button>
+
+        {peek && (
+          <div className="absolute right-0 top-full z-40 pt-1.5">
+            <div className="w-[340px] rounded-lg border border-[#c4d1df] bg-white shadow-xl text-[12px] font-normal">
+              <div className="px-3 py-2 border-b bg-[#f5f8fc] rounded-t-lg text-gray-700">
+                Original ₹ {formatAmount(data.originalTotal)}
+                {approvedCount > 0 && <> → now <b>₹ {formatAmount(data.currentTotal)}</b></>}
+              </div>
+              <div className="max-h-[240px] overflow-y-auto divide-y">
+                {amds.length === 0 && <div className="px-3 py-2 text-gray-500">No amendments yet.</div>}
+                {amds.map((a) => (
+                  <button key={a.id} type="button" onClick={() => openDrawer(a.id)}
+                    className="w-full flex items-center gap-2 px-3 py-1.5 text-left hover:bg-[#edf4fb]">
+                    <AmdBadge label={a.label} />
+                    <span className="truncate flex-1 text-gray-700" title={a.reason}>{a.reason}</span>
+                    <span className="tabular-nums text-gray-800">+{formatAmount(a.totalAmount)}</span>
+                    <span className={`text-[10.5px] px-1 rounded border ${STATUS_CLS(a.workflowStatus)}`}>{a.workflowStatus}</span>
+                  </button>
+                ))}
+              </div>
+              <div className="flex items-center gap-2 px-3 py-2 border-t">
+                <button type="button" onClick={() => openDrawer()} className="text-blue-600 hover:underline">Open amendments</button>
+                {data.canAmend && (
+                  <button type="button" onClick={() => { setPeek(false); setEditor({ mode: "create" }); }}
+                    className="ml-auto inline-flex items-center gap-1 h-7 px-2.5 rounded-md bg-[#1e3a5f] text-white hover:bg-[#2a5080]">
+                    <FilePlus2 className="w-3.5 h-3.5" /> Amend
+                  </button>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* ── side drawer: full list with its own scroll ── */}
+      {/* non-modal: no blur, the order's Items stay visible and usable beside it;
+          closes with its X or Esc (not on outside clicks, so its own dialogs work) */}
+      <Sheet open={drawer} onOpenChange={setDrawer} modal={false}>
+        <SheetContent side="right"
+          onInteractOutside={(e) => e.preventDefault()}
+          className="p-0 gap-0 bg-white opacity-100 shadow-2xl border-l-2 border-[#7c9cc4] data-[side=right]:w-[min(820px,94vw)] data-[side=right]:sm:max-w-none">
+          <SheetHeader className="px-4 py-3 border-b">
+            <SheetTitle className="text-[15px]">Amendments · {data.ogSaleOrderNo}</SheetTitle>
+          </SheetHeader>
+      <div className="flex flex-wrap items-center gap-2 px-4 py-2 border-b bg-[#edf4fb]">
         <span className="text-[14px] font-semibold text-[#1e3a5f]">Amendments</span>
         <span className="text-[12px] text-gray-600">
           Original {data.originalDate ? `(${dmy(data.originalDate)})` : ""} ₹ {formatAmount(data.originalTotal)}
@@ -145,6 +218,7 @@ export default function SaleOrderAmendments({ saleOrderId, onOrderChanged }) {
         </div>
       </div>
 
+      <div className="flex-1 overflow-y-auto">
       {amds.length === 0 ? (
         <div className="px-3 py-4 text-[12.5px] text-gray-500">
           No amendments yet. Use <b>Amend</b> to add extra items to this approved order. They go through the same approval, and
@@ -278,6 +352,9 @@ export default function SaleOrderAmendments({ saleOrderId, onOrderChanged }) {
           })}
         </div>
       )}
+      </div>
+        </SheetContent>
+      </Sheet>
 
       {editor && (
         <AmendmentEditor
@@ -308,7 +385,7 @@ export default function SaleOrderAmendments({ saleOrderId, onOrderChanged }) {
         api={EP.AMENDMENT_HISTORY}
         entityId={timeline}
       />
-    </div>
+    </>
   );
 }
 
@@ -327,6 +404,38 @@ function AmendmentEditor({ saleOrderId, editor, onClose, onSaved }) {
       : [{ ...EMPTY_LINE }],
   );
   const [saving, setSaving] = useState(false);
+  const [current, setCurrent] = useState(null);     // the order's lines as they are now
+
+  useEffect(() => {
+    apiRequest({ url: `${EP.GET_BY_ID}${saleOrderId}`, method: "GET" })
+      .then((r) => {
+        const d = r.data || {};
+        setCurrent({
+          rows: [
+            ...(d.items || []).map((i) => ({ ...i, type: "non-boq" })),
+            ...(d.boqItems || []).map((i) => ({ ...i, type: "boq" })),
+          ],
+          basic: d.basicAmount, gst: d.gstAmount, total: d.totalAmount,
+        });
+      })
+      .catch(() => setCurrent({ rows: [], error: true }));
+  }, [saleOrderId]);
+
+  // same code / name already on the order → show where
+  const existingKey = (t, v) => `${t}|${String(v || "").trim().toLowerCase()}`;
+  const existing = {};
+  (current?.rows || []).forEach((r) => {
+    if (r.itemCode) existing[existingKey("c", r.itemCode)] = r;
+    if (r.itemName) existing[existingKey("n", r.itemName)] = r;
+  });
+  const dupOf = (l) => (l.itemCode && existing[existingKey("c", l.itemCode)]) || (l.itemName && existing[existingKey("n", l.itemName)]) || null;
+
+  const addFrom = (r) => setLines((p) => {
+    const blank = p.length === 1 && !p[0].itemName.trim() && !p[0].itemCode.trim();
+    const line = { type: r.type, itemCode: r.itemCode || "", itemName: r.itemName || "", itemDescription: r.itemDescription || "",
+                   unit: r.unit || "", orderQty: "", rate: String(r.rate ?? ""), gstPercent: String(r.gstPercent ?? "") };
+    return blank ? [line] : [...p, line];
+  });
 
   const setLine = (idx, k, v) => setLines((p) => p.map((l, j) => (j === idx ? { ...l, [k]: v } : l)));
   const basic = lines.reduce((s, l) => s + num(l.orderQty) * num(l.rate), 0);
@@ -371,7 +480,7 @@ function AmendmentEditor({ saleOrderId, editor, onClose, onSaved }) {
 
   return (
     <Dialog open onOpenChange={(o) => { if (!o && !saving) onClose(); }}>
-      <DialogContent className="sm:max-w-[1100px] max-h-[90vh] overflow-y-auto">
+      <DialogContent className="sm:max-w-[min(1560px,97vw)] max-h-[92vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>{editor.mode === "create" ? "Amend Sale Order — add items" : `Edit ${amd.label}`}</DialogTitle>
         </DialogHeader>
@@ -393,8 +502,62 @@ function AmendmentEditor({ saleOrderId, editor, onClose, onSaved }) {
           </label>
         </div>
 
-        <div className="overflow-x-auto mt-1">
-          <table className="w-full text-[12.5px] min-w-[960px]">
+        <div className="grid grid-cols-1 xl:grid-cols-[minmax(360px,5fr)_minmax(0,9fr)] gap-3 mt-1">
+          {/* LEFT: what the order has now */}
+          <div className="rounded-lg border border-[#c4d1df] bg-[#fafcfe] flex flex-col min-h-0">
+            <div className="flex items-center gap-2 px-2.5 py-1.5 border-b bg-[#edf4fb] rounded-t-lg">
+              <span className="text-[12.5px] font-semibold text-[#1e3a5f]">Current order items</span>
+              <span className="text-[11.5px] text-gray-500">{current ? `${current.rows.length} lines` : "loading…"}</span>
+              {current && !current.error && <span className="ml-auto text-[11.5px] text-gray-700 tabular-nums">₹ {formatAmount(current.total)}</span>}
+            </div>
+            <div className="overflow-auto max-h-[52vh]">
+              <table className="w-full text-[11.5px]">
+                <thead className="sticky top-0 bg-[#f1f5fa] text-gray-600 z-10">
+                  <tr>
+                    <th className="px-1.5 py-1 text-left font-medium w-10">Sl</th>
+                    <th className="px-1.5 py-1 text-left font-medium">Item</th>
+                    <th className="px-1.5 py-1 text-right font-medium w-16">Qty</th>
+                    <th className="px-1.5 py-1 text-right font-medium w-20">Rate</th>
+                    <th className="px-1.5 py-1 text-right font-medium w-12">GST</th>
+                    <th className="w-7" />
+                  </tr>
+                </thead>
+                <tbody>
+                  {(current?.rows || []).map((r) => (
+                    <tr key={`${r.type}-${r.id}`} className="border-t border-[#e2e8f0] align-top hover:bg-white">
+                      <td className="px-1.5 py-1 text-gray-500 whitespace-nowrap">
+                        {r.type === "boq" ? "B" : "N"}{r.slNo}
+                        {r.amendmentNo && <div><AmdBadge label={r.amendmentNo} /></div>}
+                      </td>
+                      <td className="px-1.5 py-1">
+                        <div className="text-gray-800">{r.itemCode ? <span className="text-gray-500">{r.itemCode} · </span> : null}{r.itemName}</div>
+                        <div className="text-gray-400">{r.type === "boq" ? "BOQ" : "Non-BOQ"}{r.unit ? ` · ${r.unit}` : ""}</div>
+                      </td>
+                      <td className="px-1.5 py-1 text-right tabular-nums">{r.orderQty}</td>
+                      <td className="px-1.5 py-1 text-right tabular-nums">{formatAmount(r.rate)}</td>
+                      <td className="px-1.5 py-1 text-right tabular-nums">{r.gstPercent}%</td>
+                      <td className="px-1 py-0.5">
+                        <button type="button" onClick={() => addFrom(r)} title="Add a new line like this one (enter the extra qty)"
+                          className="h-6 w-6 inline-flex items-center justify-center rounded text-blue-600 hover:bg-blue-50">
+                          <Plus className="w-3.5 h-3.5" />
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                  {current?.error && <tr><td colSpan={6} className="px-2 py-2 text-red-600">Could not load the order items.</td></tr>}
+                </tbody>
+              </table>
+            </div>
+            <div className="px-2.5 py-1 border-t text-[11px] text-gray-500">
+              Use <Plus className="w-3 h-3 inline" /> to start a new line from an existing item. Existing lines are never changed.
+            </div>
+          </div>
+
+          {/* RIGHT: the new lines */}
+          <div className="min-w-0">
+        <div className="text-[12.5px] font-semibold text-[#1e3a5f] mb-1">New items in this amendment</div>
+        <div className="overflow-x-auto">
+          <table className="w-full text-[12.5px] min-w-[880px]">
             <thead className="bg-[#1e3a5f] text-white">
               <tr>
                 <th className="px-1.5 py-1.5 w-8">#</th>
@@ -413,7 +576,8 @@ function AmendmentEditor({ saleOrderId, editor, onClose, onSaved }) {
             <tbody>
               {lines.map((l, idx) => {
                 const b = num(l.orderQty) * num(l.rate);
-                return (
+                const dup = dupOf(l);
+                return [
                   <tr key={idx} className={idx % 2 ? "bg-[#f5f8fc]" : "bg-white"}>
                     <td className="px-1.5 text-center text-gray-500">{idx + 1}</td>
                     <td className="px-1 py-0.5">
@@ -436,8 +600,17 @@ function AmendmentEditor({ saleOrderId, editor, onClose, onSaved }) {
                         <Trash2 className="w-3.5 h-3.5" />
                       </button>
                     </td>
-                  </tr>
-                );
+                  </tr>,
+                  dup ? (
+                    <tr key={`${idx}d`} className={idx % 2 ? "bg-[#f5f8fc]" : "bg-white"}>
+                      <td />
+                      <td colSpan={10} className="px-1.5 pb-1 text-[11px] text-amber-700">
+                        Already on the order as {dup.type === "boq" ? "BOQ" : "Non-BOQ"} Sl. {dup.slNo}
+                        {dup.amendmentNo ? ` (${dup.amendmentNo})` : ""}: qty {dup.orderQty} @ {formatAmount(dup.rate)}. This adds a separate line.
+                      </td>
+                    </tr>
+                  ) : null,
+                ];
               })}
             </tbody>
           </table>
@@ -452,8 +625,10 @@ function AmendmentEditor({ saleOrderId, editor, onClose, onSaved }) {
           </span>
         </div>
         <p className="text-[11.5px] text-gray-500">
-          Existing order lines are not changed. After final approval these items are added at the end of the order, marked with the amendment number.
+          After final approval these items are added at the end of the order, marked with the amendment number.
         </p>
+          </div>
+        </div>
 
         <DialogFooter>
           <button type="button" onClick={onClose} disabled={saving}
