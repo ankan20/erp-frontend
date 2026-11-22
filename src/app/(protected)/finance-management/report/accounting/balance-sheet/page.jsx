@@ -2,7 +2,8 @@
 
 import { useCallback, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Loader2, Search } from "lucide-react";
+import {  Search } from "lucide-react";
+import { EdoxMark } from "@/components/common/EdoxLoader";
 
 import HeaderWrapper from "@/components/layout/HeaderWrapper";
 import PageHeader from "@/components/layout/PageHeader";
@@ -217,7 +218,7 @@ export default function AccountingBalanceSheetPage() {
 
         {loading ? (
           <div className="flex justify-center items-center h-[300px]">
-            <Loader2 className="animate-spin w-5 h-5 text-[#1b2f3a]" />
+            <EdoxMark size={32} />
           </div>
         ) : !fetched ? (
           <div className="flex flex-col items-center justify-center h-[280px] text-[#9ca3af] text-[12px] gap-1">
