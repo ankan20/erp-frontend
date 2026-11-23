@@ -22,6 +22,52 @@ const tip = (btn, label) => (
   </Tooltip>
 );
 
+// Approve / Action button. Kept as its own component because it subscribes to
+// the reback-request store with useSyncExternalStore (a real hook). usePageActions
+// is called by many pages after early returns (e.g. once data has loaded); if the
+// subscription lived there, the page's hook count would change between renders
+// and React would throw "Rendered more hooks than during the previous render" (#310).
+function ApproveActionButton({ onApprove, isPendingApproval, getButtonClass, iconWrapperClass }) {
+  // Fully approved record: the Approve / Action icon becomes "Reback request"
+  // (raise one, or accept / decline it as final approver or admin).
+  const { record: rb } = useSyncExternalStore(subscribeRebackRequest, getRebackRequestState, getServerRebackRequestState);
+  const rebackMode = !!rb?.approved;
+  const approveClick = rebackMode ? openRebackRequestDialog : onApprove;
+  const approveRing = rebackMode ? !!rb.canDecide : isPendingApproval && !!onApprove;
+  const approveTip = rebackMode
+    ? rb.canDecide
+      ? "Reback request — waiting for your decision"
+      : rb.request
+        ? "Reback request — waiting for the final approver"
+        : "Reback request — ask to send this approved record back"
+    : onApprove
+      ? (isPendingApproval ? "Approve / Action — Your approval is needed! (Alt+A approve · Alt+B reback · Alt+X reject)" : "Approve / Action (Alt+A)")
+      : "Approval not available";
+
+  return tip(
+    <button
+      type="button"
+      key="approve"
+      data-shortcut="approval"
+      className={`${getButtonClass(!!approveClick)} ${iconWrapperClass} relative ${approveRing ? "ring-2 ring-green-500/70 ring-offset-1 rounded-md" : ""}`}
+      onClick={approveClick}
+      disabled={!approveClick}
+    >
+      {approveRing && (
+        <span className="absolute -top-0.5 -right-0.5 flex h-2.5 w-2.5 z-20 pointer-events-none">
+          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75" />
+          <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-green-500" />
+        </span>
+      )}
+      {rebackMode && rb.request && !approveRing && (
+        <span className="absolute -top-0.5 -right-0.5 h-2.5 w-2.5 z-20 rounded-full bg-amber-500 pointer-events-none" />
+      )}
+      <Image src="/assets/icons/approval-action.png" alt="approve" width={28} height={28} />
+    </button>,
+    approveTip
+  );
+}
+
 // NOTE: onBack is intentionally removed from the signature.
 // Back navigation is now handled internally via goToBackPage — ERP-style.
 // All pages that previously passed onBack: () => router.back() can safely
@@ -41,22 +87,6 @@ export const usePageActions = ({
   const copyTarget = getCopyTarget(pathname);
   // Create pages get "Copy from…": fill the new entry from an earlier one.
   const copyFromBase = getCopyFromBase(pathname);
-
-  // Fully approved record: the Approve / Action icon becomes "Reback request"
-  // (raise one, or accept / decline it as final approver or admin).
-  const { record: rb } = useSyncExternalStore(subscribeRebackRequest, getRebackRequestState, getServerRebackRequestState);
-  const rebackMode = !!rb?.approved;
-  const approveClick = rebackMode ? openRebackRequestDialog : onApprove;
-  const approveRing = rebackMode ? !!rb.canDecide : isPendingApproval && !!onApprove;
-  const approveTip = rebackMode
-    ? rb.canDecide
-      ? "Reback request — waiting for your decision"
-      : rb.request
-        ? "Reback request — waiting for the final approver"
-        : "Reback request — ask to send this approved record back"
-    : onApprove
-      ? (isPendingApproval ? "Approve / Action — Your approval is needed! (Alt+A approve · Alt+B reback · Alt+X reject)" : "Approve / Action (Alt+A)")
-      : "Approval not available";
 
   const baseBtnClass =
     "transition flex items-center justify-center w-[32px] h-[32px]";
@@ -93,28 +123,13 @@ export const usePageActions = ({
       onTimeLine ? "View History (Alt+H)" : "History not available"
     ),
 
-    tip(
-      <button
-        type="button"
-        key="approve"
-        data-shortcut="approval"
-        className={`${getButtonClass(!!approveClick)} ${iconWrapperClass} relative ${approveRing ? "ring-2 ring-green-500/70 ring-offset-1 rounded-md" : ""}`}
-        onClick={approveClick}
-        disabled={!approveClick}
-      >
-        {approveRing && (
-          <span className="absolute -top-0.5 -right-0.5 flex h-2.5 w-2.5 z-20 pointer-events-none">
-            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75" />
-            <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-green-500" />
-          </span>
-        )}
-        {rebackMode && rb.request && !approveRing && (
-          <span className="absolute -top-0.5 -right-0.5 h-2.5 w-2.5 z-20 rounded-full bg-amber-500 pointer-events-none" />
-        )}
-        <Image src="/assets/icons/approval-action.png" alt="approve" width={28} height={28} />
-      </button>,
-      approveTip
-    ),
+    <ApproveActionButton
+      key="approve"
+      onApprove={onApprove}
+      isPendingApproval={isPendingApproval}
+      getButtonClass={getButtonClass}
+      iconWrapperClass={iconWrapperClass}
+    />,
 
     divider("divider-1"),
 
