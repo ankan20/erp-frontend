@@ -715,6 +715,7 @@ export const API_ENDPOINTS = {
       REJECT:             "/finance/bill-payment/reject/",                  // /<receipt_id> POST { comments }
       HISTORY:            "/finance/bill-payment/history/",                 // /<receipt_id> GET
       MY_APPROVAL_STATUS: "/finance/bill-payment/my-approval-status/",      // /<receipt_id> GET
+      ADVANCE_CC_ROWS:    "/finance/bill-payment/advance-cc-rows",          // GET ?paymentRequestId&excludeId — linked bill's CC rows, auto-filled
       BILL_PAYMENTS:      "/finance/bill-payment/bill-payments",            // GET ?purchaseBillId | ?brrId | ?journalEntryId&vendorId — popup
     },
     CONTRA_ENTRY: {

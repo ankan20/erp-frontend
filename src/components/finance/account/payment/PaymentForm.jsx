@@ -539,6 +539,47 @@ function JournalVoucherPickerModal({ open, onClose, onConfirm, projectCode, vend
   );
 }
 
+// ── Advance CC rows (same shape as Bill / Voucher breakdown rows) ──────────────
+const toAdvanceItem = (it, i) => ({
+  pvItemId:       null,
+  pbItemId:       it.pbItemId       ?? null,
+  jeLineId:       it.jeLineId       ?? null,
+  journalEntryId: it.journalEntryId ?? null,
+  voucherNo:      it.voucherNo      || "",
+  entryDate:      it.entryDate      || "",
+  purchaseBillId: it.purchaseBillId ?? null,
+  purchaseBillNo: it.purchaseBillNo || "",
+  brrNo:          it.brrNo          || "",
+  brrDate:        it.brrDate        || "",
+  orderNo:        it.orderNo        || "",
+  slNo:           i + 1,
+  ccCode:         it.ccCode         || "",
+  ccName:         it.ccName         || "",
+  description:    it.description    || "",
+  bookedAmount:   Number(it.bookedAmount  || 0),
+  paidAmount:     Number(it.paidAmount    || 0),
+  advanceAmount:  Number(it.advanceAmount || 0),
+  balanceAmount:  Number(it.balanceAmount || 0),
+  currentAmount:  Number(it.currentAmount || 0),
+});
+const toAdvanceGst = (l) => ({
+  gstType:        l.gstType        || "",
+  purchaseBillId: l.purchaseBillId ?? null,
+  purchaseBillNo: l.purchaseBillNo || "",
+  orderNo:        l.orderNo        || "",
+  brrNo:          l.brrNo          || "",
+  brrDate:        l.brrDate        || "",
+  ccCode:         l.ccCode         || "",
+  ccName:         l.ccName         || "",
+  percent:        Number(l.percent || 0),
+  bookedAmount:   Number(l.bookedAmount  || 0),
+  paidAmount:     Number(l.paidAmount    || 0),
+  advanceAmount:  Number(l.advanceAmount || 0),
+  balanceAmount:  Number(l.balanceAmount || 0),
+  currentAmount:  Number(l.currentAmount || 0),
+  isSelected:     !!l.isSelected,
+});
+
 // ── Component ─────────────────────────────────────────────────────────────────
 
 export default function PaymentForm({
@@ -628,10 +669,12 @@ export default function PaymentForm({
   // Totals
   const basicTotal   = watchedItems.reduce((s, it) => s + Number(it?.currentAmount || 0), 0);
   const gstTotal     = watchedGst.filter((l) => l.isSelected).reduce((s, l) => s + Number(l.currentAmount || 0), 0);
+  // advance linked to a bill → split by that bill's CC rows (like a Bill payment)
+  const advanceHasRows = isAdvance && (itemFields.length > 0 || gstFields.length > 0);
   const totalInvoice = isAdvance
-    ? advanceAmount
+    ? (advanceHasRows ? basicTotal + gstTotal : advanceAmount)
     : basicTotal + gstTotal - Number(watch("discount") || 0) + Number(watch("roundOff") || 0);
-  const advanceExceeds = isAdvance && advanceInfo && advanceAmount > Number(advanceInfo.balance || 0);
+  const advanceExceeds = isAdvance && advanceInfo && totalInvoice > Number(advanceInfo.balance || 0);
   // Bills that carry a linked advance: what is left after the advance
   const billAdvance = selectedBills.reduce((s, b) => s + Number(b.advanceAdjusted || 0), 0);
   const billAfterAdvance = selectedBills.reduce((s, b) => s + Number(b.balanceAfterAdvance || 0), 0);
@@ -713,6 +756,28 @@ export default function PaymentForm({
       linkType:   p.linkType,
       linkedNo:   p.linkedNo,
     });
+    loadAdvanceRows(p);
+  };
+
+  // Linked advance → the bill's CC rows, auto-filled with the balance to pay (editable)
+  const loadAdvanceRows = async (p) => {
+    replaceItems([]);
+    replaceGst([]);
+    if (!p?.linkType) return;
+    setItemsLoading(true);
+    try {
+      const res = await apiRequest({
+        url: `${API_ENDPOINTS.FINANCE.BILL_PAYMENT.ADVANCE_CC_ROWS}?paymentRequestId=${p.id}`,
+        method: "GET",
+      });
+      const d = res.data || {};
+      replaceItems((d.items || []).map(toAdvanceItem));
+      replaceGst((d.gstLines || []).map(toAdvanceGst));
+    } catch (err) {
+      toast.error(err?.message || "Failed to load the bill's CC rows");
+    } finally {
+      setItemsLoading(false);
+    }
   };
 
   // ── Payment account for journal (derived from form watch) ───────────
@@ -958,7 +1023,9 @@ export default function PaymentForm({
             bankAcId:         d.bankAcId       || null,
             utrVoucherNo:     d.utrVoucherNo   || "",
             paymentRemarks:   d.paymentRemarks || "",
-            discount: 0, roundOff: 0, items: [], gstLines: [],
+            discount: 0, roundOff: 0,
+            items:    (d.items    || []).map(toAdvanceItem),
+            gstLines: (d.gstLines || []).map(toAdvanceGst),
           });
           if (isCopy) {
             setVendorName("");
@@ -1171,7 +1238,15 @@ export default function PaymentForm({
   const onSave = async (v) => {
     if ((v.paymentType || "bill") === "advance") {
       if (!v.paymentRequestId) { toast.error("Select the Advance Payment Request"); return; }
-      const amt = Number(v.advanceAmount || 0);
+      const rowsUsed = (v.items || []).length > 0 || (v.gstLines || []).length > 0;
+      if (rowsUsed) {
+        for (const row of [...(v.items || []), ...(v.gstLines || []).filter((l) => l.isSelected)]) {
+          if (Number(row.currentAmount || 0) > Number(row.balanceAmount || 0)) {
+            toast.error(`${row.ccName || row.ccCode || row.gstType}: amount exceeds row balance`); return;
+          }
+        }
+      }
+      const amt = rowsUsed ? totalInvoice : Number(v.advanceAmount || 0);
       if (amt <= 0) { toast.error("Advance amount must be greater than 0"); return; }
       if (advanceInfo && amt > Number(advanceInfo.balance || 0)) {
         toast.error(`Amount exceeds the request balance ₹${formatAmount(advanceInfo.balance)}`); return;
@@ -1186,6 +1261,15 @@ export default function PaymentForm({
             paymentType:      "advance",
             paymentRequestId: v.paymentRequestId,
             amount:           amt,
+            items: rowsUsed ? (v.items || []).map((it) => ({
+              ...(it.pbItemId ? { pbItemId: it.pbItemId } : {}),
+              ...(it.jeLineId ? { jeLineId: it.jeLineId } : {}),
+              ccCode: it.ccCode, ccName: it.ccName, currentAmount: Number(it.currentAmount || 0),
+            })) : [],
+            gstLines: rowsUsed ? (v.gstLines || []).map((l) => ({
+              gstType: l.gstType, ccCode: l.ccCode, isSelected: !!l.isSelected,
+              currentAmount: Number(l.currentAmount || 0),
+            })) : [],
             paymentDate:      v.paymentDate,
             paymentMode:      v.paymentMode,
             cashAcId:         v.paymentMode === "Cash" ? (v.cashAcId || null) : null,
@@ -1417,8 +1501,18 @@ export default function PaymentForm({
                 </PMFormRow>
                 <PMFormRow label="Advance Amount" required={!disabled} labelWidth="sm:w-[160px] sm:min-w-[160px]">
                   <div className="flex-1">
-                    <PMInput type="number" step="0.01" min="0" {...register("advanceAmount")} disabled={disabled}
-                      hasError={advanceExceeds} />
+                    {advanceHasRows ? (
+                      <PMInput value={formatAmount(totalInvoice)} disabled readOnly hasError={advanceExceeds} />
+                    ) : (
+                      <PMInput type="number" step="0.01" min="0" {...register("advanceAmount")} disabled={disabled}
+                        hasError={advanceExceeds} />
+                    )}
+                    {advanceHasRows && !disabled && (
+                      <p className="text-[10px] text-gray-500 mt-0.5">Total of the CC rows — change the split in the table.</p>
+                    )}
+                    {isAdvance && advanceInfo && !advanceInfo.linkType && !disabled && (
+                      <p className="text-[10px] text-gray-500 mt-0.5">Not linked to a bill yet — no CC split. Link the request to a bill to split it by CC.</p>
+                    )}
                     {advanceExceeds && !disabled && (
                       <p className="text-[11px] text-red-500 mt-0.5">Exceeds balance ₹{formatAmount(advanceInfo.balance)}</p>
                     )}
@@ -1601,14 +1695,28 @@ export default function PaymentForm({
             emptyText="Select a party and bank/cash account to generate accounting entries"
           />
 
+          {advanceHasRows && (
+            <PaymentBreakdownTable
+              paymentType={advanceInfo?.linkType === "JOURNAL" ? "voucher" : "bill"}
+              itemFields={itemFields}
+              gstFields={gstFields}
+              watchedItems={watchedItems}
+              watchedGst={watchedGst}
+              register={register}
+              disabled={disabled}
+              loading={itemsLoading}
+            />
+          )}
           {isAdvance ? (
             <div className="rounded-sm border border-gray-300 overflow-hidden w-full sm:max-w-[360px] ml-auto">
               <div className="flex items-stretch">
                 <div className="flex-1 px-3 py-[7px] text-[13px] font-semibold bg-[#D5DBE6]">Advance Payment</div>
-                <div className="px-3 py-[7px] text-[13px] font-semibold text-right min-w-[130px]">{formatAmount(advanceAmount)}</div>
+                <div className="px-3 py-[7px] text-[13px] font-semibold text-right min-w-[130px]">{formatAmount(totalInvoice)}</div>
               </div>
               <div className="px-3 py-1.5 text-[10px] text-gray-500 border-t">
-                Posts Dr {vendorName || "Vendor"} / Cr Bank-Cash. Once the advance request is linked to a bill, this amount reduces that bill’s balance.
+                {advanceHasRows
+                  ? <>Posts Dr {vendorName || "Vendor"} split by the CC rows above / Cr Bank-Cash, and reduces those rows on the bill.</>
+                  : <>Posts Dr {vendorName || "Vendor"} / Cr Bank-Cash. Once the advance request is linked to a bill, this amount reduces that bill’s balance.</>}
               </div>
             </div>
           ) : (<>
