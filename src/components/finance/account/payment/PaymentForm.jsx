@@ -9,7 +9,7 @@ import { toast }          from "sonner";
 import { useRouter }      from "next/navigation";
 import {
   Loader2, PanelLeftClose, PanelLeftOpen,
-  FileText, X, Search,
+  FileText, X, Search, ListChecks,
 } from "lucide-react";
 
 import SaveButton          from "@/components/common/SaveButton";
@@ -25,6 +25,7 @@ import PMTextarea          from "@/components/project-management/common/PMTextar
 import AccountSummary           from "@/components/finance/account/common/AccountSummary";
 import AccountingJournalTable   from "@/components/finance/account/common/AccountingJournalTable";
 import PaymentBreakdownTable    from "@/components/finance/account/payment/PaymentBreakdownTable";
+import BillPaymentsPopup        from "@/components/finance/account/payment/BillPaymentsPopup";
 
 import { apiRequest }      from "@/lib/apiClient";
 import { API_ENDPOINTS }   from "@/config/api.config";
@@ -77,7 +78,9 @@ const pvGstLineSchema = z.object({
 
 const schema = z.object({
   paymentDate:       zodDate(z, "paymentDate", true),
-  paymentType:       z.enum(["bill", "voucher"]).default("bill"),
+  paymentType:       z.enum(["bill", "voucher", "advance"]).default("bill"),
+  paymentRequestId:  z.coerce.number().nullable().optional(),   // advance only
+  advanceAmount:     z.coerce.number().min(0).default(0),        // advance only
   purchaseBillId:    z.coerce.number().nullable().optional(),
   purchaseBillIds:   z.array(z.number()).default([]),
   journalEntryId:    z.coerce.number().nullable().optional(),
@@ -104,6 +107,7 @@ const schema = z.object({
 // ── Purchase Bill Picker Modal ─────────────────────────────────────────────────
 
 function PurchaseBillPickerModal({ open, onClose, onConfirm, projectCode, vendorId, currentBillIds = [] }) {
+  const [historyBillId, setHistoryBillId] = useState(null);
   const [bills,       setBills]       = useState([]);
   const [loading,     setLoading]     = useState(false);
   const [selectedIds, setSelectedIds] = useState(new Set());
@@ -205,8 +209,10 @@ function PurchaseBillPickerModal({ open, onClose, onConfirm, projectCode, vendor
                   <th className="border border-[#2a4e7c] px-2 py-1.5 text-left font-semibold w-[90px]">Order No</th>
                   <th className="border border-[#2a4e7c] px-2 py-1.5 text-right font-semibold w-[80px]">Booked</th>
                   <th className="border border-[#2a4e7c] px-2 py-1.5 text-right font-semibold w-[80px]">Paid</th>
+                  <th className="border border-[#2a4e7c] px-2 py-1.5 text-right font-semibold w-[80px]">Advance</th>
                   <th className="border border-[#2a4e7c] px-2 py-1.5 text-right font-semibold w-[80px]">Balance</th>
                   <th className="border border-[#2a4e7c] px-2 py-1.5 text-center font-semibold w-[75px]">Status</th>
+                  <th className="border border-[#2a4e7c] px-2 py-1.5 text-center font-semibold w-[36px]" title="Payments made">₹</th>
                 </tr>
               </thead>
               <tbody>
@@ -215,6 +221,7 @@ function PurchaseBillPickerModal({ open, onClose, onConfirm, projectCode, vendor
                   const locked     = !!b.isLocked;
                   const booked     = Number(b.bookedAmount ?? b.totalInvoiceAmount ?? 0);
                   const paid       = Number(b.approvedPaidAmount ?? 0);
+                  const advance    = Number(b.advanceAdjusted ?? 0);
                   const balance    = Number(b.balanceAmount ?? booked ?? 0);
                   const fullyPaid  = !locked && balance <= 0 && booked > 0;
                   const pStatus    = b.paymentStatus || null;
@@ -255,6 +262,9 @@ function PurchaseBillPickerModal({ open, onClose, onConfirm, projectCode, vendor
                       <td className="border border-[#dde] px-2 py-1 text-right text-orange-600 font-medium">
                         {paid > 0 ? formatAmount(paid) : "—"}
                       </td>
+                      <td className="border border-[#dde] px-2 py-1 text-right text-purple-700 font-medium">
+                        {advance > 0 ? formatAmount(advance) : "—"}
+                      </td>
                       <td className={`border border-[#dde] px-2 py-1 text-right font-semibold ${balance <= 0 ? "text-red-500" : "text-[#2a4a2a]"}`}>
                         {booked > 0 ? formatAmount(balance) : "—"}
                       </td>
@@ -275,6 +285,13 @@ function PurchaseBillPickerModal({ open, onClose, onConfirm, projectCode, vendor
                           <span className="text-[10px] font-semibold text-green-700 bg-green-50 px-1.5 py-0.5 rounded">Available</span>
                         )}
                       </td>
+                      <td className="border border-[#dde] px-1 py-1 text-center">
+                        <button type="button" title="Payments made against this bill"
+                          onClick={(e) => { e.stopPropagation(); setHistoryBillId(b.id); }}
+                          className="p-1 rounded text-[#3b6ea5] hover:bg-[#dbeafe]">
+                          <ListChecks size={13} />
+                        </button>
+                      </td>
                     </tr>
                   );
                 })}
@@ -282,6 +299,7 @@ function PurchaseBillPickerModal({ open, onClose, onConfirm, projectCode, vendor
             </table>
           )}
         </div>
+        <BillPaymentsPopup open={!!historyBillId} onClose={() => setHistoryBillId(null)} purchaseBillId={historyBillId} />
 
         {/* Footer */}
         <div className="flex items-center justify-between px-4 py-3 border-t bg-[#f8fafc]">
@@ -316,6 +334,7 @@ function PurchaseBillPickerModal({ open, onClose, onConfirm, projectCode, vendor
 // ── Journal Voucher Picker Modal ───────────────────────────────────────────────
 
 function JournalVoucherPickerModal({ open, onClose, onConfirm, projectCode, vendorId, currentJeIds = [] }) {
+  const [historyJeId, setHistoryJeId] = useState(null);
   const [vouchers,    setVouchers]    = useState([]);
   const [loading,     setLoading]     = useState(false);
   const [selectedIds, setSelectedIds] = useState(new Set());
@@ -410,8 +429,10 @@ function JournalVoucherPickerModal({ open, onClose, onConfirm, projectCode, vend
                   <th className="border border-[#dde] px-2 py-1.5 text-left font-semibold w-[80px]">Type</th>
                   <th className="border border-[#dde] px-2 py-1.5 text-right font-semibold w-[90px]">Total Dr</th>
                   <th className="border border-[#dde] px-2 py-1.5 text-right font-semibold w-[90px]">Paid</th>
+                  <th className="border border-[#dde] px-2 py-1.5 text-right font-semibold w-[90px]">Advance</th>
                   <th className="border border-[#dde] px-2 py-1.5 text-right font-semibold w-[90px]">Balance</th>
                   <th className="border border-[#dde] px-2 py-1.5 text-center font-semibold w-[70px]">Status</th>
+                  <th className="border border-[#dde] px-2 py-1.5 text-center font-semibold w-[36px]" title="Payments made">₹</th>
                 </tr>
               </thead>
               <tbody>
@@ -449,6 +470,9 @@ function JournalVoucherPickerModal({ open, onClose, onConfirm, projectCode, vend
                       <td className="border border-[#dde] px-2 py-1 text-right text-orange-600 font-medium">
                         {v.totalPaid > 0 ? formatAmount(v.totalPaid) : "—"}
                       </td>
+                      <td className="border border-[#dde] px-2 py-1 text-right text-purple-700 font-medium">
+                        {v.advanceAdjusted > 0 ? formatAmount(v.advanceAdjusted) : "—"}
+                      </td>
                       <td className={`border border-[#dde] px-2 py-1 text-right font-semibold ${v.balanceAmount <= 0 ? "text-red-500" : "text-[#2a4a2a]"}`}>
                         {v.totalDebit > 0 ? formatAmount(v.balanceAmount) : "—"}
                       </td>
@@ -467,6 +491,13 @@ function JournalVoucherPickerModal({ open, onClose, onConfirm, projectCode, vend
                           <span className="text-[10px] font-semibold text-green-700 bg-green-50 px-1.5 py-0.5 rounded">Available</span>
                         )}
                       </td>
+                      <td className="border border-[#dde] px-1 py-1 text-center">
+                        <button type="button" title="Payments made against this voucher"
+                          onClick={(e) => { e.stopPropagation(); setHistoryJeId(v.id); }}
+                          className="p-1 rounded text-[#3b6ea5] hover:bg-[#dbeafe]">
+                          <ListChecks size={13} />
+                        </button>
+                      </td>
                     </tr>
                   );
                 })}
@@ -474,6 +505,7 @@ function JournalVoucherPickerModal({ open, onClose, onConfirm, projectCode, vend
             </table>
           )}
         </div>
+        <BillPaymentsPopup open={!!historyJeId} onClose={() => setHistoryJeId(null)} journalEntryId={historyJeId} />
 
         {/* Footer */}
         <div className="flex items-center justify-between px-4 py-3 border-t bg-[#f8fafc]">
@@ -544,6 +576,10 @@ export default function PaymentForm({
   // Voucher snapshot — derived from selected journal entries
   const [selectedVouchers, setSelectedVouchers] = useState([]);
 
+  // Advance — approved ADVANCE payment requests with something left to pay
+  const [advanceOpts,  setAdvanceOpts]  = useState([]);
+  const [advanceInfo,  setAdvanceInfo]  = useState(null);   // { prNo, netPayable, paidOther, balance, linkType, linkedNo }
+
   const skipClearOnVendorChange = useRef(false);
 
   const {
@@ -552,6 +588,8 @@ export default function PaymentForm({
   } = useForm({ resolver: zodResolver(schema), defaultValues: {
     paymentDate:       new Date().toISOString().split("T")[0],
     paymentType:       "bill",
+    paymentRequestId:  null,
+    advanceAmount:     0,
     purchaseBillId:    null,
     purchaseBillIds:   [],
     journalEntryId:    null,
@@ -575,6 +613,9 @@ export default function PaymentForm({
   const paymentMode     = watch("paymentMode");
   const paymentType     = watch("paymentType") || "bill";
   const isVoucher       = paymentType === "voucher";
+  const isAdvance       = paymentType === "advance";
+  const paymentRequestId = watch("paymentRequestId");
+  const advanceAmount   = Number(watch("advanceAmount") || 0);
   const watchedItems    = watch("items")            || [];
   const watchedGst      = watch("gstLines")         || [];
   const purchaseBillId  = watch("purchaseBillId");
@@ -585,7 +626,13 @@ export default function PaymentForm({
   // Totals
   const basicTotal   = watchedItems.reduce((s, it) => s + Number(it?.currentAmount || 0), 0);
   const gstTotal     = watchedGst.filter((l) => l.isSelected).reduce((s, l) => s + Number(l.currentAmount || 0), 0);
-  const totalInvoice = basicTotal + gstTotal - Number(watch("discount") || 0) + Number(watch("roundOff") || 0);
+  const totalInvoice = isAdvance
+    ? advanceAmount
+    : basicTotal + gstTotal - Number(watch("discount") || 0) + Number(watch("roundOff") || 0);
+  const advanceExceeds = isAdvance && advanceInfo && advanceAmount > Number(advanceInfo.balance || 0);
+  // Bills that carry a linked advance: what is left after the advance
+  const billAdvance = selectedBills.reduce((s, b) => s + Number(b.advanceAdjusted || 0), 0);
+  const billAfterAdvance = selectedBills.reduce((s, b) => s + Number(b.balanceAfterAdvance || 0), 0);
 
   // Auto round-off
   useEffect(() => {
@@ -616,6 +663,55 @@ export default function PaymentForm({
       .then((res) => setVendorList((res.data || []).sort((a, b) => (a.ledgerName || "").localeCompare(b.ledgerName || ""))))
       .catch(() => {});
   }, [projectCode]);
+
+  // Opened from a Payment Request: /new?type=advance&prId=<id>
+  useEffect(() => {
+    if (mode !== "create" || isCopy) return;
+    const q = new URLSearchParams(window.location.search);
+    if (q.get("type") !== "advance") return;
+    setValue("paymentType", "advance");
+    if (q.get("prId")) setValue("paymentRequestId", Number(q.get("prId")));
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // ── Advance: load payable advance requests ─────────────────────────
+  useEffect(() => {
+    if (!isAdvance || !projectCode || isViewMode) return;
+    const params = new URLSearchParams({ projectCode });
+    if (paymentRequestId) params.set("includeId", String(paymentRequestId));
+    apiRequest({ url: `${API_ENDPOINTS.RESOURCE.PAYMENT_REQUEST.PAYABLE_ADVANCES}?${params}`, method: "GET" })
+      .then((res) => {
+        const list = (res.data || []).map((p) => ({
+          ...p,
+          label: [p.prNo, p.partyName || "-", `Net ₹${formatAmount(p.netPayable)}`, `Bal ₹${formatAmount(p.advanceBalance)}`].join(" · "),
+        }));
+        setAdvanceOpts(list);
+        // preset from ?prId= (opened from the Payment Request page)
+        if (mode === "create" && paymentRequestId && !advanceInfo) {
+          const hit = list.find((p) => p.id === Number(paymentRequestId));
+          if (hit) applyAdvance(hit);
+          else toast.error("This advance request is not approved or is already fully paid");
+        }
+      })
+      .catch(() => toast.error("Failed to load advance requests"));
+  }, [isAdvance, projectCode]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const applyAdvance = (p) => {
+    setValue("paymentRequestId", p ? p.id : null, { shouldDirty: true });
+    if (!p) { setAdvanceInfo(null); setVendorName(""); return; }
+    skipClearOnVendorChange.current = true;
+    setValue("vendorId", p.vendorId, { shouldDirty: false });
+    setVendorName(p.partyName || "");
+    setValue("advanceAmount", Number(p.advanceBalance || 0), { shouldDirty: true });
+    if (p.paymentMode) setValue("paymentMode", p.paymentMode);
+    setAdvanceInfo({
+      prNo:       p.prNo,
+      netPayable: Number(p.netPayable || 0),
+      paidOther:  Number(p.advancePaid || 0) + Number(p.advanceInProgress || 0),
+      balance:    Number(p.advanceBalance || 0),
+      linkType:   p.linkType,
+      linkedNo:   p.linkedNo,
+    });
+  };
 
   // ── Payment account for journal (derived from form watch) ───────────
   useEffect(() => {
@@ -662,6 +758,8 @@ export default function PaymentForm({
             orderNo: single.orderNo,
             vendorId: single.vendorId,
             vendorName: single.vendorName,
+            advanceAdjusted: single.advanceAdjusted,
+            balanceAfterAdvance: single.balanceAfterAdvance,
           }],
           items: (single.items || []).map((it) => ({
             ...it,
@@ -842,6 +940,43 @@ export default function PaymentForm({
         const loadedPaymentType = d.paymentType || "bill";
         const isLoadedVoucher = loadedPaymentType === "voucher";
 
+        if (loadedPaymentType === "advance") {
+          reset({
+            paymentDate:      d.paymentDate    || "",
+            paymentType:      "advance",
+            paymentRequestId: isCopy ? null : (d.paymentRequestId || null),
+            advanceAmount:    Number(d.totalInvoiceAmount || 0),
+            purchaseBillId: null, purchaseBillIds: [], journalEntryId: null, journalEntryIds: [],
+            vendorId:         d.vendorId       || null,
+            paymentMode:      d.paymentMode    || "Bank",
+            cashAcId:         d.cashAcId       || null,
+            bankAcId:         d.bankAcId       || null,
+            utrVoucherNo:     d.utrVoucherNo   || "",
+            paymentRemarks:   d.paymentRemarks || "",
+            discount: 0, roundOff: 0, items: [], gstLines: [],
+          });
+          if (isCopy) {
+            setVendorName("");
+            copyLoadedToast(d.receiptNo);
+            return;
+          }
+          setAdvanceInfo({
+            prNo:       d.paymentRequestNo,
+            netPayable: Number(d.requestNetPayable || 0),
+            paidOther:  Number(d.requestPaidOther || 0),
+            balance:    Number(d.requestBalance || 0),
+            linkType:   d.linkType,
+            linkedNo:   d.linkedNo,
+          });
+          if (d.receiptNo) setErpPaymentNo(d.receiptNo);
+          if (d.receiptUuid && onUuid) onUuid(d.receiptUuid);
+          const locked = d.workflowStatus && !["Draft", "Reback"].includes(d.workflowStatus);
+          setIsSubmitted(locked);
+          setAllowSubmit(!locked);
+          setIsEditing(false);
+          return;
+        }
+
         if (isLoadedVoucher) {
           // Voucher payment load
           setSelectedVouchers(d.entries?.length ? d.entries : [{ id: d.journalEntryId, voucherNo: d.voucherNo }]);
@@ -993,6 +1128,10 @@ export default function PaymentForm({
     setValue("purchaseBillIds", [],   { shouldDirty: true });
     setValue("journalEntryId",  null, { shouldDirty: true });
     setValue("journalEntryIds", [],   { shouldDirty: true });
+    setValue("paymentRequestId", null, { shouldDirty: true });
+    setValue("advanceAmount",   0,    { shouldDirty: true });
+    if (type === "advance") { setValue("vendorId", null); setVendorName(""); }
+    setAdvanceInfo(null);
     replaceItems([]);
     replaceGst([]);
     setSelectedBills([]); setBrrDate(""); setVendorBillNo(""); setVendorBillDate("");
@@ -1022,6 +1161,48 @@ export default function PaymentForm({
 
   // ── Save Draft ────────────────────────────────────────────────────
   const onSave = async (v) => {
+    if ((v.paymentType || "bill") === "advance") {
+      if (!v.paymentRequestId) { toast.error("Select the Advance Payment Request"); return; }
+      const amt = Number(v.advanceAmount || 0);
+      if (amt <= 0) { toast.error("Advance amount must be greater than 0"); return; }
+      if (advanceInfo && amt > Number(advanceInfo.balance || 0)) {
+        toast.error(`Amount exceeds the request balance ₹${formatAmount(advanceInfo.balance)}`); return;
+      }
+      const EPA = API_ENDPOINTS.FINANCE.BILL_PAYMENT;
+      try {
+        const res = await apiRequest({
+          url:    mode === "create" ? EPA.CREATE : `${EPA.EDIT}${paymentId}`,
+          method: mode === "create" ? "POST" : "PUT",
+          data: {
+            projectCode,
+            paymentType:      "advance",
+            paymentRequestId: v.paymentRequestId,
+            amount:           amt,
+            paymentDate:      v.paymentDate,
+            paymentMode:      v.paymentMode,
+            cashAcId:         v.paymentMode === "Cash" ? (v.cashAcId || null) : null,
+            bankAcId:         v.paymentMode === "Bank" ? (v.bankAcId || null) : null,
+            utrVoucherNo:     v.utrVoucherNo   || "",
+            paymentRemarks:   v.paymentRemarks || "",
+          },
+        });
+        toast.success(mode === "create" ? "Advance payment saved as draft" : "Advance payment updated");
+        setAllowSubmit(true);
+        setIsEditing(false);
+        onAfterSubmit?.();
+        if (res?.data?.receiptUuid && onUuid) onUuid(res.data.receiptUuid);
+        if (mode === "create" && res.data?.id) {
+          setTimeout(() => router.push(`/finance-management/account/payment/${res.data.id}`), 400);
+        }
+      } catch (err) {
+        toast.error(err?.message || "Failed to save");
+      }
+      return;
+    }
+    if (billAdvance > 0 && totalInvoice > billAfterAdvance + 0.005) {
+      toast.error(`Amount exceeds the bill balance ₹${formatAmount(billAfterAdvance)} after advance ₹${formatAmount(billAdvance)}`);
+      return;
+    }
     for (let i = 0; i < v.items.length; i++) {
       if (Number(v.items[i].currentAmount) > Number(v.items[i].balanceAmount)) {
         toast.error(`Row ${i + 1}: amount exceeds balance`); return;
@@ -1155,7 +1336,7 @@ export default function PaymentForm({
             </PMFormRow>
             <PMFormRow label="Payment Type" labelWidth="sm:w-[160px] sm:min-w-[160px]">
               <div className="flex items-center gap-0 border border-gray-200 rounded-sm overflow-hidden text-[11px]">
-                {["bill", "voucher"].map((type) => (
+                {["bill", "voucher", "advance"].map((type) => (
                   <button
                     key={type}
                     type="button"
@@ -1167,20 +1348,37 @@ export default function PaymentForm({
                         : "bg-white text-gray-500 hover:bg-gray-50"
                     } ${disabled ? "cursor-not-allowed opacity-70" : "cursor-pointer"}`}
                   >
-                    {type === "bill" ? "Bill" : "Voucher"}
+                    {type === "bill" ? "Bill" : type === "voucher" ? "Voucher" : "Advance"}
                   </button>
                 ))}
               </div>
             </PMFormRow>
           </PMSection>
 
-          <PMSection title={isVoucher ? "VOUCHER REFERENCE:" : "BILL REFERENCE:"}>
+          <PMSection title={isAdvance ? "ADVANCE REFERENCE:" : isVoucher ? "VOUCHER REFERENCE:" : "BILL REFERENCE:"}>
+            {isAdvance && (
+              <PMFormRow label="Advance PR No" required={!disabled} labelWidth="sm:w-[160px] sm:min-w-[160px]">
+                {disabled || mode !== "create" ? (
+                  <PMInput value={advanceInfo?.prNo || ""} disabled readOnly placeholder="[Advance Payment Request]" />
+                ) : (
+                  <SearchableSelect
+                    options={advanceOpts}
+                    value={paymentRequestId ? String(paymentRequestId) : ""}
+                    onChange={(val) => applyAdvance(advanceOpts.find((p) => String(p.id) === String(val)) || null)}
+                    placeholder={advanceOpts.length ? "Select approved Advance Payment Request" : "No approved advance with balance"}
+                    labelKey="label"
+                    valueKey="id"
+                    searchKeys={["prNo", "partyName"]}
+                  />
+                )}
+              </PMFormRow>
+            )}
             <PMFormRow label="Party (Creditor)" labelWidth="sm:w-[160px] sm:min-w-[160px]">
               <Controller name="vendorId" control={control} render={({ field }) => (
                 <SearchableSelect
                   options={vendorList}
                   value={field.value ? String(field.value) : ""}
-                  disabled={disabled}
+                  disabled={disabled || isAdvance}
                   onChange={(v) => {
                     field.onChange(v ? Number(v) : null);
                     const sel = vendorList.find((x) => String(x.ledgerId) === String(v));
@@ -1194,7 +1392,32 @@ export default function PaymentForm({
               )} />
             </PMFormRow>
 
-            {isVoucher ? (
+            {isAdvance ? (
+              <>
+                <PMFormRow label="Request Net Payable" labelWidth="sm:w-[160px] sm:min-w-[160px]">
+                  <PMInput value={advanceInfo ? formatAmount(advanceInfo.netPayable) : ""} disabled readOnly placeholder="[From Payment Request]" />
+                </PMFormRow>
+                <PMFormRow label="Paid / In Progress" labelWidth="sm:w-[160px] sm:min-w-[160px]">
+                  <PMInput value={advanceInfo ? formatAmount(advanceInfo.paidOther) : ""} disabled readOnly placeholder="[Other payments]" />
+                </PMFormRow>
+                <PMFormRow label="Balance To Pay" labelWidth="sm:w-[160px] sm:min-w-[160px]">
+                  <PMInput value={advanceInfo ? formatAmount(advanceInfo.balance) : ""} disabled readOnly className="font-semibold" />
+                </PMFormRow>
+                <PMFormRow label="Linked To Bill" labelWidth="sm:w-[160px] sm:min-w-[160px]">
+                  <PMInput disabled readOnly
+                    value={advanceInfo ? (advanceInfo.linkType ? `${advanceInfo.linkType} ${advanceInfo.linkedNo || ""}` : "Not linked yet") : ""} />
+                </PMFormRow>
+                <PMFormRow label="Advance Amount" required={!disabled} labelWidth="sm:w-[160px] sm:min-w-[160px]">
+                  <div className="flex-1">
+                    <PMInput type="number" step="0.01" min="0" {...register("advanceAmount")} disabled={disabled}
+                      hasError={advanceExceeds} />
+                    {advanceExceeds && !disabled && (
+                      <p className="text-[11px] text-red-500 mt-0.5">Exceeds balance ₹{formatAmount(advanceInfo.balance)}</p>
+                    )}
+                  </div>
+                </PMFormRow>
+              </>
+            ) : isVoucher ? (
               <>
                 <PMFormRow label="Voucher(s)" required={!disabled} labelWidth="sm:w-[160px] sm:min-w-[160px]">
                   <div className="flex items-start gap-1.5 flex-1">
@@ -1261,6 +1484,13 @@ export default function PaymentForm({
                 <PMFormRow label="Vendor Bill Date" labelWidth="sm:w-[160px] sm:min-w-[160px]">
                   <PMInput value={vendorBillDate ? getfmtDisplaydate(vendorBillDate) : ""} disabled readOnly placeholder="[From Purchase Bill]" className="max-w-[200px]" />
                 </PMFormRow>
+                {billAdvance > 0 && (
+                  <PMFormRow label="Advance Adjusted" labelWidth="sm:w-[160px] sm:min-w-[160px]">
+                    <div className="flex-1 text-[11px] text-purple-700 bg-purple-50 border border-purple-200 rounded-sm px-2 py-1">
+                      ₹{formatAmount(billAdvance)} advance already paid — pay at most ₹{formatAmount(billAfterAdvance)}
+                    </div>
+                  </PMFormRow>
+                )}
               </>
             )}
           </PMSection>
@@ -1363,6 +1593,17 @@ export default function PaymentForm({
             emptyText="Select a party and bank/cash account to generate accounting entries"
           />
 
+          {isAdvance ? (
+            <div className="rounded-sm border border-gray-300 overflow-hidden w-full sm:max-w-[360px] ml-auto">
+              <div className="flex items-stretch">
+                <div className="flex-1 px-3 py-[7px] text-[13px] font-semibold bg-[#D5DBE6]">Advance Payment</div>
+                <div className="px-3 py-[7px] text-[13px] font-semibold text-right min-w-[130px]">{formatAmount(advanceAmount)}</div>
+              </div>
+              <div className="px-3 py-1.5 text-[10px] text-gray-500 border-t">
+                Posts Dr {vendorName || "Vendor"} / Cr Bank-Cash. Once the advance request is linked to a bill, this amount reduces that bill’s balance.
+              </div>
+            </div>
+          ) : (<>
           {/* Bill-wise / Voucher-wise Payment Breakdown */}
           <PaymentBreakdownTable
             paymentType={paymentType}
@@ -1384,6 +1625,7 @@ export default function PaymentForm({
             watch={watch}
             disabled={disabled}
           />
+          </>)}
 
           {/* Action buttons */}
           {!isViewMode && (

@@ -28,11 +28,14 @@ import { getLocalStorage } from "@/lib/localStorage";
 import { getInputClass, labelClass } from "@/lib/formStyles";
 import { getPageAccess } from "@/helper/getPageAccess";
 import { zodDate } from "@/lib/dateUtils";
+import BillPaymentsPopup from "@/components/finance/account/payment/BillPaymentsPopup";
+import { X, Loader2 } from "lucide-react";
 
 const EP = API_ENDPOINTS.RESOURCE.PAYMENT_REQUEST;
 const BASE_PATH = "/resource-management/sub-contractor-billing/payment-request";
 
 const PAYMENT_MODES = ["Bank", "Cash"];
+const ADVANCE_PAYMENT_PATH = "/finance-management/account/payment/new";
 
 // AmountInput keeps the raw string in form state — coerce, but reject blanks
 const amount = (required) =>
@@ -50,7 +53,7 @@ const schema = z
     prNo:             z.string().optional(),
     prDate:           z.string().optional(),
     vendorId:         z.string().optional(),
-    sourceType:       z.enum(["BRR", "JOURNAL"]),
+    sourceType:       z.enum(["BRR", "JOURNAL", "ADVANCE"]),
     brrId:            z.string().optional(),
     journalKey:       z.string().optional(),   // "<journalId>:<vendorId>"
     requestedAmount:  amount(true).refine((n) => n > 0, "Requested amount must be greater than 0"),
@@ -65,7 +68,8 @@ const schema = z
     path: ["deductionAmount"],
   })
   .refine((v) => v.sourceType !== "BRR" || !!v.brrId, { message: "BRR No is required", path: ["brrId"] })
-  .refine((v) => v.sourceType !== "JOURNAL" || !!v.journalKey, { message: "Journal is required", path: ["journalKey"] });
+  .refine((v) => v.sourceType !== "JOURNAL" || !!v.journalKey, { message: "Journal is required", path: ["journalKey"] })
+  .refine((v) => v.sourceType !== "ADVANCE" || !!v.vendorId, { message: "Vendor is required for an advance", path: ["vendorId"] });
 
 const defaultValues = {
   prNo:             "",
@@ -101,6 +105,127 @@ function ReadOnly({ value, className = "" }) {
   );
 }
 
+/* ─── Link an approved advance to a BRR / journal of the same vendor ─── */
+function LinkAdvanceModal({ open, onClose, onLinked, prId, projectCode, vendorId, amount, canJournal }) {
+  const [linkType, setLinkType] = useState("BRR");
+  const [rows, setRows]         = useState([]);
+  const [loading, setLoading]   = useState(false);
+  const [picked, setPicked]     = useState(null);
+  const [saving, setSaving]     = useState(false);
+
+  useEffect(() => {
+    if (!open || !projectCode || !vendorId) return;
+    setLoading(true);
+    setPicked(null);
+    const params = new URLSearchParams({ projectCode, vendorId: String(vendorId) });
+    const url = linkType === "JOURNAL" ? EP.ELIGIBLE_JOURNALS : EP.ELIGIBLE_BRRS;
+    apiRequest({ url: `${url}?${params}`, method: "GET" })
+      .then((res) => setRows(res.data || []))
+      .catch((err) => { setRows([]); toast.error(err.message || "Failed to load bills"); })
+      .finally(() => setLoading(false));
+  }, [open, linkType, projectCode, vendorId]);
+
+  if (!open) return null;
+
+  const link = async () => {
+    if (!picked) return;
+    setSaving(true);
+    try {
+      const body = linkType === "JOURNAL"
+        ? { linkType, journalId: picked.journalId }
+        : { linkType, brrId: picked.brrId };
+      const res = await apiRequest({ url: `${EP.LINK}/${prId}`, method: "POST", data: body });
+      toast.success(res.message || "Advance linked");
+      onLinked?.();
+    } catch (err) {
+      toast.error(err.message || "Failed to link advance");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const keyOf = (r) => (linkType === "JOURNAL" ? `${r.journalId}:${r.vendorId}` : String(r.brrId));
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40" onClick={onClose}>
+      <div className="bg-white rounded-sm shadow-xl w-full max-w-4xl mx-3 flex flex-col max-h-[85vh]" onClick={(e) => e.stopPropagation()}>
+        <div className="flex items-center justify-between px-4 py-3 border-b bg-[#f0f4fa]">
+          <span className="text-[13px] font-semibold text-[#3b6ea5]">Link advance ₹{formatAmount(amount)} to a bill</span>
+          <button type="button" onClick={onClose} className="p-1 hover:bg-gray-200 rounded" aria-label="Close"><X size={16} /></button>
+        </div>
+        <div className="px-4 py-2 border-b flex items-center gap-3 text-[12px]">
+          <span className="text-gray-600">Link to</span>
+          {["BRR", ...(canJournal ? ["JOURNAL"] : [])].map((t) => (
+            <button key={t} type="button" onClick={() => setLinkType(t)}
+              className={`px-3 py-1 border rounded-sm ${linkType === t ? "bg-[#3b6ea5] text-white border-[#3b6ea5]" : "bg-white text-gray-600"}`}>
+              {t === "BRR" ? "BRR / Bill" : "Journal Entry"}
+            </button>
+          ))}
+          <span className="ml-auto text-[11px] text-gray-500">Only approved bills of this vendor with balance ≥ the advance can take it.</span>
+        </div>
+        <div className="flex-1 overflow-y-auto">
+          {loading ? (
+            <div className="flex items-center justify-center py-10 gap-2 text-gray-400">
+              <Loader2 size={16} className="animate-spin" /><span className="text-[12px]">Loading…</span>
+            </div>
+          ) : rows.length === 0 ? (
+            <div className="py-10 text-center text-[12px] text-gray-400 italic">No approved {linkType === "JOURNAL" ? "journal" : "BRR"} with balance for this vendor</div>
+          ) : (
+            <table className="w-full border-collapse text-[11px]">
+              <thead className="sticky top-0 bg-[#1c3a5e] text-white">
+                <tr>
+                  {(linkType === "JOURNAL"
+                    ? ["", "Voucher No", "Date", "Remarks", "Bill Amount", "Requested", "Balance"]
+                    : ["", "BRR No", "BRR Date", "Party Bill No", "BRB No", "Bill Amount", "Requested", "Balance"]
+                  ).map((h, i) => (
+                    <th key={i} className={`border border-[#2a4e7c] px-2 py-1.5 font-semibold ${["Bill Amount", "Requested", "Balance"].includes(h) ? "text-right" : "text-left"}`}>{h}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {rows.map((r) => {
+                  const fits = Number(r.balanceAmount) >= Number(amount);
+                  const sel = picked && keyOf(picked) === keyOf(r);
+                  return (
+                    <tr key={keyOf(r)} onClick={() => fits && setPicked(r)}
+                      className={`${!fits ? "opacity-50 cursor-not-allowed" : sel ? "bg-[#dbeafe] cursor-pointer" : "hover:bg-[#f0f7ff] cursor-pointer"}`}>
+                      <td className="border border-[#dde] px-2 py-1 text-center"><input type="radio" readOnly checked={!!sel} disabled={!fits} /></td>
+                      {linkType === "JOURNAL" ? (
+                        <>
+                          <td className="border border-[#dde] px-2 py-1 font-semibold">{r.voucherNo}</td>
+                          <td className="border border-[#dde] px-2 py-1">{r.entryDate || "—"}</td>
+                          <td className="border border-[#dde] px-2 py-1">{r.journalRemarks || "—"}</td>
+                        </>
+                      ) : (
+                        <>
+                          <td className="border border-[#dde] px-2 py-1 font-semibold">{r.brrNo}</td>
+                          <td className="border border-[#dde] px-2 py-1">{r.brrDate || "—"}</td>
+                          <td className="border border-[#dde] px-2 py-1">{r.partyBillNo || "—"}</td>
+                          <td className="border border-[#dde] px-2 py-1">{r.brbNo || "—"}</td>
+                        </>
+                      )}
+                      <td className="border border-[#dde] px-2 py-1 text-right">{formatAmount(r.billAmount)}</td>
+                      <td className="border border-[#dde] px-2 py-1 text-right">{formatAmount(r.requestedAmount)}</td>
+                      <td className={`border border-[#dde] px-2 py-1 text-right font-semibold ${fits ? "text-[#2a4a2a]" : "text-red-500"}`}>{formatAmount(r.balanceAmount)}</td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          )}
+        </div>
+        <div className="flex justify-end gap-2 px-4 py-3 border-t bg-[#f8fafc]">
+          <button type="button" onClick={onClose} className="px-4 py-1.5 text-[12px] border border-gray-300 rounded-sm hover:bg-gray-100">Cancel</button>
+          <button type="button" onClick={link} disabled={!picked || saving}
+            className="px-4 py-1.5 text-[12px] bg-[#3b6ea5] text-white rounded-sm hover:bg-[#2f5a8e] disabled:opacity-50 disabled:cursor-not-allowed">
+            {saving ? "Linking…" : "Link Advance"}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 /* ─── PaymentRequestForm ────────────────────────────────────── */
 export default function PaymentRequestForm({
   mode = "create", prId, presetBrrId, presetJournalId, presetVendorId, onDataLoaded, onAfterSubmit,
@@ -124,6 +249,12 @@ export default function PaymentRequestForm({
   const [eligibleJournals, setEligibleJournals] = useState([]);
   const [summary, setSummary]   = useState(null);   // selected source: bill / requested / balance
   const [siblings, setSiblings] = useState([]);     // other requests on same source
+  const [advanceVendors, setAdvanceVendors] = useState([]);
+  const [advance, setAdvance]   = useState(null);   // saved ADVANCE request: link + payment status
+  const [linkOpen, setLinkOpen] = useState(false);
+  const [paymentsOpen, setPaymentsOpen] = useState(false);
+  const [reloadKey, setReloadKey] = useState(0);
+  const paymentAccess = getPageAccess({ pageCode: "payment", pageType: "ADD" });
 
   const [attachedFile, setAttachedFile]       = useState(null);
   const [existingFileUrl, setExistingFileUrl] = useState("");
@@ -142,6 +273,7 @@ export default function PaymentRequestForm({
 
   const sourceType      = watch("sourceType");
   const isJournal       = sourceType === "JOURNAL";
+  const isAdvance       = sourceType === "ADVANCE";
   const vendorId        = watch("vendorId");
   const brrId           = watch("brrId");
   const requestedAmount = watch("requestedAmount");
@@ -150,7 +282,8 @@ export default function PaymentRequestForm({
   const requested  = Number(requestedAmount) || 0;
   const deduction  = Number(deductionAmount) || 0;
   const netPayable = requested - deduction;
-  const balance    = summary ? Number(summary.balanceAmount) || 0 : null;
+  // an unlinked advance has no bill → no ceiling here
+  const balance    = summary && !isAdvance ? Number(summary.balanceAmount) || 0 : null;
   const exceedsBalance = balance !== null && requested > balance;
 
   // Load vendor ledgers
@@ -159,6 +292,14 @@ export default function PaymentRequestForm({
       .then((res) => setLedgerList(res.data || []))
       .catch(() => toast.error("Failed to load vendor list"));
   }, []);
+
+  // Advance: only sundry creditors connected with this project
+  useEffect(() => {
+    if (!isAdvance || !projectCode || mode !== "create") return;
+    apiRequest({ url: `${EP.ADVANCE_VENDORS}?projectCode=${projectCode}`, method: "GET" })
+      .then((res) => setAdvanceVendors((res.data || []).map((v) => ({ ...v, ledgerId: v.vendorId }))))
+      .catch(() => toast.error("Failed to load project vendors"));
+  }, [isAdvance, projectCode, mode]);
 
   // Opened from a journal (?journalId=), or user may only raise journal requests → Journal mode
   useEffect(() => {
@@ -195,7 +336,7 @@ export default function PaymentRequestForm({
 
   // Load eligible BRRs (create mode only) — approved BRRs with balance > 0
   useEffect(() => {
-    if (mode !== "create" || !projectCode || isJournal) return;
+    if (mode !== "create" || !projectCode || isJournal || isAdvance) return;
     const params = new URLSearchParams({ projectCode });
     if (vendorId) params.set("vendorId", vendorId);
     apiRequest({ url: `${EP.ELIGIBLE_BRRS}?${params}`, method: "GET" })
@@ -215,7 +356,7 @@ export default function PaymentRequestForm({
         }
       })
       .catch(() => toast.error("Failed to load BRR list"));
-  }, [mode, projectCode, vendorId, isJournal]);
+  }, [mode, projectCode, vendorId, isJournal, isAdvance]);
 
   // Load existing request in edit / view / approver mode
   useEffect(() => {
@@ -243,6 +384,23 @@ export default function PaymentRequestForm({
         setInitialData(data);
         setSummary(d.sourceSummary || d.brrSummary || null);
         setSiblings(d.siblingRequests || []);
+        setAdvance(d.sourceType === "ADVANCE" ? {
+          workflowStatus: d.workflowStatus,
+          linkType:       d.linkType,
+          linkedNo:       d.linkedNo,
+          linkedAt:       d.linkedAt,
+          linkedBy:       d.linkedBy,
+          brrId:          d.brrId,
+          journalId:      d.journalId,
+          vendorId:       d.vendorId,
+          partyName:      d.partyName,
+          requested:      Number(d.requestedAmount || 0),
+          netPayable:     Number(d.netPayable || 0),
+          paid:           Number(d.advancePaid || 0),
+          inProgress:     Number(d.advanceInProgress || 0),
+          balance:        Number(d.advanceBalance || 0),
+          payments:       d.advancePayments || [],
+        } : null);
         if (d.attachedDoc) {
           setExistingFileUrl(d.attachedDoc);
           setInitialFileUrl(d.attachedDoc);
@@ -265,7 +423,7 @@ export default function PaymentRequestForm({
       }
     };
     fetchPR();
-  }, [prId, mode, reset]);
+  }, [prId, mode, reset, reloadKey]);
 
   const brrOptions = useMemo(
     () => eligibleBrrs.map((b) => ({
@@ -308,7 +466,18 @@ export default function PaymentRequestForm({
     setValue("sourceType", val, { shouldValidate: true });
     setValue("brrId", "");
     setValue("journalKey", "");
+    setValue("vendorId", "");
     setSummary(null);
+  };
+
+  const unlink = async () => {
+    try {
+      const res = await apiRequest({ url: `${EP.UNLINK}/${prId}`, method: "POST" });
+      toast.success(res.message || "Advance unlinked");
+      setReloadKey((k) => k + 1);
+    } catch (err) {
+      toast.error(err.message || "Failed to unlink");
+    }
   };
 
   const handleBrrChange = (val) => {
@@ -327,6 +496,8 @@ export default function PaymentRequestForm({
       const [journalId, jVendorId] = (v.journalKey || "").split(":");
       fd.append("journalId", journalId);
       fd.append("vendorId", jVendorId);
+    } else if (v.sourceType === "ADVANCE") {
+      fd.append("vendorId", v.vendorId);
     } else {
       fd.append("brrId", v.brrId);
     }
@@ -439,25 +610,24 @@ export default function PaymentRequestForm({
 
             {/* Source selection */}
             <div className="flex flex-col gap-[2px] mb-3">
-              {(canRaiseJournal || isJournal) && (
-                <FieldRow label="Request Against" required>
-                  <Select value={sourceType} onValueChange={handleSourceChange} disabled={brrLocked}>
-                    <SelectTrigger className={`${getInputClass(false, brrLocked)} w-full h-[36px]`}>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {(canRaiseBrr || !isJournal || mode !== "create") && (
-                        <SelectItem value="BRR">BRR (Bill Receive Register)</SelectItem>
-                      )}
-                      <SelectItem value="JOURNAL">Journal Entry</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </FieldRow>
-              )}
-              <FieldRow label="Party Name">
+              <FieldRow label="Request Against" required>
+                <Select value={sourceType} onValueChange={handleSourceChange} disabled={brrLocked}>
+                  <SelectTrigger className={`${getInputClass(false, brrLocked)} w-full h-[36px]`}>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {(canRaiseBrr || !isJournal || mode !== "create") && (
+                      <SelectItem value="BRR">BRR (Bill Receive Register)</SelectItem>
+                    )}
+                    {(canRaiseJournal || isJournal) && <SelectItem value="JOURNAL">Journal Entry</SelectItem>}
+                    {(canRaiseBrr || isAdvance) && <SelectItem value="ADVANCE">Advance (no bill yet)</SelectItem>}
+                  </SelectContent>
+                </Select>
+              </FieldRow>
+              <FieldRow label="Party Name" required={isAdvance}>
                 <Controller control={control} name="vendorId" render={({ field }) => (
                   <SearchableSelect
-                    options={ledgerList}
+                    options={isAdvance && mode === "create" ? advanceVendors : ledgerList}
                     value={field.value ? String(field.value) : ""}
                     onChange={(val) => {
                       field.onChange(val ? String(val) : "");
@@ -467,14 +637,34 @@ export default function PaymentRequestForm({
                       setSummary(null);
                     }}
                     disabled={brrLocked}
-                    placeholder={`Filter ${isJournal ? "Journal" : "BRR"} by Vendor (optional)`}
+                    placeholder={isAdvance
+                      ? (advanceVendors.length ? "Select Vendor (sundry creditor of this project)" : "No creditor connected with this project")
+                      : `Filter ${isJournal ? "Journal" : "BRR"} by Vendor (optional)`}
                     labelKey="ledgerName"
                     valueKey="ledgerId"
-                    searchKeys={["ledgerName"]}
+                    searchKeys={["ledgerName", "ledgerCode"]}
+                    className={errors.vendorId ? "border-red-500" : ""}
                   />
                 )} />
               </FieldRow>
-              {isJournal ? (
+              {isAdvance ? (
+                <>
+                  <FieldRow label="Linked To Bill">
+                    <div className="flex items-center gap-2 w-full">
+                      <ReadOnly value={
+                        mode === "create" ? "Link to BRR / Journal after approval"
+                          : advance?.linkType ? `${advance.linkType === "JOURNAL" ? "Journal" : "BRR"} ${advance.linkedNo || ""}`
+                          : "Not linked yet"
+                      } className={advance?.linkType ? "bg-green-50" : ""} />
+                    </div>
+                  </FieldRow>
+                  {advance?.linkType && (
+                    <FieldRow label="Linked On / By">
+                      <ReadOnly value={`${advance.linkedAt || ""}${advance.linkedBy ? ` · ${advance.linkedBy}` : ""}`} />
+                    </FieldRow>
+                  )}
+                </>
+              ) : isJournal ? (
                 <>
                   <FieldRow label="Journal Voucher No" required>
                     {mode === "create" ? (
@@ -599,7 +789,23 @@ export default function PaymentRequestForm({
           {/* ── RIGHT COLUMN ── */}
           <div className="flex flex-col gap-[3px]">
 
-            {/* BRR balance */}
+            {/* Advance: what has been paid from Account › Payment */}
+            {isAdvance && mode !== "create" && advance && (
+              <div className="flex flex-col gap-[2px] mb-3">
+                <FieldRow label="Advance Paid">
+                  <ReadOnly value={formatAmount(advance.paid)} />
+                </FieldRow>
+                <FieldRow label="Payment In Progress">
+                  <ReadOnly value={formatAmount(advance.inProgress)} />
+                </FieldRow>
+                <FieldRow label="Balance To Pay">
+                  <ReadOnly value={formatAmount(advance.balance)} className="bg-orange-50 font-semibold" />
+                </FieldRow>
+              </div>
+            )}
+
+            {/* BRR balance (for an advance: only once linked) */}
+            {(!isAdvance || advance?.linkType) && (
             <div className="flex flex-col gap-[2px] mb-3">
               <FieldRow label={`Bill Amount${summary?.billSource === "BRB" ? " (BRB)" : summary?.billSource === "JOURNAL" ? " (Journal Cr)" : ""}`}>
                 <ReadOnly value={summary ? formatAmount(summary.billAmount) : ""} />
@@ -614,6 +820,7 @@ export default function PaymentRequestForm({
                 />
               </FieldRow>
             </div>
+            )}
 
             {/* Amounts */}
             <div className="flex flex-col gap-[2px] mb-4">
@@ -675,13 +882,13 @@ export default function PaymentRequestForm({
         {mode !== "create" && siblings.length > 0 && (
           <div className="mt-4">
             <div className="text-[12px] font-semibold text-gray-700 mb-1">
-              Other Payment Requests on {isJournal ? `Journal ${summary?.voucherNo || ""} (${summary?.partyName || "-"})` : `BRR ${summary?.brrNo || ""}`}
+              Other Payment Requests on {(isJournal || advance?.linkType === "JOURNAL") ? `Journal ${summary?.voucherNo || ""} (${summary?.partyName || "-"})` : `BRR ${summary?.brrNo || ""}`}
             </div>
             <div className="overflow-x-auto">
               <table className="w-full border-collapse text-[11px]">
                 <thead>
                   <tr className="bg-[#e8f4f7]">
-                    {["PR No", "Date", "Requested", "Net Payable", "Status"].map((h) => (
+                    {["PR No", "Date", "Type", "Requested", "Net Payable", "Status"].map((h) => (
                       <th key={h} className="border border-[#e6e4e4] px-2 py-1 text-left font-semibold">{h}</th>
                     ))}
                   </tr>
@@ -692,6 +899,7 @@ export default function PaymentRequestForm({
                       onClick={() => router.push(`${BASE_PATH}/${s.id}`)}>
                       <td className="border border-[#e6e4e4] px-2 py-1 text-blue-600">{s.prNo}</td>
                       <td className="border border-[#e6e4e4] px-2 py-1">{s.prDate}</td>
+                      <td className="border border-[#e6e4e4] px-2 py-1">{s.sourceType === "ADVANCE" ? "Advance" : s.sourceType === "JOURNAL" ? "Journal" : "BRR"}</td>
                       <td className="border border-[#e6e4e4] px-2 py-1 text-right">{formatAmount(s.requestedAmount)}</td>
                       <td className="border border-[#e6e4e4] px-2 py-1 text-right">{formatAmount(s.netPayable)}</td>
                       <td className="border border-[#e6e4e4] px-2 py-1">{(s.workflowStatus || "").replace(/_/g, " ")}</td>
@@ -703,6 +911,91 @@ export default function PaymentRequestForm({
           </div>
         )}
       </div>
+
+      {/* Advance: payments made + link / pay actions (any mode, once Approved) */}
+      {isAdvance && advance && advance.workflowStatus === "Approved" && (
+        <div className="px-3">
+          <div className="flex flex-wrap items-center gap-2 border-t pt-3">
+            <span className="text-[12px] font-semibold text-gray-700 mr-auto">Advance Payments</span>
+            {advance.linkType && (
+              <button type="button" onClick={() => setPaymentsOpen(true)}
+                className="px-3 py-1.5 text-[12px] border border-[#3b6ea5] text-[#3b6ea5] rounded-sm hover:bg-[#f0f7ff]">
+                View Bill Payments
+              </button>
+            )}
+            {!advance.linkType && (
+              <button type="button" onClick={() => setLinkOpen(true)}
+                className="px-3 py-1.5 text-[12px] border border-[#3b6ea5] text-[#3b6ea5] rounded-sm hover:bg-[#f0f7ff]">
+                Link to Bill
+              </button>
+            )}
+            {advance.linkType && (
+              <button type="button" onClick={unlink}
+                className="px-3 py-1.5 text-[12px] border border-gray-300 text-gray-600 rounded-sm hover:bg-gray-100">
+                Unlink
+              </button>
+            )}
+            {advance.balance > 0 && paymentAccess.allowed && (
+              <button type="button"
+                onClick={() => router.push(`${ADVANCE_PAYMENT_PATH}?type=advance&prId=${prId}`)}
+                className="px-3 py-1.5 text-[12px] bg-[#3b6ea5] text-white rounded-sm hover:bg-[#2f5a8e]">
+                Make Advance Payment
+              </button>
+            )}
+          </div>
+          {advance.payments.length > 0 ? (
+            <div className="overflow-x-auto mt-2">
+              <table className="w-full border-collapse text-[11px]">
+                <thead>
+                  <tr className="bg-[#e8f4f7]">
+                    {["Payment No", "Date", "Mode", "UTR / Voc. No", "Amount", "Status"].map((h) => (
+                      <th key={h} className={`border border-[#e6e4e4] px-2 py-1 font-semibold ${h === "Amount" ? "text-right" : "text-left"}`}>{h}</th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {advance.payments.map((p) => (
+                    <tr key={p.id} className="hover:bg-gray-50 cursor-pointer"
+                      onClick={() => router.push(`/finance-management/account/payment/${p.id}`)}>
+                      <td className="border border-[#e6e4e4] px-2 py-1 text-blue-600">{p.receiptNo}</td>
+                      <td className="border border-[#e6e4e4] px-2 py-1">{p.paymentDate}</td>
+                      <td className="border border-[#e6e4e4] px-2 py-1">{p.paymentMode || "—"}</td>
+                      <td className="border border-[#e6e4e4] px-2 py-1">{p.utrVoucherNo || "—"}</td>
+                      <td className="border border-[#e6e4e4] px-2 py-1 text-right">{formatAmount(p.amount)}</td>
+                      <td className="border border-[#e6e4e4] px-2 py-1">{(p.workflowStatus || "").replace(/_/g, " ")}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          ) : (
+            <div className="text-[11px] text-gray-400 italic mt-2">No payment made yet. Use “Make Advance Payment”.</div>
+          )}
+          {!advance.linkType && (
+            <div className="text-[11px] text-gray-500 mt-1">
+              Once the bill arrives, use “Link to Bill”. Approved advance payments then reduce that bill’s balance in Account › Payment.
+            </div>
+          )}
+        </div>
+      )}
+
+      <LinkAdvanceModal
+        open={linkOpen}
+        onClose={() => setLinkOpen(false)}
+        onLinked={() => { setLinkOpen(false); setReloadKey((k) => k + 1); }}
+        prId={prId}
+        projectCode={projectCode}
+        vendorId={advance?.vendorId}
+        amount={advance?.requested || 0}
+        canJournal={!!journalAccess.allowed && !!journalAccess.canAdd}
+      />
+      <BillPaymentsPopup
+        open={paymentsOpen}
+        onClose={() => setPaymentsOpen(false)}
+        brrId={advance?.linkType === "BRR" ? advance.brrId : undefined}
+        journalEntryId={advance?.linkType === "JOURNAL" ? advance.journalId : undefined}
+        vendorId={advance?.vendorId}
+      />
 
       {/* Actions */}
       {mode !== "view" && mode !== "approver" && (

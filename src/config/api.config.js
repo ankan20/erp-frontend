@@ -190,6 +190,10 @@ export const API_ENDPOINTS = {
       REJECT:             "/billing/payment-request/reject",             // /:id POST
       HISTORY:            "/billing/payment-request/history",            // /:id GET
       MY_APPROVAL_STATUS: "/billing/payment-request/my-approval-status", // /:id GET
+      ADVANCE_VENDORS:    "/billing/payment-request/advance-vendors",    // GET ?projectCode — sundry creditors of the project
+      PAYABLE_ADVANCES:   "/billing/payment-request/payable-advances",   // GET ?projectCode&vendorId&includeId — approved advances with balance
+      LINK:               "/billing/payment-request/link",               // /:id POST { linkType: BRR|JOURNAL, brrId | journalId }
+      UNLINK:             "/billing/payment-request/unlink",             // /:id POST
     },
     BRB: {
       ITEMS_BY_BRR: "/billing/brb/items-by-brr", // /:brrId GET — returns grns[] or srns[] based on billingType
@@ -711,6 +715,7 @@ export const API_ENDPOINTS = {
       REJECT:             "/finance/bill-payment/reject/",                  // /<receipt_id> POST { comments }
       HISTORY:            "/finance/bill-payment/history/",                 // /<receipt_id> GET
       MY_APPROVAL_STATUS: "/finance/bill-payment/my-approval-status/",      // /<receipt_id> GET
+      BILL_PAYMENTS:      "/finance/bill-payment/bill-payments",            // GET ?purchaseBillId | ?brrId | ?journalEntryId&vendorId — popup
     },
     CONTRA_ENTRY: {
       CREATE:             "/finance/contra-entry/create",                // POST JSON

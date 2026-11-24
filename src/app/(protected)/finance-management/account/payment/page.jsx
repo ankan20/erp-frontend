@@ -44,7 +44,10 @@ export default function Page() {
           paymentNo:   r.receiptNo          || "—",
           date:        r.paymentDate ? getfmtDisplaydate(r.paymentDate) : "—",
           partyName:   r.vendorName         || "—",
-          refNumber:   r.purchaseBillNo     || "—",
+          paymentType: r.paymentType === "advance" ? "Advance" : r.paymentType === "voucher" ? "Voucher" : "Bill",
+          refNumber:   (r.paymentType === "advance" ? r.paymentRequestNo
+                        : r.paymentType === "voucher" ? r.voucherNo
+                        : r.purchaseBillNo) || "—",
           paymentMode: r.paymentMode        || "—",
           utrVoucherNo: r.utrVoucherNo      || "—",
           amount:      r.totalInvoiceAmount != null ? formatAmount(r.totalInvoiceAmount) : "—",
@@ -88,6 +91,7 @@ export default function Page() {
     { header: "Payment Voc. No", accessor: "paymentNo",    width: "130px" },
     { header: "Date",            accessor: "date",         width: "100px" },
     { header: "Party Name",      accessor: "partyName",    width: "200px" },
+    { header: "Type",            accessor: "paymentType",  width: "80px"  },
     { header: "Ref. Number",     accessor: "refNumber",    width: "130px" },
     { header: "By Mode",         accessor: "paymentMode",  width: "85px",  align: "center" },
     { header: "UTR / Voc. No",   accessor: "utrVoucherNo", width: "145px" },
@@ -136,6 +140,7 @@ export default function Page() {
             access.canAdd
               ? [
                   { label: "+ Bill Payment", onClick: () => router.push("/finance-management/account/payment/new") },
+                  { label: "+ Advance Payment", onClick: () => router.push("/finance-management/account/payment/new?type=advance") },
                 ]
               : []
           }
