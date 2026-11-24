@@ -515,6 +515,10 @@ export const routeMetaConfig = [
     basePath: "/resource-management/contact-dairy/plant-machinery/[id]",
     breadcrumbs: ["Resource Management", "Contact Dairy","Plant & Machinery","Edit"],
   },
+  {
+    basePath: "/resource-management/contact-dairy/gang-tracker",
+    breadcrumbs: ["Resource Management", "Contact Dairy", "Gang Tracker"],
+  },
   // Sale Certified Bill
   {
     basePath: "/project-management/customer-billing/sale-bill-certified",
@@ -980,10 +984,6 @@ export const routeMetaConfig = [
     breadcrumbs: ["MIS", "Follow-up Board"],
   },
 
-  {
-    basePath: "/hr-management/contact-dairy",
-    breadcrumbs: ["HR Management", "Gang Tracker"],
-  },
 
   // Asset Management
   {

@@ -54,6 +54,7 @@ export const PAGE_CODES = [
   { code: "CM", path: "/resource-management/contact-dairy/materials", create: true },
   { code: "CW", path: "/resource-management/contact-dairy/work-force", create: true },
   { code: "CP", path: "/resource-management/contact-dairy/plant-machinery", create: true },
+  { code: "GT", path: "/resource-management/contact-dairy/gang-tracker" },
 
   // Project Management
   { code: "SO", path: "/project-management/contacts/sale-order", create: true },
@@ -104,7 +105,6 @@ export const PAGE_CODES = [
   { code: "HR", path: "/hr-management/employee", create: true },
   { code: "PA", path: "/hr-management/admin/payroll" },
   { code: "AP", path: "/hr-management/reports/performance-appraisal" },
-  { code: "GT", path: "/hr-management/contact-dairy" },
 
   // MIS
   { code: "TK", path: "/task-management/todo" },
