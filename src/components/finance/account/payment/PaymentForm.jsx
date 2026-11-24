@@ -55,6 +55,7 @@ const pvItemSchema = z.object({
   description:     z.string().nullable().optional().default(""),
   bookedAmount:    z.coerce.number().default(0),
   paidAmount:      z.coerce.number().default(0),
+  advanceAmount:   z.coerce.number().default(0),   // linked advance adjusted on this row
   balanceAmount:   z.coerce.number().default(0),
   currentAmount:   z.coerce.number().min(0).default(0),
 });
@@ -71,6 +72,7 @@ const pvGstLineSchema = z.object({
   percent:        z.coerce.number().default(0),
   bookedAmount:   z.coerce.number().default(0),
   paidAmount:     z.coerce.number().default(0),
+  advanceAmount:  z.coerce.number().default(0),
   balanceAmount:  z.coerce.number().default(0),
   currentAmount:  z.coerce.number().min(0).default(0),
   isSelected:     z.boolean().default(false),
@@ -811,6 +813,7 @@ export default function PaymentForm({
         description:    it.description    || "",
         bookedAmount:   Number(it.bookedAmount  || 0),
         paidAmount:     Number(it.paidAmount    || 0),
+        advanceAmount:  Number(it.advanceAmount || 0),
         balanceAmount:  Number(it.balanceAmount || 0),
         currentAmount:  0,
       })));
@@ -827,6 +830,7 @@ export default function PaymentForm({
         percent:        Number(l.percent    || 0),
         bookedAmount:   Number(l.bookedAmount  || 0),
         paidAmount:     Number(l.paidAmount    || 0),
+        advanceAmount:  Number(l.advanceAmount || 0),
         balanceAmount:  Number(l.balanceAmount || 0),
         currentAmount:  0,
         isSelected:     !!l.isSelected,
@@ -896,6 +900,7 @@ export default function PaymentForm({
         description:    it.description || "",
         bookedAmount:   Number(it.bookedAmount || 0),
         paidAmount:     Number(it.paidAmount   || 0),
+        advanceAmount:  Number(it.advanceAmount || 0),
         balanceAmount:  Number(it.balanceAmount || 0),
         currentAmount:  0,
       })));
@@ -1010,6 +1015,7 @@ export default function PaymentForm({
               purchaseBillNo: "", brrNo: "", brrDate: "", orderNo: "",
               slNo: i + 1, ccCode: it.ccCode || "", ccName: it.ccName || "", description: it.description || "",
               bookedAmount: Number(it.bookedAmount || 0), paidAmount: Number(it.paidAmount || 0),
+              advanceAmount: Number(it.advanceAmount || 0),
               balanceAmount: Number(it.balanceAmount || 0), currentAmount: Number(it.currentAmount || 0),
             })),
             gstLines: [],
@@ -1063,6 +1069,7 @@ export default function PaymentForm({
             orderNo:        it.orderNo        || "",
             slNo: i + 1, ccCode: it.ccCode || "", ccName: it.ccName || "", description: it.description || "",
             bookedAmount: Number(it.bookedAmount || 0), paidAmount: Number(it.paidAmount || 0),
+              advanceAmount: Number(it.advanceAmount || 0),
             balanceAmount: Number(it.balanceAmount || 0), currentAmount: Number(it.currentAmount || 0),
           })),
           gstLines: (d.gstLines || []).map((l) => ({
@@ -1075,6 +1082,7 @@ export default function PaymentForm({
             ccCode: l.ccCode || "", ccName: l.ccName || "",
             percent: Number(l.percent || 0),
             bookedAmount: Number(l.bookedAmount || 0), paidAmount: Number(l.paidAmount || 0),
+            advanceAmount: Number(l.advanceAmount || 0),
             balanceAmount: Number(l.balanceAmount || 0), currentAmount: Number(l.currentAmount || 0),
             isSelected: !!l.isSelected,
           })),

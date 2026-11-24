@@ -205,7 +205,14 @@ export default function PaymentBreakdownTable({
                     </td>
 
                     <td className="border border-[#d0d0d0] px-2 py-[3px] text-right text-gray-600 whitespace-nowrap">
-                      {data.paidAmount > 0 ? formatAmount(data.paidAmount) : "—"}
+                      {Number(data.paidAmount || 0) + Number(data.advanceAmount || 0) > 0
+                        ? formatAmount(Number(data.paidAmount || 0) + Number(data.advanceAmount || 0))
+                        : "—"}
+                      {Number(data.advanceAmount || 0) > 0 && (
+                        <div className="text-[10px] text-purple-700 leading-tight" title="Linked advance adjusted on this row">
+                          incl. adv {formatAmount(data.advanceAmount)}
+                        </div>
+                      )}
                     </td>
 
                     <td
