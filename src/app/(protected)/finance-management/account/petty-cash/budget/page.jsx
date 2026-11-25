@@ -37,6 +37,7 @@ export default function BudgetListPage() {
       .then((res) => {
         const list = res.data?.list || res.data || [];
         setData(list.map((r, i) => ({
+          createdTs: r.createdTs,
           sl:             i + 1,
           _id:            r.id,
           _date:          r.budgetDate || "",

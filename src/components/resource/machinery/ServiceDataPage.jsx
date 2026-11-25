@@ -63,6 +63,7 @@ export default function ServiceDataPage({ canAdd = false }) {
         const res = await apiRequest({ url: API_ENDPOINTS.RESOURCE.MACHINERY.SERVICE_HISTORY.LIST, method: "GET" });
         const list = Array.isArray(res?.data) ? res.data : [];
         const formatted = list.map((r, i) => ({
+          createdTs: r.createdTs,
           ...r,
           sl:                 i + 1,
           pmUid:              r.pmUid           || "-",
@@ -89,6 +90,7 @@ export default function ServiceDataPage({ canAdd = false }) {
         const res = await apiRequest({ url: API_ENDPOINTS.RESOURCE.MACHINERY.SERVICE_SCHEDULE.LIST, method: "GET" });
         const list = Array.isArray(res?.data) ? res.data : [];
         const formatted = list.map((r, i) => ({
+          createdTs: r.createdTs,
           ...r,
           sl:                      i + 1,
           pmUid:                   r.pmUid            || "-",

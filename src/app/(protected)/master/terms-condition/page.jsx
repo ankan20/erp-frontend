@@ -37,6 +37,7 @@ export default function Page() {
           list = res.data || [];
 
         const mapped = list.map((item, idx) => ({
+          createdTs: item.createdTs,
           termId:    item.termId,
           sl:        idx + 1,
           module:    moduleLabel(item.module),

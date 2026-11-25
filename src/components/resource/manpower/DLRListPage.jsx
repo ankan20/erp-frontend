@@ -31,6 +31,7 @@ export default function DLRListPage({ canAdd = false, canApprove = false }) {
         const res  = await apiRequest({ url: API_ENDPOINTS.RESOURCE.MANPOWER.DLR.LIST, method: "GET" });
         const list = Array.isArray(res?.data) ? res.data : [];
         const formatted = list.map((w, i) => ({
+          createdTs: w.createdTs,
           ...w,
           sl:             i + 1,
           supplierDisplay: w.supplierName

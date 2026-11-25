@@ -1,12 +1,13 @@
 "use client";
 
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { usePathname } from "next/navigation";
 import { useColumnResize } from "@/hooks/useColumnResize";
 import { ArrowUp, ArrowDown, ArrowUpDown, ChevronDown, Search } from "lucide-react";
 import { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider } from "@/components/ui/tooltip";
 import { isTypingTarget, topDialog } from "@/lib/shortcuts";
 import Pagination, { PAGE_SIZE_OPTIONS } from "@/components/common/Pagination";
+import { CREATED_ON_KEY, CREATED_TS_KEY, parseCreatedAt, formatCreatedOn, rowCreatedAt } from "@/lib/createdOn";
 
 function readSession(key) {
   try { return JSON.parse(sessionStorage.getItem(key) || "null"); } catch { return null; }
@@ -85,8 +86,11 @@ function ActionCell({ action, row }) {
 }
 
 export default function DataTable({
-  columns = [],
-  data = [],
+  columns: columnsProp = [],
+  data: dataProp = [],
+  // "Created On" (DB entry time) column — added on its own whenever the rows
+  // carry `createdTs` (sent by every list API); pass false to hide it on a table where it does not fit.
+  showCreatedOn = true,
   onRowClick,
   storageKey,          // optional override; defaults to current pathname
   pendingDeleteIds,    // Set<number> — rows with pending delete requests get an orange dot
@@ -108,6 +112,24 @@ export default function DataTable({
   //                onChange: (nextSet) => void }
   selection,
 }) {
+  // ─── CREATED ON (auto column, before trailing action columns)
+  const hasCreated = showCreatedOn
+    && !columnsProp.some((c) => c.accessor === "createdTs" || c.accessor === CREATED_ON_KEY)
+    && dataProp.some((r) => rowCreatedAt(r) != null);
+  const data = useMemo(() => (hasCreated
+    ? dataProp.map((r) => {
+        const ts = parseCreatedAt(rowCreatedAt(r));
+        return { ...r, [CREATED_TS_KEY]: ts, [CREATED_ON_KEY]: formatCreatedOn(ts) };
+      })
+    : dataProp), [dataProp, hasCreated]);
+  const columns = useMemo(() => {
+    if (!hasCreated) return columnsProp;
+    let at = columnsProp.length;
+    while (at > 1 && columnsProp[at - 1].action) at--;
+    const col = { header: "Created On", accessor: CREATED_ON_KEY, width: "165px" };
+    return [...columnsProp.slice(0, at), col, ...columnsProp.slice(at)];
+  }, [columnsProp, hasCreated]);
+
   const pathname = usePathname();
   const tableKey = `table-state:${storageKey ?? pathname}`;
 
@@ -237,6 +259,12 @@ export default function DataTable({
 
   const sortedData = [...filteredData].sort((a, b) => {
     if (!sortConfig.key) return 0;
+    if (sortConfig.key === CREATED_ON_KEY) {
+      const ta = a[CREATED_TS_KEY] ?? -Infinity;
+      const tb = b[CREATED_TS_KEY] ?? -Infinity;
+      if (ta === tb) return 0;
+      return sortConfig.direction === "asc" ? (ta < tb ? -1 : 1) : (ta < tb ? 1 : -1);
+    }
     const valA = a[sortConfig.key] ?? "";
     const valB = b[sortConfig.key] ?? "";
 

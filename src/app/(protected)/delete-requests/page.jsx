@@ -16,6 +16,7 @@ import { Bell, RefreshCw, CheckCircle2, Clock, XCircle } from "lucide-react";
 import { EdoxMark } from "@/components/common/EdoxLoader";
 import { toast } from "sonner";
 import Pagination from "@/components/common/Pagination";
+import { createdOnText } from "@/lib/createdOn";
 
 const STATUS_OPTIONS = ["ALL", "PENDING", "COMPLETED", "CANCELLED"];
 
@@ -94,8 +95,8 @@ function NotificationCard({ item }) {
           {item.requested_by_name && (
             <span>by <strong>{item.requested_by_name}</strong></span>
           )}
-          {item.requested_at && (
-            <span>· {new Date(item.requested_at).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" })}</span>
+          {item.createdTs && (
+            <span title="Created On">· Created On {createdOnText(item)}</span>
           )}
         </div>
         {item.wa_sent && (

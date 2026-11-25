@@ -40,6 +40,7 @@ export default function Page() {
     apiRequest({ url: `${API_ENDPOINTS.FINANCE.BILL_PAYMENT.LIST}?projectCode=${projectCode}`, method: "GET" })
       .then((res) => {
         const rows = (res?.data || []).map((r) => ({
+          createdTs: r.createdTs,
           _id:         r.id,
           paymentNo:   r.receiptNo          || "—",
           date:        r.paymentDate ? getfmtDisplaydate(r.paymentDate) : "—",

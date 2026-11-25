@@ -361,6 +361,7 @@ export default function Page() {
           ? bsLevels.map((l) => l.subGroupName).join(" > ")
           : "—";
         return {
+          createdTs: item.createdTs,
           id:                   item.id,
           sl:                   index + 1,
           type:                 item.type,

@@ -19,6 +19,7 @@ import { Pencil, Trash2, Plus, ChevronRight, ChevronDown } from "lucide-react";
 import SaveButton from "@/components/common/SaveButton";
 import SearchableSelect from "@/components/common/SearchableSelect";
 import { useColumnResize } from "@/hooks/useColumnResize";
+import { createdOnText } from "@/lib/createdOn";
 import { API_ENDPOINTS } from "@/config/api.config";
 
 const LEVEL_LABELS = ["Sub Group", "Sub Group 1", "Sub Group 2"];
@@ -287,6 +288,7 @@ export default function SubGroupSection({ refreshTrigger }) {
                 {item.status}
               </span>
             </td>
+            <td className="px-3 py-2 text-gray-500 text-xs whitespace-nowrap">{createdOnText(item)}</td>
             <td className="px-3 py-2">
               <div className="flex items-center justify-center gap-3">
                 {item.canHaveChildren && (
@@ -410,17 +412,18 @@ export default function SubGroupSection({ refreshTrigger }) {
               <th className="border-b border-[#c5dbed] px-3 py-2 text-left font-semibold">Level</th>
               <th className="border-b border-[#c5dbed] px-3 py-2 text-left font-semibold">Head Under</th>
               <th className="border-b border-[#c5dbed] px-3 py-2 text-left font-semibold">Status</th>
+              <th className="border-b border-[#c5dbed] px-3 py-2 text-left font-semibold whitespace-nowrap">Created On</th>
               <th className="border-b border-[#c5dbed] px-3 py-2 w-20 text-center font-semibold">Action</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-100">
             {loading ? (
               <tr>
-                <td colSpan={7} className="text-center py-8 text-gray-400 text-xs">Loading…</td>
+                <td colSpan={8} className="text-center py-8 text-gray-400 text-xs">Loading…</td>
               </tr>
             ) : data.length === 0 ? (
               <tr>
-                <td colSpan={7} className="text-center py-8 text-gray-400 text-xs">No sub groups yet</td>
+                <td colSpan={8} className="text-center py-8 text-gray-400 text-xs">No sub groups yet</td>
               </tr>
             ) : (
               renderRows(rootItems)

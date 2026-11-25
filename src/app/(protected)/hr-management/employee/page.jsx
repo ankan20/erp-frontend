@@ -7,6 +7,7 @@ import PageHeader from "@/components/layout/PageHeader";
 import { apiRequest } from "@/lib/apiClient";
 import { API_ENDPOINTS } from "@/config/api.config";
 import { getPageActions } from "@/components/common/PageActionButtons";
+import { createdOnText } from "@/lib/createdOn";
 
 const STATUS_STYLE = {
   Active:      "bg-emerald-100 text-emerald-700 border-emerald-200",
@@ -196,7 +197,7 @@ export default function EmployeeMasterPage() {
                   <table className="w-full text-sm">
                     <thead>
                       <tr className="bg-gray-50 border-b border-gray-100 text-left">
-                        {["Employee", "Department", "Designation", "Type", "Date of Joining", "CTC (Annual)", "Status"].map((h) => (
+                        {["Employee", "Department", "Designation", "Type", "Date of Joining", "CTC (Annual)", "Status", "Created On"].map((h) => (
                           <th key={h} className="px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide whitespace-nowrap">{h}</th>
                         ))}
                         <th className="px-4 py-3" />
@@ -237,6 +238,7 @@ export default function EmployeeMasterPage() {
                               {emp.employee_status || "—"}
                             </span>
                           </td>
+                          <td className="px-4 py-3 text-xs text-gray-500 whitespace-nowrap">{createdOnText(emp)}</td>
                           <td className="px-4 py-3">
                             <span className="text-xs text-blue-500 group-hover:text-blue-700 font-medium whitespace-nowrap">View →</span>
                           </td>

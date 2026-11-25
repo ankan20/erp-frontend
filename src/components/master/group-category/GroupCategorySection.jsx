@@ -19,6 +19,7 @@ import { toast } from "sonner";
 import { Pencil } from "lucide-react";
 import SaveButton from "@/components/common/SaveButton";
 import { useColumnResize } from "@/hooks/useColumnResize";
+import { createdOnText } from "@/lib/createdOn";
 
 
 export default function GroupCategorySection({
@@ -183,6 +184,7 @@ export default function GroupCategorySection({
             <tr>
               <th className="border-b border-[#c5dbed] px-3 py-2 text-left font-semibold">{title} Name</th>
               <th className="border-b border-[#c5dbed] px-3 py-2 text-left font-semibold">Head Under</th>
+              <th className="border-b border-[#c5dbed] px-3 py-2 text-left font-semibold whitespace-nowrap">Created On</th>
               <th className="border-b border-[#c5dbed] px-3 py-2 w-12 text-center font-semibold">Edit</th>
             </tr>
           </thead>
@@ -190,17 +192,18 @@ export default function GroupCategorySection({
           <tbody className="divide-y divide-gray-100">
             {loading ? (
               <tr>
-                <td colSpan={3} className="text-center py-6 text-gray-400 text-xs">Loading…</td>
+                <td colSpan={4} className="text-center py-6 text-gray-400 text-xs">Loading…</td>
               </tr>
             ) : data.length === 0 ? (
               <tr>
-                <td colSpan={3} className="text-center py-6 text-gray-400 text-xs">No {title.toLowerCase()}s yet</td>
+                <td colSpan={4} className="text-center py-6 text-gray-400 text-xs">No {title.toLowerCase()}s yet</td>
               </tr>
             ) : (
               data.map((item) => (
                 <tr key={item[idKey]} className="hover:bg-gray-50 transition-colors">
                   <td className="px-3 py-2 font-medium text-gray-800">{item[nameKey]}</td>
                   <td className="px-3 py-2 text-gray-500">{item.headUnder}</td>
+                  <td className="px-3 py-2 text-gray-500 whitespace-nowrap text-xs">{createdOnText(item)}</td>
                   <td className="px-3 py-2">
                     <div className="flex justify-center">
                       <Pencil

@@ -31,6 +31,7 @@ export default function Page() {
         const projects = res.data || [];
 
         const formatted = projects.map((p, index) => ({
+          createdTs: p.createdTs,
           id: p.id,
           sl: index + 1,
           projectcode: p.projectCode,

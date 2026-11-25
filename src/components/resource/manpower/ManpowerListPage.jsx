@@ -38,6 +38,7 @@ export default function ManpowerListPage({ canAdd = false }) {
         const res = await apiRequest({ url: API_ENDPOINTS.RESOURCE.MANPOWER.LABOUR_ID.LIST, method: "GET" });
         const list = Array.isArray(res?.data) ? res.data : [];
         const formatted = list.map((w, i) => ({
+          createdTs: w.createdTs,
           ...w,
           sl: i + 1,
           ratePerHrDisplay: w.ratePerHr != null ? `₹ ${Number(w.ratePerHr).toLocaleString("en-IN")}` : "—",

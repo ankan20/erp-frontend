@@ -33,6 +33,7 @@ export default function Page() {
         const assets = res.data || [];
 
         const formatted = assets.map((p, index) => ({
+          createdTs: p.createdTs,
           assetId: p.assetId,
           sl: index + 1,
           assetDisplayCode: p.assetDisplayCode,

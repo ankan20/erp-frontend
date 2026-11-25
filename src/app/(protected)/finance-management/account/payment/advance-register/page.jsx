@@ -17,6 +17,7 @@ import { getLocalStorage } from "@/lib/localStorage";
 import { formatAmount }   from "@/helper/numberFormatter";
 import { getfmtDisplaydate } from "@/helper/getfmtDisplayDate";
 import AdvanceAdjustModal from "@/components/finance/account/payment/AdvanceAdjustModal";
+import { createdOnText } from "@/lib/createdOn";
 
 const EP = API_ENDPOINTS.FINANCE.ADVANCE_ADJUSTMENT;
 const PR_PATH = "/resource-management/sub-contractor-billing/payment-request";
@@ -105,7 +106,7 @@ export default function Page() {
             <table className="w-full border-collapse text-[12px]">
               <thead className="bg-[#1c3a5e] text-white">
                 <tr>
-                  {["", "Vendor / Advance PR", "Date", "Requested", "Paid", "Adjusted", "Outstanding", "Bills Type", ""].map((h, i) => (
+                  {["", "Vendor / Advance PR", "Date", "Requested", "Paid", "Adjusted", "Outstanding", "Bills Type", "Created On", ""].map((h, i) => (
                     <th key={i} className={`border border-[#2a4e7c] px-2 py-1.5 font-semibold ${i >= 3 && i <= 6 ? "text-right" : "text-left"}`}>{h}</th>
                   ))}
                 </tr>
@@ -126,6 +127,7 @@ export default function Page() {
                         <td className={`${num} text-purple-700`}>{formatAmount(v.outstanding)}</td>
                         <td className={cell} />
                         <td className={cell} />
+                        <td className={cell} />
                       </tr>
                       {isOpen && v.advances.map((a) => (
                         <tr key={a.paymentRequestId} className="hover:bg-gray-50">
@@ -140,6 +142,7 @@ export default function Page() {
                           <td className={num}>{formatAmount(a.adjusted)}</td>
                           <td className={`${num} font-semibold`}>{formatAmount(a.outstanding)}</td>
                           <td className={cell}>{a.adjustType === "JOURNAL" ? "Journals" : a.adjustType === "BRR" ? "Purchase Bills" : "—"}</td>
+                          <td className={`${cell} whitespace-nowrap`}>{createdOnText(a)}</td>
                           <td className={`${cell} text-right`}>
                             {a.outstanding > 0 && access.canAdd && (
                               <button type="button" onClick={() => setAdjustPr(a.paymentRequestId)}

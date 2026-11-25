@@ -37,6 +37,7 @@ export default function Page() {
         const units = res.data || [];
 
         const formatted = units.map((p, index) => ({
+          createdTs: p.createdTs,
           unitId: p.unitId,
           sl: index + 1,
           unitName: p.unitName,

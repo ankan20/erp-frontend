@@ -52,6 +52,7 @@ export default function Page() {
     })
       .then((res) => {
         const rows = (res.data?.list || []).map((r, i) => ({
+          createdTs: r.createdTs,
           sl:             i + 1,
           _id:            r.id,
           voucherNo:      r.voucherNo      || "",

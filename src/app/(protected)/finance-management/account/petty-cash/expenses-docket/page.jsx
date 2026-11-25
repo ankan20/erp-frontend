@@ -37,6 +37,7 @@ export default function DocketVoucherListPage() {
       .then((res) => {
         const list = res.data?.list || res.data || [];
         const rows = list.map((r, i) => ({
+          createdTs: r.createdTs,
           sl:             i + 1,
           _id:            r.id,
           voucherNo:      r.voucherNo                       || "",

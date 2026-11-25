@@ -45,6 +45,7 @@ export default function Page() {
     apiRequest({ url: `${LB.LIST}?projectCode=${projectCode}` })
       .then((res) => {
         const list = (res.data || []).map((r, i) => ({
+          createdTs: r.createdTs,
           id:              r.id,
           sl:              i + 1,
           lbNo:            r.lbNo             || "",

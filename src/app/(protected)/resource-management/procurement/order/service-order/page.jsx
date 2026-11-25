@@ -65,6 +65,7 @@ export default function Page() {
           const totalAmount = Number(p.totalAmount || 0);
           const bookedAmount = Number(p.bookedAmount || 0);
           return {
+            createdTs: p.createdTs,
             id: p.id,
             sl: index + 1,
             orderNo: p.orderNo,

@@ -54,6 +54,7 @@ export default function Page() {
         });
         const list = Array.isArray(res?.data) ? res.data : [];
         const formatted = list.map((r, i) => ({
+          createdTs: r.createdTs,
           ...r,
           sl:               i + 1,
           despatchNo:       r.despatchNo       || "-",

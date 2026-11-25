@@ -48,6 +48,7 @@ export default function Page() {
         });
 
         const list = (res.data || []).map((r, i) => ({
+          createdTs: r.createdTs,
           id:             r.id,
           sl:             i + 1,
           uaNo:           r.uaNo            || "",

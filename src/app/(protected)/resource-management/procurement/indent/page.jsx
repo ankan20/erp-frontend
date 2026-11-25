@@ -58,6 +58,7 @@ export default function Page() {
         const indents = res.data || [];
 
         const formatted = indents.map((p, index) => ({
+          createdTs: p.createdTs,
           id: p.id,
           sl: index + 1,
           indentNo: p.indentNo,

@@ -32,6 +32,7 @@ export default function Page() {
     apiRequest({ url: `${API_ENDPOINTS.PROJECT.DPR.LIST}?projectCode=${projectCode}`, method: "GET" })
       .then((res) => {
         const rows = (res.data || []).map((r, i) => ({
+          createdTs: r.createdTs,
           sl: i + 1,
           id: r.id,
           reportDate: r.reportDate,

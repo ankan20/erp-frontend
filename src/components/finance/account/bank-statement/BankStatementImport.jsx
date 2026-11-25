@@ -11,6 +11,7 @@ import { EdoxMark } from "@/components/common/EdoxLoader";
 import { apiRequest }    from "@/lib/apiClient";
 import { API_ENDPOINTS } from "@/config/api.config";
 import { formatAmount }  from "@/helper/numberFormatter";
+import { createdOnText } from "@/lib/createdOn";
 import { COLUMNS, downloadStatementTemplate, downloadStatementErrors, parseStatementFile } from "./bankStatementFile";
 
 const EP = API_ENDPOINTS.FINANCE.BANK_STATEMENT;
@@ -399,7 +400,7 @@ function TransactionsTab({ account, canEdit }) {
         <table className="w-full text-[12px] min-w-[1100px]">
           <thead className="bg-gray-50 text-gray-600">
             <tr>
-              {["Date", "BY-DR", "TO-CR", "DR", "CR", "Balance", "Desc", "Site", "Status", "Docket", ""].map((h, i) => (
+              {["Date", "BY-DR", "TO-CR", "DR", "CR", "Balance", "Desc", "Site", "Status", "Docket", "Created On", ""].map((h, i) => (
                 <th key={i} className={`px-2 py-1.5 font-medium whitespace-nowrap ${["DR", "CR", "Balance"].includes(h) ? "text-right" : "text-left"}`}>{h}</th>
               ))}
             </tr>
@@ -438,6 +439,7 @@ function TransactionsTab({ account, canEdit }) {
                       </a>
                     ) : <span className="text-gray-300">—</span>}
                   </td>
+                  <td className="px-2 py-1 whitespace-nowrap">{createdOnText(t)}</td>
                   <td className="px-2 py-1">
                     <button type="button" onClick={() => openHistory(t.id)} className="text-gray-400 hover:text-gray-700" title="Audit trail">
                       <History className="w-3.5 h-3.5" />
@@ -554,7 +556,7 @@ function HistoryTab({ account, canImport }) {
         <tbody>
           {list.map((b) => (
             <tr key={b.id} className="border-t">
-              <td className="px-2 py-1 whitespace-nowrap">{b.createdAt}</td>
+              <td className="px-2 py-1 whitespace-nowrap">{createdOnText(b)}</td>
               <td className="px-2 py-1">{b.createdBy}</td>
               <td className="px-2 py-1">{b.bankCode}</td>
               <td className="px-2 py-1 max-w-[180px] truncate" title={b.fileName || ""}>{b.fileName}</td>

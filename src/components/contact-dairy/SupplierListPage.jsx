@@ -47,6 +47,7 @@ export default function SupplierListPage({ pageType, basePath, pageLabel, canAdd
         });
         const list = Array.isArray(res?.data) ? res.data : [];
         const formatted = list.map((s, i) => ({
+          createdTs: s.createdTs,
           ...s,
           sl: i + 1,
           address: s.registeredAddress || s.corporateAddress || "—",

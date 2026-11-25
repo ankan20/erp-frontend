@@ -39,6 +39,7 @@ export default function PMIdListPage({ canAdd = false }) {
         const res = await apiRequest({ url: API_ENDPOINTS.RESOURCE.MACHINERY.PM_ID.LIST, method: "GET" });
         const list = Array.isArray(res?.data) ? res.data : [];
         const formatted = list.map((r, i) => ({
+          createdTs: r.createdTs,
           ...r,
           sl: i + 1,
           machineId:            r.machineId            || r.pmUid || "",

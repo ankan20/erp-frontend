@@ -35,6 +35,7 @@ export default function Page() {
     apiRequest({ url: `${API_ENDPOINTS.FINANCE.SALE_RECEIPT.LIST}?projectCode=${projectCode}`, method: "GET" })
       .then((res) => {
         const rows = (res.data || []).map((r, i) => ({
+          createdTs: r.createdTs,
           sl:           i + 1,
           _id:          r.id,
           receiptNo:    r.receiptNo    || "—",

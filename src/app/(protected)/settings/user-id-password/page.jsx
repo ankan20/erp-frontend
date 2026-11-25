@@ -33,6 +33,7 @@ export default function Page() {
 
         // map API → table format
         const formatted = users.map((item, index) => ({
+          createdTs: item.createdTs,
           id: item.id,
           sl: index + 1,
           username: item.userName,

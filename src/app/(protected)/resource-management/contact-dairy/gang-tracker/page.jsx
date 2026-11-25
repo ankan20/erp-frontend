@@ -10,6 +10,7 @@ import PageHeader from "@/components/layout/PageHeader";
 import { getPageActions } from "@/components/common/PageActionButtons";
 import { apiRequest } from "@/lib/apiClient";
 import { API_ENDPOINTS } from "@/config/api.config";
+import { createdOnText } from "@/lib/createdOn";
 
 // ─── helpers ────────────────────────────────────────────────────────────────
 function todayStr() {
@@ -310,6 +311,7 @@ export default function GangTrackerPage() {
                     <th className="px-4 py-3 text-left text-[11px] font-semibold text-gray-500 uppercase tracking-wide">Contact</th>
                     <SortTh label="Follow-up" col="followup"/>
                     <th className="px-4 py-3 text-left text-[11px] font-semibold text-gray-500 uppercase tracking-wide">Last Note</th>
+                    <SortTh label="Created On" col="createdTs"/>
                     <th className="px-4 py-3"/>
                   </tr>
                 </thead>
@@ -352,6 +354,7 @@ export default function GangTrackerPage() {
                             </>
                           ) : <span className="text-gray-300 text-xs">—</span>}
                         </td>
+                        <td className="px-4 py-3 text-xs text-gray-500 whitespace-nowrap">{createdOnText(m)}</td>
                         <td className="px-4 py-3">
                           <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                             <button onClick={() => openDetail(m.id)} className="p-1.5 rounded-lg hover:bg-blue-100 text-blue-500 transition-colors" title="View & follow-up">📋</button>

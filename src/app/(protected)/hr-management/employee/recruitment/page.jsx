@@ -6,6 +6,7 @@ import PageHeader from "@/components/layout/PageHeader";
 import { apiRequest } from "@/lib/apiClient";
 import { API_ENDPOINTS } from "@/config/api.config";
 import { toast } from "sonner";
+import { createdOnText } from "@/lib/createdOn";
 
 /* ─── Stage config ─────────────────────────────────────────── */
 const STAGES = ["Applied", "Screening", "Interview", "Offer", "Joined", "Rejected"];
@@ -304,7 +305,7 @@ export default function RecruitmentPage() {
                     <table className="w-full text-sm">
                       <thead>
                         <tr className="bg-gray-50 border-b border-gray-200 text-left">
-                          {["Role", "Department", "Openings", "Applied", "In Progress", "Salary Band", "Deadline", "Status", ""].map((h) => (
+                          {["Role", "Department", "Openings", "Applied", "In Progress", "Salary Band", "Deadline", "Status", "Created On", ""].map((h) => (
                             <th key={h} className="px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide whitespace-nowrap">{h}</th>
                           ))}
                         </tr>
@@ -329,6 +330,7 @@ export default function RecruitmentPage() {
                                 "bg-red-100 text-red-600"
                               }`}>{j.status}</span>
                             </td>
+                            <td className="px-4 py-3 text-xs text-gray-500 whitespace-nowrap">{createdOnText(j)}</td>
                             <td className="px-4 py-3">
                               {j.status !== "Closed" ? (
                                 <button onClick={() => closeVacancy(j.id)}
@@ -380,7 +382,7 @@ export default function RecruitmentPage() {
                     <table className="w-full text-sm">
                       <thead>
                         <tr className="bg-gray-50 border-b border-gray-200 text-left">
-                          {["Candidate", "Applied For", "Source", "Applied On", "CTC Details", "Notice", "Stage"].map((h) => (
+                          {["Candidate", "Applied For", "Source", "Applied On", "CTC Details", "Notice", "Stage", "Created On"].map((h) => (
                             <th key={h} className="px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide whitespace-nowrap">{h}</th>
                           ))}
                         </tr>
@@ -410,6 +412,7 @@ export default function RecruitmentPage() {
                             </td>
                             <td className="px-4 py-3 text-xs text-gray-500">{c.notice_period || "—"}</td>
                             <td className="px-4 py-3"><StageBadge stage={c.stage} /></td>
+                            <td className="px-4 py-3 text-xs text-gray-500 whitespace-nowrap">{createdOnText(c)}</td>
                           </tr>
                         ))}
                       </tbody>
@@ -450,7 +453,7 @@ export default function RecruitmentPage() {
                     <table className="w-full text-sm">
                       <thead>
                         <tr className="bg-gray-50 border-b border-gray-200 text-left">
-                          {["Date & Time", "Candidate", "Role", "Round", "Mode", "Interviewer", "Status", "Score / Decision"].map((h) => (
+                          {["Date & Time", "Candidate", "Role", "Round", "Mode", "Interviewer", "Status", "Score / Decision", "Created On"].map((h) => (
                             <th key={h} className="px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide whitespace-nowrap">{h}</th>
                           ))}
                         </tr>
@@ -482,6 +485,7 @@ export default function RecruitmentPage() {
                               {iv.score ? <span className={`font-bold ${iv.score >= 75 ? "text-emerald-600" : iv.score >= 50 ? "text-yellow-600" : "text-red-500"}`}>{iv.score}%</span> : <span className="text-gray-400">—</span>}
                               {iv.decision && <span className={`ml-2 px-1.5 py-0.5 rounded text-xs font-medium ${iv.decision === "Advance" ? "bg-emerald-100 text-emerald-700" : iv.decision === "Reject" ? "bg-red-100 text-red-600" : "bg-gray-100 text-gray-500"}`}>{iv.decision}</span>}
                             </td>
+                            <td className="px-4 py-3 text-xs text-gray-500 whitespace-nowrap">{createdOnText(iv)}</td>
                           </tr>
                         ))}
                       </tbody>

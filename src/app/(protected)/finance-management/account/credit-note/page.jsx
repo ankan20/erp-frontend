@@ -34,6 +34,7 @@ export default function Page() {
     apiRequest({ url: `${API_ENDPOINTS.FINANCE.CREDIT_NOTE.LIST}?projectCode=${projectCode}`, method: "GET" })
       .then((res) => {
         const rows = (res.data || []).map((r, i) => ({
+          createdTs: r.createdTs,
           sl:             i + 1,
           _id:            r.id,
           creditNoteNo:   r.creditNoteNo   || "—",

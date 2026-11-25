@@ -7,6 +7,7 @@ import {
   Tooltip, TooltipTrigger, TooltipContent, TooltipProvider,
 } from "@/components/ui/tooltip";
 import { useColumnResize } from "@/hooks/useColumnResize";
+import { createdOnText, createdOnSortValue } from "@/lib/createdOn";
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
@@ -94,6 +95,7 @@ const COLS = [
   { key: "totalAmount",  label: "Total",         align: "right",  isAmount: true },
   { key: "brrStatus",    label: "BRR Status",    align: "center", isStatus: true },
   { key: "brbStatus",    label: "BRB Status",    align: "center", isStatus: true },
+  { key: "createdOn",    label: "Created On",    align: "left"   },
 ];
 
 // ─── Sort / filter header ────────────────────────────────────────────────────
@@ -190,6 +192,8 @@ export default function BRRExpandableTable({
     basicAmount: row.brb?.basicAmount ?? row.brrBasicAmount ?? "",
     gstAmount:   row.brb?.gstAmount   ?? row.brrGstAmount   ?? "",
     totalAmount: row.brb?.totalAmount  ?? row.brrTotalAmount  ?? "",
+    createdOn:   createdOnText(row),
+    _createdOnTs: createdOnSortValue(row),
   }));
 
   const getUniqueValues = useCallback((key) => {
@@ -231,6 +235,10 @@ export default function BRRExpandableTable({
 
   const sorted = [...filtered].sort((a, b) => {
     if (!sortConfig.key) return 0;
+    if (sortConfig.key === "createdOn") {
+      const d = a._createdOnTs - b._createdOnTs || 0;
+      return sortConfig.direction === "asc" ? d : -d;
+    }
     const va = a[sortConfig.key] ?? ""; const vb = b[sortConfig.key] ?? "";
 
     if (sortConfig.key.toLowerCase().endsWith("status")) {
@@ -444,6 +452,9 @@ export default function BRRExpandableTable({
                         ? <StatusBadge value={brb.workflowStatus} />
                         : <span className="text-gray-300 text-[10px]">—</span>}
                     </td>
+
+                    {/* Created On */}
+                    <td className="border border-[#e6e4e4] px-2 py-1.5 whitespace-nowrap text-gray-700">{row.createdOn}</td>
 
                     {/* Action */}
                     <td

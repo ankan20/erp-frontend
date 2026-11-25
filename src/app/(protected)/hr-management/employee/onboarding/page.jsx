@@ -8,6 +8,7 @@ import { apiRequest } from "@/lib/apiClient";
 import { API_ENDPOINTS } from "@/config/api.config";
 import { getPageActions } from "@/components/common/PageActionButtons";
 import { toast } from "sonner";
+import { createdOnText } from "@/lib/createdOn";
 
 const STATUS_COLOR = {
   Completed:   "bg-emerald-100 text-emerald-700 border-emerald-200",
@@ -152,6 +153,7 @@ export default function OnboardingPage() {
                       <p className="font-semibold text-gray-800 group-hover:text-blue-700 transition-colors truncate">{emp.full_name}</p>
                       <p className="text-xs text-gray-500 truncate">{emp.designation || "—"} · {emp.department || "—"}</p>
                       <p className="text-xs text-gray-400 mt-0.5">{emp.emp_code} · Joined {emp.date_of_joining || "—"}</p>
+                      <p className="text-[11px] text-gray-400">Created On {createdOnText(emp)}</p>
                     </div>
                     <div className="text-right flex-shrink-0">
                       <p className="text-xl font-bold text-blue-700">{emp.progress_pct}%</p>
@@ -194,7 +196,7 @@ export default function OnboardingPage() {
               <table className="w-full text-sm">
                 <thead>
                   <tr className="bg-gray-50 border-b border-gray-200 text-left">
-                    {["Candidate", "Role Applied", "Source", "Stage", "Action"].map(h => (
+                    {["Candidate", "Role Applied", "Source", "Stage", "Created On", "Action"].map(h => (
                       <th key={h} className="px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">{h}</th>
                     ))}
                   </tr>
@@ -220,6 +222,7 @@ export default function OnboardingPage() {
                       <td className="px-4 py-3">
                         <span className="text-xs px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700 font-semibold">Joined</span>
                       </td>
+                      <td className="px-4 py-3 text-xs text-gray-500 whitespace-nowrap">{createdOnText(c)}</td>
                       <td className="px-4 py-3">
                         <button onClick={() => { setShowInitModal(true); }}
                           className="text-xs px-3 py-1.5 rounded-lg bg-blue-700 text-white hover:bg-blue-800">

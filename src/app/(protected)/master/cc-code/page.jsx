@@ -58,6 +58,7 @@ export default function Page() {
           const bsLevels = c.ccSubGroupLevels || [];
           const plLevels = c.plSubGroupLevels || [];
           return {
+            createdTs: c.createdTs,
             ccId:           c.ccId,
             sl:             index + 1,
             ccCode:         c.ccCode,

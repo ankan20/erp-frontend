@@ -322,6 +322,7 @@ export default function SettingsSupplierListPage({ pageType, pageLabel }) {
       const list = Array.isArray(res?.data) ? res.data : [];
       setRawSuppliers(list);
       const formatted = list.map((s, i) => ({
+        createdTs: s.createdTs,
         ...s,
         sl: i + 1,
         address: s.registeredAddress || s.corporateAddress || "—",

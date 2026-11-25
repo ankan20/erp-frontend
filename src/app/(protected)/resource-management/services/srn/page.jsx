@@ -43,6 +43,7 @@ export default function Page() {
         });
         const list = res.data || [];
         const formatted = list.map((r, i) => ({
+          createdTs: r.createdTs,
           id:               r.id,
           sl:               i + 1,
           srnNo:            r.srnNo            || "",

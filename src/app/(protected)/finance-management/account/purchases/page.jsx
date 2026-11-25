@@ -48,6 +48,7 @@ export default function Page() {
         const billRes = await apiRequest({ url: `${API_ENDPOINTS.FINANCE.PURCHASE_BILL.LIST}?projectCode=${projectCode}`, method: "GET" });
 
         const merged = (billRes.data || []).map((r, i) => ({
+          createdTs: r.createdTs,
           sl:            i + 1,
           _id:           r.id,
           _type:         "bill",

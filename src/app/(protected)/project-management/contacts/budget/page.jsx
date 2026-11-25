@@ -39,6 +39,7 @@ export default function BudgetMasterListPage() {
       .then((res) => {
         const list = Array.isArray(res.data) ? res.data : (res.data?.list || []);
         const rows = list.map((r, i) => ({
+          createdTs: r.createdTs,
           _id:            r.id,
           sl:             i + 1,
           budgetNo:       r.budgetNo       || "",

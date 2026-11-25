@@ -112,7 +112,7 @@ export default function IssueTracker({ status }) {
                         <div className="flex flex-wrap items-center gap-2 text-xs text-gray-500">
                           <span className="font-semibold text-gray-700">#{it.id}</span>
                           <span className={`px-1.5 py-0.5 rounded ${KIND_CLASS[it.kind]}`}>{KIND_LABEL[it.kind]}</span>
-                          <span>by {it.createdByName || "—"} · {fmt(it.createdAt)}</span>
+                          <span>by {it.createdByName || "—"} · {fmt(it.createdTs || it.createdAt)}</span>
                           {it.updatedAt && <span>(edited by {it.updatedByName} · {fmt(it.updatedAt)})</span>}
                         </div>
                         <div className={`${RICH_CLASS} ${it.isDone ? "text-gray-500" : ""}`} dangerouslySetInnerHTML={{ __html: it.bodyHtml }} />

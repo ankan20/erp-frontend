@@ -49,6 +49,7 @@ export default function Page() {
         });
 
         const list = (res.data || []).map((r, i) => ({
+          createdTs: r.createdTs,
           id:             r.id,
           sl:             i + 1,
           billingNo:      [r.billingNo, r.erpNo].filter(Boolean).join(" - ") || "",

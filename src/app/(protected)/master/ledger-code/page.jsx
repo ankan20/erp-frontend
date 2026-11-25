@@ -47,6 +47,7 @@ export default function Page() {
           ? types.map((t) => TYPE_LABEL[t] || t).join(", ")
           : p.categoryName || "—";
         return {
+          createdTs: p.createdTs,
           ledgerId: p.ledgerId,
           sl: index + 1,
           ledgerCode: p.ledgerCode,

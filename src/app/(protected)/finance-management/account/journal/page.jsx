@@ -39,6 +39,7 @@ export default function Page() {
       .then((res) => {
         const modeLabel = { new_voucher: "New Voucher", bulk_docket: "Bulk Docket", adjustment: "Adjustment" };
         const rows = (res.data?.list || []).map((r, i) => ({
+          createdTs: r.createdTs,
           sl:             i + 1,
           _id:            r.id,
           voucherNo:      r.voucherNo      || "",

@@ -38,6 +38,7 @@ export default function Page() {
         const items = res.data || [];
 
         const formatted = items.map((p, index) => ({
+          createdTs: p.createdTs,
           itemId: p.itemId,
           sl: index + 1,
           itemDisplayCode: p.itemDisplayCode,

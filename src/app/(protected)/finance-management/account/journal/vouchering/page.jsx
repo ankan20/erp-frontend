@@ -142,6 +142,7 @@ export default function Page() {
   ];
 
   const tableData = list.map((r, i) => ({
+    createdTs: r.createdTs,
     sl:              (page - 1) * limit + i + 1,
     _id:             r.id,
     voucherNo:       r.voucherNo      || "—",
