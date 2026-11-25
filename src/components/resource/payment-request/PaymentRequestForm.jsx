@@ -28,8 +28,8 @@ import { getLocalStorage } from "@/lib/localStorage";
 import { getInputClass, labelClass } from "@/lib/formStyles";
 import { getPageAccess } from "@/helper/getPageAccess";
 import { zodDate } from "@/lib/dateUtils";
-import BillPaymentsPopup from "@/components/finance/account/payment/BillPaymentsPopup";
-import { X, Loader2 } from "lucide-react";
+import AdvanceAdjustModal from "@/components/finance/account/payment/AdvanceAdjustModal";
+import AdvanceAdjustmentsTable from "@/components/finance/account/payment/AdvanceAdjustmentsTable";
 
 const EP = API_ENDPOINTS.RESOURCE.PAYMENT_REQUEST;
 const BASE_PATH = "/resource-management/sub-contractor-billing/payment-request";
@@ -105,126 +105,6 @@ function ReadOnly({ value, className = "" }) {
   );
 }
 
-/* ─── Link an approved advance to a BRR / journal of the same vendor ─── */
-function LinkAdvanceModal({ open, onClose, onLinked, prId, projectCode, vendorId, amount, canJournal }) {
-  const [linkType, setLinkType] = useState("BRR");
-  const [rows, setRows]         = useState([]);
-  const [loading, setLoading]   = useState(false);
-  const [picked, setPicked]     = useState(null);
-  const [saving, setSaving]     = useState(false);
-
-  useEffect(() => {
-    if (!open || !projectCode || !vendorId) return;
-    setLoading(true);
-    setPicked(null);
-    const params = new URLSearchParams({ projectCode, vendorId: String(vendorId) });
-    const url = linkType === "JOURNAL" ? EP.ELIGIBLE_JOURNALS : EP.ELIGIBLE_BRRS;
-    apiRequest({ url: `${url}?${params}`, method: "GET" })
-      .then((res) => setRows(res.data || []))
-      .catch((err) => { setRows([]); toast.error(err.message || "Failed to load bills"); })
-      .finally(() => setLoading(false));
-  }, [open, linkType, projectCode, vendorId]);
-
-  if (!open) return null;
-
-  const link = async () => {
-    if (!picked) return;
-    setSaving(true);
-    try {
-      const body = linkType === "JOURNAL"
-        ? { linkType, journalId: picked.journalId }
-        : { linkType, brrId: picked.brrId };
-      const res = await apiRequest({ url: `${EP.LINK}/${prId}`, method: "POST", data: body });
-      toast.success(res.message || "Advance linked");
-      onLinked?.();
-    } catch (err) {
-      toast.error(err.message || "Failed to link advance");
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  const keyOf = (r) => (linkType === "JOURNAL" ? `${r.journalId}:${r.vendorId}` : String(r.brrId));
-
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40" onClick={onClose}>
-      <div className="bg-white rounded-sm shadow-xl w-full max-w-4xl mx-3 flex flex-col max-h-[85vh]" onClick={(e) => e.stopPropagation()}>
-        <div className="flex items-center justify-between px-4 py-3 border-b bg-[#f0f4fa]">
-          <span className="text-[13px] font-semibold text-[#3b6ea5]">Link advance ₹{formatAmount(amount)} to a bill</span>
-          <button type="button" onClick={onClose} className="p-1 hover:bg-gray-200 rounded" aria-label="Close"><X size={16} /></button>
-        </div>
-        <div className="px-4 py-2 border-b flex items-center gap-3 text-[12px]">
-          <span className="text-gray-600">Link to</span>
-          {["BRR", ...(canJournal ? ["JOURNAL"] : [])].map((t) => (
-            <button key={t} type="button" onClick={() => setLinkType(t)}
-              className={`px-3 py-1 border rounded-sm ${linkType === t ? "bg-[#3b6ea5] text-white border-[#3b6ea5]" : "bg-white text-gray-600"}`}>
-              {t === "BRR" ? "BRR / Bill" : "Journal Entry"}
-            </button>
-          ))}
-          <span className="ml-auto text-[11px] text-gray-500">Only approved bills of this vendor with balance ≥ the advance can take it.</span>
-        </div>
-        <div className="flex-1 overflow-y-auto">
-          {loading ? (
-            <div className="flex items-center justify-center py-10 gap-2 text-gray-400">
-              <Loader2 size={16} className="animate-spin" /><span className="text-[12px]">Loading…</span>
-            </div>
-          ) : rows.length === 0 ? (
-            <div className="py-10 text-center text-[12px] text-gray-400 italic">No approved {linkType === "JOURNAL" ? "journal" : "BRR"} with balance for this vendor</div>
-          ) : (
-            <table className="w-full border-collapse text-[11px]">
-              <thead className="sticky top-0 bg-[#1c3a5e] text-white">
-                <tr>
-                  {(linkType === "JOURNAL"
-                    ? ["", "Voucher No", "Date", "Remarks", "Bill Amount", "Requested", "Balance"]
-                    : ["", "BRR No", "BRR Date", "Party Bill No", "BRB No", "Bill Amount", "Requested", "Balance"]
-                  ).map((h, i) => (
-                    <th key={i} className={`border border-[#2a4e7c] px-2 py-1.5 font-semibold ${["Bill Amount", "Requested", "Balance"].includes(h) ? "text-right" : "text-left"}`}>{h}</th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {rows.map((r) => {
-                  const fits = Number(r.balanceAmount) >= Number(amount);
-                  const sel = picked && keyOf(picked) === keyOf(r);
-                  return (
-                    <tr key={keyOf(r)} onClick={() => fits && setPicked(r)}
-                      className={`${!fits ? "opacity-50 cursor-not-allowed" : sel ? "bg-[#dbeafe] cursor-pointer" : "hover:bg-[#f0f7ff] cursor-pointer"}`}>
-                      <td className="border border-[#dde] px-2 py-1 text-center"><input type="radio" readOnly checked={!!sel} disabled={!fits} /></td>
-                      {linkType === "JOURNAL" ? (
-                        <>
-                          <td className="border border-[#dde] px-2 py-1 font-semibold">{r.voucherNo}</td>
-                          <td className="border border-[#dde] px-2 py-1">{r.entryDate || "—"}</td>
-                          <td className="border border-[#dde] px-2 py-1">{r.journalRemarks || "—"}</td>
-                        </>
-                      ) : (
-                        <>
-                          <td className="border border-[#dde] px-2 py-1 font-semibold">{r.brrNo}</td>
-                          <td className="border border-[#dde] px-2 py-1">{r.brrDate || "—"}</td>
-                          <td className="border border-[#dde] px-2 py-1">{r.partyBillNo || "—"}</td>
-                          <td className="border border-[#dde] px-2 py-1">{r.brbNo || "—"}</td>
-                        </>
-                      )}
-                      <td className="border border-[#dde] px-2 py-1 text-right">{formatAmount(r.billAmount)}</td>
-                      <td className="border border-[#dde] px-2 py-1 text-right">{formatAmount(r.requestedAmount)}</td>
-                      <td className={`border border-[#dde] px-2 py-1 text-right font-semibold ${fits ? "text-[#2a4a2a]" : "text-red-500"}`}>{formatAmount(r.balanceAmount)}</td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          )}
-        </div>
-        <div className="flex justify-end gap-2 px-4 py-3 border-t bg-[#f8fafc]">
-          <button type="button" onClick={onClose} className="px-4 py-1.5 text-[12px] border border-gray-300 rounded-sm hover:bg-gray-100">Cancel</button>
-          <button type="button" onClick={link} disabled={!picked || saving}
-            className="px-4 py-1.5 text-[12px] bg-[#3b6ea5] text-white rounded-sm hover:bg-[#2f5a8e] disabled:opacity-50 disabled:cursor-not-allowed">
-            {saving ? "Linking…" : "Link Advance"}
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-}
 
 /* ─── PaymentRequestForm ────────────────────────────────────── */
 export default function PaymentRequestForm({
@@ -250,9 +130,8 @@ export default function PaymentRequestForm({
   const [summary, setSummary]   = useState(null);   // selected source: bill / requested / balance
   const [siblings, setSiblings] = useState([]);     // other requests on same source
   const [advanceVendors, setAdvanceVendors] = useState([]);
-  const [advance, setAdvance]   = useState(null);   // saved ADVANCE request: link + payment status
-  const [linkOpen, setLinkOpen] = useState(false);
-  const [paymentsOpen, setPaymentsOpen] = useState(false);
+  const [advance, setAdvance]   = useState(null);   // saved ADVANCE request: payments + adjustments
+  const [adjustOpen, setAdjustOpen] = useState(false);
   const [reloadKey, setReloadKey] = useState(0);
   const paymentAccess = getPageAccess({ pageCode: "payment", pageType: "ADD" });
 
@@ -386,12 +265,6 @@ export default function PaymentRequestForm({
         setSiblings(d.siblingRequests || []);
         setAdvance(d.sourceType === "ADVANCE" ? {
           workflowStatus: d.workflowStatus,
-          linkType:       d.linkType,
-          linkedNo:       d.linkedNo,
-          linkedAt:       d.linkedAt,
-          linkedBy:       d.linkedBy,
-          brrId:          d.brrId,
-          journalId:      d.journalId,
           vendorId:       d.vendorId,
           partyName:      d.partyName,
           requested:      Number(d.requestedAmount || 0),
@@ -400,6 +273,11 @@ export default function PaymentRequestForm({
           inProgress:     Number(d.advanceInProgress || 0),
           balance:        Number(d.advanceBalance || 0),
           payments:       d.advancePayments || [],
+          adjusted:       Number(d.advanceAdjusted || 0),
+          outstanding:    Number(d.advanceOutstanding || 0),
+          adjustType:     d.adjustType || null,
+          adjustedBills:  d.adjustedBills || [],
+          adjustments:    d.adjustments || [],
         } : null);
         if (d.attachedDoc) {
           setExistingFileUrl(d.attachedDoc);
@@ -468,16 +346,6 @@ export default function PaymentRequestForm({
     setValue("journalKey", "");
     setValue("vendorId", "");
     setSummary(null);
-  };
-
-  const unlink = async () => {
-    try {
-      const res = await apiRequest({ url: `${EP.UNLINK}/${prId}`, method: "POST" });
-      toast.success(res.message || "Advance unlinked");
-      setReloadKey((k) => k + 1);
-    } catch (err) {
-      toast.error(err.message || "Failed to unlink");
-    }
   };
 
   const handleBrrChange = (val) => {
@@ -649,20 +517,14 @@ export default function PaymentRequestForm({
               </FieldRow>
               {isAdvance ? (
                 <>
-                  <FieldRow label="Linked To Bill">
-                    <div className="flex items-center gap-2 w-full">
-                      <ReadOnly value={
-                        mode === "create" ? "Link to BRR / Journal after approval"
-                          : advance?.linkType ? `${advance.linkType === "JOURNAL" ? "Journal" : "BRR"} ${advance.linkedNo || ""}`
-                          : "Not linked yet"
-                      } className={advance?.linkType ? "bg-green-50" : ""} />
-                    </div>
+                  <FieldRow label="Adjusted Against">
+                    <ReadOnly value={
+                      mode === "create" ? "Adjust against bills once paid"
+                        : advance?.adjustedBills?.length
+                          ? `${advance.adjustType === "JOURNAL" ? "Journal" : "Bill"} ${advance.adjustedBills.join(", ")}`
+                          : "Not adjusted yet"
+                    } className={advance?.adjustedBills?.length ? "bg-green-50" : ""} />
                   </FieldRow>
-                  {advance?.linkType && (
-                    <FieldRow label="Linked On / By">
-                      <ReadOnly value={`${advance.linkedAt || ""}${advance.linkedBy ? ` · ${advance.linkedBy}` : ""}`} />
-                    </FieldRow>
-                  )}
                 </>
               ) : isJournal ? (
                 <>
@@ -801,11 +663,17 @@ export default function PaymentRequestForm({
                 <FieldRow label="Balance To Pay">
                   <ReadOnly value={formatAmount(advance.balance)} className="bg-orange-50 font-semibold" />
                 </FieldRow>
+                <FieldRow label="Adjusted To Bills">
+                  <ReadOnly value={formatAmount(advance.adjusted)} />
+                </FieldRow>
+                <FieldRow label="Outstanding Advance">
+                  <ReadOnly value={formatAmount(advance.outstanding)} className="bg-purple-50 font-semibold" />
+                </FieldRow>
               </div>
             )}
 
-            {/* BRR balance (for an advance: only once linked) */}
-            {(!isAdvance || advance?.linkType) && (
+            {/* BRR / journal balance (not for an advance — it has no bill) */}
+            {!isAdvance && (
             <div className="flex flex-col gap-[2px] mb-3">
               <FieldRow label={`Bill Amount${summary?.billSource === "BRB" ? " (BRB)" : summary?.billSource === "JOURNAL" ? " (Journal Cr)" : ""}`}>
                 <ReadOnly value={summary ? formatAmount(summary.billAmount) : ""} />
@@ -882,7 +750,7 @@ export default function PaymentRequestForm({
         {mode !== "create" && siblings.length > 0 && (
           <div className="mt-4">
             <div className="text-[12px] font-semibold text-gray-700 mb-1">
-              Other Payment Requests on {(isJournal || advance?.linkType === "JOURNAL") ? `Journal ${summary?.voucherNo || ""} (${summary?.partyName || "-"})` : `BRR ${summary?.brrNo || ""}`}
+              Other Payment Requests on {isJournal ? `Journal ${summary?.voucherNo || ""} (${summary?.partyName || "-"})` : `BRR ${summary?.brrNo || ""}`}
             </div>
             <div className="overflow-x-auto">
               <table className="w-full border-collapse text-[11px]">
@@ -917,22 +785,10 @@ export default function PaymentRequestForm({
         <div className="px-3">
           <div className="flex flex-wrap items-center gap-2 border-t pt-3">
             <span className="text-[12px] font-semibold text-gray-700 mr-auto">Advance Payments</span>
-            {advance.linkType && (
-              <button type="button" onClick={() => setPaymentsOpen(true)}
-                className="px-3 py-1.5 text-[12px] border border-[#3b6ea5] text-[#3b6ea5] rounded-sm hover:bg-[#f0f7ff]">
-                View Bill Payments
-              </button>
-            )}
-            {!advance.linkType && (
-              <button type="button" onClick={() => setLinkOpen(true)}
-                className="px-3 py-1.5 text-[12px] border border-[#3b6ea5] text-[#3b6ea5] rounded-sm hover:bg-[#f0f7ff]">
-                Link to Bill
-              </button>
-            )}
-            {advance.linkType && (
-              <button type="button" onClick={unlink}
-                className="px-3 py-1.5 text-[12px] border border-gray-300 text-gray-600 rounded-sm hover:bg-gray-100">
-                Unlink
+            {advance.outstanding > 0 && (
+              <button type="button" onClick={() => setAdjustOpen(true)}
+                className="px-3 py-1.5 text-[12px] border border-purple-600 text-purple-700 rounded-sm hover:bg-purple-50">
+                Adjust Against Bill
               </button>
             )}
             {advance.balance > 0 && paymentAccess.allowed && (
@@ -971,30 +827,23 @@ export default function PaymentRequestForm({
           ) : (
             <div className="text-[11px] text-gray-400 italic mt-2">No payment made yet. Use “Make Advance Payment”.</div>
           )}
-          {!advance.linkType && (
-            <div className="text-[11px] text-gray-500 mt-1">
-              Once the bill arrives, use “Link to Bill”. Approved advance payments then reduce that bill’s balance in Account › Payment.
-            </div>
-          )}
+
+          <div className="flex items-center gap-2 mt-4 mb-1">
+            <span className="text-[12px] font-semibold text-gray-700">Adjusted Against Bills</span>
+            <span className="text-[11px] text-gray-500">
+              Paid advance waits in the Vendor Advance Register until adjusted. One advance can go to many bills, in parts
+              {advance.adjustType ? ` — this one goes to ${advance.adjustType === "JOURNAL" ? "journals" : "purchase bills"} only` : ""}.
+            </span>
+          </div>
+          <AdvanceAdjustmentsTable adjustments={advance.adjustments} onChanged={() => setReloadKey((k) => k + 1)} />
         </div>
       )}
 
-      <LinkAdvanceModal
-        open={linkOpen}
-        onClose={() => setLinkOpen(false)}
-        onLinked={() => { setLinkOpen(false); setReloadKey((k) => k + 1); }}
-        prId={prId}
-        projectCode={projectCode}
-        vendorId={advance?.vendorId}
-        amount={advance?.requested || 0}
-        canJournal={!!journalAccess.allowed && !!journalAccess.canAdd}
-      />
-      <BillPaymentsPopup
-        open={paymentsOpen}
-        onClose={() => setPaymentsOpen(false)}
-        brrId={advance?.linkType === "BRR" ? advance.brrId : undefined}
-        journalEntryId={advance?.linkType === "JOURNAL" ? advance.journalId : undefined}
-        vendorId={advance?.vendorId}
+      <AdvanceAdjustModal
+        open={adjustOpen}
+        onClose={() => setAdjustOpen(false)}
+        onDone={() => { setAdjustOpen(false); setReloadKey((k) => k + 1); }}
+        paymentRequestId={prId}
       />
 
       {/* Actions */}

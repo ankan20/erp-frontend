@@ -35,7 +35,10 @@ import AccountSummary         from "@/components/finance/account/common/AccountS
 import BrrPickerModal                from "@/components/finance/account/purchases/BrrPickerModal";
 import PurchaseBillBreakdownTable   from "@/components/finance/account/purchases/PurchaseBillBreakdownTable";
 import AccountingJournalTable       from "@/components/finance/account/common/AccountingJournalTable";
+import AdvanceAdjustModal           from "@/components/finance/account/payment/AdvanceAdjustModal";
+import AdvanceAdjustmentsTable      from "@/components/finance/account/payment/AdvanceAdjustmentsTable";
 import { getfmtDisplaydate }        from "@/helper/getfmtDisplayDate";
+import { formatAmount }             from "@/helper/numberFormatter";
 
 import { apiRequest }    from "@/lib/apiClient";
 import { API_ENDPOINTS } from "@/config/api.config";
@@ -126,6 +129,11 @@ export default function PurchaseBillForm({ mode = "create", billId, onAfterSubmi
   const [vendorList,     setVendorList]     = useState([]);
   const [brrPickerOpen,  setBrrPickerOpen]  = useState(false);
   const [itemsLoading,   setItemsLoading]   = useState(false);
+  // vendor's outstanding advance (notice on an approved bill) + adjustments on this bill
+  const [loadedStatus,   setLoadedStatus]   = useState("");
+  const [advNotice,      setAdvNotice]      = useState(null);
+  const [advAdjustOpen,  setAdvAdjustOpen]  = useState(false);
+  const [advKey,         setAdvKey]         = useState(0);
 
   const {
     register, control, handleSubmit, reset, setValue, watch, getValues,
@@ -338,11 +346,22 @@ export default function PurchaseBillForm({ mode = "create", billId, onAfterSubmi
         const locked = d.workflowStatus && !["Draft", "Reback"].includes(d.workflowStatus);
         setIsSubmitted(locked);
         setAllowSubmit(!locked);
+        setLoadedStatus(d.workflowStatus || "");
         if (d.purchaseBillNo) setErpBillNo(d.purchaseBillNo);
         if (d.purchaseBillUuid && onUuid) onUuid(d.purchaseBillUuid);
       })
       .catch(() => toast.error("Failed to load bill details"));
   }, [copyFromId, billId, mode]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // ── Approved bill: does the vendor have an advance waiting to be adjusted? ──
+  useEffect(() => {
+    if (mode === "create" || !billId || loadedStatus !== "Approved") return;
+    let alive = true;
+    apiRequest({ url: `${API_ENDPOINTS.FINANCE.ADVANCE_ADJUSTMENT.BILL_ADVANCES}?purchaseBillId=${billId}`, method: "GET" })
+      .then((res) => { if (alive) setAdvNotice(res.data || null); })
+      .catch(() => { if (alive) setAdvNotice(null); });
+    return () => { alive = false; };
+  }, [billId, mode, loadedStatus, advKey]);
 
   // ── Save Draft ───────────────────────────────────────────────────────────────
   const onSave = async (v) => {
@@ -570,6 +589,32 @@ export default function PurchaseBillForm({ mode = "create", billId, onAfterSubmi
             disabled={disabled}
           />
 
+          {/* Vendor advance: notice + adjustments made on this bill */}
+          {advNotice && (advNotice.outstanding > 0 || advNotice.adjustments?.length > 0) && (
+            <div className={`border rounded-sm p-2 ${advNotice.outstanding > 0 && advNotice.openBalance > 0 ? "border-amber-300 bg-amber-50" : "bg-white"}`}>
+              {advNotice.outstanding > 0 && advNotice.openBalance > 0 && (
+                <div className="flex flex-wrap items-center gap-2 text-[12px] text-amber-900 mb-2">
+                  <span className="mr-auto">
+                    <b>{vendorName || "This vendor"}</b> has ₹{formatAmount(advNotice.outstanding)} outstanding advance
+                    ({advNotice.advances.map((a) => a.prNo).join(", ")}). Adjust it against this bill
+                    (open balance ₹{formatAmount(advNotice.openBalance)}) — partly or fully.
+                  </span>
+                  <button type="button" onClick={() => setAdvAdjustOpen(true)}
+                    className="px-3 py-1 rounded-sm bg-amber-600 text-white hover:bg-amber-700 text-[12px]">
+                    Adjust Advance
+                  </button>
+                </div>
+              )}
+              {advNotice.adjustments?.length > 0 && (
+                <>
+                  <div className="text-[12px] font-semibold text-gray-700 mb-1">Advance adjusted on this bill</div>
+                  <AdvanceAdjustmentsTable adjustments={advNotice.adjustments} showAdvance
+                    onChanged={() => setAdvKey((k) => k + 1)} />
+                </>
+              )}
+            </div>
+          )}
+
           {!isViewMode && (
             <div className="flex items-center justify-end gap-2 pt-1 flex-wrap">
               {isEditing && (
@@ -597,6 +642,14 @@ export default function PurchaseBillForm({ mode = "create", billId, onAfterSubmi
           )}
         </div>
       </div>
+
+      <AdvanceAdjustModal
+        open={advAdjustOpen}
+        onClose={() => setAdvAdjustOpen(false)}
+        onDone={() => { setAdvAdjustOpen(false); setAdvKey((k) => k + 1); }}
+        purchaseBillId={billId}
+        vendorId={selectedVendorId}
+      />
 
       {/* BRR Picker Modal */}
       <BrrPickerModal

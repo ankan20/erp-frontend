@@ -136,14 +136,15 @@ export default function Page() {
         <SearchSection
           onSearch={handleSearch}
           showDateRange
-          actions={
-            access.canAdd
+          actions={[
+            ...(access.canAdd
               ? [
                   { label: "+ Bill Payment", onClick: () => router.push("/finance-management/account/payment/new") },
                   { label: "+ Advance Payment", onClick: () => router.push("/finance-management/account/payment/new?type=advance") },
                 ]
-              : []
-          }
+              : []),
+            { label: "Vendor Advance Register", onClick: () => router.push("/finance-management/account/payment/advance-register") },
+          ]}
         />
 
         <BulkWorkflowTable module="bill_payment" canAct={access.canApprove} rowId="_id" statusKey="status"

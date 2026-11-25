@@ -10,14 +10,15 @@ import { formatAmount } from "@/helper/numberFormatter";
 import { getfmtDisplaydate } from "@/helper/getfmtDisplayDate";
 
 const TYPE_STYLE = {
-  advance: "text-purple-700 bg-purple-50",
+  advance:    "text-purple-700 bg-purple-50",
+  adjustment: "text-purple-700 bg-purple-50",
   bill:    "text-blue-700 bg-blue-50",
   voucher: "text-teal-700 bg-teal-50",
 };
 
 /**
- * Popup: every payment made against a bill — bill payments, voucher payments
- * and advance payments of advance requests linked to it — with paid / advance
+ * Popup: everything settled against a bill — bill payments, voucher payments
+ * and Advance Adjustments (advance moved onto this bill) — with paid / advance
  * adjusted / in progress / balance.
  *
  * Pass ONE of: purchaseBillId | brrId | journalEntryId (+ vendorId).
@@ -126,7 +127,7 @@ export default function BillPaymentsPopup({ open, onClose, purchaseBillId, brrId
               )}
             </div>
             <div className="px-4 py-2 border-t bg-[#f8fafc] text-[10px] text-gray-500">
-              Advance Adjusted = approved advance payments of advance requests linked to this bill.
+              Advance Adjusted = outstanding vendor advance adjusted against this bill (mode “Advance”).
               Balance = Bill − Paid − Advance Adjusted − In Progress.
             </div>
           </>

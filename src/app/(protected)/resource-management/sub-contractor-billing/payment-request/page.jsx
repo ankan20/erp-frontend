@@ -57,11 +57,11 @@ export default function Page() {
           _rawDate:        r.prDate || "",
           sourceType:      r.sourceType === "JOURNAL" ? "Journal" : r.sourceType === "ADVANCE" ? "Advance" : "BRR",
           sourceNo:        r.sourceType === "ADVANCE"
-                             ? (r.linkedNo ? `${r.linkType === "JOURNAL" ? "JV" : "BRR"} ${r.linkedNo}` : "Not linked")
+                             ? (r.adjustedBills?.length ? `Adj: ${r.adjustedBills.join(", ")}` : "Not adjusted")
                              : (r.sourceNo || r.brrNo || ""),
           partyName:       r.partyName || "",
           partyBillNo:     r.partyBillNo || "",
-          billAmount:      r.sourceType === "ADVANCE" && !r.linkType ? "—" : formatAmount(r.billAmount),
+          billAmount:      r.sourceType === "ADVANCE" ? "—" : formatAmount(r.billAmount),
           requestedAmount: formatAmount(r.requestedAmount),
           deductionAmount: formatAmount(r.deductionAmount),
           netPayable:      formatAmount(r.netPayable),
@@ -97,7 +97,7 @@ export default function Page() {
     { header: "PR No",           accessor: "prNo"            },
     { header: "Date",            accessor: "prDate"          },
     { header: "Source",          accessor: "sourceType"      },
-    { header: "Ref No (BRR / Journal)", accessor: "sourceNo" },
+    { header: "Ref No (BRR / Journal / Adjusted)", accessor: "sourceNo" },
     { header: "Party Name",      accessor: "partyName"       },
     { header: "Party Bill No",   accessor: "partyBillNo"     },
     { header: "Bill Amount",     accessor: "billAmount",      align: "right" },

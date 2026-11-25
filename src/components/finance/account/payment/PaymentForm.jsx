@@ -26,6 +26,8 @@ import AccountSummary           from "@/components/finance/account/common/Accoun
 import AccountingJournalTable   from "@/components/finance/account/common/AccountingJournalTable";
 import PaymentBreakdownTable    from "@/components/finance/account/payment/PaymentBreakdownTable";
 import BillPaymentsPopup        from "@/components/finance/account/payment/BillPaymentsPopup";
+import AdvanceAdjustModal       from "@/components/finance/account/payment/AdvanceAdjustModal";
+import AdvanceAdjustmentsTable  from "@/components/finance/account/payment/AdvanceAdjustmentsTable";
 
 import { apiRequest }      from "@/lib/apiClient";
 import { API_ENDPOINTS }   from "@/config/api.config";
@@ -539,47 +541,6 @@ function JournalVoucherPickerModal({ open, onClose, onConfirm, projectCode, vend
   );
 }
 
-// ── Advance CC rows (same shape as Bill / Voucher breakdown rows) ──────────────
-const toAdvanceItem = (it, i) => ({
-  pvItemId:       null,
-  pbItemId:       it.pbItemId       ?? null,
-  jeLineId:       it.jeLineId       ?? null,
-  journalEntryId: it.journalEntryId ?? null,
-  voucherNo:      it.voucherNo      || "",
-  entryDate:      it.entryDate      || "",
-  purchaseBillId: it.purchaseBillId ?? null,
-  purchaseBillNo: it.purchaseBillNo || "",
-  brrNo:          it.brrNo          || "",
-  brrDate:        it.brrDate        || "",
-  orderNo:        it.orderNo        || "",
-  slNo:           i + 1,
-  ccCode:         it.ccCode         || "",
-  ccName:         it.ccName         || "",
-  description:    it.description    || "",
-  bookedAmount:   Number(it.bookedAmount  || 0),
-  paidAmount:     Number(it.paidAmount    || 0),
-  advanceAmount:  Number(it.advanceAmount || 0),
-  balanceAmount:  Number(it.balanceAmount || 0),
-  currentAmount:  Number(it.currentAmount || 0),
-});
-const toAdvanceGst = (l) => ({
-  gstType:        l.gstType        || "",
-  purchaseBillId: l.purchaseBillId ?? null,
-  purchaseBillNo: l.purchaseBillNo || "",
-  orderNo:        l.orderNo        || "",
-  brrNo:          l.brrNo          || "",
-  brrDate:        l.brrDate        || "",
-  ccCode:         l.ccCode         || "",
-  ccName:         l.ccName         || "",
-  percent:        Number(l.percent || 0),
-  bookedAmount:   Number(l.bookedAmount  || 0),
-  paidAmount:     Number(l.paidAmount    || 0),
-  advanceAmount:  Number(l.advanceAmount || 0),
-  balanceAmount:  Number(l.balanceAmount || 0),
-  currentAmount:  Number(l.currentAmount || 0),
-  isSelected:     !!l.isSelected,
-});
-
 // ── Component ─────────────────────────────────────────────────────────────────
 
 export default function PaymentForm({
@@ -621,7 +582,13 @@ export default function PaymentForm({
 
   // Advance — approved ADVANCE payment requests with something left to pay
   const [advanceOpts,  setAdvanceOpts]  = useState([]);
-  const [advanceInfo,  setAdvanceInfo]  = useState(null);   // { prNo, netPayable, paidOther, balance, linkType, linkedNo }
+  const [advanceInfo,  setAdvanceInfo]  = useState(null);
+  // { prNo, netPayable, paidOther, balance, workflowStatus, adjusted, outstanding, adjustType, adjustments }
+  const [adjustOpen,   setAdjustOpen]   = useState(false);   // advance → adjust against a bill
+  const [billNotice,   setBillNotice]   = useState(null);    // bill payment: vendor's outstanding advance
+  const [billAdjustOpen, setBillAdjustOpen] = useState(false);
+  const [reloadKey,    setReloadKey]    = useState(0);
+  const [noticeKey,    setNoticeKey]    = useState(0);
 
   const skipClearOnVendorChange = useRef(false);
 
@@ -669,13 +636,12 @@ export default function PaymentForm({
   // Totals
   const basicTotal   = watchedItems.reduce((s, it) => s + Number(it?.currentAmount || 0), 0);
   const gstTotal     = watchedGst.filter((l) => l.isSelected).reduce((s, l) => s + Number(l.currentAmount || 0), 0);
-  // advance linked to a bill → split by that bill's CC rows (like a Bill payment)
-  const advanceHasRows = isAdvance && (itemFields.length > 0 || gstFields.length > 0);
+  // an advance is an amount only — it reaches bills through Advance Adjustments
   const totalInvoice = isAdvance
-    ? (advanceHasRows ? basicTotal + gstTotal : advanceAmount)
+    ? advanceAmount
     : basicTotal + gstTotal - Number(watch("discount") || 0) + Number(watch("roundOff") || 0);
   const advanceExceeds = isAdvance && advanceInfo && totalInvoice > Number(advanceInfo.balance || 0);
-  // Bills that carry a linked advance: what is left after the advance
+  // Bills that carry an adjusted advance: what is left after the advance
   const billAdvance = selectedBills.reduce((s, b) => s + Number(b.advanceAdjusted || 0), 0);
   const billAfterAdvance = selectedBills.reduce((s, b) => s + Number(b.balanceAfterAdvance || 0), 0);
 
@@ -753,32 +719,24 @@ export default function PaymentForm({
       netPayable: Number(p.netPayable || 0),
       paidOther:  Number(p.advancePaid || 0) + Number(p.advanceInProgress || 0),
       balance:    Number(p.advanceBalance || 0),
-      linkType:   p.linkType,
-      linkedNo:   p.linkedNo,
     });
-    loadAdvanceRows(p);
-  };
-
-  // Linked advance → the bill's CC rows, auto-filled with the balance to pay (editable)
-  const loadAdvanceRows = async (p) => {
     replaceItems([]);
     replaceGst([]);
-    if (!p?.linkType) return;
-    setItemsLoading(true);
-    try {
-      const res = await apiRequest({
-        url: `${API_ENDPOINTS.FINANCE.BILL_PAYMENT.ADVANCE_CC_ROWS}?paymentRequestId=${p.id}`,
-        method: "GET",
-      });
-      const d = res.data || {};
-      replaceItems((d.items || []).map(toAdvanceItem));
-      replaceGst((d.gstLines || []).map(toAdvanceGst));
-    } catch (err) {
-      toast.error(err?.message || "Failed to load the bill's CC rows");
-    } finally {
-      setItemsLoading(false);
-    }
   };
+
+  // ── Bill payment: does the vendor have an outstanding advance for this bill? ──
+  const noticeBillId = !isAdvance && !isVoucher && selectedBills.length === 1 ? selectedBills[0]?.id : null;
+  useEffect(() => {
+    if (!noticeBillId) return;
+    let alive = true;
+    apiRequest({
+      url: `${API_ENDPOINTS.FINANCE.ADVANCE_ADJUSTMENT.BILL_ADVANCES}?purchaseBillId=${noticeBillId}`,
+      method: "GET",
+    })
+      .then((res) => { if (alive) setBillNotice(res.data || null); })
+      .catch(() => { if (alive) setBillNotice(null); });
+    return () => { alive = false; };
+  }, [noticeBillId, noticeKey]);
 
   // ── Payment account for journal (derived from form watch) ───────────
   useEffect(() => {
@@ -1024,8 +982,7 @@ export default function PaymentForm({
             utrVoucherNo:     d.utrVoucherNo   || "",
             paymentRemarks:   d.paymentRemarks || "",
             discount: 0, roundOff: 0,
-            items:    (d.items    || []).map(toAdvanceItem),
-            gstLines: (d.gstLines || []).map(toAdvanceGst),
+            items: [], gstLines: [],
           });
           if (isCopy) {
             setVendorName("");
@@ -1037,8 +994,11 @@ export default function PaymentForm({
             netPayable: Number(d.requestNetPayable || 0),
             paidOther:  Number(d.requestPaidOther || 0),
             balance:    Number(d.requestBalance || 0),
-            linkType:   d.linkType,
-            linkedNo:   d.linkedNo,
+            workflowStatus: d.workflowStatus,
+            adjusted:    Number(d.advanceAdjusted || 0),
+            outstanding: Number(d.advanceOutstanding || 0),
+            adjustType:  d.adjustType || null,
+            adjustments: d.adjustments || [],
           });
           if (d.receiptNo) setErpPaymentNo(d.receiptNo);
           if (d.receiptUuid && onUuid) onUuid(d.receiptUuid);
@@ -1171,7 +1131,7 @@ export default function PaymentForm({
         setIsEditing(false);
       })
       .catch(() => toast.error("Failed to load payment details"));
-  }, [copyFromId, paymentId, mode]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [copyFromId, paymentId, mode, reloadKey]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── Journal entry (CR = bank/cash, DR = vendor) ───────────────────
   const journalEntries = useMemo(() => {
@@ -1238,15 +1198,7 @@ export default function PaymentForm({
   const onSave = async (v) => {
     if ((v.paymentType || "bill") === "advance") {
       if (!v.paymentRequestId) { toast.error("Select the Advance Payment Request"); return; }
-      const rowsUsed = (v.items || []).length > 0 || (v.gstLines || []).length > 0;
-      if (rowsUsed) {
-        for (const row of [...(v.items || []), ...(v.gstLines || []).filter((l) => l.isSelected)]) {
-          if (Number(row.currentAmount || 0) > Number(row.balanceAmount || 0)) {
-            toast.error(`${row.ccName || row.ccCode || row.gstType}: amount exceeds row balance`); return;
-          }
-        }
-      }
-      const amt = rowsUsed ? totalInvoice : Number(v.advanceAmount || 0);
+      const amt = Number(v.advanceAmount || 0);
       if (amt <= 0) { toast.error("Advance amount must be greater than 0"); return; }
       if (advanceInfo && amt > Number(advanceInfo.balance || 0)) {
         toast.error(`Amount exceeds the request balance ₹${formatAmount(advanceInfo.balance)}`); return;
@@ -1261,15 +1213,6 @@ export default function PaymentForm({
             paymentType:      "advance",
             paymentRequestId: v.paymentRequestId,
             amount:           amt,
-            items: rowsUsed ? (v.items || []).map((it) => ({
-              ...(it.pbItemId ? { pbItemId: it.pbItemId } : {}),
-              ...(it.jeLineId ? { jeLineId: it.jeLineId } : {}),
-              ccCode: it.ccCode, ccName: it.ccName, currentAmount: Number(it.currentAmount || 0),
-            })) : [],
-            gstLines: rowsUsed ? (v.gstLines || []).map((l) => ({
-              gstType: l.gstType, ccCode: l.ccCode, isSelected: !!l.isSelected,
-              currentAmount: Number(l.currentAmount || 0),
-            })) : [],
             paymentDate:      v.paymentDate,
             paymentMode:      v.paymentMode,
             cashAcId:         v.paymentMode === "Cash" ? (v.cashAcId || null) : null,
@@ -1495,23 +1438,20 @@ export default function PaymentForm({
                 <PMFormRow label="Balance To Pay" labelWidth="sm:w-[160px] sm:min-w-[160px]">
                   <PMInput value={advanceInfo ? formatAmount(advanceInfo.balance) : ""} disabled readOnly className="font-semibold" />
                 </PMFormRow>
-                <PMFormRow label="Linked To Bill" labelWidth="sm:w-[160px] sm:min-w-[160px]">
-                  <PMInput disabled readOnly
-                    value={advanceInfo ? (advanceInfo.linkType ? `${advanceInfo.linkType} ${advanceInfo.linkedNo || ""}` : "Not linked yet") : ""} />
-                </PMFormRow>
+                {advanceInfo?.workflowStatus && (
+                  <PMFormRow label="Adjusted / Outstanding" labelWidth="sm:w-[160px] sm:min-w-[160px]">
+                    <PMInput disabled readOnly
+                      value={`${formatAmount(advanceInfo.adjusted)} adjusted · ${formatAmount(advanceInfo.outstanding)} outstanding`} />
+                  </PMFormRow>
+                )}
                 <PMFormRow label="Advance Amount" required={!disabled} labelWidth="sm:w-[160px] sm:min-w-[160px]">
                   <div className="flex-1">
-                    {advanceHasRows ? (
-                      <PMInput value={formatAmount(totalInvoice)} disabled readOnly hasError={advanceExceeds} />
-                    ) : (
-                      <PMInput type="number" step="0.01" min="0" {...register("advanceAmount")} disabled={disabled}
-                        hasError={advanceExceeds} />
-                    )}
-                    {advanceHasRows && !disabled && (
-                      <p className="text-[10px] text-gray-500 mt-0.5">Total of the CC rows — change the split in the table.</p>
-                    )}
-                    {isAdvance && advanceInfo && !advanceInfo.linkType && !disabled && (
-                      <p className="text-[10px] text-gray-500 mt-0.5">Not linked to a bill yet — no CC split. Link the request to a bill to split it by CC.</p>
+                    <PMInput type="number" step="0.01" min="0" {...register("advanceAmount")} disabled={disabled}
+                      hasError={advanceExceeds} />
+                    {!disabled && (
+                      <p className="text-[10px] text-gray-500 mt-0.5">
+                        Amount only. Once approved it sits in the Vendor Advance Register; adjust it against bills (product-wise) from here or from the Payment Request.
+                      </p>
                     )}
                     {advanceExceeds && !disabled && (
                       <p className="text-[11px] text-red-500 mt-0.5">Exceeds balance ₹{formatAmount(advanceInfo.balance)}</p>
@@ -1589,7 +1529,23 @@ export default function PaymentForm({
                 {billAdvance > 0 && (
                   <PMFormRow label="Advance Adjusted" labelWidth="sm:w-[160px] sm:min-w-[160px]">
                     <div className="flex-1 text-[11px] text-purple-700 bg-purple-50 border border-purple-200 rounded-sm px-2 py-1">
-                      ₹{formatAmount(billAdvance)} advance already paid — pay at most ₹{formatAmount(billAfterAdvance)}
+                      ₹{formatAmount(billAdvance)} advance adjusted on this bill — pay at most ₹{formatAmount(billAfterAdvance)}
+                    </div>
+                  </PMFormRow>
+                )}
+                {noticeBillId && billNotice && billNotice.outstanding > 0 && billNotice.billApproved && billNotice.openBalance > 0 && (
+                  <PMFormRow label="Vendor Advance" labelWidth="sm:w-[160px] sm:min-w-[160px]">
+                    <div className="flex-1 flex flex-wrap items-center gap-2 text-[11px] text-amber-800 bg-amber-50 border border-amber-300 rounded-sm px-2 py-1">
+                      <span>
+                        {vendorName || "This vendor"} has ₹{formatAmount(billNotice.outstanding)} outstanding advance
+                        ({billNotice.advances.map((a) => a.prNo).join(", ")}).
+                      </span>
+                      {!isViewMode && (
+                        <button type="button" onClick={() => setBillAdjustOpen(true)}
+                          className="px-2 py-0.5 rounded-sm bg-amber-600 text-white hover:bg-amber-700">
+                          Adjust against {selectedBills[0]?.purchaseBillNo || "this bill"}
+                        </button>
+                      )}
                     </div>
                   </PMFormRow>
                 )}
@@ -1695,18 +1651,6 @@ export default function PaymentForm({
             emptyText="Select a party and bank/cash account to generate accounting entries"
           />
 
-          {advanceHasRows && (
-            <PaymentBreakdownTable
-              paymentType={advanceInfo?.linkType === "JOURNAL" ? "voucher" : "bill"}
-              itemFields={itemFields}
-              gstFields={gstFields}
-              watchedItems={watchedItems}
-              watchedGst={watchedGst}
-              register={register}
-              disabled={disabled}
-              loading={itemsLoading}
-            />
-          )}
           {isAdvance ? (
             <div className="rounded-sm border border-gray-300 overflow-hidden w-full sm:max-w-[360px] ml-auto">
               <div className="flex items-stretch">
@@ -1714,9 +1658,7 @@ export default function PaymentForm({
                 <div className="px-3 py-[7px] text-[13px] font-semibold text-right min-w-[130px]">{formatAmount(totalInvoice)}</div>
               </div>
               <div className="px-3 py-1.5 text-[10px] text-gray-500 border-t">
-                {advanceHasRows
-                  ? <>Posts Dr {vendorName || "Vendor"} split by the CC rows above / Cr Bank-Cash, and reduces those rows on the bill.</>
-                  : <>Posts Dr {vendorName || "Vendor"} / Cr Bank-Cash. Once the advance request is linked to a bill, this amount reduces that bill’s balance.</>}
+                Posts Dr {vendorName || "Vendor"} / Cr Bank-Cash. Adjusting it against a bill later moves it onto that bill&apos;s CCs.
               </div>
             </div>
           ) : (<>
@@ -1742,6 +1684,25 @@ export default function PaymentForm({
             disabled={disabled}
           />
           </>)}
+
+          {/* Advance: adjust against bills (once the payment is approved) */}
+          {isAdvance && mode !== "create" && advanceInfo?.workflowStatus === "Approved" && (
+            <div className="border rounded-sm p-2">
+              <div className="flex flex-wrap items-center gap-2 mb-2">
+                <span className="text-[12px] font-semibold text-gray-700 mr-auto">
+                  Adjusted Against Bills — {advanceInfo.prNo}
+                  <span className="font-normal text-gray-500"> · outstanding ₹{formatAmount(advanceInfo.outstanding)}</span>
+                </span>
+                {advanceInfo.outstanding > 0 && (
+                  <button type="button" onClick={() => setAdjustOpen(true)}
+                    className="px-3 py-1 text-[12px] border border-purple-600 text-purple-700 rounded-sm hover:bg-purple-50">
+                    Adjust Against Bill
+                  </button>
+                )}
+              </div>
+              <AdvanceAdjustmentsTable adjustments={advanceInfo.adjustments} onChanged={() => setReloadKey((k) => k + 1)} />
+            </div>
+          )}
 
           {/* Action buttons */}
           {!isViewMode && (
@@ -1775,6 +1736,25 @@ export default function PaymentForm({
           )}
         </div>
       </div>
+
+      <AdvanceAdjustModal
+        open={adjustOpen}
+        onClose={() => setAdjustOpen(false)}
+        onDone={() => { setAdjustOpen(false); setReloadKey((k) => k + 1); }}
+        paymentRequestId={paymentRequestId}
+      />
+      <AdvanceAdjustModal
+        open={billAdjustOpen}
+        onClose={() => setBillAdjustOpen(false)}
+        onDone={() => {
+          setBillAdjustOpen(false);
+          setBillNotice(null);
+          loadBillsItems(purchaseBillIds);
+          setNoticeKey((k) => k + 1);
+        }}
+        purchaseBillId={selectedBills[0]?.id}
+        vendorId={vendorId}
+      />
 
       {/* Purchase Bill Picker Modal */}
       <PurchaseBillPickerModal
