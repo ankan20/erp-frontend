@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Loader2, Search, RefreshCw } from "lucide-react";
+import { Loader2, Search, RefreshCw, FileSearch } from "lucide-react";
 import { EdoxMark } from "@/components/common/EdoxLoader";
 import { toast } from "sonner";
 
@@ -17,6 +17,7 @@ import { API_ENDPOINTS }  from "@/config/api.config";
 import { formatAmount }   from "@/helper/numberFormatter";
 import { getLocalStorage } from "@/lib/localStorage";
 import AccountingTable    from "@/components/finance/report/accounting/AccountingTable";
+import GroupBreakdownModal from "@/components/finance/report/accounting/GroupBreakdownModal";
 import { FilterLabel } from "@/components/finance/report/accounting/shared";
 import { exportPDF, exportExcel } from "@/components/finance/report/accounting/exportAccounting";
 
@@ -34,6 +35,7 @@ const COLUMNS = [
   { key: "totalDebit", label: "Total Debit",  type: "amount", align: "right", className: "w-[120px]" },
   { key: "totalCredit",label: "Total Credit", type: "amount", align: "right", className: "w-[120px]" },
   { key: "net",        label: "Net Balance",  align: "right", className: "w-[130px]" },
+  { key: "action",     label: "",             className: "w-[32px]" },
 ];
 
 export default function GroupLedgerPage() {
@@ -50,6 +52,9 @@ export default function GroupLedgerPage() {
   const [loading, setLoading]         = useState(false);
   const [fetched, setFetched]         = useState(false);
   const [projectList, setProjectList] = useState([]);
+  // the filters the shown data was fetched with — the breakdown must use the same
+  const [appliedFilters, setAppliedFilters] = useState({});
+  const [breakdown, setBreakdown]     = useState(null);
 
   useEffect(() => {
     apiRequest({ url: API_ENDPOINTS.SETTINGS.GET_ALL_PROJECTS, method: "GET" })
@@ -69,6 +74,7 @@ export default function GroupLedgerPage() {
         method: "GET",
       });
       setData(res?.data ?? null); setFetched(true);
+      setAppliedFilters({ projectCode, fromDate, toDate });
     } catch (err) {
       setData(null); toast.error(err?.message || "Failed to fetch group ledger");
     } finally { setLoading(false); }
@@ -178,6 +184,9 @@ export default function GroupLedgerPage() {
         totalDebit: g.debit,
         totalCredit: g.credit,
         net: fmtBalDrCr(g.net),
+        action: <FileSearch size={13} className="text-[#9ca3af]" />,
+        _onClick: () => setBreakdown(g),
+        _title: "Click to see which accounts and documents make this amount",
       };
       if (head === "Balance Sheet") bsRows.push(row);
       else plRows.push(row);
@@ -240,6 +249,11 @@ export default function GroupLedgerPage() {
     <HeaderWrapper header={<PageHeader actions={actions} />}>
       <div className="p-3 space-y-3">
         <h2 className="text-[15px] font-bold text-[#144664]">Central Accounting — Group Ledger</h2>
+        {fetched && !loading && groups.length > 0 && (
+          <p className="text-[11.5px] text-[#6b7280] -mt-2">
+            Click any group to see which accounts and documents make its amount.
+          </p>
+        )}
 
         <div className="flex flex-wrap items-center gap-3 border-b pb-3">
           <div className="flex items-center gap-2">
@@ -319,6 +333,15 @@ export default function GroupLedgerPage() {
           <AccountingTable columns={COLUMNS} rows={rows} footerRow={footerRow} emptyMessage="No group data found" />
         )}
       </div>
+
+      <GroupBreakdownModal
+        open={!!breakdown}
+        onClose={() => setBreakdown(null)}
+        group={breakdown}
+        fromDate={appliedFilters.fromDate}
+        toDate={appliedFilters.toDate}
+        projectCode={appliedFilters.projectCode}
+      />
     </HeaderWrapper>
   );
 }

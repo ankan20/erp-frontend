@@ -811,6 +811,7 @@ export const API_ENDPOINTS = {
       GST_RECONCILIATION:      "/finance/accounting/gst-reconciliation",
       PROJECT_SUMMARY:         "/finance/accounting/project-summary",
       GROUP_LEDGER:            "/finance/accounting/group-ledger",
+      GROUP_LEDGER_BREAKDOWN:  "/finance/accounting/group-ledger/breakdown",
       FINANCIAL_YEAR:          "/finance/accounting/financial-year",
       HISTORICAL_POSTING:      "/finance/accounting/historical-posting",
       POSTING_STATUS:          "/finance/accounting/posting-status",

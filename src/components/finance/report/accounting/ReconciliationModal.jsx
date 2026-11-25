@@ -84,7 +84,11 @@ function SourceGroup({ group, showProject, searchTerm }) {
           </thead>
           <tbody>
             {filtered.map((e, i) => (
-              <tr key={i} className={`border-b border-[#f0f0f0] ${i % 2 === 0 ? "bg-white" : "bg-[#fafbfc]"} hover:bg-[#f0f4f8]`}>
+              <tr
+                key={i}
+                title={e.isCancelled ? `${e.cancelLabel || "Cancelled"} — nets to zero with its pair` : undefined}
+                className={`border-b border-[#f0f0f0] ${e.isCancelled ? "bg-[#fdf2f2] line-through decoration-[#b91c1c]/60 opacity-70" : i % 2 === 0 ? "bg-white" : "bg-[#fafbfc]"} hover:bg-[#f0f4f8]`}
+              >
                 <td className="px-2 py-[3px] tabular-nums text-[#6b7280]">
                   {e.date ? getfmtDisplaydate(e.date) : "—"}
                 </td>
