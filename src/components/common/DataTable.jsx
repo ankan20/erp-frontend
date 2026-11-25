@@ -126,7 +126,7 @@ export default function DataTable({
     if (!hasCreated) return columnsProp;
     let at = columnsProp.length;
     while (at > 1 && columnsProp[at - 1].action) at--;
-    const col = { header: "Created On", accessor: CREATED_ON_KEY, width: "165px" };
+    const col = { header: "Created On", accessor: CREATED_ON_KEY, width: "180px" };
     return [...columnsProp.slice(0, at), col, ...columnsProp.slice(at)];
   }, [columnsProp, hasCreated]);
 

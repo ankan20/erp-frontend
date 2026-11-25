@@ -25,14 +25,16 @@ export function parseCreatedAt(value) {
   return isNaN(t) ? null : t;
 }
 
-/** epoch ms → "25-11-2026 02:05 PM" (local time). */
+const MONTHS = ["JAN", "FEB", "MAR", "APR", "MAY", "JUN", "JUL", "AUG", "SEP", "OCT", "NOV", "DEC"];
+
+/** epoch ms → "25 NOV 2026; 02:05 PM" (local time). */
 export function formatCreatedOn(ts) {
   if (ts == null) return null;
   const d = new Date(ts);
   let h = d.getHours();
   const ampm = h >= 12 ? "PM" : "AM";
   h = h % 12 || 12;
-  return `${pad(d.getDate())}-${pad(d.getMonth() + 1)}-${d.getFullYear()} ${pad(h)}:${pad(d.getMinutes())} ${ampm}`;
+  return `${pad(d.getDate())} ${MONTHS[d.getMonth()]} ${d.getFullYear()}; ${pad(h)}:${pad(d.getMinutes())} ${ampm}`;
 }
 
 /** Raw DB entry time on a row. */
