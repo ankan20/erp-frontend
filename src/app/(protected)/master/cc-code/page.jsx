@@ -48,7 +48,7 @@ export default function Page() {
     const fetchData = async () => {
       try {
         const res = await apiRequest({
-          url: API_ENDPOINTS.MASTER.GET_ALL_CC_CODE,
+          url: `${API_ENDPOINTS.MASTER.GET_ALL_CC_CODE}?includeSystem=true`,
           method: "GET",
         });
 
@@ -62,7 +62,9 @@ export default function Page() {
             ccId:           c.ccId,
             sl:             index + 1,
             ccCode:         c.ccCode,
-            ccName:         c.ccName,
+            ccName:         c.isSystem
+              ? <span className="flex items-center gap-1.5">{c.ccName}<span className="shrink-0 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide rounded bg-amber-100 text-amber-700 border border-amber-300">System</span></span>
+              : c.ccName,
             ccCategoryName: c.ccCategoryName,
             headUnder:      c.headUnder,
             // BS — flat fields for each level

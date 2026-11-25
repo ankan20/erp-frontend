@@ -44,6 +44,7 @@ export default function Page() {
             subGroupPath: (d.ccSubGroupLevels || []).map((l) => l.subGroupId),
             headUnder: d.headUnder ?? null,
             isNonLedger: d.isNonLedger !== undefined ? d.isNonLedger : null,
+            isSystem: !!d.isSystem,
             gstAccountType: d.gstAccountType || "",
             plLinked: !!d.plLinked,
             plGroupId: d.plGroupId ? String(d.plGroupId) : "",

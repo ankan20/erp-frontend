@@ -68,7 +68,7 @@ export default function GeneralLedgerPage() {
 
   useEffect(() => {
     Promise.all([
-      apiRequest({ url: API_ENDPOINTS.MASTER.GET_ALL_CC_CODE, method: "GET" }),
+      apiRequest({ url: `${API_ENDPOINTS.MASTER.GET_ALL_CC_CODE}?includeSystem=true`, method: "GET" }),
       apiRequest({ url: API_ENDPOINTS.MASTER.GET_ALL_LEDGER, method: "GET" }),
       apiRequest({ url: API_ENDPOINTS.MASTER.BANK_CASH.LIST, method: "GET" }),
       apiRequest({ url: API_ENDPOINTS.SETTINGS.GET_ALL_PROJECTS, method: "GET" }),

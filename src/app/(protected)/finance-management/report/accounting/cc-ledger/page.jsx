@@ -52,7 +52,7 @@ export default function CCLedgerPage() {
   const [ccList, setCcList]         = useState([]);
 
   useEffect(() => {
-    apiRequest({ url: API_ENDPOINTS.MASTER.GET_ALL_CC_CODE, method: "GET" })
+    apiRequest({ url: `${API_ENDPOINTS.MASTER.GET_ALL_CC_CODE}?includeSystem=true`, method: "GET" })
       .then((res) => setCcList(res?.data || []))
       .catch(() => {});
   }, []);

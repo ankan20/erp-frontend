@@ -68,6 +68,7 @@ export default function CCForm({
   ccId,
   data,
 }) {
+  const isSystemCC = !!data?.isSystem;
   const [groups, setGroups] = useState([]);
   const [categories, setCategories] = useState([]);
   // selected sub group ids from top level down, e.g. [4, 9, 15]
@@ -149,7 +150,7 @@ export default function CCForm({
     groupField.onChange(e);
     applySubGroupPath([]);
   };
-  const isViewMode = disabled;
+  const isViewMode = disabled || isSystemCC;
   const fieldDisabled = isViewMode || !isEditing || isSubmitting;
 
   // FETCH GROUP + CATEGORY
@@ -365,6 +366,14 @@ export default function CCForm({
 
   return (
     <div className="p-4 max-w-2xl">
+      {isSystemCC && (
+        <div className="mb-3 flex items-center gap-2 rounded-md border border-amber-300 bg-amber-50 px-3 py-2">
+          <span className="shrink-0 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide rounded bg-amber-200 text-amber-800 border border-amber-300">System</span>
+          <span className="text-[12px] text-amber-900">
+            This is a system-managed CC code used internally for discount &amp; round-off postings. It cannot be edited or deleted.
+          </span>
+        </div>
+      )}
       <div className="space-y-0.5">
 
         {/* LEDGER TYPE */}
