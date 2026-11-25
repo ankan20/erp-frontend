@@ -589,6 +589,7 @@ export default function PaymentForm({
   const [billAdjustOpen, setBillAdjustOpen] = useState(false);
   const [reloadKey,    setReloadKey]    = useState(0);
   const [noticeKey,    setNoticeKey]    = useState(0);
+  const [advBreakdownType, setAdvBreakdownType] = useState(null);  // "bill" | "voucher" — adjusted bills view
 
   const skipClearOnVendorChange = useRef(false);
 
@@ -982,8 +983,21 @@ export default function PaymentForm({
             utrVoucherNo:     d.utrVoucherNo   || "",
             paymentRemarks:   d.paymentRemarks || "",
             discount: 0, roundOff: 0,
-            items: [], gstLines: [],
+            // read-only: the bill rows this advance is adjusted on
+            items: isCopy ? [] : (d.items || []).map((it, i) => ({
+              ...it, pvItemId: null, slNo: i + 1,
+              bookedAmount: Number(it.bookedAmount || 0), paidAmount: Number(it.paidAmount || 0),
+              advanceAmount: Number(it.advanceAmount || 0), balanceAmount: Number(it.balanceAmount || 0),
+              currentAmount: Number(it.currentAmount || 0),
+            })),
+            gstLines: isCopy ? [] : (d.gstLines || []).map((l) => ({
+              ...l, isSelected: true,
+              bookedAmount: Number(l.bookedAmount || 0), paidAmount: Number(l.paidAmount || 0),
+              advanceAmount: Number(l.advanceAmount || 0), balanceAmount: Number(l.balanceAmount || 0),
+              currentAmount: Number(l.currentAmount || 0),
+            })),
           });
+          setAdvBreakdownType(isCopy ? null : (d.breakdownType || null));
           if (isCopy) {
             setVendorName("");
             copyLoadedToast(d.receiptNo);
@@ -1651,6 +1665,24 @@ export default function PaymentForm({
             emptyText="Select a party and bank/cash account to generate accounting entries"
           />
 
+          {/* Advance: bill-wise view of where it is adjusted (read-only) */}
+          {isAdvance && advBreakdownType && itemFields.length > 0 && (
+            <div>
+              <PaymentBreakdownTable
+                paymentType={advBreakdownType}
+                itemFields={itemFields}
+                gstFields={gstFields}
+                watchedItems={watchedItems}
+                watchedGst={watchedGst}
+                register={register}
+                disabled
+              />
+              <p className="text-[10px] text-gray-500 mt-1 px-1">
+                Bill-wise rows this advance ({advanceInfo?.prNo}) is adjusted on. Current = adjusted by this advance;
+                Paid includes other advances (incl. adv). Change it with Adjust / Cancel below.
+              </p>
+            </div>
+          )}
           {isAdvance ? (
             <div className="rounded-sm border border-gray-300 overflow-hidden w-full sm:max-w-[360px] ml-auto">
               <div className="flex items-stretch">
