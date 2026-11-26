@@ -62,6 +62,7 @@ const one = (id, path = "") => `${W.ONE}${id}${path}`;
 
 export const workItemApi = {
   access: () => apiRequest({ url: W.ACCESS }),
+  team: (projectCode, search) => apiRequest({ url: `${W.LIST}/team`, params: clean({ projectCode, search }) }),
   assignable: (projectCode, type) => apiRequest({ url: W.ASSIGNABLE, params: clean({ projectCode, type }) }),
   list: (params) => apiRequest({ url: W.LIST, params: clean(params) }),
   tree: (params) => apiRequest({ url: W.TREE, params: clean(params) }),

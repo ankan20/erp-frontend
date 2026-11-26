@@ -18,10 +18,12 @@ import Taskboard from "./Taskboard";
 import KanbanBoard from "./KanbanBoard";
 import SprintCharts from "./SprintCharts";
 import QueriesView from "./QueriesView";
+import TeamView from "./TeamView";
 import { Standup, Retro } from "./ScrumViews";
 import WorkItemSheet from "./WorkItemSheet";
 
 const TABS = [
+  { id: "team", label: "Team" },                 // who is doing what — the supervisor's first view
   { id: "backlog", label: "Backlog" },
   { id: "kanban", label: "Kanban" },
   { id: "planning", label: "Sprint planning" },
@@ -41,7 +43,7 @@ export default function BoardsView() {
   const [allProjects, setAllProjects] = useState([]);
   // central by default: every project I work in, one place for all task work (project = "all")
   const [project, setProject] = useState("all");
-  const [tab, setTab] = useState(() => (TABS.some((t) => t.id === searchParams?.get("tab")) ? searchParams.get("tab") : "backlog"));
+  const [tab, setTab] = useState(() => (TABS.some((t) => t.id === searchParams?.get("tab")) ? searchParams.get("tab") : "team"));
   const [roots, setRoots] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showDone, setShowDone] = useState(false);
@@ -269,6 +271,9 @@ export default function BoardsView() {
           </aside>
         </div>
       )}
+
+      {/* ── TEAM ── */}
+      {tab === "team" && <TeamView projectCode={project} onOpen={(id) => openItem(id)} refreshKey={refreshKey} />}
 
       {/* ── QUERIES ── */}
       {tab === "queries" && (
