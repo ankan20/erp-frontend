@@ -35,6 +35,7 @@ const TIPS = {
   quality: "Check work before marking Done or handing off; reopened tasks and sent-back steps lower this.",
   throughput: "Close small items as you finish them so completed work is counted.",
   timeEfficiency: "Give realistic estimates, press Start when you begin and Pause when you stop — over 10 % above the estimate lowers this.",
+  sprintCommitment: "Commit only to the story points you can finish in the sprint, and move your PBIs to Done before the sprint closes.",
   backlog: "Clear or re-plan anything already past its due date.",
   pickup: "Press Start on follow-ups soon after they reach you.",
   appraisal: "Talk to your manager about goals for the next review.",
