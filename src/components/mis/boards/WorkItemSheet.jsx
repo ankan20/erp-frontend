@@ -26,6 +26,7 @@ const TABS = [
 
 const toForm = (d) => ({
   workItemType: d.workItemType || "PBI",
+  projectCode: d.projectCode || "",
   title: d.title || "",
   state: d.state || d.status || "",
   assignedTo: d.ownerUserId ? String(d.ownerUserId) : "",
@@ -60,7 +61,7 @@ export function TypeBadge({ type, className = "" }) {
  * Right-hand panel for one work item (Azure Boards style).
  *   itemId → edit · draft = { workItemType, parentId?, sprintId? } → create
  */
-export default function WorkItemSheet({ open, itemId, draft, projectCode, projectLabel, sprints = [], onClose, onSaved, onOpenItem }) {
+export default function WorkItemSheet({ open, itemId, draft, projectCode, projectLabel, projectOptions = [], sprints = [], onClose, onSaved, onOpenItem }) {
   const isNew = !itemId;
   const [item, setItem] = useState(null);
   const [form, setForm] = useState(toForm(draft || {}));
@@ -97,18 +98,20 @@ export default function WorkItemSheet({ open, itemId, draft, projectCode, projec
     else { setItem(null); setForm(toForm({ state: WI_STATES[draft?.workItemType || "PBI"][0], ...(draft || {}) })); }
   }, [open, itemId, draft, load]);
 
-  // assignees + parent candidates depend on the type
-  const pc = projectCode && projectCode !== "company" ? projectCode : undefined;
+  // The project the item belongs to: its own (edit) · picked in the sheet (central "all" view) · the view's
+  const central = projectCode === "all";
+  const effProject = item ? (item.projectCode || "company") : central ? form.projectCode : (projectCode || "company");
+  const pc = effProject && effProject !== "company" ? effProject : undefined;
   useEffect(() => {
-    if (!open) return;
-    workItemApi.assignable(pc || "company", type).then((r) => setUsers(r?.data || [])).catch(() => setUsers([]));
+    if (!open || !effProject) { setUsers([]); setParents([]); return; }
+    workItemApi.assignable(effProject, type).then((r) => setUsers(r?.data || [])).catch(() => setUsers([]));
     const pt = PARENT_TYPES[type] || [];
     if (!pt.length) { setParents([]); return; }
-    workItemApi.list({ projectCode: projectCode || "company", type: pt.join(","), limit: 500 })
+    workItemApi.list({ projectCode: effProject, type: pt.join(","), limit: 500 })
       .then((r) => setParents((r?.data?.items || []).filter((p) => !["Done", "Removed"].includes(p.state) || String(p.id) === form.parentId)))
       .catch(() => setParents([]));
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open, type, projectCode]);
+  }, [open, type, effProject]);
 
   const userOptions = useMemo(() => users.map((u) => ({ value: String(u.id), label: u.empCode ? `${u.name} (${u.empCode})` : u.name })), [users]);
   const parentOptions = useMemo(() => parents.map((p) => ({ value: String(p.id), label: `${p.taskCode} · ${p.title}` })), [parents]);
@@ -141,6 +144,7 @@ export default function WorkItemSheet({ open, itemId, draft, projectCode, projec
 
   const save = async () => {
     if (!form.title.trim()) return toast.error("Title is required");
+    if (isNew && central && !form.projectCode) return toast.error("Choose the project this item belongs to");
     setSaving(true);
     try {
       if (isNew) {
@@ -192,7 +196,8 @@ export default function WorkItemSheet({ open, itemId, draft, projectCode, projec
             <TypeBadge type={type} />
             <span className="text-[11px] font-semibold text-gray-500">{isNew ? `New ${typeLabel(type)}` : item?.taskCode || "…"}</span>
             {item?.isBlocked && <span className="text-[10px] px-1.5 py-0.5 rounded border border-red-200 bg-red-50 text-red-600 font-semibold inline-flex items-center gap-1"><Ban size={10} /> Blocked</span>}
-            <span className="text-[11px] text-gray-500 truncate">· {projectLabel || "Company"}</span>
+            <span className="text-[11px] text-gray-500 truncate">· {item ? (item.projectCode || "Company")
+              : central ? (projectOptions.find((o) => o.value === form.projectCode)?.label || "choose a project") : (projectLabel || "Company")}</span>
           </div>
           <div className="flex items-center gap-1 shrink-0">
             {!isNew && item?.canDelete && (
@@ -215,6 +220,14 @@ export default function WorkItemSheet({ open, itemId, draft, projectCode, projec
               {readOnly && <p className="text-[11px] text-amber-700 bg-amber-50 border border-amber-200 rounded px-2 py-1">
                 {item?.isLocked ? "This task is Done and locked — reopen it from Self Task." : "You can view this item but not edit it."}
               </p>}
+
+              {isNew && central && (
+                <Field label="Project" required>
+                  <SearchableSelect options={projectOptions} value={form.projectCode} placeholder="Which project is this for?"
+                    disabled={!!draft?.parentId}
+                    onChange={(v) => setForm((f) => ({ ...f, projectCode: v || "", parentId: "", assignedTo: "", sprintId: f.sprintId }))} />
+                </Field>
+              )}
 
               <div className="grid grid-cols-3 gap-3">
                 <Field label="Type">
@@ -329,7 +342,7 @@ export default function WorkItemSheet({ open, itemId, draft, projectCode, projec
                 </div>
                 <div className="p-4">
                   {tab === "children" && <ChildrenTab item={item} onOpenItem={onOpenItem} />}
-                  {tab === "links" && <LinksTab item={item} projectCode={projectCode} canEdit={item.canEdit} onChanged={load} onOpenItem={onOpenItem} />}
+                  {tab === "links" && <LinksTab item={item} projectCode="all" canEdit={item.canEdit} onChanged={load} onOpenItem={onOpenItem} />}
                   {tab === "discussion" && <DiscussionTab item={item} users={users} onChanged={load} />}
                 </div>
               </div>

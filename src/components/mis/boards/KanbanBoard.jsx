@@ -11,7 +11,7 @@ import { TypeBadge } from "./WorkItemSheet";
 const DRAG = "text/kb-card";
 const LEVEL_TYPE = { PBI: "PBI", Feature: "Feature", Epic: "Epic" };
 
-function Card({ c, onOpen, dragging, setDragging }) {
+function Card({ c, onOpen, dragging, setDragging, showProject }) {
   const p = c.childProgress || { done: 0, total: 0 };
   return (
     <article draggable={c.canEdit}
@@ -25,6 +25,7 @@ function Card({ c, onOpen, dragging, setDragging }) {
         <span className="flex items-center gap-1.5 min-w-0">
           {c.workItemType === "Bug" && <TypeBadge type="Bug" />}
           <span className="text-[10px] text-gray-500 font-semibold">{c.taskCode}</span>
+          {showProject && <span className="text-[10px] font-semibold text-gray-600 bg-gray-100 rounded px-1">{c.projectCode || "Company"}</span>}
         </span>
         <span className="flex items-center gap-1">
           {c.isBlocked && <Ban size={12} className="text-red-500" title={c.blockedReason || "Blocked"} />}
@@ -53,7 +54,7 @@ function Card({ c, onOpen, dragging, setDragging }) {
 }
 
 /** Backlog-level Kanban (Azure "Boards"): custom columns → states, WIP limits, Doing/Done split, swimlanes. */
-export default function KanbanBoard({ projectCode, onOpen, refreshKey, onNew }) {
+export default function KanbanBoard({ projectCode, onOpen, refreshKey, onNew, showProject = false }) {
   const [level, setLevel] = useState("PBI");
   const [board, setBoard] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -93,7 +94,7 @@ export default function KanbanBoard({ projectCode, onOpen, refreshKey, onNew }) 
     // optimistic move, then confirm
     setBoard((b) => ({ ...b, cards: b.cards.map((x) => (x.id === id ? { ...x, column, columnDone: !!done, lane } : x)) }));
     try {
-      const r = await workItemApi.boardMove(id, { column, done: !!done, lane });
+      const r = await workItemApi.boardMove(id, { column, done: !!done, lane, projectCode: projectCode || "company" });
       if (r?.data?.warning) toast.warning(r.data.warning); else toast.success(`${c.taskCode} → ${column}${done ? " · Done" : ""}`);
     } catch (err) {
       toast.error(err?.message || "Move not allowed");
@@ -179,7 +180,7 @@ export default function KanbanBoard({ projectCode, onOpen, refreshKey, onNew }) 
                                 className={`p-1.5 space-y-1.5 min-h-[120px] ${done ? "border-l border-dashed border-gray-200 bg-gray-50/40" : ""}
                                   ${isOver(c.name, done, lane) ? "bg-blue-50 outline outline-2 outline-blue-300 -outline-offset-2" : ""}`}>
                                 {inCol.filter((x) => !!x.columnDone === done).map((x) => (
-                                  <Card key={x.id} c={x} onOpen={onOpen} dragging={dragging} setDragging={setDragging} />
+                                  <Card key={x.id} c={x} onOpen={onOpen} dragging={dragging} setDragging={setDragging} showProject={showProject} />
                                 ))}
                               </div>
                             ))}

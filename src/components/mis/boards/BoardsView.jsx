@@ -39,7 +39,8 @@ export default function BoardsView() {
 
   const [access, setAccess] = useState(null);
   const [allProjects, setAllProjects] = useState([]);
-  const [project, setProject] = useState(() => currentProject()?.code || "company");
+  // central by default: every project I work in, one place for all task work (project = "all")
+  const [project, setProject] = useState("all");
   const [tab, setTab] = useState(() => (TABS.some((t) => t.id === searchParams?.get("tab")) ? searchParams.get("tab") : "backlog"));
   const [roots, setRoots] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -68,16 +69,21 @@ export default function BoardsView() {
     if (cp) seen.set(cp.code, cp.name);
     (access?.projects || []).forEach((p) => !seen.has(p.code) && seen.set(p.code, p.name));
     allProjects.forEach((p) => !seen.has(p.code) && seen.set(p.code, p.name));
-    return [{ value: "company", label: "Company (all-level)" }, ...[...seen].map(([c, n]) => ({ value: c, label: n ? `${c} : ${n}` : c }))];
+    return [{ value: "all", label: "All my projects" }, { value: "company", label: "Company (all-level)" },
+      ...[...seen].map(([c, n]) => ({ value: c, label: n ? `${c} : ${n}` : c }))];
   }, [access, allProjects]);
+  const isAll = project === "all";
+  // projects an item can belong to (create from the central view)
+  const ownerProjects = useMemo(() => projectOptions.filter((o) => o.value !== "all"), [projectOptions]);
   const projectLabel = projectOptions.find((o) => o.value === project)?.label || project;
-  const canManageSprints = project === "company" ? !!access?.canManageCompanySprints
+  const canManageSprints = (project === "company" || isAll) ? !!access?.canManageCompanySprints
     : !!(access?.isSuperAdmin || access?.manageSprintProjects?.includes(project));
 
   // ── sprints ──
   const loadSprints = useCallback(async (keepId) => {
     try {
-      const r = await sprintApi.list({ projectCode: project });
+      // a project shows its own sprints + the shared (company) weekly sprints; "all" shows the shared ones
+      const r = await sprintApi.list({ projectCode: project, includeCompany: !isAll && project !== "company" ? 1 : undefined });
       const list = r?.data || [];
       setSprints(list);
       setSprintId((prev) => {
@@ -87,7 +93,7 @@ export default function BoardsView() {
         return pick ? String(pick.id) : "";
       });
     } catch { setSprints([]); setSprintId(""); }
-  }, [project]);
+  }, [project, isAll]);
   useEffect(() => { loadSprints(); }, [loadSprints]);
   const sprint = sprints.find((s) => String(s.id) === String(sprintId)) || null;
   const openSprints = sprints.filter((s) => s.status !== "Closed");
@@ -150,10 +156,12 @@ export default function BoardsView() {
 
   const openItem = (id, draft) => setSheet(id ? { itemId: id } : { draft });
   const addChild = (parent, childType) => setSheet({
-    draft: { workItemType: childType, parentId: parent.id, sprintId: childType === "Task" ? parent.sprintId : undefined },
+    draft: { workItemType: childType, parentId: parent.id, projectCode: parent.projectCode || "company",
+      sprintId: childType === "Task" ? parent.sprintId : undefined },
   });
   const newItem = (type) => setSheet({
-    draft: { workItemType: type, sprintId: SPRINT_TABS.includes(tab) && sprint && SPRINT_TYPES_OK.includes(type) && sprint.status !== "Closed" ? sprint.id : undefined },
+    draft: { workItemType: type, projectCode: isAll ? (currentProject()?.code || "") : undefined,
+      sprintId: SPRINT_TABS.includes(tab) && sprint && SPRINT_TYPES_OK.includes(type) && sprint.status !== "Closed" ? sprint.id : undefined },
   });
 
   // drop on a sprint card (planning pane) → plan the item
@@ -229,7 +237,7 @@ export default function BoardsView() {
         <div className="flex gap-4 items-start">
           <div className="flex-1 min-w-0">
             <BacklogTree roots={shownRoots} loading={loading} onOpen={(id) => openItem(id)} onAddChild={addChild}
-              sprints={sprints} users={users} dragging={dragging} setDragging={setDragging} onChanged={refresh}
+              sprints={sprints} users={users} dragging={dragging} setDragging={setDragging} onChanged={refresh} showProject={isAll}
               emptyText={search ? "Nothing matches the search." : "The backlog is empty — start with a Phase or an Activity."} />
           </div>
 
@@ -269,7 +277,7 @@ export default function BoardsView() {
 
       {/* ── KANBAN ── */}
       {tab === "kanban" && (
-        <KanbanBoard projectCode={project} onOpen={(id) => openItem(id)} refreshKey={refreshKey} onNew={newItem} />
+        <KanbanBoard projectCode={project} showProject={isAll} onOpen={(id) => openItem(id)} refreshKey={refreshKey} onNew={newItem} />
       )}
 
       {/* ── SPRINT PLANNING / TASKBOARD ── */}
@@ -299,7 +307,7 @@ export default function BoardsView() {
               onOpen={(id) => openItem(id)} onAddChild={addChild} dragging={dragging} setDragging={setDragging}
               refreshKey={refreshKey} onChanged={loadTree} />
           ) : tab === "taskboard" ? (
-            <Taskboard sprint={sprint} projectCode={project} onOpen={(id) => openItem(id)} onAddChild={addChild} refreshKey={refreshKey} />
+            <Taskboard sprint={sprint} projectCode={project} showProject={isAll || !sprint?.projectCode} onOpen={(id) => openItem(id)} onAddChild={addChild} refreshKey={refreshKey} />
           ) : tab === "standup" ? (
             <Standup sprint={sprint} onOpen={(id) => openItem(id)} refreshKey={refreshKey} />
           ) : tab === "reports" ? (
@@ -311,11 +319,13 @@ export default function BoardsView() {
       )}
 
       <WorkItemSheet open={!!sheet} itemId={sheet?.itemId} draft={sheet?.draft} projectCode={project} projectLabel={projectLabel}
+        projectOptions={ownerProjects}
         sprints={sprints} onOpenItem={openItem}
         onClose={() => { setSheet(null); if (searchParams?.get("item")) router.replace(window.location.pathname); }}
         onSaved={() => refresh()} />
       <SprintFormDialog open={sprintForm.open} sprint={sprintForm.sprint} onClose={() => setSprintForm({ open: false, sprint: null })}
-        projectCode={project} projectLabel={projectLabel} onSaved={(s) => loadSprints(s?.id)} />
+        projectCode={isAll ? "company" : project} projectLabel={isAll ? "Shared — all projects" : projectLabel}
+        onSaved={(s) => loadSprints(s?.id)} />
       <CloseBoardsSprintDialog sprint={closing} otherSprints={sprints} onClose={() => setClosing(null)} onClosed={refresh} />
     </div>
   );

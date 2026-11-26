@@ -20,6 +20,7 @@ export const WI_DRAG = "text/wi-id";
  */
 export default function BacklogTree({
   roots, loading, onOpen, onAddChild, sprints = [], users = [], dragging, setDragging, onChanged, compact = false, emptyText,
+  showProject = false,
 }) {
   const [collapsed, setCollapsed] = useState(() => new Set());
   const [drop, setDrop] = useState(null);           // { id, zone: "before" | "after" | "into" }
@@ -187,6 +188,7 @@ export default function BacklogTree({
                       ) : <span className="w-5 shrink-0" />}
                       <span className={`w-1 h-4 rounded-full shrink-0 ${TYPE_STYLE[r.workItemType]?.dot}`} aria-hidden />
                       <TypeBadge type={r.workItemType} />
+                      {showProject && r.depth === 0 && <span className="text-[10px] font-semibold text-gray-600 bg-gray-100 border border-gray-200 rounded px-1.5 whitespace-nowrap">{r.projectCode || "Company"}</span>}
                       <button onClick={() => onOpen(r.id)} className="text-left truncate hover:text-blue-700 hover:underline min-w-0">
                         <span className="text-[11px] text-gray-500 font-semibold mr-1.5">{r.taskCode}</span>
                         <span className={["Done", "Removed", "Cancelled"].includes(r.state) ? "line-through" : "text-gray-800 font-medium"}>{r.title}</span>

@@ -80,7 +80,7 @@ function TaskCard({ t, onOpen, dragging, setDragging, onSaved }) {
  * Self Task timer rules) or onto another PBI's lane (re-parent). Remaining work is
  * editable on the card and rolls up per lane / column.
  */
-export default function Taskboard({ sprint, projectCode, onOpen, onAddChild, refreshKey }) {
+export default function Taskboard({ sprint, projectCode, onOpen, onAddChild, refreshKey, showProject = false }) {
   const [roots, setRoots] = useState([]);
   const [loading, setLoading] = useState(false);
   const [person, setPerson] = useState("all");
@@ -208,6 +208,7 @@ export default function Taskboard({ sprint, projectCode, onOpen, onAddChild, ref
                         <div className="flex items-center gap-1.5 flex-wrap">
                           <TypeBadge type={p.workItemType} />
                           <span className="text-[10px] text-gray-500 font-semibold">{p.taskCode}</span>
+                          {showProject && <span className="text-[10px] font-semibold text-gray-600 bg-gray-100 rounded px-1">{p.projectCode || "Company"}</span>}
                           {p.storyPoints != null && <span className="text-[10px] font-semibold text-gray-500 bg-gray-100 rounded px-1">{p.storyPoints} pt</span>}
                           {p.isBlocked && <Ban size={12} className="text-red-500" />}
                         </div>
