@@ -110,6 +110,7 @@ export const PAGE_CODES = [
   { code: "TK", path: "/task-management/todo" },
   { code: "FB", path: "/task-management/task-tracker" },
   { code: "SC", path: "/task-management/schedule-compliance" },
+  { code: "BD", path: "/task-management/boards" },
 ];
 
 const byCode = Object.fromEntries(PAGE_CODES.map((p) => [p.code, p]));

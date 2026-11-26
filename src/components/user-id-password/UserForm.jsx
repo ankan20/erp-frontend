@@ -322,11 +322,20 @@ export default function UserForm({ mode = "create", data }) {
             <div className="md:flex md:items-center">
               <div className={labelClass}>{finalLabel}</div>
 
-              <Input
-                {...register(key)}
-                disabled={!isEditing || isSubmitting}
-                className={`${getInputClass(errors[key], !isEditing || isSubmitting)} w-[250px] -ml-px`}
-              />
+              {(() => {
+                // Employee code is locked once saved (backend rejects changes too).
+                const locked = key === "employeeCode" && mode === "edit" && !!data?.employeeCode;
+                const off = !isEditing || isSubmitting || locked;
+                return (
+                  <Input
+                    {...register(key)}
+                    readOnly={locked}
+                    disabled={!isEditing || isSubmitting}
+                    title={locked ? "Employee code cannot be changed once saved" : undefined}
+                    className={`${getInputClass(errors[key], off)} w-[250px] -ml-px`}
+                  />
+                );
+              })()}
             </div>
 
             {/* <p className={errorText}>{errors[key]?.message}</p> */}

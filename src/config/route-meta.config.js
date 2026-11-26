@@ -983,6 +983,10 @@ export const routeMetaConfig = [
     basePath: "/task-management/task-tracker",
     breadcrumbs: ["MIS", "Follow-up Board"],
   },
+  {
+    basePath: "/task-management/boards",
+    breadcrumbs: ["MIS", "Boards"],
+  },
 
 
   // Asset Management

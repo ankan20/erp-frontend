@@ -895,6 +895,12 @@ export const sidebarConfig = [
     basePath: "/task-management",
     children: [
       {
+        title: "Boards",
+        path: "/task-management/boards",
+        activePaths: ["/task-management/boards"],
+        permissionKey: "mis_boards",
+      },
+      {
         title: "Follow-up Board",
         path: "/task-management/task-tracker",
         activePaths: ["/task-management/task-tracker"],
@@ -911,6 +917,13 @@ export const sidebarConfig = [
       {
         title: "Self Task – View/Edit All Users",
         permissionKey: "self_task_all",
+        permissionOnly: true,
+      },
+      // Permission-only: EDIT = create / start / close Boards sprints and set capacity
+      // (Follow-up Board supervisors with task_tracker EDIT can do this too).
+      {
+        title: "Sprints – Manage (Boards)",
+        permissionKey: "sprint_admin",
         permissionOnly: true,
       },
       {

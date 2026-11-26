@@ -968,6 +968,19 @@ export const API_ENDPOINTS = {
       ONE:    "/mis/sprints/",                   // /:id GET | PUT | DELETE · /:id/start · /:id/close · /:id/report
     },
     COMPLIANCE: "/mis/compliance",              // GET ?period=month|week &date &projectCode &department
+    WORK_ITEMS: {
+      LIST:       "/mis/work-items",             // GET ?projectCode &type &state &sprintId|backlog &parentId|none &assignedTo &tag &blocked &search · POST create
+      META:       "/mis/work-items/meta",        // GET types, states, parent rules
+      ACCESS:     "/mis/work-items/access",      // GET projects + where I manage sprints
+      ASSIGNABLE: "/mis/work-items/assignable",  // GET ?projectCode &type
+      TREE:       "/mis/work-items/tree",        // GET ?projectCode &sprintId &includeDone
+      LINKED:     "/mis/work-items/linked",      // GET ?targetType &targetId|targetRef
+      REORDER:    "/mis/work-items/reorder",     // POST { itemId, afterId?, beforeId? }
+      BULK:       "/mis/work-items/bulk",        // POST { ids, changes }
+      VELOCITY:   "/mis/work-items/velocity",    // GET ?projectCode &count
+      BY_UUID:    "/mis/work-items/uuid/",       // /:uuid GET
+      ONE:        "/mis/work-items/",            // /:id GET|PUT|DELETE · /:id/state PATCH · /:id/comments · /:id/links
+    },
     FOLLOWUPS: {
       LIST:       "/mis/followups",              // GET ?scope=board|mine|supervised|involved &projectCode &sprintId|backlog=1 … · POST create
       STATS:      "/mis/followups/stats",

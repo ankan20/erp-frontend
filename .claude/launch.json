@@ -4,8 +4,28 @@
     {
       "name": "erp-frontend",
       "runtimeExecutable": "npm",
-      "runtimeArgs": ["run", "dev"],
+      "runtimeArgs": [
+        "run",
+        "dev"
+      ],
       "port": 3000
+    },
+    {
+      "name": "erp-frontend-offline",
+      "runtimeExecutable": "env",
+      "runtimeArgs": [
+        "NEXT_PUBLIC_API_BASE_URL=http://localhost:5099",
+        "NEXT_DIST_DIR=.next-offline",
+        "npm",
+        "--prefix",
+        "/Users/soumyajitmaity/PycharmProjects/erp-frontend",
+        "run",
+        "dev",
+        "--",
+        "--port",
+        "3111"
+      ],
+      "port": 3111
     }
   ]
 }
