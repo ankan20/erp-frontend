@@ -176,7 +176,7 @@ export default function Taskboard({ sprint, projectCode, onOpen, onAddChild, ref
         <div className="min-w-[960px]">
           {/* column header */}
           <div className="grid grid-cols-[260px_repeat(4,minmax(170px,1fr))] border-b border-gray-200 bg-gray-50 sticky top-0 z-[1]">
-            <div className="px-3 py-2 text-[11px] font-semibold text-gray-500 uppercase tracking-wide">Backlog item</div>
+            <div className="px-3 py-2 text-[11px] font-semibold text-gray-500 uppercase tracking-wide">Activity / Snag</div>
             {colTotals.map(({ c, n, h }) => (
               <div key={c} className="px-3 py-2 border-l border-gray-200 flex items-center justify-between">
                 <span className="flex items-center gap-1.5 text-[11px] font-semibold text-gray-700 uppercase tracking-wide"><span className={`w-2 h-2 rounded-full ${COL_DOT[c]}`} />{c}</span>
@@ -186,7 +186,7 @@ export default function Taskboard({ sprint, projectCode, onOpen, onAddChild, ref
           </div>
 
           {lanes.length === 0 && !loading && (
-            <p className="py-10 text-center text-sm text-gray-500">No tasks in this sprint yet — add Tasks under the sprint&apos;s PBIs.</p>
+            <p className="py-10 text-center text-sm text-gray-500">No tasks in this sprint yet — add Tasks under the sprint&apos;s Activities.</p>
           )}
 
           {lanes.map((lane) => {
@@ -227,7 +227,7 @@ export default function Taskboard({ sprint, projectCode, onOpen, onAddChild, ref
                       </div>
                     ) : (
                       <div className="min-w-0">
-                        <p className="text-[13px] font-medium text-gray-600">Tasks without a sprint PBI</p>
+                        <p className="text-[13px] font-medium text-gray-600">Tasks without a sprint Activity</p>
                         <p className="text-[10px] text-gray-500">{lane.tasks.length} task(s) · {hrs(rem)} left</p>
                       </div>
                     )}

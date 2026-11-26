@@ -10,7 +10,7 @@ import { TASK_PRIORITIES, fmtDateTime } from "@/lib/misTasks";
 import { followupApi } from "@/lib/misFollowups";
 import {
   workItemApi, WI_STATES, WI_TYPES, PARENT_TYPES, CHILD_TYPE, SPRINT_TYPES_OK, POINT_TYPES,
-  TYPE_STYLE, STATE_STYLE,
+  TYPE_STYLE, STATE_STYLE, typeLabel, typePlural,
 } from "@/lib/misBoards";
 
 const ACT = {
@@ -53,7 +53,7 @@ function actLine(a) {
 }
 
 export function TypeBadge({ type, className = "" }) {
-  return <span className={`text-[10px] px-1.5 py-0.5 rounded border font-semibold ${TYPE_STYLE[type]?.badge} ${className}`}>{type}</span>;
+  return <span className={`text-[10px] px-1.5 py-0.5 rounded border font-semibold whitespace-nowrap ${TYPE_STYLE[type]?.badge} ${className}`}>{typeLabel(type)}</span>;
 }
 
 /**
@@ -190,7 +190,7 @@ export default function WorkItemSheet({ open, itemId, draft, projectCode, projec
         <div className="flex items-center justify-between gap-2 px-4 py-3 border-b border-[#c4d1df] bg-gradient-to-b from-[#f4f4f4] to-[#e3e3e3]">
           <div className="min-w-0 flex items-center gap-2">
             <TypeBadge type={type} />
-            <span className="text-[11px] font-semibold text-gray-500">{isNew ? `New ${type}` : item?.taskCode || "…"}</span>
+            <span className="text-[11px] font-semibold text-gray-500">{isNew ? `New ${typeLabel(type)}` : item?.taskCode || "…"}</span>
             {item?.isBlocked && <span className="text-[10px] px-1.5 py-0.5 rounded border border-red-200 bg-red-50 text-red-600 font-semibold inline-flex items-center gap-1"><Ban size={10} /> Blocked</span>}
             <span className="text-[11px] text-gray-500 truncate">· {projectLabel || "Company"}</span>
           </div>
@@ -209,7 +209,7 @@ export default function WorkItemSheet({ open, itemId, draft, projectCode, projec
           <form className="flex-1 overflow-y-auto" onSubmit={(e) => { e.preventDefault(); save(); }}>
             <div className="p-4 space-y-3">
               <input value={form.title} onChange={set("title")} maxLength={200} disabled={readOnly} autoFocus={isNew}
-                placeholder={`${type} title`} aria-label="Title"
+                placeholder={`${typeLabel(type)} title`} aria-label="Title"
                 className="w-full text-base font-semibold text-gray-800 border border-transparent hover:border-gray-300 focus:border-gray-300 rounded-md px-2 py-1.5 focus:outline-none focus:ring-2 focus:ring-blue-500" />
 
               {readOnly && <p className="text-[11px] text-amber-700 bg-amber-50 border border-amber-200 rounded px-2 py-1">
@@ -219,7 +219,7 @@ export default function WorkItemSheet({ open, itemId, draft, projectCode, projec
               <div className="grid grid-cols-3 gap-3">
                 <Field label="Type">
                   <select value={type} onChange={set("workItemType")} disabled={readOnly || typeOptions.length < 2} className={inputCls}>
-                    {typeOptions.map((t) => <option key={t}>{t}</option>)}
+                    {typeOptions.map((t) => <option key={t} value={t}>{typeLabel(t)}</option>)}
                   </select>
                 </Field>
                 <Field label="State">
@@ -239,11 +239,11 @@ export default function WorkItemSheet({ open, itemId, draft, projectCode, projec
                   <SearchableSelect options={userOptions} value={form.assignedTo} onChange={set("assignedTo")} disabled={readOnly}
                     placeholder="Me" />
                 </Field>
-                <Field label={`Parent${PARENT_TYPES[type]?.length ? ` (${PARENT_TYPES[type].join(" / ")})` : ""}`}>
+                <Field label={`Parent${PARENT_TYPES[type]?.length ? ` (${PARENT_TYPES[type].map(typeLabel).join(" / ")})` : ""}`}>
                   {PARENT_TYPES[type]?.length ? (
                     <SearchableSelect options={parentOptions} value={form.parentId} onChange={set("parentId")} disabled={readOnly}
                       placeholder="No parent" clearLabel="No parent" />
-                  ) : <p className="text-xs text-gray-400 py-2">An Epic is the top level</p>}
+                  ) : <p className="text-xs text-gray-400 py-2">A Phase is the top level</p>}
                 </Field>
               </div>
 
@@ -256,9 +256,9 @@ export default function WorkItemSheet({ open, itemId, draft, projectCode, projec
                       <SearchableSelect options={sprintOptions} value={form.sprintId} onChange={set("sprintId")} disabled={readOnly}
                         placeholder="Backlog" clearLabel="Backlog" />
                     </Field>
-                  ) : <Field label="Sprint"><p className="text-xs text-gray-400 py-2">Plan its PBIs instead</p></Field>}
+                  ) : <Field label="Sprint"><p className="text-xs text-gray-400 py-2">Plan its Activities instead</p></Field>}
                   {POINT_TYPES.includes(type) && (
-                    <Field label="Story points">
+                    <Field label="Effort points">
                       <input type="number" min="0" step="0.5" value={form.storyPoints} onChange={set("storyPoints")} disabled={readOnly} className={inputCls} />
                     </Field>
                   )}
@@ -309,7 +309,7 @@ export default function WorkItemSheet({ open, itemId, draft, projectCode, projec
                 <div className="flex justify-end gap-2 pt-1">
                   <button type="button" onClick={onClose} className={btnSecondary}>Cancel</button>
                   <button type="submit" data-shortcut="submit" disabled={saving} className={btnPrimary}>
-                    {saving && <Loader2 size={14} className="animate-spin" />}{isNew ? `Create ${type}` : "Save"}
+                    {saving && <Loader2 size={14} className="animate-spin" />}{isNew ? `Create ${typeLabel(type)}` : "Save"}
                   </button>
                 </div>
               )}
@@ -369,11 +369,11 @@ function ChildrenTab({ item, onOpenItem }) {
         <p className="text-[11px] font-semibold text-gray-500 uppercase tracking-wide mb-1">Children</p>
         {item.children?.length
           ? <ul className="divide-y divide-gray-100">{item.children.map((c) => <ItemRow key={c.id} w={c} onOpenItem={onOpenItem} />)}</ul>
-          : <p className="text-xs text-gray-400">{childType ? `No ${childType}s yet.` : "A task has no children."}</p>}
+          : <p className="text-xs text-gray-400">{childType ? `No ${typePlural(childType)} yet.` : "A task has no children."}</p>}
       </div>
       {childType && item.canEdit && (
         <button type="button" onClick={() => onOpenItem?.(null, { workItemType: childType, parentId: item.id, sprintId: childType === "Task" ? item.sprintId : undefined })}
-          className="text-sm text-blue-700 hover:underline inline-flex items-center gap-1"><Plus size={14} /> Add {childType}</button>
+          className="text-sm text-blue-700 hover:underline inline-flex items-center gap-1"><Plus size={14} /> Add {typeLabel(childType)}</button>
       )}
     </div>
   );

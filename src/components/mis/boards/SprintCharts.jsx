@@ -181,9 +181,9 @@ function Velocity({ data }) {
   );
   return (
     <Frame title="Velocity" table={table}
-      subtitle={data?.averageVelocity != null ? `Average done per closed sprint: ${data.averageVelocity} pt` : "Story points per sprint (closed sprints + the active one)"}
+      subtitle={data?.averageVelocity != null ? `Average done per closed sprint: ${data.averageVelocity} pt` : "Effort points per sprint (closed sprints + the active one)"}
       legend={[{ label: "Committed", color: C.s1 }, { label: "Done", color: C.s2 }]}>
-      {!rows.length ? <p className="text-xs text-gray-500 py-8 text-center">No sprint has story points yet.</p> : (
+      {!rows.length ? <p className="text-xs text-gray-500 py-8 text-center">No sprint has effort points yet.</p> : (
         <svg viewBox={`0 0 ${W} ${H}`} className="w-full h-auto" role="img" aria-label="Velocity chart" onMouseLeave={() => setHover(null)}>
           <Axes yMax={yMax} unit="" integer xLabels={rows.map((r, i) => {
             const n = r.name.split(" · ")[0];                // "Week 46 · 9 Nov 2026" → "Week 46"
@@ -252,7 +252,7 @@ function CumulativeFlow({ data }) {
       <tbody>{days.map((d, i) => <tr key={d.date} className="border-t border-gray-100"><td className="py-1">{fmtDate(d.date)}</td>{[...CFD_STATES].reverse().map((s) => <td key={s.state}>{counts[i][s.state]}</td>)}</tr>)}</tbody></table>
   );
   return (
-    <Frame title="Cumulative flow" subtitle="PBIs + Bugs in this sprint by state, per snapshot day" table={table}
+    <Frame title="Cumulative flow" subtitle="Activities + Snags in this sprint by state, per snapshot day" table={table}
       legend={[...CFD_STATES].reverse().map((s) => ({ label: s.state, color: s.color }))}>
       {!days.length ? <p className="text-xs text-gray-500 py-8 text-center">No daily snapshots yet — the first one is saved tonight (and on sprint close).</p> : (
         <svg viewBox={`0 0 ${W} ${H}`} className="w-full h-auto" role="img" aria-label="Cumulative flow chart"

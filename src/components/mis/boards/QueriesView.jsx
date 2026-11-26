@@ -6,7 +6,7 @@ import { toast } from "sonner";
 import SearchableSelect from "@/components/common/SearchableSelect";
 import { MisModal, Field, inputCls, btnPrimary, btnSecondary, UserAvatar } from "@/components/mis/MisModal";
 import { TASK_PRIORITIES, fmtDate, todayISO } from "@/lib/misTasks";
-import { workItemApi, WI_TYPES, POINT_TYPES, STATE_STYLE } from "@/lib/misBoards";
+import { workItemApi, WI_TYPES, POINT_TYPES, STATE_STYLE, typeLabel } from "@/lib/misBoards";
 import { TypeBadge } from "./WorkItemSheet";
 
 const plusDays = (n) => { const d = new Date(); d.setDate(d.getDate() + n); return d.toISOString().slice(0, 10); };
@@ -15,9 +15,9 @@ const BUILT_IN = [
   { id: "assigned", name: "Assigned to me (all)", filters: { assignedTo: "me" } },
   { id: "blocked", name: "Blocked", filters: { blocked: "1", openOnly: "1" } },
   { id: "due-week", name: "Due in the next 7 days", filters: () => ({ dueFrom: todayISO(), dueTo: plusDays(7), openOnly: "1" }) },
-  { id: "bugs", name: "Open bugs", filters: { type: "Bug", openOnly: "1" } },
+  { id: "bugs", name: "Open snags", filters: { type: "Bug", openOnly: "1" } },
   { id: "unparented", name: "Tasks without a parent", filters: { type: "Task", parentId: "none", openOnly: "1" } },
-  { id: "backlog", name: "Unplanned PBIs", filters: { type: "PBI,Bug", sprintId: "backlog", openOnly: "1" } },
+  { id: "backlog", name: "Unplanned Activities", filters: { type: "PBI,Bug", sprintId: "backlog", openOnly: "1" } },
 ];
 const COLUMNS = [
   { id: "code", label: "ID" }, { id: "type", label: "Type" }, { id: "title", label: "Title" },
@@ -158,7 +158,7 @@ export default function QueriesView({ projectCode, sprints, users, onOpen, refre
             <span className="text-[11px] font-semibold text-gray-500 uppercase tracking-wide mr-1">Type</span>
             {WI_TYPES.map((t) => (
               <button key={t} onClick={() => toggleType(t)} aria-pressed={types.has(t)}
-                className={`text-xs px-2 py-1 rounded-full border ${types.has(t) ? "bg-blue-600 text-white border-blue-600" : "bg-white text-gray-700 border-gray-300 hover:bg-gray-50"}`}>{t}</button>
+                className={`text-xs px-2 py-1 rounded-full border ${types.has(t) ? "bg-blue-600 text-white border-blue-600" : "bg-white text-gray-700 border-gray-300 hover:bg-gray-50"}`}>{typeLabel(t)}</button>
             ))}
             <span className="flex-1" />
             <label className="inline-flex items-center gap-1 text-xs text-gray-600"><input type="checkbox" checked={filters.openOnly === "1"} onChange={setF("openOnly")} className="accent-blue-600" /> Open only</label>

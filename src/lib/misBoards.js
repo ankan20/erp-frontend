@@ -8,6 +8,12 @@ const W = API_ENDPOINTS.MIS.WORK_ITEMS;
 const S = API_ENDPOINTS.MIS.SPRINTS;
 
 export const WI_TYPES = ["Epic", "Feature", "PBI", "Bug", "Task"];
+// Construction names shown to users. The keys (Epic, Feature, PBI, Bug, Task) are what the server
+// stores — change only the right-hand side to rename a level everywhere on the web.
+export const TYPE_LABEL = { Epic: "Phase", Feature: "Work Package", PBI: "Activity", Bug: "Snag", Task: "Task" };
+export const TYPE_PLURAL = { Epic: "Phases", Feature: "Work Packages", PBI: "Activities", Bug: "Snags", Task: "Tasks" };
+export const typeLabel = (t) => TYPE_LABEL[t] || t;
+export const typePlural = (t) => TYPE_PLURAL[t] || `${t}s`;
 export const TEAM_TYPES = ["Epic", "Feature", "PBI", "Bug"];
 export const SPRINT_TYPES_OK = ["PBI", "Bug", "Task"];
 export const POINT_TYPES = ["PBI", "Bug"];
@@ -106,7 +112,7 @@ export const sumPoints = (items) => items.reduce((a, i) => a + (POINT_TYPES.incl
 
 export const TASKBOARD_COLUMNS = ["To Do", "In Progress", "On Hold", "Done"];
 export const KANBAN_LEVELS = [
-  { id: "PBI", label: "PBIs & Bugs" },
-  { id: "Feature", label: "Features" },
-  { id: "Epic", label: "Epics" },
+  { id: "PBI", label: "Activities & Snags" },
+  { id: "Feature", label: "Work Packages" },
+  { id: "Epic", label: "Phases" },
 ];

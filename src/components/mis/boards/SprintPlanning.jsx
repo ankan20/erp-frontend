@@ -114,7 +114,7 @@ export default function SprintPlanning({ sprint, projectCode, sprints, users, on
           <h3 className="text-sm font-semibold text-gray-800">Sprint backlog</h3>
           <BacklogTree roots={roots} loading={loading} onOpen={onOpen} onAddChild={onAddChild} sprints={sprints} users={users}
             dragging={dragging} setDragging={setDragging} onChanged={() => { load(); onChanged?.(); }} compact
-            emptyText="Nothing planned yet — drag PBIs onto this sprint from the Backlog tab." />
+            emptyText="Nothing planned yet — drag Activities onto this sprint from the Backlog tab." />
         </section>
 
         {/* capacity */}

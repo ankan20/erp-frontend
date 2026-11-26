@@ -230,7 +230,7 @@ export default function BoardsView() {
           <div className="flex-1 min-w-0">
             <BacklogTree roots={shownRoots} loading={loading} onOpen={(id) => openItem(id)} onAddChild={addChild}
               sprints={sprints} users={users} dragging={dragging} setDragging={setDragging} onChanged={refresh}
-              emptyText={search ? "Nothing matches the search." : "The backlog is empty — start with an Epic or a PBI."} />
+              emptyText={search ? "Nothing matches the search." : "The backlog is empty — start with a Phase or an Activity."} />
           </div>
 
           {/* planning pane: drop targets */}
@@ -344,7 +344,7 @@ function CloseBoardsSprintDialog({ sprint, otherSprints, onClose, onClosed }) {
         <button type="button" onClick={onClose} className={btnSecondary}>Cancel</button>
         <button type="submit" data-shortcut="submit" disabled={saving} className={btnPrimary}>{saving && <Loader2 size={14} className="animate-spin" />}Close sprint</button>
       </>}>
-      <p className="text-sm text-gray-700">Done work stays in this sprint (it counts for velocity). Unfinished PBIs, Bugs and Tasks — and follow-ups — move to:</p>
+      <p className="text-sm text-gray-700">Done work stays in this sprint (it counts for velocity). Unfinished Activities, Snags and Tasks — and follow-ups — move to:</p>
       <Field label="Move unfinished to">
         <select value={moveTo} onChange={(e) => setMoveTo(e.target.value)} className={inputCls}>
           <option value="backlog">Backlog</option>

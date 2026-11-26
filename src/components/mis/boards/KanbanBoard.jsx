@@ -5,7 +5,7 @@ import { Settings2, Loader2, Ban, ChevronDown, ChevronRight, Plus, Trash2, Arrow
 import { toast } from "sonner";
 import { MisModal, Field, inputCls, btnPrimary, btnSecondary, UserAvatar } from "@/components/mis/MisModal";
 import { PRIORITY_STRIPE } from "@/lib/misTasks";
-import { workItemApi, KANBAN_LEVELS, WI_STATES, TYPE_STYLE } from "@/lib/misBoards";
+import { workItemApi, KANBAN_LEVELS, WI_STATES, TYPE_STYLE, typeLabel } from "@/lib/misBoards";
 import { TypeBadge } from "./WorkItemSheet";
 
 const DRAG = "text/kb-card";
@@ -123,7 +123,7 @@ export default function KanbanBoard({ projectCode, onOpen, refreshKey, onNew }) 
         {loading && <Loader2 size={14} className="animate-spin text-gray-400" />}
         <span className="flex-1" />
         <span className="text-[11px] text-gray-500">Done shows the last {board?.doneDays ?? 30} days</span>
-        <button onClick={() => onNew?.(LEVEL_TYPE[level])} className={btnSecondary}><Plus size={14} /> New {LEVEL_TYPE[level]}</button>
+        <button onClick={() => onNew?.(LEVEL_TYPE[level])} className={btnSecondary}><Plus size={14} /> New {typeLabel(LEVEL_TYPE[level])}</button>
         {board?.canEdit && <button onClick={() => setSettings(true)} className={btnSecondary}><Settings2 size={14} /> Board settings</button>}
       </div>
 

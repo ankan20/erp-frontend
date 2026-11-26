@@ -6,7 +6,7 @@ import { toast } from "sonner";
 import SearchableSelect from "@/components/common/SearchableSelect";
 import { UserAvatar, btnSecondary } from "@/components/mis/MisModal";
 import { TASK_PRIORITIES } from "@/lib/misTasks";
-import { workItemApi, flattenTree, PARENT_TYPES, CHILD_TYPE, SPRINT_TYPES_OK, POINT_TYPES, TYPE_STYLE, STATE_STYLE } from "@/lib/misBoards";
+import { workItemApi, flattenTree, PARENT_TYPES, CHILD_TYPE, SPRINT_TYPES_OK, POINT_TYPES, TYPE_STYLE, STATE_STYLE, typeLabel, typePlural } from "@/lib/misBoards";
 import { TypeBadge } from "./WorkItemSheet";
 
 export const WI_DRAG = "text/wi-id";
@@ -132,9 +132,9 @@ export default function BacklogTree({
         ) : (
           <>
             <span className="text-gray-500">Show:</span>
-            <button onClick={() => collapseTo([])} className="px-2 py-1 rounded hover:bg-white border border-transparent hover:border-gray-200">Epics</button>
-            <button onClick={() => collapseTo(["Epic"])} className="px-2 py-1 rounded hover:bg-white border border-transparent hover:border-gray-200">Features</button>
-            <button onClick={() => collapseTo(["Epic", "Feature"])} className="px-2 py-1 rounded hover:bg-white border border-transparent hover:border-gray-200">PBIs</button>
+            <button onClick={() => collapseTo([])} className="px-2 py-1 rounded hover:bg-white border border-transparent hover:border-gray-200">{typePlural("Epic")}</button>
+            <button onClick={() => collapseTo(["Epic"])} className="px-2 py-1 rounded hover:bg-white border border-transparent hover:border-gray-200">{typePlural("Feature")}</button>
+            <button onClick={() => collapseTo(["Epic", "Feature"])} className="px-2 py-1 rounded hover:bg-white border border-transparent hover:border-gray-200">{typePlural("PBI")}</button>
             <button onClick={expandAll} className="px-2 py-1 rounded hover:bg-white border border-transparent hover:border-gray-200">Everything</button>
             <span className="flex-1" />
             {!compact && <span className="text-gray-400">Drag ⠿ to reorder · drop on a parent to move under it · drop on a sprint to plan</span>}
@@ -150,7 +150,7 @@ export default function BacklogTree({
               <th className="px-2 py-2 text-left">Title</th>
               <th className="px-2 py-2 text-left w-28">State</th>
               <th className="px-2 py-2 text-left w-40">Assigned</th>
-              <th className="px-2 py-2 text-right w-20" title="Story points (PBI/Bug) · remaining hours (Task)">Effort</th>
+              <th className="px-2 py-2 text-right w-20" title="Effort points (Activity / Snag) · remaining hours (Task)">Effort</th>
               {!compact && <th className="px-2 py-2 text-left w-36">Sprint</th>}
               <th className="px-2 py-2 text-left">Tags</th>
             </tr>
@@ -193,7 +193,7 @@ export default function BacklogTree({
                       </button>
                       {r.isBlocked && <Ban size={13} className="text-red-500 shrink-0" title={r.blockedReason || "Blocked"} />}
                       {childType && r.canEdit && (
-                        <button onClick={() => onAddChild(r, childType)} title={`Add ${childType}`} aria-label={`Add ${childType} under ${r.taskCode}`}
+                        <button onClick={() => onAddChild(r, childType)} title={`Add ${typeLabel(childType)}`} aria-label={`Add ${typeLabel(childType)} under ${r.taskCode}`}
                           className="opacity-0 group-hover:opacity-100 focus:opacity-100 w-5 h-5 rounded flex items-center justify-center text-blue-600 hover:bg-blue-100 shrink-0">
                           <Plus size={14} />
                         </button>
@@ -225,7 +225,7 @@ export function NewItemButtons({ onNew, types = ["Epic", "Feature", "PBI", "Bug"
       <span className="px-2.5 py-2 text-sm text-gray-500 border-r border-gray-200 inline-flex items-center gap-1"><Plus size={14} /> New</span>
       {types.map((t) => (
         <button key={t} onClick={() => onNew(t)} className={`${btnSecondary.replace("rounded-md border border-gray-300", "")} rounded-none border-r last:border-r-0 border-gray-200 px-3`}>
-          <span className={`w-2 h-2 rounded-full ${TYPE_STYLE[t].dot}`} /> {t}
+          <span className={`w-2 h-2 rounded-full ${TYPE_STYLE[t].dot}`} /> {typeLabel(t)}
         </button>
       ))}
     </div>
