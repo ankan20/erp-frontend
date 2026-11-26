@@ -332,6 +332,11 @@ export default function OrderItemSelectionModal({
           className="
             p-4
             border-b
+            flex
+            flex-wrap
+            items-center
+            gap-x-4
+            gap-y-2
           "
         >
           <div
@@ -364,6 +369,19 @@ export default function OrderItemSelectionModal({
               "
             />
           </div>
+
+          {/* Fixed Asset indent lines are listed only under Cost Head "Fixed Asset" */}
+          {costHead === "Fixed_Asset" ? (
+            <p className="text-sm text-amber-800 bg-amber-50 border border-amber-300 rounded px-3 py-1.5">
+              Showing <b>Fixed Asset</b> indent lines only. For material / item indent lines, set Cost Head to{" "}
+              <b>Project Work</b>.
+            </p>
+          ) : (
+            <p className="text-sm text-amber-800 bg-amber-50 border border-amber-300 rounded px-3 py-1.5">
+              Fixed Asset indent lines are not listed here. To order them, set Cost Head to{" "}
+              <b>Fixed Asset</b>.
+            </p>
+          )}
         </div>
 
         {/* TABLE */}
