@@ -26,6 +26,28 @@
         "3111"
       ],
       "port": 3111
+    },
+    {
+      "name": "erp-backend-temp-db",
+      "runtimeExecutable": "env",
+      "runtimeArgs": [
+        "DB_USER=postgres",
+        "DB_PASSWORD=",
+        "DB_HOST=127.0.0.1",
+        "DB_PORT=55432",
+        "DB_NAME=erp_ui",
+        "SCHEDULER_MODE=off",
+        "WHATSAPP_PHONE_NUMBER_ID=",
+        "WHATSAPP_ACCESS_TOKEN=",
+        "WHATSAPP_TOKEN=",
+        "/Users/soumyajitmaity/PycharmProjects/erp_backend/.venv/bin/flask",
+        "--app",
+        "run.py",
+        "run",
+        "--port",
+        "5099"
+      ],
+      "port": 5099
     }
   ]
 }

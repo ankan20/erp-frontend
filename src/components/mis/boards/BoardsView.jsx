@@ -14,12 +14,24 @@ import { TASKS_CHANGED, currentProject, fmtDate } from "@/lib/misTasks";
 import { workItemApi, flattenTree, sumPoints, SPRINT_TYPES_OK } from "@/lib/misBoards";
 import BacklogTree, { NewItemButtons, WI_DRAG } from "./BacklogTree";
 import SprintPlanning from "./SprintPlanning";
+import Taskboard from "./Taskboard";
+import KanbanBoard from "./KanbanBoard";
+import SprintCharts from "./SprintCharts";
+import QueriesView from "./QueriesView";
+import { Standup, Retro } from "./ScrumViews";
 import WorkItemSheet from "./WorkItemSheet";
 
 const TABS = [
   { id: "backlog", label: "Backlog" },
+  { id: "kanban", label: "Kanban" },
   { id: "planning", label: "Sprint planning" },
+  { id: "taskboard", label: "Taskboard" },
+  { id: "standup", label: "Stand-up" },
+  { id: "reports", label: "Reports" },
+  { id: "retro", label: "Retro" },
+  { id: "queries", label: "Queries" },
 ];
+const SPRINT_TABS = ["planning", "taskboard", "standup", "reports", "retro"];
 
 export default function BoardsView() {
   const router = useRouter();
@@ -141,7 +153,7 @@ export default function BoardsView() {
     draft: { workItemType: childType, parentId: parent.id, sprintId: childType === "Task" ? parent.sprintId : undefined },
   });
   const newItem = (type) => setSheet({
-    draft: { workItemType: type, sprintId: tab === "planning" && sprint && SPRINT_TYPES_OK.includes(type) && sprint.status !== "Closed" ? sprint.id : undefined },
+    draft: { workItemType: type, sprintId: SPRINT_TABS.includes(tab) && sprint && SPRINT_TYPES_OK.includes(type) && sprint.status !== "Closed" ? sprint.id : undefined },
   });
 
   // drop on a sprint card (planning pane) → plan the item
@@ -171,7 +183,7 @@ export default function BoardsView() {
           <p className="text-[11px] font-semibold text-gray-500 uppercase tracking-wide mb-1">Project</p>
           <SearchableSelect options={projectOptions} value={project} onChange={(v) => { setProject(v || "company"); setSprintId(""); }} />
         </div>
-        {tab === "planning" && (
+        {SPRINT_TABS.includes(tab) && (
           <div className="w-72">
             <p className="text-[11px] font-semibold text-gray-500 uppercase tracking-wide mb-1">Sprint</p>
             <SearchableSelect options={sprints.map((s) => ({ value: String(s.id), label: `${s.name} · ${s.status}` }))}
@@ -250,8 +262,18 @@ export default function BoardsView() {
         </div>
       )}
 
-      {/* ── SPRINT PLANNING ── */}
-      {tab === "planning" && (
+      {/* ── QUERIES ── */}
+      {tab === "queries" && (
+        <QueriesView projectCode={project} sprints={sprints} users={users} onOpen={(id) => openItem(id)} refreshKey={refreshKey} />
+      )}
+
+      {/* ── KANBAN ── */}
+      {tab === "kanban" && (
+        <KanbanBoard projectCode={project} onOpen={(id) => openItem(id)} refreshKey={refreshKey} onNew={newItem} />
+      )}
+
+      {/* ── SPRINT PLANNING / TASKBOARD ── */}
+      {SPRINT_TABS.includes(tab) && (
         <div className="space-y-3">
           {sprint && (
             <div className="bg-white rounded-xl border border-gray-200 px-4 py-3 flex flex-wrap items-center gap-x-5 gap-y-2">
@@ -272,9 +294,19 @@ export default function BoardsView() {
               )}
             </div>
           )}
-          <SprintPlanning sprint={sprint} projectCode={project} sprints={sprints} users={users}
-            onOpen={(id) => openItem(id)} onAddChild={addChild} dragging={dragging} setDragging={setDragging}
-            refreshKey={refreshKey} onChanged={loadTree} />
+          {tab === "planning" ? (
+            <SprintPlanning sprint={sprint} projectCode={project} sprints={sprints} users={users}
+              onOpen={(id) => openItem(id)} onAddChild={addChild} dragging={dragging} setDragging={setDragging}
+              refreshKey={refreshKey} onChanged={loadTree} />
+          ) : tab === "taskboard" ? (
+            <Taskboard sprint={sprint} projectCode={project} onOpen={(id) => openItem(id)} onAddChild={addChild} refreshKey={refreshKey} />
+          ) : tab === "standup" ? (
+            <Standup sprint={sprint} onOpen={(id) => openItem(id)} refreshKey={refreshKey} />
+          ) : tab === "reports" ? (
+            <SprintCharts sprint={sprint} projectCode={project} refreshKey={refreshKey} />
+          ) : (
+            <Retro sprint={sprint} onOpen={(id) => openItem(id)} onChanged={loadTree} />
+          )}
         </div>
       )}
 

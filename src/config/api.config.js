@@ -978,6 +978,9 @@ export const API_ENDPOINTS = {
       REORDER:    "/mis/work-items/reorder",     // POST { itemId, afterId?, beforeId? }
       BULK:       "/mis/work-items/bulk",        // POST { ids, changes }
       VELOCITY:   "/mis/work-items/velocity",    // GET ?projectCode &count
+      KANBAN:     "/mis/work-items/kanban",      // GET ?projectCode &level=PBI|Feature|Epic
+      BOARD_CONFIG: "/mis/work-items/board-config", // GET ?projectCode &level · PUT { projectCode, level, columns, swimlanes }
+      QUERIES:    "/mis/work-items/queries",     // GET ?projectCode · POST · /:id PUT|DELETE
       BY_UUID:    "/mis/work-items/uuid/",       // /:uuid GET
       ONE:        "/mis/work-items/",            // /:id GET|PUT|DELETE · /:id/state PATCH · /:id/comments · /:id/links
     },

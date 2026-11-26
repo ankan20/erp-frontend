@@ -72,12 +72,24 @@ export const workItemApi = {
   reorder: (itemId, { afterId, beforeId }) => mutate({ url: W.REORDER, method: "POST", data: clean({ itemId, afterId, beforeId }) }),
   bulk: (ids, changes) => mutate({ url: W.BULK, method: "POST", data: { ids, changes } }),
   velocity: (projectCode, count) => apiRequest({ url: W.VELOCITY, params: clean({ projectCode, count }) }),
+  kanban: (projectCode, level) => apiRequest({ url: W.KANBAN, params: clean({ projectCode, level }) }),
+  boardConfig: (projectCode, level) => apiRequest({ url: W.BOARD_CONFIG, params: clean({ projectCode, level }) }),
+  saveBoardConfig: (data) => mutate({ url: W.BOARD_CONFIG, method: "PUT", data }),
+  boardMove: (id, data) => mutate({ url: one(id, "/board-move"), method: "POST", data }),
+  queries: (projectCode) => apiRequest({ url: W.QUERIES, params: clean({ projectCode }) }),
+  saveQuery: (data, id) => apiRequest({ url: id ? `${W.QUERIES}/${id}` : W.QUERIES, method: id ? "PUT" : "POST", data }),
+  deleteQuery: (id) => apiRequest({ url: `${W.QUERIES}/${id}`, method: "DELETE" }),
 };
 
 export const boardsSprintApi = {
   capacity: (id) => apiRequest({ url: `${S.ONE}${id}/capacity` }),
   setCapacity: (id, members) => mutate({ url: `${S.ONE}${id}/capacity`, method: "PUT", data: { members } }),
   burndown: (id) => apiRequest({ url: `${S.ONE}${id}/burndown` }),
+  standup: (id) => apiRequest({ url: `${S.ONE}${id}/standup` }),
+  retro: (id) => apiRequest({ url: `${S.ONE}${id}/retro` }),
+  retroAdd: (id, category, text) => apiRequest({ url: `${S.ONE}${id}/retro`, method: "POST", data: { category, text } }),
+  retroDelete: (id, itemId) => apiRequest({ url: `${S.ONE}${id}/retro/${itemId}`, method: "DELETE" }),
+  retroToBacklog: (id, itemId) => mutate({ url: `${S.ONE}${id}/retro/${itemId}/to-backlog`, method: "POST", data: {} }),
 };
 
 /** Flatten a tree into visible rows (respecting collapsed ids) with depth. */
@@ -91,3 +103,10 @@ export function flattenTree(nodes, collapsed, depth = 0, out = []) {
 
 /** Sum story points of PBIs/Bugs in a list (planning bars). */
 export const sumPoints = (items) => items.reduce((a, i) => a + (POINT_TYPES.includes(i.workItemType) ? i.storyPoints || 0 : 0), 0);
+
+export const TASKBOARD_COLUMNS = ["To Do", "In Progress", "On Hold", "Done"];
+export const KANBAN_LEVELS = [
+  { id: "PBI", label: "PBIs & Bugs" },
+  { id: "Feature", label: "Features" },
+  { id: "Epic", label: "Epics" },
+];
