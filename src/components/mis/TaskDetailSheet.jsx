@@ -304,7 +304,8 @@ export default function TaskDetailSheet({ taskId, open, onClose, onEdit, onChang
 
               <div className="space-y-2">
                 <Row icon={User} label="Assigned to">{task.ownerName}{task.ownerEmpCode ? ` (${task.ownerEmpCode})` : ""}</Row>
-                <Row icon={User} label="Created by">{task.createdByName}</Row>
+                <Row icon={User} label="Assigned by">{task.createdByName}</Row>
+                <Row icon={User} label="Handover to">{task.handoverName || "—"}</Row>
                 <Row icon={FolderKanban} label="Project">{task.projectCode ? `${task.projectCode} : ${task.projectName || ""}` : "Company"}</Row>
                 <Row icon={Calendar} label="Start">{fmtDateTimeParts(task.startDate, task.startTime)}</Row>
                 <Row icon={Calendar} label="Due"><span className={task.isOverdue ? "text-red-600 font-semibold" : ""}>{fmtDateTimeParts(task.dueDate, task.dueTime)}</span></Row>

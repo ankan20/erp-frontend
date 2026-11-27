@@ -30,7 +30,7 @@ const toForm = (d) => ({
   title: d.title || "",
   state: d.state || d.status || "",
   assignedTo: d.ownerUserId ? String(d.ownerUserId) : "",
-  priority: d.priority || "Medium",
+  priority: d.priority || "Scheduled",
   parentId: d.parentId ? String(d.parentId) : "",
   sprintId: d.sprintId ? String(d.sprintId) : "",
   storyPoints: d.storyPoints ?? "",

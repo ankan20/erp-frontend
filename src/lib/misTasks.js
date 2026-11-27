@@ -8,7 +8,9 @@ const T = API_ENDPOINTS.MIS.TASKS;
 export const TASK_STATUSES = ["To Do", "In Progress", "On Hold", "Done", "Cancelled"];
 export const OPEN_STATUSES = ["To Do", "In Progress", "On Hold"];
 export const BOARD_COLUMNS = ["To Do", "In Progress", "On Hold", "Done"];
-export const TASK_PRIORITIES = ["Low", "Medium", "High", "Critical"];
+// Keep in step with TASK_PRIORITIES in erp_backend app/models/misTask.py
+export const TASK_PRIORITIES = ["Immediate", "Scheduled"];
+export const DEFAULT_PRIORITY = "Scheduled";
 
 export const STATUS_STYLE = {
   "To Do":       "bg-gray-100 text-gray-700 border-gray-200",
@@ -22,13 +24,11 @@ export const STATUS_DOT = {
   Done: "bg-emerald-500", Cancelled: "bg-red-400",
 };
 export const PRIORITY_STYLE = {
-  Low:      "bg-gray-50 text-gray-600 border-gray-200",
-  Medium:   "bg-sky-50 text-sky-700 border-sky-200",
-  High:     "bg-orange-50 text-orange-700 border-orange-200",
-  Critical: "bg-red-50 text-red-700 border-red-200",
+  Immediate: "bg-red-50 text-red-700 border-red-200",
+  Scheduled: "bg-sky-50 text-sky-700 border-sky-200",
 };
 export const PRIORITY_STRIPE = {
-  Low: "border-l-gray-300", Medium: "border-l-sky-400", High: "border-l-orange-400", Critical: "border-l-red-500",
+  Immediate: "border-l-red-500", Scheduled: "border-l-sky-400",
 };
 
 // Any task create/update/delete fires this so the FAB badge and open lists refresh.
@@ -78,7 +78,7 @@ export const misTaskApi = {
   list: (params) => apiRequest({ url: T.LIST, params: clean(params) }),
   stats: (params) => apiRequest({ url: T.STATS, params: clean(params) }),
   access: () => apiRequest({ url: T.ACCESS }),
-  assignable: (projectCode) => apiRequest({ url: T.ASSIGNABLE, params: clean({ projectCode }) }),
+  assignable: (projectCode, purpose) => apiRequest({ url: T.ASSIGNABLE, params: clean({ projectCode, purpose }) }),
   owners: () => apiRequest({ url: T.OWNERS }),
   get: (id) => apiRequest({ url: `${T.ONE}${id}` }),
   getByUuid: (uuid) => apiRequest({ url: `${T.BY_UUID}${uuid}` }),

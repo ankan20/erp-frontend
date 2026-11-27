@@ -13,8 +13,8 @@ import { GuideHint } from "@/components/mis/guide/Guide";
 import { HINTS } from "@/config/guideContent";
 
 const EMPTY = {
-  title: "", description: "", priority: "Medium",
-  projectCode: "", ownerUserId: "", startDate: "", startTime: "", dueDate: "", dueTime: "",
+  title: "", description: "", priority: "Scheduled",
+  projectCode: "", ownerUserId: "", handoverUserId: "", startDate: "", startTime: "", dueDate: "", dueTime: "",
   estimatedHours: "", tags: "",
 };
 
@@ -45,6 +45,7 @@ export default function TaskFormDialog({ open, onClose, task = null, access = {}
   const [users, setUsers] = useState([]);
   const [usersLoading, setUsersLoading] = useState(false);
   const [projects, setProjects] = useState([]);
+  const [handoverUsers, setHandoverUsers] = useState([]);
 
   const canAssign = !!(access.isSuperAdmin || access.canEditOthers);
 
@@ -56,9 +57,10 @@ export default function TaskFormDialog({ open, onClose, task = null, access = {}
         ...EMPTY,
         title: task.title || "",
         description: task.description || "",
-        priority: task.priority || "Medium",
+        priority: task.priority || "Scheduled",
         projectCode: task.projectCode || "",
         ownerUserId: task.ownerUserId ? String(task.ownerUserId) : "",
+        handoverUserId: task.handoverUserId ? String(task.handoverUserId) : "",
         startDate: task.startDate || "",
         startTime: task.startTime || "",
         dueDate: task.dueDate || "",
@@ -108,6 +110,18 @@ export default function TaskFormDialog({ open, onClose, task = null, access = {}
     return () => { alive = false; };
   }, [open, canAssign, form.projectCode]);
 
+  // handover options: anyone in the chosen project (everyone for company tasks)
+  useEffect(() => {
+    if (!open) return;
+    let alive = true;
+    misTaskApi.assignable(form.projectCode || undefined, "handover")
+      .then((r) => alive && setHandoverUsers((r?.data || []).map((u) => ({
+        value: String(u.id), label: u.empCode ? `${u.name} (${u.empCode})` : u.name,
+      }))))
+      .catch(() => alive && setHandoverUsers([]));
+    return () => { alive = false; };
+  }, [open, form.projectCode]);
+
   const set = (k) => (e) => setForm((f) => ({ ...f, [k]: e?.target ? e.target.value : e }));
 
   const dateError = useMemo(() => {
@@ -134,6 +148,7 @@ export default function TaskFormDialog({ open, onClose, task = null, access = {}
       dueTime: form.dueTime || null,
       estimatedHours: form.estimatedHours === "" ? null : Number(form.estimatedHours),
       tags: form.tags.split(",").map((t) => t.trim()).filter(Boolean),
+      handoverUserId: form.handoverUserId ? Number(form.handoverUserId) : null,
     };
     if (canAssign && form.ownerUserId) payload.ownerUserId = Number(form.ownerUserId);
     setSaving(true);
@@ -202,6 +217,11 @@ export default function TaskFormDialog({ open, onClose, task = null, access = {}
                 onChange={(v) => setForm((f) => ({ ...f, ownerUserId: v ?? "" }))} placeholder="Myself" />
             </Field>
           ) : <div className="hidden sm:block" />}
+          <Field label="Handover to">
+            <SearchableSelect options={handoverUsers} value={form.handoverUserId} clearLabel="No one"
+              onChange={(v) => setForm((f) => ({ ...f, handoverUserId: v ?? "" }))} placeholder="Who gets the finished work?" />
+          </Field>
+          <div className="hidden sm:block" />
 
           <Field label="Start date & time">
             <div className="flex gap-2">

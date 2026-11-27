@@ -8,6 +8,7 @@ import {
 import { toast } from "sonner";
 import { getCookie } from "@/lib/cookies";
 import SearchableSelect from "@/components/common/SearchableSelect";
+import { useResizableTable } from "@/hooks/useResizableTable";
 import TaskBoard from "./TaskBoard";
 import TaskFormDialog from "./TaskFormDialog";
 import TaskDetailSheet from "./TaskDetailSheet";
@@ -28,6 +29,20 @@ const SCOPES = [
   { id: "assigned_by_me", label: "Assigned by Me" },
   { id: "my_all", label: "All Tasks" },               // my tasks + tasks I gave to others
   { id: "team", label: "Team Tasks", needsView: true },
+];
+
+// list columns — drag a header to reorder (order saved per user), drag its edge to resize
+const LIST_COLS = [
+  { id: "code", label: "Code" },
+  { id: "title", label: "Title" },
+  { id: "assignedBy", label: "Assigned by" },
+  { id: "assignedTo", label: "Assigned to" },
+  { id: "handoverTo", label: "Handover to" },
+  { id: "project", label: "Project" },
+  { id: "priority", label: "Priority" },
+  { id: "due", label: "Due" },
+  { id: "time", label: "Time" },
+  { id: "status", label: "Status" },
 ];
 
 const readPref = (k, d) => { try { return sessionStorage.getItem(k) || d; } catch { return d; } };
@@ -163,6 +178,29 @@ export default function SelfTaskView({ lockScope = null, compact = false }) {
   const scopes = lockScope ? [] : SCOPES.filter((s) => !s.needsView || teamAllowed);
   const pages = Math.max(1, Math.ceil((data.total || 0) / PER_PAGE));
   const showOwner = scope !== "mine";
+  const { columnOrder, tableRef, getThProps } = useResizableTable({ columns: LIST_COLS, storageKey: "misSelfTaskList" });
+
+  const renderCell = (id, t) => {
+    const td = "px-4 py-2.5";
+    switch (id) {
+      case "code": return <td key={id} className={`${td} text-xs font-semibold text-gray-500 whitespace-nowrap`}>{t.taskCode}</td>;
+      case "title": return (
+        <td key={id} className={`${td} text-gray-800 font-medium max-w-[360px]`}>
+          <span className={t.status === "Done" || t.status === "Cancelled" ? "line-through text-gray-400" : ""}>{t.title}</span>
+          {t.reopenCount > 0 && <span className="ml-2 text-[10px] text-purple-600">↺{t.reopenCount}</span>}
+        </td>
+      );
+      case "assignedBy": return <td key={id} className={`${td} text-gray-700 whitespace-nowrap`}>{t.createdByName || "—"}</td>;
+      case "assignedTo": return <td key={id} className={`${td} text-gray-700 whitespace-nowrap`}>{t.ownerName || "—"}</td>;
+      case "handoverTo": return <td key={id} className={`${td} text-gray-700 whitespace-nowrap`}>{t.handoverName || "—"}</td>;
+      case "project": return <td key={id} className={`${td} text-gray-600 whitespace-nowrap`}>{t.projectCode || "Company"}</td>;
+      case "priority": return <td key={id} className={td}><span className={`text-[11px] px-2 py-0.5 rounded border font-medium ${PRIORITY_STYLE[t.priority] || "bg-gray-50 text-gray-600 border-gray-200"}`}>{t.priority}</span></td>;
+      case "due": return <td key={id} className={`${td} whitespace-nowrap ${t.isOverdue ? "text-red-600 font-semibold" : "text-gray-600"}`}>{fmtDateTimeParts(t.dueDate, t.dueTime)}</td>;
+      case "time": return <td key={id} className={td}><TaskTimer task={t} now={now} compact /></td>;
+      case "status": return <td key={id} className={td}><span className={`text-[11px] px-2.5 py-0.5 rounded-full border font-medium whitespace-nowrap ${STATUS_STYLE[t.status]}`}>{t.status}</span></td>;
+      default: return null;
+    }
+  };
 
   const selectCls = "border border-gray-300 rounded-md px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500";
 
@@ -288,11 +326,13 @@ export default function SelfTaskView({ lockScope = null, compact = false }) {
       ) : (
         <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
           <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead className="bg-gray-50 border-b border-gray-200">
+            <table ref={tableRef} className="w-full text-sm border-collapse">
+              <thead className="bg-blue-100 border-b-2 border-blue-300">
                 <tr>
-                  {["Code", "Title", showOwner && "Assigned to", "Project", "Priority", "Due", "Time", "Status"].filter(Boolean).map((h) => (
-                    <th key={h} className="px-4 py-2.5 text-left text-[11px] font-semibold text-gray-500 uppercase tracking-wide whitespace-nowrap">{h}</th>
+                  {columnOrder.map((id) => (
+                    <th key={id} {...getThProps(id, "px-4 py-2.5 text-left text-[11px] font-semibold text-blue-900 uppercase tracking-wide whitespace-nowrap border-r border-blue-200")}>
+                      {LIST_COLS.find((c) => c.id === id)?.label}
+                    </th>
                   ))}
                   <th className="px-4 py-2.5 w-10" />
                 </tr>
@@ -302,17 +342,7 @@ export default function SelfTaskView({ lockScope = null, compact = false }) {
                   <tr key={t.id} onClick={() => setOpenId(t.id)} tabIndex={0}
                     onKeyDown={(e) => e.key === "Enter" && setOpenId(t.id)}
                     className="hover:bg-blue-50/40 cursor-pointer focus:outline-none focus:bg-blue-50/60">
-                    <td className="px-4 py-2.5 text-xs font-semibold text-gray-500 whitespace-nowrap">{t.taskCode}</td>
-                    <td className="px-4 py-2.5 text-gray-800 font-medium max-w-[360px]">
-                      <span className={t.status === "Done" || t.status === "Cancelled" ? "line-through text-gray-400" : ""}>{t.title}</span>
-                      {t.reopenCount > 0 && <span className="ml-2 text-[10px] text-purple-600">↺{t.reopenCount}</span>}
-                    </td>
-                    {showOwner && <td className="px-4 py-2.5 text-gray-700 whitespace-nowrap">{t.ownerName}</td>}
-                    <td className="px-4 py-2.5 text-gray-600 whitespace-nowrap">{t.projectCode || "Company"}</td>
-                    <td className="px-4 py-2.5"><span className={`text-[11px] px-2 py-0.5 rounded border font-medium ${PRIORITY_STYLE[t.priority]}`}>{t.priority}</span></td>
-                    <td className={`px-4 py-2.5 whitespace-nowrap ${t.isOverdue ? "text-red-600 font-semibold" : "text-gray-600"}`}>{fmtDateTimeParts(t.dueDate, t.dueTime)}</td>
-                    <td className="px-4 py-2.5"><TaskTimer task={t} now={now} compact /></td>
-                    <td className="px-4 py-2.5"><span className={`text-[11px] px-2.5 py-0.5 rounded-full border font-medium whitespace-nowrap ${STATUS_STYLE[t.status]}`}>{t.status}</span></td>
+                    {columnOrder.map((id) => renderCell(id, t))}
                     <td className="px-2 py-2.5" onClick={(e) => e.stopPropagation()}>
                       {t.isLocked ? (
                         <span title={t.reopenPending ? "Locked — reopen requested" : "Done — locked"} className="w-7 h-7 flex items-center justify-center text-gray-400">

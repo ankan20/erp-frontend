@@ -44,7 +44,7 @@ export default function QuickTaskFab() {
   const [upcoming, setUpcoming] = useState([]);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
-  const [form, setForm] = useState({ title: "", dueDate: "", priority: "Medium" });
+  const [form, setForm] = useState({ title: "", dueDate: "", priority: "Scheduled" });
   const wrapRef = useRef(null);
   const inputRef = useRef(null);
 
@@ -142,7 +142,7 @@ export default function QuickTaskFab() {
         projectCode: currentProject()?.code || null,
       });
       toast.success("Task added");
-      setForm({ title: "", dueDate: "", priority: "Medium" });
+      setForm({ title: "", dueDate: "", priority: "Scheduled" });
       inputRef.current?.focus();
     } catch (err) {
       toast.error(err?.message || "Could not add task");
