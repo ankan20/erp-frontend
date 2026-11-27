@@ -12,10 +12,13 @@ import { API_ENDPOINTS } from "@/config/api.config";
 const TYPES = ["Group", "Sub Group", "Sub Group 1", "Sub Group 2"];
 const HEAD_OPTIONS = ["Profit & Loss", "Balance Sheet"];
 
+const PL_SECTIONS = ["Income", "Expense"];
+
 const EMPTY = {
   name: "",
   type: "",
   headUnder: "",
+  plSection: "",
   groupId: "",
   subGroupId: "",   // level-0 parent (for Sub Group 1 + Sub Group 2)
   subGroup1Id: "",  // level-1 parent (for Sub Group 2 only)
@@ -130,7 +133,11 @@ export default function UnifiedAddModal({ open, onClose, onSuccess }) {
 
   const isValid = (() => {
     if (!form.name.trim() || !form.type) return false;
-    if (form.type === "Group")       return !!form.headUnder;
+    if (form.type === "Group") {
+      if (!form.headUnder) return false;
+      if (form.headUnder === "Profit & Loss" && !form.plSection) return false;
+      return true;
+    }
     if (form.type === "Sub Group")   return !!form.groupId;
     if (form.type === "Sub Group 1") return !!form.subGroupId;
     if (form.type === "Sub Group 2") return !!form.subGroup1Id;
@@ -148,7 +155,11 @@ export default function UnifiedAddModal({ open, onClose, onSuccess }) {
         await apiRequest({
           url: API_ENDPOINTS.MASTER.CREATE_GROUP,
           method: "POST",
-          data: { groupName: form.name.trim(), headUnder: form.headUnder },
+          data: {
+            groupName: form.name.trim(),
+            headUnder: form.headUnder,
+            ...(form.headUnder === "Profit & Loss" && { plSection: form.plSection || null }),
+          },
         });
       } else {
         const parentId =
@@ -217,13 +228,33 @@ export default function UnifiedAddModal({ open, onClose, onSuccess }) {
             <Field label="Head Under">
               <select
                 value={form.headUnder}
-                onChange={(e) => set("headUnder")(e.target.value)}
+                onChange={(e) => {
+                  set("headUnder")(e.target.value);
+                  if (e.target.value !== "Profit & Loss") set("plSection")("");
+                }}
                 disabled={saving}
                 className={`border w-full p-2 text-sm ${!form.headUnder ? "border-red-400" : ""}`}
               >
                 <option value="">Select</option>
                 {HEAD_OPTIONS.map((h) => (
                   <option key={h} value={h}>{h}</option>
+                ))}
+              </select>
+            </Field>
+          )}
+
+          {/* P&L groups must specify Income or Expense */}
+          {form.type === "Group" && form.headUnder === "Profit & Loss" && (
+            <Field label="P&L Section">
+              <select
+                value={form.plSection}
+                onChange={(e) => set("plSection")(e.target.value)}
+                disabled={saving}
+                className={`border w-full p-2 text-sm ${!form.plSection ? "border-red-400" : ""}`}
+              >
+                <option value="">Select section</option>
+                {PL_SECTIONS.map((s) => (
+                  <option key={s} value={s}>{s}</option>
                 ))}
               </select>
             </Field>

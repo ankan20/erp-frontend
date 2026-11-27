@@ -16,6 +16,7 @@ import { formatAmount } from "@/helper/numberFormatter";
 import AccountingFilterBar from "@/components/finance/report/accounting/AccountingFilterBar";
 import useAccountingFetch from "@/components/finance/report/accounting/useAccountingFetch";
 import AccountingTreeTable from "@/components/finance/report/accounting/AccountingTreeTable";
+import BalanceSheetCombinedTable from "@/components/finance/report/accounting/BalanceSheetCombinedTable";
 import ReconciliationModal from "@/components/finance/report/accounting/ReconciliationModal";
 import { exportPDF, exportExcel } from "@/components/finance/report/accounting/exportAccounting";
 
@@ -103,6 +104,7 @@ export default function AccountingBalanceSheetPage() {
   } = useAccountingFetch(API_ENDPOINTS.FINANCE.ACCOUNTING.BALANCE_SHEET);
 
   const [reconcile, setReconcile] = useState(null);
+  const [viewMode, setViewMode] = useState("sideBySide"); // "combined" | "sideBySide"
 
   const onReconcile = useCallback((accountType, accountId, accountName) => {
     setReconcile({ accountType, accountId, accountName });
@@ -227,9 +229,10 @@ export default function AccountingBalanceSheetPage() {
           </div>
         ) : (
           <>
-            {data?.difference != null && Math.abs(data.difference) > 0.01 && (
-              <div className="border border-[#e2e8f0] bg-[#f8fafc] px-4 py-3 flex items-start gap-3">
-                <div className="flex-1">
+            {/* Summary bar + view toggle */}
+            <div className="flex items-start gap-3 flex-wrap">
+              {data?.difference != null && Math.abs(data.difference) > 0.01 ? (
+                <div className="flex-1 min-w-0 border border-[#e2e8f0] bg-[#f8fafc] px-4 py-3">
                   <div className="flex items-center gap-2 mb-1">
                     <span className="inline-block w-2 h-2 rounded-full bg-[#f59e0b]" />
                     <span className="text-[12px] font-semibold text-[#1e293b]">
@@ -240,42 +243,86 @@ export default function AccountingBalanceSheetPage() {
                     Assets ({formatAmount(data.totalAssets)}) − Equity &amp; Liabilities ({formatAmount(data.totalLiabilities)}).
                     This difference arises because the Net Profit / Loss is included under Equity
                     while the same income &amp; expense accounts are already reflected in their
-                    respective Balance Sheet groups. Excluding the P&amp;L figure from Equity would
-                    bring the totals into balance.
+                    respective Balance Sheet groups.
                   </div>
                 </div>
+              ) : (
+                <div className="flex-1 min-w-0 border border-[#bbf7d0] bg-[#f0fdf4] px-4 py-3">
+                  <div className="flex items-center gap-2">
+                    <span className="inline-block w-2 h-2 rounded-full bg-[#16a34a]" />
+                    <span className="text-[12px] font-semibold text-[#1e293b]">
+                      Balance Sheet is Balanced — Assets ({formatAmount(data?.totalAssets || 0)}) = Equity &amp; Liabilities ({formatAmount(data?.totalLiabilities || 0)})
+                    </span>
+                  </div>
+                </div>
+              )}
+
+              {/* View toggle */}
+              <div className="flex items-center gap-0 border border-[#d1d5db] rounded overflow-hidden shrink-0 self-start mt-0.5">
+                <button
+                  onClick={() => setViewMode("combined")}
+                  className={`px-3 py-1.5 text-[11px] font-medium transition-colors ${
+                    viewMode === "combined"
+                      ? "bg-[#1c3a5e] text-white"
+                      : "bg-white text-[#374151] hover:bg-[#f3f4f6]"
+                  }`}
+                >
+                  Combined
+                </button>
+                <button
+                  onClick={() => setViewMode("sideBySide")}
+                  className={`px-3 py-1.5 text-[11px] font-medium border-l border-[#d1d5db] transition-colors ${
+                    viewMode === "sideBySide"
+                      ? "bg-[#1c3a5e] text-white"
+                      : "bg-white text-[#374151] hover:bg-[#f3f4f6]"
+                  }`}
+                >
+                  Side by Side
+                </button>
+              </div>
+            </div>
+
+            {viewMode === "combined" ? (
+              <BalanceSheetCombinedTable
+                assetGroups={data?.assetGroups || []}
+                assetExtras={assetExtras}
+                totalAssets={data?.totalAssets || 0}
+                liabilityGroups={data?.liabilityGroups || []}
+                liabilityExtras={liabilityExtras}
+                totalLiabilities={data?.totalLiabilities || 0}
+                difference={data?.difference}
+                onReconcile={onReconcile}
+                showPercent
+              />
+            ) : (
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
+                <AccountingTreeTable
+                  title="Assets"
+                  headerBg="#1e3a5f"
+                  groups={data?.assetGroups || []}
+                  columns={["net"]}
+                  columnLabels={{ net: "Balance" }}
+                  grandTotal={data?.totalAssets}
+                  grandTotalLabel="Total Assets"
+                  onReconcile={onReconcile}
+                  extraRows={assetExtras}
+                  zeroDisplay="zero"
+                />
+
+                <AccountingTreeTable
+                  title="Equity & Liabilities"
+                  headerBg="#6b2121"
+                  groups={data?.liabilityGroups || []}
+                  columns={["net"]}
+                  columnLabels={{ net: "Balance" }}
+                  grandTotal={data?.totalLiabilities}
+                  grandTotalLabel="Total Equity & Liabilities"
+                  onReconcile={onReconcile}
+                  extraRows={liabilityExtras}
+                  zeroDisplay="zero"
+                />
               </div>
             )}
-
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
-              <AccountingTreeTable
-                title="Assets"
-                headerBg="#1e3a5f"
-                groups={data?.assetGroups || []}
-                columns={["debit", "credit", "net"]}
-                columnLabels={{ net: "Balance", debit: "Debit", credit: "Credit" }}
-                grandTotal={data?.totalAssets}
-                grandTotalLabel="Total Assets"
-                onReconcile={onReconcile}
-                extraRows={assetExtras}
-                zeroDisplay="zero"
-                side="asset"
-              />
-
-              <AccountingTreeTable
-                title="Equity & Liabilities"
-                headerBg="#6b2121"
-                groups={data?.liabilityGroups || []}
-                columns={["debit", "credit", "net"]}
-                columnLabels={{ net: "Balance", debit: "Debit", credit: "Credit" }}
-                grandTotal={data?.totalLiabilities}
-                grandTotalLabel="Total Equity & Liabilities"
-                onReconcile={onReconcile}
-                extraRows={liabilityExtras}
-                zeroDisplay="zero"
-                side="liability"
-              />
-            </div>
           </>
         )}
       </div>

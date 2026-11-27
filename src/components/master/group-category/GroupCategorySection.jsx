@@ -41,6 +41,7 @@ export default function GroupCategorySection({
   const [form, setForm] = useState({
     name: "",
     headUnder: "",
+    plSection: "",
   });
 
   const [saving, setSaving] = useState(false);
@@ -71,7 +72,7 @@ export default function GroupCategorySection({
   // 🔥 OPEN ADD
   const handleAdd = () => {
     setEditingItem(null);
-    setForm({ name: "", headUnder: "" });
+    setForm({ name: "", headUnder: "", plSection: "" });
     setOpen(true);
   };
 
@@ -81,6 +82,7 @@ export default function GroupCategorySection({
     setForm({
       name: item[nameKey],
       headUnder: item.headUnder,
+      plSection: item.plSection || "",
     });
     setOpen(true);
   };
@@ -106,7 +108,11 @@ export default function GroupCategorySection({
               "Content-Type": "application/json",
               ...(token && { Authorization: `Bearer ${token}` }),
             },
-            body: JSON.stringify({ [nameKey]: form.name, headUnder: form.headUnder }),
+            body: JSON.stringify({
+              [nameKey]: form.name,
+              headUnder: form.headUnder,
+              ...(title === "Group" && form.headUnder === "Profit & Loss" && { plSection: form.plSection || null }),
+            }),
           }
         );
         const body = await rawRes.json().catch(() => ({}));
@@ -116,7 +122,11 @@ export default function GroupCategorySection({
             message: body.message || "This change affects posted transactions.",
             count: body.data[0].affectedPostings || 0,
             itemId: editingItem[idKey],
-            payload: { [nameKey]: form.name, headUnder: form.headUnder },
+            payload: {
+              [nameKey]: form.name,
+              headUnder: form.headUnder,
+              ...(title === "Group" && form.headUnder === "Profit & Loss" && { plSection: form.plSection || null }),
+            },
           });
           setSaving(false);
           return;
@@ -129,6 +139,7 @@ export default function GroupCategorySection({
           data: {
             [nameKey]: form.name,
             headUnder: form.headUnder,
+            ...(title === "Group" && form.headUnder === "Profit & Loss" && { plSection: form.plSection || null }),
           },
         });
       }
@@ -172,7 +183,10 @@ export default function GroupCategorySection({
     }
   };
 
-  const isFormValid = form.name.trim() !== "" && form.headUnder !== "";
+  const isFormValid =
+    form.name.trim() !== "" &&
+    form.headUnder !== "" &&
+    !(title === "Group" && form.headUnder === "Profit & Loss" && !form.plSection);
 
   return (
     <div className="w-full">
@@ -184,6 +198,9 @@ export default function GroupCategorySection({
             <tr>
               <th className="border-b border-[#c5dbed] px-3 py-2 text-left font-semibold">{title} Name</th>
               <th className="border-b border-[#c5dbed] px-3 py-2 text-left font-semibold">Head Under</th>
+              {title === "Group" && (
+                <th className="border-b border-[#c5dbed] px-3 py-2 text-left font-semibold">P&amp;L Section</th>
+              )}
               <th className="border-b border-[#c5dbed] px-3 py-2 text-left font-semibold whitespace-nowrap">Created On</th>
               <th className="border-b border-[#c5dbed] px-3 py-2 w-12 text-center font-semibold">Edit</th>
             </tr>
@@ -203,6 +220,23 @@ export default function GroupCategorySection({
                 <tr key={item[idKey]} className="hover:bg-gray-50 transition-colors">
                   <td className="px-3 py-2 font-medium text-gray-800">{item[nameKey]}</td>
                   <td className="px-3 py-2 text-gray-500">{item.headUnder}</td>
+                  {title === "Group" && (
+                    <td className="px-3 py-2">
+                      {item.plSection ? (
+                        <span className={`text-xs px-1.5 py-0.5 rounded font-medium ${
+                          item.plSection === "Income"
+                            ? "bg-green-100 text-green-700"
+                            : "bg-red-100 text-red-700"
+                        }`}>
+                          {item.plSection}
+                        </span>
+                      ) : item.headUnder === "Profit & Loss" ? (
+                        <span className="text-xs text-amber-600 italic">unset</span>
+                      ) : (
+                        <span className="text-xs text-gray-300">—</span>
+                      )}
+                    </td>
+                  )}
                   <td className="px-3 py-2 text-gray-500 whitespace-nowrap text-xs">{createdOnText(item)}</td>
                   <td className="px-3 py-2">
                     <div className="flex justify-center">
@@ -254,21 +288,36 @@ export default function GroupCategorySection({
               <select
                 value={form.headUnder}
                 onChange={(e) =>
-                  setForm((p) => ({ ...p, headUnder: e.target.value }))
+                  setForm((p) => ({ ...p, headUnder: e.target.value, plSection: "" }))
                 }
                 disabled={saving}
-                className={`border w-full p-2 ${
-    !form.headUnder && "border-red-500"
-  }`}
+                className={`border w-full p-2 ${!form.headUnder && "border-red-500"}`}
               >
                 <option value="">Select</option>
                 {headOptions.map((h) => (
-                  <option key={h} value={h}>
-                    {h}
-                  </option>
+                  <option key={h} value={h}>{h}</option>
                 ))}
               </select>
             </div>
+
+            {/* P&L Section — Groups only */}
+            {title === "Group" && form.headUnder === "Profit & Loss" && (
+              <div className="flex gap-2 items-center">
+                <div className="px-3 py-1 bg-[#d6e6f2] border w-[150px]">
+                  P&amp;L Section
+                </div>
+                <select
+                  value={form.plSection}
+                  onChange={(e) => setForm((p) => ({ ...p, plSection: e.target.value }))}
+                  disabled={saving}
+                  className={`border w-full p-2 ${!form.plSection && "border-red-500"}`}
+                >
+                  <option value="">Select section</option>
+                  <option value="Income">Income</option>
+                  <option value="Expense">Expense</option>
+                </select>
+              </div>
+            )}
 
             {/* BUTTONS */}
             <div className="flex justify-end gap-3 mt-4">

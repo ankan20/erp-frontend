@@ -4,11 +4,39 @@ import { useMemo, useState, useCallback } from "react";
 import { ChevronDown, ChevronRight, ChevronsDownUp, ChevronsUpDown, FileSearch } from "lucide-react";
 import { formatAmount } from "@/helper/numberFormatter";
 
+function toAlpha(n) {
+  let s = "", i = n + 1;
+  while (i > 0) { i--; s = String.fromCharCode(65 + (i % 26)) + s; i = Math.floor(i / 26); }
+  return s;
+}
+
 function flattenTree(groups, onReconcile) {
   const rows = [];
   const groupIds = [];
 
-  function addSubGroup(sg, depth, ancestors) {
+  function addAccount(acc, depth, ancestors, labelParts, ai) {
+    const isBankCash = !!acc._bankCashId;
+    const reconType = isBankCash ? "BankCash" : "CC";
+    const reconId = isBankCash ? acc._bankCashId : acc.ccId;
+    rows.push({
+      id: `acc_${acc.ccId}_${ancestors[ancestors.length - 1] || "g"}`,
+      type: "account",
+      depth,
+      ancestors,
+      label: acc.ccName,
+      code: acc.ccCode,
+      orderLabel: [...labelParts, ai + 1].join("."),
+      ccId: acc.ccId,
+      debit: acc.debit,
+      credit: acc.credit,
+      net: acc.displayBalance != null ? acc.displayBalance : acc.net,
+      plLinked: acc.plLinked,
+      _informational: acc._informational,
+      onReconcile: (onReconcile && !acc._informational) ? () => onReconcile(reconType, reconId, `${acc.ccCode} - ${acc.ccName}`) : null,
+    });
+  }
+
+  function addSubGroup(sg, depth, ancestors, labelParts) {
     const id = `sg_${sg.subGroupId}`;
     groupIds.push(id);
     rows.push({
@@ -18,41 +46,17 @@ function flattenTree(groups, onReconcile) {
       ancestors,
       label: sg.subGroupName,
       code: sg.subGroupCode,
+      orderLabel: labelParts.join("."),
       total: sg.total,
     });
-
     const childAncestors = [...ancestors, id];
-
-    if (sg.children) {
-      sg.children.forEach((child) => addSubGroup(child, depth + 1, childAncestors));
-    }
-
-    if (sg.accounts) {
-      sg.accounts.forEach((acc) => {
-        const isBankCash = !!acc._bankCashId;
-        const reconType = isBankCash ? "BankCash" : "CC";
-        const reconId = isBankCash ? acc._bankCashId : acc.ccId;
-        rows.push({
-          id: `acc_${acc.ccId}`,
-          type: "account",
-          depth: depth + 1,
-          ancestors: childAncestors,
-          label: acc.ccName,
-          code: acc.ccCode,
-          ccId: acc.ccId,
-          debit: acc.debit,
-          credit: acc.credit,
-          net: acc.displayBalance != null ? acc.displayBalance : acc.net,
-          plLinked: acc.plLinked,
-          _informational: acc._informational,
-          onReconcile: (onReconcile && !acc._informational) ? () => onReconcile(reconType, reconId, `${acc.ccCode} - ${acc.ccName}`) : null,
-        });
-      });
-    }
+    (sg.children || []).forEach((child, ci) => addSubGroup(child, depth + 1, childAncestors, [...labelParts, ci + 1]));
+    (sg.accounts || []).forEach((acc, ai) => addAccount(acc, depth + 1, childAncestors, labelParts, ai));
   }
 
-  groups.forEach((grp) => {
+  groups.forEach((grp, gi) => {
     const grpId = `grp_${grp.groupId}`;
+    const groupLabel = toAlpha(gi);
     groupIds.push(grpId);
     rows.push({
       id: grpId,
@@ -60,38 +64,13 @@ function flattenTree(groups, onReconcile) {
       depth: 0,
       ancestors: [],
       label: grp.groupName,
+      orderLabel: groupLabel,
       total: grp.total,
       groupId: grp.groupId,
     });
-
     const grpAncestors = [grpId];
-
-    if (grp.subGroups) {
-      grp.subGroups.forEach((sg) => addSubGroup(sg, 1, grpAncestors));
-    }
-
-    if (grp.accounts) {
-      grp.accounts.forEach((acc) => {
-        const isBankCash = !!acc._bankCashId;
-        const reconType = isBankCash ? "BankCash" : "CC";
-        const reconId = isBankCash ? acc._bankCashId : acc.ccId;
-        rows.push({
-          id: `acc_${acc.ccId}`,
-          type: "account",
-          depth: 1,
-          ancestors: grpAncestors,
-          label: acc.ccName,
-          code: acc.ccCode,
-          ccId: acc.ccId,
-          debit: acc.debit,
-          credit: acc.credit,
-          net: acc.displayBalance != null ? acc.displayBalance : acc.net,
-          plLinked: acc.plLinked,
-          _informational: acc._informational,
-          onReconcile: (onReconcile && !acc._informational) ? () => onReconcile(reconType, reconId, `${acc.ccCode} - ${acc.ccName}`) : null,
-        });
-      });
-    }
+    (grp.subGroups || []).forEach((sg, si) => addSubGroup(sg, 1, grpAncestors, [groupLabel, si + 1]));
+    (grp.accounts || []).forEach((acc, ai) => addAccount(acc, 1, grpAncestors, [groupLabel], ai));
   });
 
   return { rows, groupIds };
@@ -240,24 +219,40 @@ export default function AccountingTreeTable({
             return (
               <tr
                 key={row.id}
-                className={`border-b border-[#e5e7eb] ${rowBg} ${!isGroupish ? "hover:bg-[#f0f4f8]" : ""}`}
-                style={{ height: isGroupish ? 30 : 27 }}
+                className={`border-b border-[#e5e7eb] ${rowBg} ${!isGroupish ? "hover:bg-[#f0f4f8]" : "hover:brightness-[0.97]"}`}
+                style={{ height: isGroupish ? 30 : 27, cursor: isGroupish ? "pointer" : "default" }}
+                onClick={isGroupish ? () => toggle(row.id) : undefined}
               >
-                {/* Code */}
-                <td className="px-2 py-[3px] text-[10.5px] text-[#6b7280] font-mono">
-                  {row.code || ""}
+                {/* Code / order label */}
+                <td className="px-2 py-[3px] text-[10.5px] font-mono" onClick={isGroupish ? e => e.stopPropagation() : undefined}>
+                  {isGroupish ? (
+                    <span className={[
+                      "px-1 py-0.5 rounded text-[10px] font-bold",
+                      isTopGroup
+                        ? "bg-[#1c3a5e] text-white"
+                        : row.depth === 1
+                        ? "bg-[#d6e6f2] text-[#1c3a5e]"
+                        : "bg-gray-100 text-gray-500",
+                    ].join(" ")}>
+                      {row.orderLabel}
+                    </span>
+                  ) : (
+                    <span className="flex items-center gap-1.5">
+                      {row.orderLabel && (
+                        <span className="text-[9px] text-[#9ca3af] shrink-0">{row.orderLabel}</span>
+                      )}
+                      <span className="text-[#6b7280]">{row.code || ""}</span>
+                    </span>
+                  )}
                 </td>
 
                 {/* Particulars */}
                 <td className="px-2 py-[3px]" style={{ paddingLeft: `${8 + indent}px` }}>
                   <span className="flex items-center gap-1">
                     {isGroupish && (
-                      <button
-                        onClick={() => toggle(row.id)}
-                        className="shrink-0 p-0.5 hover:bg-black/5 transition-colors"
-                      >
+                      <span className="shrink-0 text-gray-400">
                         {collapsed.has(row.id) ? <ChevronRight size={12} /> : <ChevronDown size={12} />}
-                      </button>
+                      </span>
                     )}
                     <span className={isGroupish ? "font-semibold text-[#1f2937]" : "text-[#374151]"}>
                       {row.label}

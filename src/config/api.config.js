@@ -65,6 +65,8 @@ export const API_ENDPOINTS = {
     DELETE_SUB_GROUP_BY_ID: "/master/sub-group/delete", // /{id}
     CHECK_SUB_GROUP_CODE: "/master/sub-group/check-code", // ?code=&excludeId=  (live check)
     SUGGEST_SUB_GROUP_CODE: "/master/sub-group/suggest-code", // ?name=&parentId=  (auto code preview)
+    REORDER_GROUPS: "/master/group/reorder",
+    REORDER_SUB_GROUPS: "/master/sub-group/reorder",
     GET_ALL_CC_CODE: "/master/cc-code/list",
     GET_CC_CODE_BY_ID: "/master/cc-code",
     CREATE_CC_CODE: "/master/cc-code/create",

@@ -15,6 +15,7 @@ import { formatAmount } from "@/helper/numberFormatter";
 
 import AccountingFilterBar from "@/components/finance/report/accounting/AccountingFilterBar";
 import useAccountingFetch from "@/components/finance/report/accounting/useAccountingFetch";
+import ProfitLossCombinedTable from "@/components/finance/report/accounting/ProfitLossCombinedTable";
 import AccountingTreeTable from "@/components/finance/report/accounting/AccountingTreeTable";
 import ReconciliationModal from "@/components/finance/report/accounting/ReconciliationModal";
 import { exportPDF, exportExcel } from "@/components/finance/report/accounting/exportAccounting";
@@ -28,6 +29,7 @@ export default function AccountingProfitLossPage() {
   } = useAccountingFetch(API_ENDPOINTS.FINANCE.ACCOUNTING.PROFIT_LOSS);
 
   const [reconcile, setReconcile] = useState(null);
+  const [viewMode, setViewMode] = useState("combined"); // "combined" | "sideBySide"
 
   const onReconcile = useCallback((accountType, accountId, accountName) => {
     setReconcile({ accountType, accountId, accountName });
@@ -170,13 +172,13 @@ export default function AccountingProfitLossPage() {
           </div>
         ) : (
           <>
-            {/* Net Result summary */}
-            <div className={`border px-4 py-3 flex items-start gap-3 ${
-              netResult >= 0
-                ? "border-[#bbf7d0] bg-[#f0fdf4]"
-                : "border-[#fecaca] bg-[#fef2f2]"
-            }`}>
-              <div className="flex-1">
+            {/* Net Result summary + view toggle */}
+            <div className="flex items-start gap-3 flex-wrap">
+              <div className={`flex-1 min-w-0 border px-4 py-3 ${
+                netResult >= 0
+                  ? "border-[#bbf7d0] bg-[#f0fdf4]"
+                  : "border-[#fecaca] bg-[#fef2f2]"
+              }`}>
                 <div className="flex items-center gap-2 mb-1">
                   <span className={`inline-block w-2 h-2 rounded-full ${
                     netResult >= 0 ? "bg-[#16a34a]" : "bg-[#dc2626]"
@@ -189,39 +191,63 @@ export default function AccountingProfitLossPage() {
                   Total Income ({formatAmount(totalIncome)}) − Total Expenses ({formatAmount(totalExpense)})
                 </div>
               </div>
+
+              {/* View toggle */}
+              <div className="flex items-center gap-0 border border-[#d1d5db] rounded overflow-hidden shrink-0 self-start mt-0.5">
+                <button
+                  onClick={() => setViewMode("combined")}
+                  className={`px-3 py-1.5 text-[11px] font-medium transition-colors ${
+                    viewMode === "combined"
+                      ? "bg-[#1c3a5e] text-white"
+                      : "bg-white text-[#374151] hover:bg-[#f3f4f6]"
+                  }`}
+                >
+                  Combined
+                </button>
+                <button
+                  onClick={() => setViewMode("sideBySide")}
+                  className={`px-3 py-1.5 text-[11px] font-medium border-l border-[#d1d5db] transition-colors ${
+                    viewMode === "sideBySide"
+                      ? "bg-[#1c3a5e] text-white"
+                      : "bg-white text-[#374151] hover:bg-[#f3f4f6]"
+                  }`}
+                >
+                  Side by Side
+                </button>
+              </div>
             </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
-              {/* Income tree */}
-              <AccountingTreeTable
-                title="Income / Revenue"
-                headerBg="#14532d"
-                groups={data?.income || []}
-                columns={["debit", "credit", "net"]}
-                columnLabels={{ net: "Net", debit: "Debit", credit: "Credit" }}
-                grandTotal={totalIncome}
-                grandTotalLabel="Total Income"
+            {viewMode === "combined" ? (
+              <ProfitLossCombinedTable
+                incomeGroups={data?.income || []}
+                expenseGroups={data?.expense || []}
+                totalIncome={totalIncome}
+                totalExpense={totalExpense}
                 onReconcile={onReconcile}
                 showPercent
-                percentBase={totalIncome}
-                zeroDisplay="dash"
               />
-
-              {/* Expense tree */}
-              <AccountingTreeTable
-                title="Expenses"
-                headerBg="#7f1d1d"
-                groups={data?.expense || []}
-                columns={["debit", "credit", "net"]}
-                columnLabels={{ net: "Net", debit: "Debit", credit: "Credit" }}
-                grandTotal={totalExpense}
-                grandTotalLabel="Total Expenses"
-                onReconcile={onReconcile}
-                showPercent
-                percentBase={totalIncome}
-                zeroDisplay="dash"
-              />
-            </div>
+            ) : (
+              <div className="grid grid-cols-2 gap-3">
+                <AccountingTreeTable
+                  groups={data?.income || []}
+                  title="Income / Revenue"
+                  headerBg="#14532d"
+                  grandTotal={totalIncome}
+                  grandTotalLabel="Total Income"
+                  onReconcile={onReconcile}
+                  showPercent
+                />
+                <AccountingTreeTable
+                  groups={data?.expense || []}
+                  title="Expenses"
+                  headerBg="#7f1d1d"
+                  grandTotal={totalIncome}
+                  grandTotalLabel="Total Expenses"
+                  onReconcile={onReconcile}
+                  showPercent
+                />
+              </div>
+            )}
           </>
         )}
       </div>
