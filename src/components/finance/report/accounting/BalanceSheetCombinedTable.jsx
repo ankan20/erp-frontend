@@ -15,7 +15,12 @@ function toAlpha(n) {
 function AmountCell({ value, zeroDisplay = "zero" }) {
   if (value == null || value === 0)
     return <span className="text-[#9ca3af]">{zeroDisplay === "zero" ? "0.00" : "—"}</span>;
-  return <span className="tabular-nums">{formatAmount(Math.abs(value))}</span>;
+  const isNeg = value < 0;
+  return (
+    <span className={`tabular-nums${isNeg ? " text-[#dc2626]" : ""}`}>
+      {isNeg ? "(" : ""}{formatAmount(Math.abs(value))}{isNeg ? ")" : ""}
+    </span>
+  );
 }
 
 function PercentCell({ value, grandTotal }) {

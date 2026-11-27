@@ -83,9 +83,10 @@ function AmountCell({ value, zeroDisplay = "dash", className = "" }) {
   if (value === 0) {
     return <span className="text-[#9ca3af]">{zeroDisplay === "zero" ? "0.00" : "—"}</span>;
   }
+  const isNeg = value < 0;
   return (
-    <span className={`tabular-nums ${className}`}>
-      {formatAmount(Math.abs(value))}
+    <span className={`tabular-nums ${isNeg ? "text-[#dc2626]" : ""} ${className}`}>
+      {isNeg ? "(" : ""}{formatAmount(Math.abs(value))}{isNeg ? ")" : ""}
     </span>
   );
 }
