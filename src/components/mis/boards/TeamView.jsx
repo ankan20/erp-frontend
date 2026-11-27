@@ -1,7 +1,10 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
-import { Loader2, Search, Timer, Ban, CheckCircle2, AlertTriangle, PauseCircle, ListTodo, Coffee, RefreshCw } from "lucide-react";
+import { Fragment, useCallback, useEffect, useMemo, useState } from "react";
+import {
+  Loader2, Search, Timer, Ban, CheckCircle2, AlertTriangle, PauseCircle, ListTodo, Coffee, RefreshCw,
+  List as ListIcon, LayoutGrid, ChevronRight, ChevronDown,
+} from "lucide-react";
 import { toast } from "sonner";
 import { UserAvatar } from "@/components/mis/MisModal";
 import { fmtDate, fmtDuration } from "@/lib/misTasks";
@@ -40,11 +43,125 @@ function TaskLine({ t, onOpen, children }) {
   );
 }
 
+const dueBits = (t) => (
+  <>
+    {t.isOverdue ? <span className="text-[11px] font-semibold text-red-600 inline-flex items-center gap-0.5"> · <AlertTriangle size={10} /> overdue {fmtDate(t.dueDate)}</span>
+      : t.dueDate ? <span className="text-[11px] text-gray-500"> · due {fmtDate(t.dueDate)}</span> : null}
+    {t.state === "On Hold" && <span className="text-[11px] text-amber-700"> · on hold</span>}
+  </>
+);
+
+function Section({ title, icon: Icon, cls, box, items, empty, render }) {
+  return (
+    <div className={`rounded-lg border px-3 py-2 ${box}`}>
+      <p className={`text-[11px] font-semibold uppercase tracking-wide inline-flex items-center gap-1 ${cls}`}><Icon size={12} /> {title} ({items.length})</p>
+      {items.length ? <ul className="space-y-1 mt-1">{items.map(render)}</ul> : <p className="text-xs text-gray-400 mt-1">{empty}</p>}
+    </div>
+  );
+}
+
+/** Everything one person has — shown when a row of the list is opened. */
+function PersonDetail({ p, onOpen }) {
+  const blockedIds = new Set(p.blocked.map((t) => t.id));
+  const next = [...p.onHold, ...p.toDo].filter((t) => !blockedIds.has(t.id));
+  return (
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+      <Section title="Working now" icon={Timer} cls="text-emerald-700" box="bg-emerald-50/50 border-emerald-100" items={p.working} empty="Nothing running"
+        render={(t) => (
+          <TaskLine key={t.id} t={t} onOpen={onOpen}>
+            {t.type === "Task"
+              ? <span className="text-[11px] font-semibold text-emerald-700"> · {t.isRunning ? "⏱ " : ""}{fmtDuration(t.workedSeconds)}</span>
+              : <span className="text-[11px] text-emerald-700"> · {t.type === "Bug" ? "Snag" : "Activity"} in progress</span>}
+          </TaskLine>
+        )} />
+      <Section title="Blocked" icon={Ban} cls="text-red-700" box="bg-red-50/50 border-red-100" items={p.blocked} empty="Nothing blocked"
+        render={(t) => (
+          <TaskLine key={t.id} t={t} onOpen={onOpen}>
+            {t.blockedReason && <span className="block text-[11px] text-red-700">Blocked: {t.blockedReason}</span>}
+          </TaskLine>
+        )} />
+      <Section title="Finished today" icon={CheckCircle2} cls="text-blue-700" box="bg-blue-50/40 border-blue-100" items={p.doneToday} empty="Nothing finished today"
+        render={(t) => <TaskLine key={t.id} t={t} onOpen={onOpen} />} />
+      <Section title="To do / on hold" icon={ListTodo} cls="text-gray-700" box="bg-gray-50 border-gray-200" items={next} empty="No open task"
+        render={(t) => <TaskLine key={t.id} t={t} onOpen={onOpen}>{dueBits(t)}</TaskLine>} />
+    </div>
+  );
+}
+
+function PeopleList({ people, onOpen }) {
+  const [openId, setOpenId] = useState(null);
+  const th = "px-3 py-2.5 text-left text-[11px] font-semibold text-blue-900 uppercase tracking-wide whitespace-nowrap border-r border-blue-200";
+  return (
+    <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+      <div className="overflow-x-auto">
+        <table className="w-full text-sm border-collapse">
+          <thead className="bg-blue-100 border-b-2 border-blue-300">
+            <tr>
+              <th className="w-8" />
+              <th className={th}>Person</th>
+              <th className={th}>Status</th>
+              <th className={th}>Working on</th>
+              <th className={`${th} text-center`}>Done today</th>
+              <th className={`${th} text-center`}>To do</th>
+              <th className={`${th} text-center`}>Overdue</th>
+              <th className={`${th} text-center`}>Blocked</th>
+              <th className={th}>Last update</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-gray-100">
+            {people.map((p) => {
+              const st = STATUS[p.status];
+              const Icon = st.icon;
+              const open = openId === p.userId;
+              const cur = p.working[0];
+              return (
+                <Fragment key={p.userId}>
+                  <tr onClick={() => setOpenId(open ? null : p.userId)} tabIndex={0} aria-expanded={open}
+                    onKeyDown={(e) => e.key === "Enter" && setOpenId(open ? null : p.userId)}
+                    className={`cursor-pointer focus:outline-none focus:bg-blue-50/60 ${open ? "bg-blue-50/60" : "hover:bg-blue-50/40"}`}>
+                    <td className="pl-3 text-gray-400">{open ? <ChevronDown size={15} /> : <ChevronRight size={15} />}</td>
+                    <td className="px-3 py-2">
+                      <div className="flex items-center gap-2">
+                        <UserAvatar id={p.userId} name={p.name} size={28} />
+                        <div className="min-w-0">
+                          <p className="font-medium text-gray-800 truncate">{p.name}</p>
+                          <p className="text-[11px] text-gray-500">{p.empCode || ""}</p>
+                        </div>
+                      </div>
+                    </td>
+                    <td className="px-3 py-2"><span className={`text-[11px] font-semibold rounded-full border px-2 py-0.5 inline-flex items-center gap-1 whitespace-nowrap ${st.cls}`}><Icon size={12} /> {st.label}</span></td>
+                    <td className="px-3 py-2 text-gray-700 max-w-[320px] truncate">
+                      {cur ? <>{cur.title}{p.working.length > 1 && <span className="text-[11px] text-gray-500"> +{p.working.length - 1}</span>}</> : <span className="text-gray-400">—</span>}
+                    </td>
+                    <td className="px-3 py-2 text-center font-semibold text-blue-700">{p.doneToday.length}</td>
+                    <td className="px-3 py-2 text-center font-semibold text-gray-800">{p.toDo.length + p.onHold.length}</td>
+                    <td className={`px-3 py-2 text-center font-semibold ${p.overdue ? "text-red-600" : "text-gray-800"}`}>{p.overdue}</td>
+                    <td className={`px-3 py-2 text-center font-semibold ${p.blocked.length ? "text-red-600" : "text-gray-800"}`}>{p.blocked.length}</td>
+                    <td className="px-3 py-2 text-xs text-gray-500 whitespace-nowrap">{p.lastActive ? ago(p.lastActive) : "—"}</td>
+                  </tr>
+                  {open && (
+                    <tr className="bg-blue-50/30">
+                      <td colSpan={9} className="px-4 py-3"><PersonDetail p={p} onOpen={onOpen} /></td>
+                    </tr>
+                  )}
+                </Fragment>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
+
 export default function TeamView({ projectCode, onOpen, refreshKey }) {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(false);
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState("all");
+  const [layout, setLayout] = useState("list");
+  useEffect(() => { try { setLayout(sessionStorage.getItem("mis-team-layout") || "list"); } catch {} }, []);
+  const changeLayout = (v) => { setLayout(v); try { sessionStorage.setItem("mis-team-layout", v); } catch {} };
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -66,9 +183,17 @@ export default function TeamView({ projectCode, onOpen, refreshKey }) {
           <h2 className="text-base font-semibold text-gray-800">{data.isSupervisor ? "Who is doing what — today" : "Your work today"}</h2>
           <p className="text-xs text-gray-500">{fmtDate(data.today)} · every task counts, whether people made it themselves or it was given to them · updates every minute</p>
         </div>
+        <div className="flex items-center gap-2">
+        <div className="flex rounded-md border border-gray-300 overflow-hidden" role="group" aria-label="Layout">
+          <button onClick={() => changeLayout("list")} aria-pressed={layout === "list"} title="List"
+            className={`px-2.5 py-1.5 ${layout === "list" ? "bg-blue-600 text-white" : "bg-white text-gray-600 hover:bg-gray-50"}`}><ListIcon size={14} /></button>
+          <button onClick={() => changeLayout("cards")} aria-pressed={layout === "cards"} title="Cards"
+            className={`px-2.5 py-1.5 border-l border-gray-300 ${layout === "cards" ? "bg-blue-600 text-white" : "bg-white text-gray-600 hover:bg-gray-50"}`}><LayoutGrid size={14} /></button>
+        </div>
         <button onClick={load} className="inline-flex items-center gap-1.5 text-xs text-gray-600 border border-gray-300 rounded-md px-2.5 py-1.5 hover:bg-gray-50">
           <RefreshCw size={13} className={loading ? "animate-spin" : ""} /> Refresh
         </button>
+        </div>
       </div>
 
       {/* big numbers */}
@@ -104,6 +229,8 @@ export default function TeamView({ projectCode, onOpen, refreshKey }) {
 
       {people.length === 0 ? (
         <p className="bg-white rounded-xl border border-dashed border-gray-300 py-10 text-center text-sm text-gray-500">Nobody here.</p>
+      ) : layout === "list" ? (
+        <PeopleList people={people} onOpen={onOpen} />
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 2xl:grid-cols-3 gap-3">
           {people.map((p) => {
