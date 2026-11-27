@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { ChevronDown, Loader2 } from "lucide-react";
+import { ChevronDown, Loader2, Plus } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 // position:fixed is measured from the nearest ancestor with transform/translate/filter
 // (e.g. a dialog centred with translate). Find it so the dropdown is placed right.
@@ -42,6 +43,9 @@ export default function SearchableSelect({
   dropdownPosition = "down",
   labelSeparator = " : ",
   clearLabel = null, // when provided, renders a clear/empty option at the top
+  allowCustom = false, // also accept a typed value that is not in the list: onChange(text, null)
+  customLabel = (text) => `Use “${text}”`,
+  buttonClassName = "", // extra classes for the trigger (merged, so they can override height/border)
 }) {
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState("");
@@ -98,6 +102,16 @@ export default function SearchableSelect({
     setSearch("");
   };
 
+  // allowCustom: offer the typed text when nothing in the list matches it exactly
+  const typed = search.trim();
+  const showCustom = allowCustom && typed && !options.some((item) =>
+    String(Array.isArray(labelKey) ? item[labelKey[0]] : item[labelKey]).toLowerCase() === typed.toLowerCase());
+  const pickCustom = () => {
+    onChange(typed, null);
+    setOpen(false);
+    setSearch("");
+  };
+
   return (
     // <div
     //   ref={wrapperRef}
@@ -131,9 +145,13 @@ export default function SearchableSelect({
           // offset when inside a transformed parent (dialog)
           const container = getFixedContainer(e.currentTarget);
           const cRect = container ? container.getBoundingClientRect() : null;
-          const offsetX = cRect ? cRect.left : 0;
-          const offsetY = cRect ? cRect.top : 0;
-          const bottomEdge = cRect ? cRect.bottom : window.innerHeight;
+          // when that container also scrolls (e.g. a scrollable modal overlay), the fixed
+          // dropdown moves with its content — add the scroll offset back
+          const scrollX = container ? container.scrollLeft : 0;
+          const scrollY = container ? container.scrollTop : 0;
+          const offsetX = cRect ? cRect.left - scrollX : 0;
+          const offsetY = cRect ? cRect.top - scrollY : 0;
+          const bottomEdge = cRect ? cRect.bottom - scrollY : window.innerHeight;
 
           const baseStyle = {
             position: "fixed",
@@ -160,27 +178,14 @@ export default function SearchableSelect({
 
           setOpen((prev) => !prev);
         }}
-        className={`
-          w-full
-          h-[30px]
-          border border-[#8f8f8f]
-          rounded-sm
-          bg-white
-          px-2
-          text-left
-          text-[13px]
-          font-normal
-          flex
-          items-center
-          justify-between
-          disabled:border-[#7fa37f]  
-          disabled:bg-[#edf8ed] 
-          disabled:text-gray-500
-          disabled:cursor-not-allowed
-        `}
+        className={cn(
+          "w-full h-[30px] border border-[#8f8f8f] rounded-sm bg-white px-2 text-left text-[13px] font-normal flex items-center justify-between " +
+          "disabled:border-[#7fa37f] disabled:bg-[#edf8ed] disabled:text-gray-500 disabled:cursor-not-allowed",
+          buttonClassName
+        )}
       >
-        <span className="truncate">
-          {selectedOption
+        <span className={`truncate ${allowCustom && !selectedOption && !value ? "text-gray-400" : ""}`}>
+          {!selectedOption && allowCustom && value ? value : selectedOption
             ? Array.isArray(labelKey)
               ? labelKey
                   .map((key) => selectedOption[key])
@@ -221,6 +226,12 @@ export default function SearchableSelect({
               type="text"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key !== "Enter") return;
+                e.preventDefault();
+                if (filteredOptions.length === 1) handleSelect(filteredOptions[0]);
+                else if (showCustom) pickCustom();
+              }}
               placeholder={searchPlaceholder}
               className="
                 w-full
@@ -249,6 +260,15 @@ export default function SearchableSelect({
                 `}
               >
                 {clearLabel}
+              </button>
+            )}
+            {showCustom && (
+              <button
+                type="button"
+                onClick={pickCustom}
+                className="w-full text-left px-3 py-2 text-[13px] hover:bg-[#d6e6f2] border-b border-gray-100 flex items-center gap-1.5 text-blue-700"
+              >
+                <Plus size={14} className="shrink-0" /> {customLabel(typed)}
               </button>
             )}
             {filteredOptions.length > 0 ? (
@@ -281,7 +301,7 @@ export default function SearchableSelect({
                   </button>
                 );
               })
-            ) : (
+            ) : showCustom ? null : (
               <div className="px-3 py-2 text-[13px] text-gray-500">
                 {emptyText}
               </div>

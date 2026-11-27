@@ -12,6 +12,7 @@ import { apiRequest } from "@/lib/apiClient";
 import { API_ENDPOINTS } from "@/config/api.config";
 import { createdOnText } from "@/lib/createdOn";
 import MemberFormModal from "@/components/gang-tracker/MemberFormModal";
+import ProjectPicker, { refreshGangProjects } from "@/components/gang-tracker/ProjectPicker";
 import ConversationsPanel, { StepForm, emptyStep, stepPayload } from "@/components/gang-tracker/ConversationsPanel";
 
 // ─── helpers ────────────────────────────────────────────────────────────────
@@ -241,7 +242,7 @@ export default function GangTrackerPage() {
         const data = startConv ? { ...form, conversation: { ...convHead, ...step } } : form;
         const r = await apiRequest({ url: API_ENDPOINTS.HR.GANG_TRACKER.CREATE, method: "POST", data });
         toast.success(r?.message || "Member created");
-        if (startConv) setConvReload((n) => n + 1);
+        if (startConv) { setConvReload((n) => n + 1); refreshGangProjects(); }
       }
       setMemberModal(false);
       fetchMembers();
@@ -517,8 +518,7 @@ export default function GangTrackerPage() {
                       placeholder="e.g. Need 10 masons for Block C" maxLength={300} className={inputCls}/>
                   </Field>
                   <Field label="Project">
-                    <input list="gt-projects" value={convHead.project} onChange={(e) => setConvHead((h) => ({ ...h, project: e.target.value }))}
-                      placeholder="Pick or type" maxLength={200} className={inputCls}/>
+                    <ProjectPicker value={convHead.project} onChange={(v) => setConvHead((h) => ({ ...h, project: v }))} buttonClassName="h-[34px] rounded-lg border-gray-300 px-3 text-xs"/>
                   </Field>
                 </div>
                 <StepForm step={convStep} setStep={setConvStep} people={people} hidePerson defaultPersonName={form.name.trim()}/>

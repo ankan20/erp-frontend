@@ -8,6 +8,7 @@ import { API_ENDPOINTS } from "@/config/api.config";
 import ConfirmDialog from "@/components/common/ConfirmDialog";
 import PersonPicker, { personPayload } from "./PersonPicker";
 import ThreadTimeline from "./ThreadTimeline";
+import ProjectPicker, { refreshGangProjects, useGangProjects } from "./ProjectPicker";
 import {
   addDays, fmtDate, initials, inputCls, isClosed, personColor, todayStr,
   THREAD_STATUSES, THREAD_STATUS_STYLE,
@@ -200,7 +201,7 @@ export default function ConversationsPanel({ people, refreshPeople, memberFilter
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState("");
   const [project, setProject] = useState("");
-  const [projects, setProjects] = useState([]);
+  const projects = useGangProjects();
   const [confirm, setConfirm] = useState(null);
 
   // new conversation
@@ -232,16 +233,6 @@ export default function ConversationsPanel({ people, refreshPeople, memberFilter
 
   useEffect(() => { const t = setTimeout(fetchThreads, search ? 300 : 0); return () => clearTimeout(t); }, [fetchThreads, search, reloadKey]);
 
-  const loadProjects = useCallback(async () => {
-    const [used, master] = await Promise.all([
-      apiRequest({ url: GT.THREAD_PROJECTS }).catch(() => null),
-      apiRequest({ url: API_ENDPOINTS.SETTINGS.GET_ALL_PROJECTS }).catch(() => null),
-    ]);
-    const names = new Set(used?.data || []);
-    (master?.data || []).forEach((p) => p.projectName && names.add(p.projectName));
-    setProjects([...names].sort((a, b) => a.localeCompare(b)));
-  }, []);
-  useEffect(() => { loadProjects(); }, [loadProjects]);
 
   // KPI counts for the page header (from the open list when unfiltered)
   const t = todayStr();
@@ -278,7 +269,7 @@ export default function ConversationsPanel({ people, refreshPeople, memberFilter
       const r = await apiRequest({ url: GT.THREADS, method: "POST", data: { ...newHead, ...stepPayload(newStep) } });
       toast.success("Conversation started");
       setNewOpen(false);
-      fetchThreads(); refreshPeople(); loadProjects();
+      fetchThreads(); refreshPeople(); refreshGangProjects();
       setDetail(r.data);
       setStep(emptyStep(r.data.nextMember ? { id: r.data.nextMember.id, name: r.data.nextMember.name } : null));
     } catch (e) { toast.error(e.message); }
@@ -304,7 +295,7 @@ export default function ConversationsPanel({ people, refreshPeople, memberFilter
     setSaving(true);
     try {
       const r = await apiRequest({ url: GT.THREAD + detail.id, method: "PUT", data: editHead });
-      setDetail(r.data); setEditHead(null); fetchThreads(); loadProjects();
+      setDetail(r.data); setEditHead(null); fetchThreads(); refreshGangProjects();
     } catch (e) { toast.error(e.message); }
     setSaving(false);
   }
@@ -431,8 +422,7 @@ export default function ConversationsPanel({ people, refreshPeople, memberFilter
                 className={inputCls} maxLength={300} placeholder="e.g. Need 10 masons for Block C slab" />
             </Field>
             <Field label="Project">
-              <input list="gt-projects" value={newHead.project} onChange={(e) => setNewHead((h) => ({ ...h, project: e.target.value }))}
-                className={inputCls} maxLength={200} placeholder="Pick or type" />
+              <ProjectPicker value={newHead.project} onChange={(v) => setNewHead((h) => ({ ...h, project: v }))} buttonClassName="h-[34px] rounded-lg border-gray-300 px-3 text-xs" />
             </Field>
           </div>
           <div className="border-t border-gray-200 pt-3"><StepForm step={newStep} setStep={setNewStep} people={people} /></div>
@@ -444,7 +434,7 @@ export default function ConversationsPanel({ people, refreshPeople, memberFilter
         title={detail && (editHead ? (
           <div className="flex gap-2 items-center">
             <input value={editHead.topic} onChange={(e) => setEditHead((h) => ({ ...h, topic: e.target.value }))} className={`${inputCls} font-semibold`} maxLength={300} />
-            <input list="gt-projects" value={editHead.project} onChange={(e) => setEditHead((h) => ({ ...h, project: e.target.value }))} className={`${inputCls} max-w-44`} placeholder="Project" />
+            <ProjectPicker value={editHead.project} onChange={(v) => setEditHead((h) => ({ ...h, project: v }))} placeholder="Project" className="max-w-52" buttonClassName="h-[34px] rounded-lg border-gray-300 px-3 text-xs" />
             <button onClick={saveHead} disabled={saving} className={btnPrimary}>Save</button>
             <button onClick={() => setEditHead(null)} className="text-xs text-gray-400 hover:text-gray-600">Cancel</button>
           </div>
@@ -495,7 +485,6 @@ export default function ConversationsPanel({ people, refreshPeople, memberFilter
         )}
       </Shell>
 
-      <datalist id="gt-projects">{projects.map((p) => <option key={p} value={p} />)}</datalist>
       <ConfirmDialog state={confirm} onClose={() => setConfirm(null)} />
     </>
   );
