@@ -53,9 +53,9 @@ const dueBits = (t) => (
 
 function Section({ title, icon: Icon, cls, box, items, empty, render }) {
   return (
-    <div className={`rounded-lg border px-3 py-2 ${box}`}>
+    <div className={`rounded-lg border px-3 py-1.5 ${box}`}>
       <p className={`text-[11px] font-semibold uppercase tracking-wide inline-flex items-center gap-1 ${cls}`}><Icon size={12} /> {title} ({items.length})</p>
-      {items.length ? <ul className="space-y-1 mt-1">{items.map(render)}</ul> : <p className="text-xs text-gray-400 mt-1">{empty}</p>}
+      {items.length ? <ul className="space-y-1 mt-1 max-h-40 overflow-y-auto">{items.map(render)}</ul> : <p className="text-xs text-gray-400">{empty}</p>}
     </div>
   );
 }
@@ -65,7 +65,7 @@ function PersonDetail({ p, onOpen }) {
   const blockedIds = new Set(p.blocked.map((t) => t.id));
   const next = [...p.onHold, ...p.toDo].filter((t) => !blockedIds.has(t.id));
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
       <Section title="Working now" icon={Timer} cls="text-emerald-700" box="bg-emerald-50/50 border-emerald-100" items={p.working} empty="Nothing running"
         render={(t) => (
           <TaskLine key={t.id} t={t} onOpen={onOpen}>
@@ -93,9 +93,10 @@ function PeopleList({ people, onOpen }) {
   const th = "px-3 py-2.5 text-left text-[11px] font-semibold text-blue-900 uppercase tracking-wide whitespace-nowrap border-r border-blue-200";
   return (
     <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
-      <div className="overflow-x-auto">
+      {/* the table scrolls on its own (header stays put) — the page does not */}
+      <div className="overflow-auto max-h-[calc(100vh-340px)] min-h-[240px]">
         <table className="w-full text-sm border-collapse">
-          <thead className="bg-blue-100 border-b-2 border-blue-300">
+          <thead className="bg-blue-100 sticky top-0 z-10 shadow-[inset_0_-2px_0_#93c5fd]">
             <tr>
               <th className="w-8" />
               <th className={th}>Person</th>
@@ -141,7 +142,7 @@ function PeopleList({ people, onOpen }) {
                   </tr>
                   {open && (
                     <tr className="bg-blue-50/30">
-                      <td colSpan={9} className="px-4 py-3"><PersonDetail p={p} onOpen={onOpen} /></td>
+                      <td colSpan={9} className="px-4 py-2"><PersonDetail p={p} onOpen={onOpen} /></td>
                     </tr>
                   )}
                 </Fragment>
@@ -197,7 +198,7 @@ export default function TeamView({ projectCode, onOpen, refreshKey }) {
       </div>
 
       {/* big numbers */}
-      <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+      <div className="grid grid-cols-2 md:grid-cols-5 gap-2">
         {[
           { k: "Working now", v: s.workingNow, cls: "text-emerald-700", f: "working" },
           { k: "Finished today", v: s.doneToday, cls: "text-blue-700", f: "all" },
@@ -205,9 +206,10 @@ export default function TeamView({ projectCode, onOpen, refreshKey }) {
           { k: "Blocked", v: s.blocked, cls: s.blocked ? "text-red-600" : "text-gray-800", f: "blocked" },
           { k: "No work", v: s.idle, cls: "text-gray-800", f: "idle" },
         ].map((x) => (
-          <button key={x.k} onClick={() => setFilter(x.f)} className="text-left bg-white rounded-xl border border-gray-200 px-4 py-3 hover:border-blue-300">
-            <p className="text-[11px] font-semibold text-gray-500 uppercase tracking-wide">{x.k}</p>
-            <p className={`text-2xl font-bold ${x.cls}`}>{x.v}</p>
+          <button key={x.k} onClick={() => setFilter(x.f)}
+            className="flex items-center justify-between gap-2 text-left bg-white rounded-lg border border-gray-200 px-3 py-1.5 hover:border-blue-300">
+            <span className="text-[11px] font-semibold text-gray-500 uppercase tracking-wide">{x.k}</span>
+            <span className={`text-lg font-bold leading-none ${x.cls}`}>{x.v}</span>
           </button>
         ))}
       </div>
