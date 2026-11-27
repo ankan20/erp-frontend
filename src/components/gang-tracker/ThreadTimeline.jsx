@@ -16,7 +16,7 @@ const LANE_W = 26;
 const PAD = 16;
 const NODE_Y = 22; // node centre from the top of its row
 
-export default function ThreadTimeline({ thread }) {
+export default function ThreadTimeline({ thread, onOpenPerson }) {
   const entries = thread.entries || [];
   const lanes = thread.people.map((p) => p.id);
   const laneOf = (id) => Math.max(0, lanes.indexOf(id));
@@ -119,7 +119,8 @@ export default function ThreadTimeline({ thread }) {
       <div className="flex items-center gap-3 flex-wrap mb-2 text-[11px] text-gray-500">
         {thread.people.map((p) => (
           <span key={p.id} className="inline-flex items-center gap-1.5">
-            <span className="w-2.5 h-2.5 rounded-full" style={{ background: personColor(p.id) }} />{p.name}
+            <span className="w-2.5 h-2.5 rounded-full" style={{ background: personColor(p.id) }} />
+            <button type="button" onClick={() => onOpenPerson?.(p.id)} className="hover:text-gray-900 hover:underline underline-offset-2" title="View profile">{p.name}</button>
           </span>
         ))}
         <span className="ml-auto inline-flex items-center gap-3 text-gray-400">
@@ -141,7 +142,7 @@ export default function ThreadTimeline({ thread }) {
                     <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-gray-800">
                       <span className="w-5 h-5 rounded-full text-white text-[9px] font-bold flex items-center justify-center"
                         style={{ background: personColor(e.member.id) }}>{initials(e.member.name)}</span>
-                      {e.member.name}
+                      <button type="button" onClick={() => onOpenPerson?.(e.member.id)} className="hover:underline underline-offset-2" title="View profile">{e.member.name}</button>
                     </span>
                   ) : <span className="text-xs font-semibold text-gray-500">Update</span>}
                   <span className="text-[11px] text-gray-400">{fmtDate(e.date)}</span>

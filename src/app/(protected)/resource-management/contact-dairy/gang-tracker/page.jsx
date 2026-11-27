@@ -272,6 +272,18 @@ export default function GangTrackerPage() {
     setDetailModal(true);
   }
 
+  // profile from a conversation avatar — fetch it if the member list is filtered and doesn't have it
+  const [extraMember, setExtraMember] = useState(null);
+  async function openProfile(id) {
+    if (!members.some((m) => m.id === id)) {
+      try {
+        const r = await apiRequest({ url: API_ENDPOINTS.HR.GANG_TRACKER.GET + id });
+        setExtraMember(r?.data || null);
+      } catch { return; }
+    }
+    openDetail(id);
+  }
+
   async function saveFollowup() {
     if (!followupNote && !followupStatus && !followupDate) return toast.error("Enter a note, status, or date.");
     setSaving(true);
@@ -297,7 +309,7 @@ export default function GangTrackerPage() {
     URL.revokeObjectURL(url);
   }
 
-  const detailMember = members.find((m) => m.id === detailId);
+  const detailMember = members.find((m) => m.id === detailId) || (extraMember?.id === detailId ? extraMember : undefined);
   const actions = getPageActions({ router });
 
   const SortTh = ({ label, col }) => (
@@ -333,7 +345,7 @@ export default function GangTrackerPage() {
               ].map((k) => <Kpi key={k.label} {...k} />)}
             </div>
             <ConversationsPanel people={people} refreshPeople={() => { fetchPeople(); fetchMembers(); }}
-              memberFilter={memberFilter} clearMemberFilter={() => setMemberFilter(null)} onCountsChange={setConvCounts} reloadKey={convReload} />
+              memberFilter={memberFilter} clearMemberFilter={() => setMemberFilter(null)} onCountsChange={setConvCounts} reloadKey={convReload} onOpenPerson={openProfile} />
         </div>
 
         {tab === "members" && (<>
@@ -486,19 +498,19 @@ export default function GangTrackerPage() {
         form={form} setForm={setForm} saving={saving} onSave={saveMember} skills={STATIC_SKILLS}
         wide={!editId && withConv} saveLabel={editId ? "Save changes" : withConv ? "Save & start conversation" : "Save member"}>
         {!editId && (
-          <div className={`rounded-2xl border transition-colors ${withConv ? "border-blue-200 bg-blue-50/40" : "border-gray-200 bg-white hover:border-blue-200"}`}>
-            <label className="flex items-center gap-3 px-4 py-3.5 cursor-pointer select-none">
-              <span className={`relative w-9 h-5 rounded-full transition-colors ${withConv ? "bg-blue-600" : "bg-gray-300"}`}>
+          <div className={`rounded-lg border transition-colors ${withConv ? "border-zinc-300 bg-zinc-50/70" : "border-zinc-200 bg-white hover:bg-zinc-50/60"}`}>
+            <label className="flex items-center gap-3 px-3 py-2.5 cursor-pointer select-none">
+              <span className={`relative w-8 h-[18px] rounded-full transition-colors flex-shrink-0 ${withConv ? "bg-zinc-900" : "bg-gray-300"}`}>
                 <input type="checkbox" checked={withConv} onChange={(e) => setWithConv(e.target.checked)} className="sr-only"/>
-                <span className={`absolute top-0.5 left-0.5 w-4 h-4 rounded-full bg-white shadow transition-transform ${withConv ? "translate-x-4" : ""}`}/>
+                <span className={`absolute top-0.5 left-0.5 w-3.5 h-3.5 rounded-full bg-white shadow transition-transform ${withConv ? "translate-x-3.5" : ""}`}/>
               </span>
               <span>
-                <span className="block text-[13px] font-semibold text-gray-800">Also start a conversation with {form.name.trim() || "this person"}</span>
-                <span className="block text-[11px] text-gray-400">Topic, what you discussed and the next follow-up — saved together</span>
+                <span className="block text-[13px] font-medium text-zinc-900">Also start a conversation with {form.name.trim() || "this person"}</span>
+                <span className="block text-[11px] text-zinc-500">Topic, what was discussed and the next follow-up</span>
               </span>
             </label>
             {withConv && (
-              <div className="px-4 pb-4 space-y-3 border-t border-blue-100 pt-4">
+              <div className="px-3 pb-3 space-y-3 border-t border-zinc-200 pt-3">
                 <div className="grid grid-cols-3 gap-3">
                   <Field label="Topic / Agenda *" className="col-span-2">
                     <input autoFocus value={convHead.topic} onChange={(e) => setConvHead((h) => ({ ...h, topic: e.target.value }))}

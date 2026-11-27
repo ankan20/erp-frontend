@@ -72,7 +72,7 @@ function HoverName({ label, sub, children }) {
 }
 
 // A → B → A, from the order people were talked to
-function PeopleChain({ thread }) {
+function PeopleChain({ thread, onOpenPerson }) {
   const ids = [];
   (thread.entries || []).forEach((e) => e.member && ids[ids.length - 1] !== e.member.id && ids.push(e.member.id));
   const byId = Object.fromEntries(thread.people.map((p) => [p.id, p]));
@@ -88,9 +88,10 @@ function PeopleChain({ thread }) {
       {shown.map((p, i) => (
         <span key={`${p.id}-${i}`} className="inline-flex items-center gap-1">
           {i > 0 && <span className="text-gray-300 text-[10px]">→</span>}
-          <HoverName label={p.name} sub={p.skill || p.mobile}>
-            <span className="w-6 h-6 rounded-full text-white text-[9px] font-bold flex items-center justify-center ring-2 ring-white transition-transform group-hover/name:scale-110"
-              style={{ background: personColor(p.id) }}>{initials(p.name)}</span>
+          <HoverName label={p.name} sub={onOpenPerson ? "click for profile" : p.skill || p.mobile}>
+            <button type="button" onClick={(e) => { e.stopPropagation(); onOpenPerson?.(p.id); }}
+              className="w-6 h-6 rounded-full text-white text-[9px] font-bold flex items-center justify-center ring-2 ring-white transition-transform group-hover/name:scale-110 cursor-pointer"
+              style={{ background: personColor(p.id) }}>{initials(p.name)}</button>
           </HoverName>
         </span>
       ))}
@@ -192,12 +193,12 @@ function Shell({ open, onClose, title, subtitle, children, footer, wide = false 
 const btnGhost = "border border-gray-300 rounded-lg px-4 py-1.5 text-xs font-medium text-gray-600 hover:bg-gray-50 bg-white";
 const btnPrimary = "bg-blue-600 hover:bg-blue-700 disabled:opacity-60 text-white rounded-lg px-4 py-1.5 text-xs font-semibold flex items-center gap-1";
 
-export default function ConversationsPanel({ people, refreshPeople, memberFilter, clearMemberFilter, onCountsChange, reloadKey = 0 }) {
+export default function ConversationsPanel({ people, refreshPeople, memberFilter, clearMemberFilter, onCountsChange, reloadKey = 0, onOpenPerson }) {
   const [threads, setThreads] = useState([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [search, setSearch] = useState("");
-  const [status, setStatus] = useState("open");
+  const [status, setStatus] = useState("");
   const [project, setProject] = useState("");
   const [projects, setProjects] = useState([]);
   const [confirm, setConfirm] = useState(null);
@@ -346,8 +347,8 @@ export default function ConversationsPanel({ people, refreshPeople, memberFilter
           </span>
         )}
         <select value={status} onChange={(e) => setStatus(e.target.value)} className="border border-gray-300 rounded-lg px-3 py-1.5 text-xs cursor-pointer">
-          <option value="open">Open (not finished)</option>
           <option value="">All</option>
+          <option value="open">Open (not finished)</option>
           {THREAD_STATUSES.map((s) => <option key={s}>{s}</option>)}
         </select>
         <select value={project} onChange={(e) => setProject(e.target.value)} className="border border-gray-300 rounded-lg px-3 py-1.5 text-xs cursor-pointer max-w-48">
@@ -394,7 +395,7 @@ export default function ConversationsPanel({ people, refreshPeople, memberFilter
                       <p className="font-semibold text-gray-800 text-xs group-hover:text-blue-700 truncate" title={th.topic}>{th.topic}</p>
                       <p className="text-[11px] text-gray-400 truncate">{th.project ? `🏗 ${th.project}` : "No project"} · {th.entryCount} talk{th.entryCount !== 1 ? "s" : ""}</p>
                     </td>
-                    <td className="px-4 py-3"><PeopleChain thread={th} /></td>
+                    <td className="px-4 py-3"><PeopleChain thread={th} onOpenPerson={onOpenPerson} /></td>
                     <td className="px-4 py-3"><ThreadStatus status={th.status} /></td>
                     <td className="px-4 py-3"><NextChip thread={th} /></td>
                     <td className="px-4 py-3 max-w-[240px]">
@@ -482,7 +483,7 @@ export default function ConversationsPanel({ people, refreshPeople, memberFilter
           <div className="space-y-4">
             <div className="bg-white rounded-xl border border-gray-200 p-4">
               <p className="text-[11px] font-semibold text-gray-500 uppercase tracking-wide mb-3">History</p>
-              <ThreadTimeline thread={detail} />
+              <ThreadTimeline thread={detail} onOpenPerson={onOpenPerson} />
             </div>
             {showStep && (
               <div className="bg-white rounded-xl border-2 border-blue-200 p-4">
