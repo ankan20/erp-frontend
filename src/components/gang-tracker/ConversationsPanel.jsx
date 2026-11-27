@@ -57,6 +57,20 @@ function NextChip({ thread }) {
   );
 }
 
+// instant name bubble on hover (shown below so the sticky table header can't cover it)
+function HoverName({ label, sub, children }) {
+  return (
+    <span className="relative inline-flex group/name">
+      {children}
+      <span className="pointer-events-none absolute left-1/2 -translate-x-1/2 top-full mt-1.5 z-20 whitespace-nowrap rounded-md bg-gray-900 px-2 py-1 text-[11px] font-medium text-white shadow-lg opacity-0 translate-y-0.5 group-hover/name:opacity-100 group-hover/name:translate-y-0 transition-all duration-100">
+        <span className="absolute left-1/2 -translate-x-1/2 -top-1 w-2 h-2 rotate-45 bg-gray-900" />
+        {label}
+        {sub && <span className="text-gray-400 font-normal"> · {sub}</span>}
+      </span>
+    </span>
+  );
+}
+
 // A → B → A, from the order people were talked to
 function PeopleChain({ thread }) {
   const ids = [];
@@ -66,12 +80,18 @@ function PeopleChain({ thread }) {
   const shown = chain.slice(-4);
   return (
     <div className="flex items-center gap-1 flex-wrap">
-      {chain.length > shown.length && <span className="text-[10px] text-gray-400">…</span>}
+      {chain.length > shown.length && (
+        <HoverName label={chain.slice(0, chain.length - shown.length).map((p) => p.name).join(" → ")}>
+          <span className="text-[10px] text-gray-400 px-0.5">…</span>
+        </HoverName>
+      )}
       {shown.map((p, i) => (
         <span key={`${p.id}-${i}`} className="inline-flex items-center gap-1">
           {i > 0 && <span className="text-gray-300 text-[10px]">→</span>}
-          <span className="w-6 h-6 rounded-full text-white text-[9px] font-bold flex items-center justify-center ring-2 ring-white"
-            style={{ background: personColor(p.id) }} title={p.name}>{initials(p.name)}</span>
+          <HoverName label={p.name} sub={p.skill || p.mobile}>
+            <span className="w-6 h-6 rounded-full text-white text-[9px] font-bold flex items-center justify-center ring-2 ring-white transition-transform group-hover/name:scale-110"
+              style={{ background: personColor(p.id) }}>{initials(p.name)}</span>
+          </HoverName>
         </span>
       ))}
     </div>
