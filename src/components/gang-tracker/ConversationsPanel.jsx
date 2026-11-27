@@ -15,11 +15,11 @@ import {
 
 const GT = API_ENDPOINTS.HR.GANG_TRACKER;
 
-const emptyStep = (person = null) => ({
+export const emptyStep = (person = null) => ({
   date: todayStr(), person, note: "", referredTo: null, nextFollowup: "", nextPerson: null, nextAction: "", status: "",
 });
 
-function stepPayload(s) {
+export function stepPayload(s) {
   return {
     date: s.date, note: s.note, nextFollowup: s.nextFollowup, nextAction: s.nextAction, status: s.status,
     person: personPayload(s.person), referredTo: personPayload(s.referredTo), nextPerson: personPayload(s.nextPerson),
@@ -110,14 +110,14 @@ function Field({ label, hint, children, className = "" }) {
 }
 
 /** The "what happened in this talk / what next" form — used to start a conversation and to log each next talk. */
-function StepForm({ step, setStep, people, personLabel = "Talked to *" }) {
+export function StepForm({ step, setStep, people, personLabel = "Talked to *", hidePerson = false, defaultPersonName = "" }) {
   const set = (k) => (v) => setStep((s) => ({ ...s, [k]: v?.target ? v.target.value : v }));
   return (
     <div className="space-y-3">
       <div className="grid grid-cols-3 gap-3">
-        <Field label={personLabel} className="col-span-2">
+        {!hidePerson && <Field label={personLabel} className="col-span-2">
           <PersonPicker people={people} value={step.person} onChange={set("person")} placeholder="Name — new names are added automatically" />
-        </Field>
+        </Field>}
         <Field label="Date">
           <input type="date" value={step.date} max={todayStr()} onChange={set("date")} className={inputCls} />
         </Field>
@@ -145,7 +145,7 @@ function StepForm({ step, setStep, people, personLabel = "Talked to *" }) {
           </Field>
           <Field label="With whom" hint="blank = same person">
             <PersonPicker people={people} value={step.nextPerson} onChange={set("nextPerson")}
-              placeholder={step.person?.name ? `${step.person.name}` : "Same person"} />
+              placeholder={step.person?.name || defaultPersonName || "Same person"} />
           </Field>
         </div>
         <Field label="Next action">
@@ -192,7 +192,7 @@ function Shell({ open, onClose, title, subtitle, children, footer, wide = false 
 const btnGhost = "border border-gray-300 rounded-lg px-4 py-1.5 text-xs font-medium text-gray-600 hover:bg-gray-50 bg-white";
 const btnPrimary = "bg-blue-600 hover:bg-blue-700 disabled:opacity-60 text-white rounded-lg px-4 py-1.5 text-xs font-semibold flex items-center gap-1";
 
-export default function ConversationsPanel({ people, refreshPeople, memberFilter, clearMemberFilter, onCountsChange }) {
+export default function ConversationsPanel({ people, refreshPeople, memberFilter, clearMemberFilter, onCountsChange, reloadKey = 0 }) {
   const [threads, setThreads] = useState([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -229,7 +229,7 @@ export default function ConversationsPanel({ people, refreshPeople, memberFilter
     setLoading(false);
   }, [search, status, project, memberId]);
 
-  useEffect(() => { const t = setTimeout(fetchThreads, search ? 300 : 0); return () => clearTimeout(t); }, [fetchThreads, search]);
+  useEffect(() => { const t = setTimeout(fetchThreads, search ? 300 : 0); return () => clearTimeout(t); }, [fetchThreads, search, reloadKey]);
 
   const loadProjects = useCallback(async () => {
     const [used, master] = await Promise.all([

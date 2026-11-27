@@ -11,7 +11,7 @@ import { getPageActions } from "@/components/common/PageActionButtons";
 import { apiRequest } from "@/lib/apiClient";
 import { API_ENDPOINTS } from "@/config/api.config";
 import { createdOnText } from "@/lib/createdOn";
-import ConversationsPanel from "@/components/gang-tracker/ConversationsPanel";
+import ConversationsPanel, { StepForm, emptyStep, stepPayload } from "@/components/gang-tracker/ConversationsPanel";
 
 // ─── helpers ────────────────────────────────────────────────────────────────
 function todayStr() {
@@ -60,12 +60,12 @@ function FollowupChip({ date }) {
   return <span className="text-xs px-2 py-0.5 rounded bg-gray-50 text-gray-600 border border-gray-200">{date}</span>;
 }
 
-function Modal({ open, onClose, title, children, footer }) {
+function Modal({ open, onClose, title, children, footer, wide = false }) {
   if (!open) return null;
   return (
     <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-start justify-center p-4 overflow-y-auto"
       onClick={(e) => e.target === e.currentTarget && onClose()}>
-      <div className="bg-white rounded-xl border border-gray-200 shadow-xl w-full max-w-lg my-8 flex flex-col">
+      <div className={`bg-white rounded-xl border border-gray-200 shadow-xl w-full ${wide ? "max-w-2xl" : "max-w-lg"} my-8 flex flex-col transition-[max-width]`}>
         <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
           <h2 className="text-sm font-bold text-gray-800">{title}</h2>
           <button onClick={onClose} className="w-7 h-7 rounded-full flex items-center justify-center text-gray-400 hover:bg-gray-100 hover:text-gray-600 transition-colors text-base">✕</button>
@@ -112,9 +112,9 @@ function TalkCell({ talks, onClick }) {
 }
 
 function FormRow({ children }) { return <div className="grid grid-cols-2 gap-3">{children}</div>; }
-function Field({ label, children }) {
+function Field({ label, children, className = "" }) {
   return (
-    <div className="flex flex-col gap-1">
+    <div className={`flex flex-col gap-1 ${className}`}>
       <label className="text-[11px] font-semibold text-gray-500 uppercase tracking-wide">{label}</label>
       {children}
     </div>
@@ -153,6 +153,11 @@ export default function GangTrackerPage() {
   const [people, setPeople]           = useState([]);
   const [memberFilter, setMemberFilter] = useState(null);
   const [convCounts, setConvCounts]   = useState({ open: 0, today: 0, overdue: 0 });
+  const [convReload, setConvReload]   = useState(0);
+  // "start a conversation" section inside Add Member
+  const [withConv, setWithConv]       = useState(false);
+  const [convHead, setConvHead]       = useState({ topic: "", project: "" });
+  const [convStep, setConvStep]       = useState(emptyStep());
 
   const fetchPeople = useCallback(async () => {
     try {
@@ -209,7 +214,11 @@ export default function GangTrackerPage() {
   }
 
   // ── add/edit ───────────────────────────────────────────────────────────────
-  function openAdd() { setEditId(null); setForm(EMPTY_FORM); setMemberModal(true); }
+  function openAdd() {
+    setEditId(null); setForm(EMPTY_FORM);
+    setWithConv(false); setConvHead({ topic: "", project: "" }); setConvStep(emptyStep());
+    setMemberModal(true);
+  }
   function openEdit(m) {
     setEditId(m.id);
     setForm({ name: m.name, skill: m.skill||"Electrician", mobile: m.mobile, whatsapp: m.whatsapp||"",
@@ -219,12 +228,19 @@ export default function GangTrackerPage() {
 
   async function saveMember() {
     if (!form.name.trim()) return toast.error("Name is required.");
+    const startConv = !editId && withConv;
+    if (startConv && !convHead.topic.trim()) return toast.error("Enter the conversation topic / agenda.");
     setSaving(true);
     try {
       if (editId) {
         await apiRequest({ url: API_ENDPOINTS.HR.GANG_TRACKER.UPDATE + editId, method: "PUT", data: form });
       } else {
-        await apiRequest({ url: API_ENDPOINTS.HR.GANG_TRACKER.CREATE, method: "POST", data: form });
+        // member + first talk are saved together (the backend links the talk to the new member)
+        const { person: _unused, ...step } = stepPayload(convStep);
+        const data = startConv ? { ...form, conversation: { ...convHead, ...step } } : form;
+        const r = await apiRequest({ url: API_ENDPOINTS.HR.GANG_TRACKER.CREATE, method: "POST", data });
+        toast.success(r?.message || "Member created");
+        if (startConv) setConvReload((n) => n + 1);
       }
       setMemberModal(false);
       fetchMembers();
@@ -316,7 +332,7 @@ export default function GangTrackerPage() {
               ].map((k) => <Kpi key={k.label} {...k} />)}
             </div>
             <ConversationsPanel people={people} refreshPeople={() => { fetchPeople(); fetchMembers(); }}
-              memberFilter={memberFilter} clearMemberFilter={() => setMemberFilter(null)} onCountsChange={setConvCounts} />
+              memberFilter={memberFilter} clearMemberFilter={() => setMemberFilter(null)} onCountsChange={setConvCounts} reloadKey={convReload} />
         </div>
 
         {tab === "members" && (<>
@@ -441,11 +457,11 @@ export default function GangTrackerPage() {
                         </td>
                         <td className="px-4 py-3 text-xs text-gray-500 whitespace-nowrap">{createdOnText(m)}</td>
                         <td className="px-4 py-3">
-                          <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                            <button onClick={() => showConversationsOf(m)} className="p-1.5 rounded-lg hover:bg-violet-100 text-violet-500 transition-colors" title="Conversations with this person">💬</button>
-                            <button onClick={() => openDetail(m.id)} className="p-1.5 rounded-lg hover:bg-blue-100 text-blue-500 transition-colors" title="View & follow-up">📋</button>
-                            <button onClick={() => openEdit(m)} className="p-1.5 rounded-lg hover:bg-amber-100 text-amber-500 transition-colors" title="Edit">✏️</button>
-                            <button onClick={() => deleteMember(m.id, m.name)} className="p-1.5 rounded-lg hover:bg-red-100 text-red-500 transition-colors" title="Delete">🗑</button>
+                          <div className="flex items-center gap-1.5 justify-end">
+                            <button onClick={() => showConversationsOf(m)} className="w-9 h-9 rounded-lg border border-gray-200 bg-white text-lg flex items-center justify-center shadow-sm transition-colors hover:bg-violet-100 hover:border-violet-200" title="Conversations with this person">💬</button>
+                            <button onClick={() => openDetail(m.id)} className="w-9 h-9 rounded-lg border border-gray-200 bg-white text-lg flex items-center justify-center shadow-sm transition-colors hover:bg-blue-100 hover:border-blue-200" title="View & follow-up">📋</button>
+                            <button onClick={() => openEdit(m)} className="w-9 h-9 rounded-lg border border-gray-200 bg-white text-lg flex items-center justify-center shadow-sm transition-colors hover:bg-amber-100 hover:border-amber-200" title="Edit">✏️</button>
+                            <button onClick={() => deleteMember(m.id, m.name)} className="w-9 h-9 rounded-lg border border-gray-200 bg-white text-lg flex items-center justify-center shadow-sm transition-colors hover:bg-red-100 hover:border-red-200" title="Delete">🗑</button>
                           </div>
                         </td>
                       </tr>
@@ -465,7 +481,7 @@ export default function GangTrackerPage() {
       </div>
 
       {/* Add / Edit modal */}
-      <Modal open={memberModal} onClose={() => setMemberModal(false)}
+      <Modal open={memberModal} onClose={() => setMemberModal(false)} wide={!editId && withConv}
         title={editId ? "Edit Gang Member" : "Add Gang Member"}
         footer={
           <>
@@ -473,7 +489,7 @@ export default function GangTrackerPage() {
               className="border border-gray-300 rounded-lg px-4 py-1.5 text-xs font-medium text-gray-600 hover:bg-gray-50">Cancel</button>
             <button onClick={saveMember} disabled={saving}
               className="bg-blue-600 hover:bg-blue-700 disabled:opacity-60 text-white rounded-lg px-4 py-1.5 text-xs font-semibold flex items-center gap-1">
-              {saving && <Loader2 className="animate-spin w-3 h-3"/>} 💾 Save Member
+              {saving && <Loader2 className="animate-spin w-3 h-3"/>} 💾 {!editId && withConv ? "Save & Start Conversation" : "Save Member"}
             </button>
           </>
         }
@@ -505,6 +521,31 @@ export default function GangTrackerPage() {
         <Field label="Notes / Remarks">
           <textarea value={form.notes} onChange={(e) => setForm((f)=>({...f,notes:e.target.value}))} placeholder="Add notes…" rows={3} className={inputCls} style={{resize:"vertical"}}/>
         </Field>
+
+        {!editId && (
+          <div className={`rounded-xl border-2 ${withConv ? "border-blue-200 bg-blue-50/30" : "border-dashed border-gray-200"} transition-colors`}>
+            <label className="flex items-center gap-2.5 px-4 py-3 cursor-pointer select-none">
+              <input type="checkbox" checked={withConv} onChange={(e) => setWithConv(e.target.checked)} className="w-4 h-4 accent-blue-600"/>
+              <span className="text-xs font-semibold text-gray-700">💬 Also start a conversation with {form.name.trim() || "this person"}</span>
+              <span className="text-[11px] text-gray-400 ml-auto hidden sm:inline">topic, what you discussed, next follow-up</span>
+            </label>
+            {withConv && (
+              <div className="px-4 pb-4 space-y-3 border-t border-blue-100 pt-3">
+                <div className="grid grid-cols-3 gap-3">
+                  <Field label="Topic / Agenda *" className="col-span-2">
+                    <input autoFocus value={convHead.topic} onChange={(e) => setConvHead((h) => ({ ...h, topic: e.target.value }))}
+                      placeholder="e.g. Need 10 masons for Block C" maxLength={300} className={inputCls}/>
+                  </Field>
+                  <Field label="Project">
+                    <input list="gt-projects" value={convHead.project} onChange={(e) => setConvHead((h) => ({ ...h, project: e.target.value }))}
+                      placeholder="Pick or type" maxLength={200} className={inputCls}/>
+                  </Field>
+                </div>
+                <StepForm step={convStep} setStep={setConvStep} people={people} hidePerson defaultPersonName={form.name.trim()}/>
+              </div>
+            )}
+          </div>
+        )}
       </Modal>
 
       {/* Detail / Follow-up modal */}
