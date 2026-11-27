@@ -941,6 +941,10 @@ export const API_ENDPOINTS = {
       DELETE:   "/hr/gang-tracker/",         // /:id DELETE
       FOLLOWUP: "/hr/gang-tracker/",         // /:id/followup POST
       SKILLS:   "/hr/gang-tracker/skills",   // GET
+      PEOPLE:   "/hr/gang-tracker/people",   // GET ?search — light list for the person picker
+      THREADS:  "/hr/gang-tracker/threads",  // GET ?search&status(open|<status>)&project&memberId&due  ·  POST start
+      THREAD:   "/hr/gang-tracker/threads/", // /:id GET · PUT (topic/project) · DELETE · /:id/entries POST
+      THREAD_PROJECTS: "/hr/gang-tracker/threads/projects", // GET project names used before
     },
   },
 

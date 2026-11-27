@@ -11,16 +11,17 @@ import { getPageActions } from "@/components/common/PageActionButtons";
 import { apiRequest } from "@/lib/apiClient";
 import { API_ENDPOINTS } from "@/config/api.config";
 import { createdOnText } from "@/lib/createdOn";
+import ConversationsPanel from "@/components/gang-tracker/ConversationsPanel";
 
 // ─── helpers ────────────────────────────────────────────────────────────────
 function todayStr() {
   return new Date().toISOString().slice(0, 10);
 }
-function getInitials(name) {
-  return name.split(" ").map((w) => w[0]).join("").toUpperCase().slice(0, 2);
+function getInitials(name = "") {
+  return name.split(" ").filter(Boolean).map((w) => w[0]).join("").toUpperCase().slice(0, 2);
 }
 const AVATAR_BG = ["bg-blue-700","bg-indigo-600","bg-violet-600","bg-emerald-600","bg-orange-500","bg-teal-600"];
-function avatarBg(name) { return AVATAR_BG[name.charCodeAt(0) % AVATAR_BG.length]; }
+function avatarBg(name = "") { return AVATAR_BG[(name.charCodeAt(0) || 0) % AVATAR_BG.length]; }
 
 // ─── status styles ───────────────────────────────────────────────────────────
 const STATUS_STYLE = {
@@ -113,6 +114,25 @@ export default function GangTrackerPage() {
   const [followupStatus, setFollowupStatus] = useState("");
   const [followupDate, setFollowupDate]     = useState("");
 
+  // conversations tab
+  const [tab, setTab]                 = useState("conv");
+  const [people, setPeople]           = useState([]);
+  const [memberFilter, setMemberFilter] = useState(null);
+  const [convCounts, setConvCounts]   = useState({ open: 0, today: 0, overdue: 0 });
+
+  const fetchPeople = useCallback(async () => {
+    try {
+      const r = await apiRequest({ url: API_ENDPOINTS.HR.GANG_TRACKER.PEOPLE });
+      setPeople(r?.data || []);
+    } catch { /* picker just shows no suggestions */ }
+  }, []);
+  useEffect(() => { fetchPeople(); }, [fetchPeople]);
+
+  function showConversationsOf(m) {
+    setMemberFilter({ id: m.id, name: m.name });
+    setTab("conv");
+  }
+
   // ── fetch ──────────────────────────────────────────────────────────────────
   const fetchMembers = useCallback(async () => {
     setLoading(true);
@@ -120,8 +140,10 @@ export default function GangTrackerPage() {
     if (search)       params.search = search;
     if (filterStatus) params.status = filterStatus;
     if (filterSkill)  params.skill  = filterSkill;
-    const res = await apiRequest({ url: API_ENDPOINTS.HR.GANG_TRACKER.LIST, method: "GET", params });
-    if (res?.data) setMembers(res.data);
+    try {
+      const res = await apiRequest({ url: API_ENDPOINTS.HR.GANG_TRACKER.LIST, method: "GET", params });
+      if (res?.data) setMembers(res.data);
+    } catch { /* 403 etc. — apiClient already shows the toast */ }
     setLoading(false);
   }, [search, filterStatus, filterSkill]);
 
@@ -129,7 +151,7 @@ export default function GangTrackerPage() {
 
   useEffect(() => {
     apiRequest({ url: API_ENDPOINTS.HR.GANG_TRACKER.SKILLS, method: "GET" })
-      .then((r) => r?.data?.length && setSkills(r.data));
+      .then((r) => r?.data?.length && setSkills(r.data)).catch(() => {});
   }, []);
 
   // ── derived ────────────────────────────────────────────────────────────────
@@ -162,16 +184,21 @@ export default function GangTrackerPage() {
   }
 
   async function saveMember() {
-    if (!form.name.trim() || !form.mobile.trim()) return toast.error("Name and Mobile are required.");
+    if (!form.name.trim()) return toast.error("Name is required.");
     setSaving(true);
-    if (editId) {
-      await apiRequest({ url: API_ENDPOINTS.HR.GANG_TRACKER.UPDATE + editId, method: "PUT", data: form });
-    } else {
-      await apiRequest({ url: API_ENDPOINTS.HR.GANG_TRACKER.CREATE, method: "POST", data: form });
+    try {
+      if (editId) {
+        await apiRequest({ url: API_ENDPOINTS.HR.GANG_TRACKER.UPDATE + editId, method: "PUT", data: form });
+      } else {
+        await apiRequest({ url: API_ENDPOINTS.HR.GANG_TRACKER.CREATE, method: "POST", data: form });
+      }
+      setMemberModal(false);
+      fetchMembers();
+      fetchPeople();
+    } catch (e) {
+      toast.error(e.message);
     }
     setSaving(false);
-    setMemberModal(false);
-    fetchMembers();
   }
 
   function deleteMember(id, name) {
@@ -183,6 +210,7 @@ export default function GangTrackerPage() {
       onConfirm: async () => {
         await apiRequest({ url: API_ENDPOINTS.HR.GANG_TRACKER.DELETE + id, method: "DELETE" });
         fetchMembers();
+        fetchPeople();
       },
     });
   }
@@ -234,6 +262,38 @@ export default function GangTrackerPage() {
 
       <div className="p-4 space-y-4">
 
+        {/* tabs */}
+        <div className="inline-flex bg-white rounded-xl border border-gray-200 p-1 gap-1">
+          {[["conv", "💬 Conversations", convCounts.open], ["members", "👷 Members", members.length]].map(([k, l, n]) => (
+            <button key={k} onClick={() => { setTab(k); if (k === "members") fetchMembers(); }}
+              className={`px-4 py-1.5 rounded-lg text-xs font-semibold transition-colors flex items-center gap-2 ${tab === k ? "bg-blue-600 text-white" : "text-gray-600 hover:bg-gray-50"}`}>
+              {l}<span className={`text-[10px] px-1.5 rounded-full ${tab === k ? "bg-white/20" : "bg-gray-100 text-gray-500"}`}>{n}</span>
+            </button>
+          ))}
+        </div>
+
+        {tab === "conv" && (
+          <>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+              {[
+                { label: "Open conversations", value: convCounts.open,    color: "text-blue-700",  bg: "bg-blue-50 border-blue-100",   sub: "Not finished yet" },
+                { label: "Follow-up today",    value: convCounts.today,   color: "text-amber-600", bg: "bg-amber-50 border-amber-100", sub: "Call / meet today" },
+                { label: "Overdue",            value: convCounts.overdue, color: "text-red-600",   bg: "bg-red-50 border-red-100",     sub: "Follow-up date passed" },
+                { label: "People in register", value: people.length,      color: "text-gray-700",  bg: "bg-gray-50 border-gray-200",   sub: "Auto-added from talks" },
+              ].map((k) => (
+                <div key={k.label} className={`${k.bg} rounded-xl border p-3 flex flex-col gap-0.5`}>
+                  <p className="text-[10px] text-gray-500 font-medium uppercase tracking-wide">{k.label}</p>
+                  <p className={`text-2xl font-bold ${k.color}`}>{k.value}</p>
+                  <p className="text-[10px] text-gray-400">{k.sub}</p>
+                </div>
+              ))}
+            </div>
+            <ConversationsPanel people={people} refreshPeople={fetchPeople}
+              memberFilter={memberFilter} clearMemberFilter={() => setMemberFilter(null)} onCountsChange={setConvCounts} />
+          </>
+        )}
+
+        {tab === "members" && (<>
         {/* KPI row */}
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
           {[
@@ -339,7 +399,9 @@ export default function GangTrackerPage() {
                           {m.site && <p className="text-[10px] text-gray-400 mt-1">📍 {m.site}</p>}
                         </td>
                         <td className="px-4 py-3">
-                          <a href={`tel:${m.mobile}`} className="text-xs text-blue-600 hover:text-blue-800 flex items-center gap-1">📞 {m.mobile}</a>
+                          {m.mobile
+                            ? <a href={`tel:${m.mobile}`} className="text-xs text-blue-600 hover:text-blue-800 flex items-center gap-1">📞 {m.mobile}</a>
+                            : <span className="text-xs text-gray-300">No number</span>}
                           {(m.whatsapp || m.mobile) && (
                             <a href={`https://wa.me/${(m.whatsapp||m.mobile).replace(/\D/g,"")}`} target="_blank" rel="noreferrer"
                               className="text-xs text-emerald-600 hover:text-emerald-800 flex items-center gap-1">💬 WhatsApp</a>
@@ -357,6 +419,7 @@ export default function GangTrackerPage() {
                         <td className="px-4 py-3 text-xs text-gray-500 whitespace-nowrap">{createdOnText(m)}</td>
                         <td className="px-4 py-3">
                           <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                            <button onClick={() => showConversationsOf(m)} className="p-1.5 rounded-lg hover:bg-violet-100 text-violet-500 transition-colors" title="Conversations with this person">💬</button>
                             <button onClick={() => openDetail(m.id)} className="p-1.5 rounded-lg hover:bg-blue-100 text-blue-500 transition-colors" title="View & follow-up">📋</button>
                             <button onClick={() => openEdit(m)} className="p-1.5 rounded-lg hover:bg-amber-100 text-amber-500 transition-colors" title="Edit">✏️</button>
                             <button onClick={() => deleteMember(m.id, m.name)} className="p-1.5 rounded-lg hover:bg-red-100 text-red-500 transition-colors" title="Delete">🗑</button>
@@ -374,6 +437,7 @@ export default function GangTrackerPage() {
             </div>
           )}
         </div>
+        </>)}
       </div>
 
       {/* Add / Edit modal */}
@@ -399,7 +463,7 @@ export default function GangTrackerPage() {
           </Field>
         </FormRow>
         <FormRow>
-          <Field label="Mobile *"><input value={form.mobile} onChange={(e) => setForm((f)=>({...f,mobile:e.target.value}))} placeholder="+91 9876543210" type="tel" className={inputCls}/></Field>
+          <Field label="Mobile"><input value={form.mobile} onChange={(e) => setForm((f)=>({...f,mobile:e.target.value}))} placeholder="+91 9876543210" type="tel" className={inputCls}/></Field>
           <Field label="WhatsApp"><input value={form.whatsapp} onChange={(e) => setForm((f)=>({...f,whatsapp:e.target.value}))} placeholder="+91 9876543210" type="tel" className={inputCls}/></Field>
         </FormRow>
         <FormRow>
@@ -447,7 +511,9 @@ export default function GangTrackerPage() {
           <div className="grid grid-cols-2 gap-3 py-2">
             <div>
               <p className="text-[10px] text-gray-400 uppercase tracking-wide font-semibold mb-1">📞 Mobile</p>
-              <a href={`tel:${detailMember.mobile}`} className="text-xs text-blue-600 hover:underline">{detailMember.mobile}</a>
+              {detailMember.mobile
+                ? <a href={`tel:${detailMember.mobile}`} className="text-xs text-blue-600 hover:underline">{detailMember.mobile}</a>
+                : <span className="text-gray-300 text-xs">—</span>}
             </div>
             <div>
               <p className="text-[10px] text-gray-400 uppercase tracking-wide font-semibold mb-1">💬 WhatsApp</p>
