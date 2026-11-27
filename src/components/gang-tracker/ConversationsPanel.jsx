@@ -356,9 +356,9 @@ export default function ConversationsPanel({ people, refreshPeople, memberFilter
             <button onClick={openNew} className="mt-2 text-xs text-blue-600 hover:underline">+ Start one</button>
           </div>
         ) : (
-          <div className="overflow-x-auto">
+          <div className="overflow-auto max-h-[calc(100vh-390px)] min-h-[220px]">
             <table className="w-full text-sm">
-              <thead>
+              <thead className="sticky top-0 z-10 bg-gray-50 shadow-[0_1px_0_#f3f4f6]">
                 <tr className="bg-gray-50 border-b border-gray-100 text-left text-[11px] font-semibold text-gray-500 uppercase tracking-wide">
                   <th className="px-4 py-3">Topic / Project</th>
                   <th className="px-4 py-3">People</th>

@@ -77,6 +77,40 @@ function Modal({ open, onClose, title, children, footer }) {
   );
 }
 
+// compact one-line KPI tile (label left, number right; description on hover)
+function Kpi({ label, value, color, bg, sub }) {
+  return (
+    <div className={`${bg} rounded-lg border px-3 py-1.5 flex items-center justify-between gap-2`} title={sub}>
+      <p className="text-[10px] text-gray-500 font-semibold uppercase tracking-wide truncate">{label}</p>
+      <p className={`text-lg leading-6 font-bold ${color}`}>{value}</p>
+    </div>
+  );
+}
+
+const TALK_STYLE = {
+  Scheduled: "bg-amber-50 text-amber-700 border-amber-200",
+  Ongoing:   "bg-blue-50 text-blue-700 border-blue-200",
+  Waiting:   "bg-violet-50 text-violet-700 border-violet-200",
+};
+// open-conversation summary for a member row
+function TalkCell({ talks, onClick }) {
+  if (!talks?.open) return <span className="text-gray-300 text-xs">—</span>;
+  const t = todayStr();
+  const d = talks.nextFollowup;
+  return (
+    <button onClick={onClick} className="text-left max-w-[220px] group/talk" title="Open this person's conversations">
+      <span className="flex items-center gap-1.5">
+        <span className={`text-[10px] px-1.5 py-0.5 rounded border font-medium ${TALK_STYLE[talks.status] || "bg-gray-50 text-gray-600 border-gray-200"}`}>{talks.status}</span>
+        {talks.open > 1 && <span className="text-[10px] text-gray-400">+{talks.open - 1} more</span>}
+        {d && <span className={`text-[10px] ${d < t ? "text-red-600 font-semibold" : d === t ? "text-amber-700 font-semibold" : "text-gray-400"}`}>
+          {d < t ? "overdue" : d === t ? "today" : d}{talks.nextWithMe ? "" : " (other)"}
+        </span>}
+      </span>
+      <span className="block text-xs text-gray-600 truncate group-hover/talk:text-blue-700 mt-0.5">{talks.topic}</span>
+    </button>
+  );
+}
+
 function FormRow({ children }) { return <div className="grid grid-cols-2 gap-3">{children}</div>; }
 function Field({ label, children }) {
   return (
@@ -115,7 +149,7 @@ export default function GangTrackerPage() {
   const [followupDate, setFollowupDate]     = useState("");
 
   // conversations tab
-  const [tab, setTab]                 = useState("conv");
+  const [tab, setTab]                 = useState("members");
   const [people, setPeople]           = useState([]);
   const [memberFilter, setMemberFilter] = useState(null);
   const [convCounts, setConvCounts]   = useState({ open: 0, today: 0, overdue: 0 });
@@ -260,11 +294,11 @@ export default function GangTrackerPage() {
     <HeaderWrapper>
       <PageHeader actions={actions} />
 
-      <div className="p-4 space-y-4">
+      <div className="p-4 space-y-3">
 
         {/* tabs */}
         <div className="inline-flex bg-white rounded-xl border border-gray-200 p-1 gap-1">
-          {[["conv", "💬 Conversations", convCounts.open], ["members", "👷 Members", members.length]].map(([k, l, n]) => (
+          {[["members", "👷 Members", members.length], ["conv", "💬 Conversations", convCounts.open]].map(([k, l, n]) => (
             <button key={k} onClick={() => { setTab(k); if (k === "members") fetchMembers(); }}
               className={`px-4 py-1.5 rounded-lg text-xs font-semibold transition-colors flex items-center gap-2 ${tab === k ? "bg-blue-600 text-white" : "text-gray-600 hover:bg-gray-50"}`}>
               {l}<span className={`text-[10px] px-1.5 rounded-full ${tab === k ? "bg-white/20" : "bg-gray-100 text-gray-500"}`}>{n}</span>
@@ -272,30 +306,22 @@ export default function GangTrackerPage() {
           ))}
         </div>
 
-        {tab === "conv" && (
-          <>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        <div className={tab === "conv" ? "space-y-3" : "hidden"}>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
               {[
                 { label: "Open conversations", value: convCounts.open,    color: "text-blue-700",  bg: "bg-blue-50 border-blue-100",   sub: "Not finished yet" },
                 { label: "Follow-up today",    value: convCounts.today,   color: "text-amber-600", bg: "bg-amber-50 border-amber-100", sub: "Call / meet today" },
                 { label: "Overdue",            value: convCounts.overdue, color: "text-red-600",   bg: "bg-red-50 border-red-100",     sub: "Follow-up date passed" },
                 { label: "People in register", value: people.length,      color: "text-gray-700",  bg: "bg-gray-50 border-gray-200",   sub: "Auto-added from talks" },
-              ].map((k) => (
-                <div key={k.label} className={`${k.bg} rounded-xl border p-3 flex flex-col gap-0.5`}>
-                  <p className="text-[10px] text-gray-500 font-medium uppercase tracking-wide">{k.label}</p>
-                  <p className={`text-2xl font-bold ${k.color}`}>{k.value}</p>
-                  <p className="text-[10px] text-gray-400">{k.sub}</p>
-                </div>
-              ))}
+              ].map((k) => <Kpi key={k.label} {...k} />)}
             </div>
-            <ConversationsPanel people={people} refreshPeople={fetchPeople}
+            <ConversationsPanel people={people} refreshPeople={() => { fetchPeople(); fetchMembers(); }}
               memberFilter={memberFilter} clearMemberFilter={() => setMemberFilter(null)} onCountsChange={setConvCounts} />
-          </>
-        )}
+        </div>
 
         {tab === "members" && (<>
         {/* KPI row */}
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-2">
           {[
             { label:"Total Members",  value:members.length,           color:"text-blue-700",    bg:"bg-blue-50 border-blue-100",    sub:"In database" },
             { label:"Available",      value:counts["Available"]||0,   color:"text-emerald-600", bg:"bg-emerald-50 border-emerald-100", sub:"Ready to deploy" },
@@ -303,13 +329,7 @@ export default function GangTrackerPage() {
             { label:"Follow-up",      value:counts["Follow-up"]||0,   color:"text-amber-600",   bg:"bg-amber-50 border-amber-100",  sub:"Needs contact" },
             { label:"Overdue",        value:overdue,                  color:"text-red-600",     bg:"bg-red-50 border-red-100",      sub:"Past follow-up" },
             { label:"Unavailable",    value:counts["Unavailable"]||0, color:"text-gray-500",    bg:"bg-gray-50 border-gray-200",    sub:"Not reachable" },
-          ].map((k) => (
-            <div key={k.label} className={`${k.bg} rounded-xl border p-3 flex flex-col gap-0.5`}>
-              <p className="text-[10px] text-gray-500 font-medium uppercase tracking-wide">{k.label}</p>
-              <p className={`text-2xl font-bold ${k.color}`}>{k.value}</p>
-              <p className="text-[10px] text-gray-400">{k.sub}</p>
-            </div>
-          ))}
+          ].map((k) => <Kpi key={k.label} {...k} />)}
         </div>
 
         {/* Controls bar */}
@@ -361,15 +381,17 @@ export default function GangTrackerPage() {
               <p className="text-xs text-gray-300">Try adjusting your filters or add a new member</p>
             </div>
           ) : (
-            <div className="overflow-x-auto">
+            <>
+            <div className="overflow-auto max-h-[calc(100vh-390px)] min-h-[220px]">
               <table className="w-full text-sm">
-                <thead>
+                <thead className="sticky top-0 z-10 bg-gray-50 shadow-[0_1px_0_#f3f4f6]">
                   <tr className="bg-gray-50 border-b border-gray-100 text-left">
                     <SortTh label="Member"    col="name"/>
                     <SortTh label="Skill"     col="skill"/>
                     <SortTh label="Status"    col="status"/>
                     <th className="px-4 py-3 text-left text-[11px] font-semibold text-gray-500 uppercase tracking-wide">Contact</th>
                     <SortTh label="Follow-up" col="followup"/>
+                    <th className="px-4 py-3 text-left text-[11px] font-semibold text-gray-500 uppercase tracking-wide">Talk Status</th>
                     <th className="px-4 py-3 text-left text-[11px] font-semibold text-gray-500 uppercase tracking-wide">Last Note</th>
                     <SortTh label="Created On" col="createdTs"/>
                     <th className="px-4 py-3"/>
@@ -408,6 +430,7 @@ export default function GangTrackerPage() {
                           )}
                         </td>
                         <td className="px-4 py-3"><FollowupChip date={m.followup}/></td>
+                        <td className="px-4 py-3"><TalkCell talks={m.talks} onClick={() => showConversationsOf(m)}/></td>
                         <td className="px-4 py-3 max-w-[180px]">
                           {lastLog ? (
                             <>
@@ -430,11 +453,12 @@ export default function GangTrackerPage() {
                   })}
                 </tbody>
               </table>
-              <div className="px-4 py-2 border-t border-gray-50 bg-gray-50 text-xs text-gray-400">
-                Showing {sorted.length} member{sorted.length !== 1 ? "s" : ""}
-                {(search || filterStatus || filterSkill) && " (filtered)"}
-              </div>
             </div>
+            <div className="px-4 py-2 border-t border-gray-100 bg-gray-50 text-xs text-gray-400">
+              Showing {sorted.length} member{sorted.length !== 1 ? "s" : ""}
+              {(search || filterStatus || filterSkill) && " (filtered)"}
+            </div>
+            </>
           )}
         </div>
         </>)}
