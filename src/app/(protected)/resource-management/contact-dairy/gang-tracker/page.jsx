@@ -11,6 +11,7 @@ import { getPageActions } from "@/components/common/PageActionButtons";
 import { apiRequest } from "@/lib/apiClient";
 import { API_ENDPOINTS } from "@/config/api.config";
 import { createdOnText } from "@/lib/createdOn";
+import MemberFormModal from "@/components/gang-tracker/MemberFormModal";
 import ConversationsPanel, { StepForm, emptyStep, stepPayload } from "@/components/gang-tracker/ConversationsPanel";
 
 // ─── helpers ────────────────────────────────────────────────────────────────
@@ -481,56 +482,23 @@ export default function GangTrackerPage() {
       </div>
 
       {/* Add / Edit modal */}
-      <Modal open={memberModal} onClose={() => setMemberModal(false)} wide={!editId && withConv}
-        title={editId ? "Edit Gang Member" : "Add Gang Member"}
-        footer={
-          <>
-            <button onClick={() => setMemberModal(false)}
-              className="border border-gray-300 rounded-lg px-4 py-1.5 text-xs font-medium text-gray-600 hover:bg-gray-50">Cancel</button>
-            <button onClick={saveMember} disabled={saving}
-              className="bg-blue-600 hover:bg-blue-700 disabled:opacity-60 text-white rounded-lg px-4 py-1.5 text-xs font-semibold flex items-center gap-1">
-              {saving && <Loader2 className="animate-spin w-3 h-3"/>} 💾 {!editId && withConv ? "Save & Start Conversation" : "Save Member"}
-            </button>
-          </>
-        }
-      >
-        <FormRow>
-          <Field label="Full Name *"><input value={form.name} onChange={(e) => setForm((f)=>({...f,name:e.target.value}))} placeholder="Raju Sharma" className={inputCls}/></Field>
-          <Field label="Skill / Trade *">
-            <select value={form.skill} onChange={(e) => setForm((f)=>({...f,skill:e.target.value}))} className={selectCls}>
-              {STATIC_SKILLS.map((s) => <option key={s}>{s}</option>)}
-            </select>
-          </Field>
-        </FormRow>
-        <FormRow>
-          <Field label="Mobile"><input value={form.mobile} onChange={(e) => setForm((f)=>({...f,mobile:e.target.value}))} placeholder="+91 9876543210" type="tel" className={inputCls}/></Field>
-          <Field label="WhatsApp"><input value={form.whatsapp} onChange={(e) => setForm((f)=>({...f,whatsapp:e.target.value}))} placeholder="+91 9876543210" type="tel" className={inputCls}/></Field>
-        </FormRow>
-        <FormRow>
-          <Field label="Location"><input value={form.location} onChange={(e) => setForm((f)=>({...f,location:e.target.value}))} placeholder="Mumbai, Maharashtra" className={inputCls}/></Field>
-          <Field label="Status">
-            <select value={form.status} onChange={(e) => setForm((f)=>({...f,status:e.target.value}))} className={selectCls}>
-              {["Available","Deployed","Follow-up","Pending","Unavailable"].map((s) => <option key={s}>{s}</option>)}
-            </select>
-          </Field>
-        </FormRow>
-        <FormRow>
-          <Field label="Current Site"><input value={form.site} onChange={(e) => setForm((f)=>({...f,site:e.target.value}))} placeholder="Site/Project name" className={inputCls}/></Field>
-          <Field label="Follow-up Date"><input value={form.followup} onChange={(e) => setForm((f)=>({...f,followup:e.target.value}))} type="date" className={inputCls}/></Field>
-        </FormRow>
-        <Field label="Notes / Remarks">
-          <textarea value={form.notes} onChange={(e) => setForm((f)=>({...f,notes:e.target.value}))} placeholder="Add notes…" rows={3} className={inputCls} style={{resize:"vertical"}}/>
-        </Field>
-
+      <MemberFormModal open={memberModal} onClose={() => setMemberModal(false)} isEdit={!!editId}
+        form={form} setForm={setForm} saving={saving} onSave={saveMember} skills={STATIC_SKILLS}
+        wide={!editId && withConv} saveLabel={editId ? "Save changes" : withConv ? "Save & start conversation" : "Save member"}>
         {!editId && (
-          <div className={`rounded-xl border-2 ${withConv ? "border-blue-200 bg-blue-50/30" : "border-dashed border-gray-200"} transition-colors`}>
-            <label className="flex items-center gap-2.5 px-4 py-3 cursor-pointer select-none">
-              <input type="checkbox" checked={withConv} onChange={(e) => setWithConv(e.target.checked)} className="w-4 h-4 accent-blue-600"/>
-              <span className="text-xs font-semibold text-gray-700">💬 Also start a conversation with {form.name.trim() || "this person"}</span>
-              <span className="text-[11px] text-gray-400 ml-auto hidden sm:inline">topic, what you discussed, next follow-up</span>
+          <div className={`rounded-2xl border transition-colors ${withConv ? "border-blue-200 bg-blue-50/40" : "border-gray-200 bg-white hover:border-blue-200"}`}>
+            <label className="flex items-center gap-3 px-4 py-3.5 cursor-pointer select-none">
+              <span className={`relative w-9 h-5 rounded-full transition-colors ${withConv ? "bg-blue-600" : "bg-gray-300"}`}>
+                <input type="checkbox" checked={withConv} onChange={(e) => setWithConv(e.target.checked)} className="sr-only"/>
+                <span className={`absolute top-0.5 left-0.5 w-4 h-4 rounded-full bg-white shadow transition-transform ${withConv ? "translate-x-4" : ""}`}/>
+              </span>
+              <span>
+                <span className="block text-[13px] font-semibold text-gray-800">Also start a conversation with {form.name.trim() || "this person"}</span>
+                <span className="block text-[11px] text-gray-400">Topic, what you discussed and the next follow-up — saved together</span>
+              </span>
             </label>
             {withConv && (
-              <div className="px-4 pb-4 space-y-3 border-t border-blue-100 pt-3">
+              <div className="px-4 pb-4 space-y-3 border-t border-blue-100 pt-4">
                 <div className="grid grid-cols-3 gap-3">
                   <Field label="Topic / Agenda *" className="col-span-2">
                     <input autoFocus value={convHead.topic} onChange={(e) => setConvHead((h) => ({ ...h, topic: e.target.value }))}
@@ -546,7 +514,7 @@ export default function GangTrackerPage() {
             )}
           </div>
         )}
-      </Modal>
+      </MemberFormModal>
 
       {/* Detail / Follow-up modal */}
       {detailMember && (
